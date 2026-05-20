@@ -307,7 +307,9 @@
 .nav-section.closed .chevron { transform: rotate(-90deg); }
 .app-root.collapsed .section-label,
 .app-root.collapsed .chevron { opacity: 0; pointer-events: none; }
-.app-root.collapsed .nav-section-header { justify-content: center; }
+.app-root.collapsed .nav-section-header { display: none; }
+.app-root.collapsed .nav-section { margin-bottom: 0; }
+.app-root.collapsed .nav-items { gap: 4px; padding: 4px 0; }
 
 .nav-items {
   display: flex; flex-direction: column; gap: 1px;

@@ -172,15 +172,6 @@ export function AppSidebar() {
         </nav>
 
         <div className="sidebar-footer">
-          <Link href="/guia" className="footer-item" title="Guia & Tutoriais">
-            <span className="footer-icon footer-icon-guia">
-              <i className="ti ti-school" />
-            </span>
-            <span className="footer-text">
-              <span className="footer-title">Guia &amp; Tutoriais</span>
-              <span className="footer-sub">Aprenda a usar tudo</span>
-            </span>
-          </Link>
           <button
             type="button"
             className="footer-item"
