@@ -1,79 +1,48 @@
-import Link from "next/link";
-import { Plug, Plus } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { requireUserWithAgencia } from "@/lib/auth";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+const INTEGRACOES = [
+  { nome: "Meta Ads", desc: "12 contas sincronizadas.", icon: "ti-brand-meta", iconBg: "linear-gradient(135deg, #1877F2, #4FB1F0)", status: { cls: "b-green", label: "● Conectado" }, ctaLabel: "Gerenciar", ctaPrimary: false },
+  { nome: "Google Ads", desc: "Search, Display, YouTube.", icon: "ti-brand-google", iconBg: "linear-gradient(135deg, #4285F4, #34A853)", status: { cls: "b-amber", label: "● Disponível" }, ctaLabel: "Conectar", ctaPrimary: true },
+  { nome: "TikTok Ads", desc: "TikTok for Business.", icon: "ti-brand-tiktok", iconBg: "linear-gradient(135deg, #2A2418, #5C3B22)", status: { cls: "b-amber", label: "● Disponível" }, ctaLabel: "Conectar", ctaPrimary: true },
+  { nome: "WhatsApp Business", desc: "Notificações em tempo real.", icon: "ti-brand-whatsapp", iconBg: "linear-gradient(135deg, #25D366, #128C7E)", status: { cls: "b-green", label: "● Conectado" }, ctaLabel: "Gerenciar", ctaPrimary: false },
+  { nome: "Mailchimp", desc: "Sincronize leads com listas.", icon: "ti-mail", iconBg: "linear-gradient(135deg, #E8A87C, #C38D6A)", status: { cls: "b-amber", label: "● Disponível" }, ctaLabel: "Conectar", ctaPrimary: true },
+  { nome: "Google Analytics 4", desc: "8 propriedades sincronizadas.", icon: "ti-chart-pie", iconBg: "linear-gradient(135deg, #C9A876, #E8A87C)", status: { cls: "b-green", label: "● Conectado" }, ctaLabel: "Gerenciar", ctaPrimary: false },
+];
 
-export default async function IntegracoesPage() {
-  const { supabase } = await requireUserWithAgencia();
-  const { data: clientes } = await supabase
-    .from("clientes")
-    .select("id, nome, slug, integracoes(id, plataforma, account_name, status)")
-    .is("deleted_at", null)
-    .order("nome");
-
+export default function IntegracoesPage() {
   return (
-    <>
-      <PageHeader
-        title="Integrações"
-        description="Conecte as contas de cada cliente às plataformas de tráfego."
-      >
-        <Link href="/clientes/novo" className={buttonVariants()}>
-          <Plus className="mr-2 h-4 w-4" /> Novo cliente
-        </Link>
-      </PageHeader>
+    <section className="mk-page">
+      <div className="mk-page-head">
+        <div className="mk-eyebrow">Conexões</div>
+        <h1 className="mk-page-title">Integrações</h1>
+        <p className="mk-page-sub">Conecte plataformas de anúncios e ferramentas.</p>
+      </div>
 
-      {!clientes || clientes.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Plug className="mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="text-lg font-medium">Nenhum cliente cadastrado ainda.</p>
-            <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Cadastre um cliente em <Link href="/clientes/novo" className="underline">Clientes</Link> antes de
-              conectar uma plataforma.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {clientes.map((cliente) => (
-            <Card key={cliente.id}>
-              <CardHeader>
-                <CardTitle>{cliente.nome}</CardTitle>
-                <CardDescription>
-                  {cliente.integracoes?.length
-                    ? `${cliente.integracoes.length} integração(ões) ativa(s)`
-                    : "Nenhuma plataforma conectada."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {cliente.integracoes?.map((i) => (
-                  <div key={i.id} className="flex items-center justify-between text-sm">
-                    <span>
-                      {i.plataforma === "meta_ads" ? "Meta Ads" : i.plataforma}
-                      <span className="text-muted-foreground"> · {i.account_name}</span>
-                    </span>
-                    <Badge variant={i.status === "ativa" ? "default" : "secondary"}>
-                      {i.status}
-                    </Badge>
-                  </div>
-                ))}
-                <Button variant="outline" className="w-full" disabled title="Disponível na Fase 2">
-                  Conectar com Meta — Fase 2
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </>
+      <div className="grid-3">
+        {INTEGRACOES.map((i) => (
+          <div key={i.nome} className="mk-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 13 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 11, background: i.iconBg, display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8" }}>
+                <i className={`ti ${i.icon}`} style={{ fontSize: 24 }} />
+              </div>
+              <span className={`mk-badge ${i.status.cls}`}>{i.status.label}</span>
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--mk-text)" }}>{i.nome}</div>
+            <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginTop: 3 }}>{i.desc}</div>
+            <button
+              type="button"
+              className="ghost-btn"
+              style={{
+                marginTop: 12,
+                width: "100%",
+                justifyContent: "center",
+                color: i.ctaPrimary ? "var(--mk-text)" : undefined,
+                borderColor: i.ctaPrimary ? "var(--mk-text)" : undefined,
+              }}
+            >
+              {i.ctaLabel}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
