@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +32,8 @@ function PlatformIcon({ plataforma, size = 18 }: { plataforma: Plataforma; size?
         flexShrink: 0,
       }}
     >
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={ICON_FILE[plataforma]}
         alt={PLATFORMS[plataforma].nome}
         width={size}
@@ -45,8 +45,17 @@ function PlatformIcon({ plataforma, size = 18 }: { plataforma: Plataforma; size?
 }
 
 export function PlatformSelector() {
+  const router = useRouter();
   const { ativa, setAtiva, conectadas } = usePlatform();
   const ativaInfo = ativa ? PLATFORMS[ativa] : null;
+
+  const handleClick = (p: Plataforma) => {
+    if (conectadas.includes(p)) {
+      setAtiva(p);
+    } else {
+      router.push(`/integracoes/${p === "meta_ads" ? "meta" : "google"}`);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -73,11 +82,8 @@ export function PlatformSelector() {
           return (
             <DropdownMenuItem
               key={p.id}
-              onClick={() => {
-                if (conectada) setAtiva(p.id as Plataforma);
-              }}
-              disabled={!conectada}
-              style={{ opacity: conectada ? 1 : 0.55 }}
+              onClick={() => handleClick(p.id as Plataforma)}
+              style={{ opacity: conectada ? 1 : 0.7 }}
             >
               {conectada ? (
                 <PlatformIcon plataforma={p.id as Plataforma} size={22} />
@@ -107,7 +113,11 @@ export function PlatformSelector() {
                     color: conectada ? "#6B8E4E" : "var(--mk-text-muted)",
                   }}
                 >
-                  {conectada ? "● Conectada" : "○ Não conectada"}
+                  {conectada
+                    ? isActive
+                      ? "● Ativa agora"
+                      : "● Conectada — clique para ativar"
+                    : "○ Não conectada — clique para conectar"}
                 </span>
               </span>
               {isActive && (
@@ -117,15 +127,7 @@ export function PlatformSelector() {
           );
         })}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          render={(props) => (
-            <Link
-              {...props}
-              href="/integracoes"
-              className={(props.className ?? "") + " w-full cursor-pointer"}
-            />
-          )}
-        >
+        <DropdownMenuItem onClick={() => router.push("/integracoes")}>
           <i className="ti ti-plug" style={{ fontSize: 14, marginRight: 8 }} />
           Gerenciar integrações
         </DropdownMenuItem>
