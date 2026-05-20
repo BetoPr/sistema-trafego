@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOutAction } from "@/lib/actions/auth";
+import { PlatformSelector } from "./PlatformSelector";
 
 interface TopbarProps {
   userName: string;
@@ -31,15 +32,7 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
         </div>
       </div>
       <div className="topbar-right">
-        <div className="date-pill">
-          <i className="ti ti-calendar" style={{ fontSize: 14 }} />
-          Últimos 30 dias
-          <i className="ti ti-chevron-down" style={{ fontSize: 14 }} />
-        </div>
-        <button type="button" className="cta-btn">
-          <i className="ti ti-plus" style={{ fontSize: 14 }} />
-          Nova campanha
-        </button>
+        <PlatformSelector />
         <DropdownMenu>
           <DropdownMenuTrigger
             className="avatar-r"

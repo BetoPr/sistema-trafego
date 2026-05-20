@@ -1,6 +1,7 @@
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
+import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
 import { requireUserWithAgencia } from "@/lib/auth";
 
@@ -14,17 +15,19 @@ export default async function DashboardLayout({
 
   return (
     <CollapseProvider>
-      <AppShell>
-        <AppSidebar />
-        <main className="mk-main">
-          <Topbar
-            userName={usuario.nome}
-            userEmail={usuario.email}
-            agencia={agencia?.nome ?? "—"}
-          />
-          {children}
-        </main>
-      </AppShell>
+      <PlatformProvider>
+        <AppShell>
+          <AppSidebar />
+          <main className="mk-main">
+            <Topbar
+              userName={usuario.nome}
+              userEmail={usuario.email}
+              agencia={agencia?.nome ?? "—"}
+            />
+            {children}
+          </main>
+        </AppShell>
+      </PlatformProvider>
     </CollapseProvider>
   );
 }
