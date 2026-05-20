@@ -128,9 +128,10 @@ export function WizardMeta() {
 
           {saved ? (
             <Aviso tipo="ok">
-              Credenciais armazenadas localmente. O OAuth real de conexão de contas será implementado na Fase 2
-              (Roberto: me chama no Claude pra implementar). Por enquanto, mantenha esses valores guardados em local seguro
-              (recomendo <code style={code}>Desktop\Credenciais\</code> + variáveis de ambiente Vercel).
+              Credenciais salvas no navegador. Agora cole esses valores em{" "}
+              <strong>Vercel → Settings → Environment Variables</strong> (marca como Sensitive) e faça redeploy.
+              Depois volte em <Link href="/integracoes/meta" style={{ color: "var(--mk-accent)" }}>Integrações Meta</Link>{" "}
+              e clique <strong>Conectar</strong> no cliente desejado.
             </Aviso>
           ) : (
             <button
