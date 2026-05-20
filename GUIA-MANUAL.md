@@ -4,7 +4,7 @@ Boa parte do setup já foi feita automaticamente via MCP Supabase em **2026-05-2
 
 ✅ Projeto Supabase criado: **Sistema Trafego** (`nnswiakwjvoqwcjscbqq`, sa-east-1)
 ✅ Schema completo aplicado (12 tabelas + view + RLS)
-✅ Agência "Infinity Consultoria" seedada
+✅ Agência "Agência Demo" seedada
 ✅ Bucket `relatorios` criado (privado, PDF/XLSX, 50MB max)
 ✅ `ENCRYPTION_KEY` e `OAUTH_STATE_SECRET` gerados e gravados em `.env.local`
 ✅ `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` em `.env.local`
@@ -33,8 +33,8 @@ MCP não expõe a `service_role` por segurança. Você precisa pegar manualmente
 1. Abra: https://supabase.com/dashboard/project/nnswiakwjvoqwcjscbqq/auth/users
 2. Clique **Add user** → **Create new user**
 3. Preencha:
-   - **Email:** `contato@infinitycomercialia.com` (ou outro)
-   - **Password:** senha forte (salve em Credenciais)
+   - **Email:** seu email
+   - **Password:** senha forte (salve em local seguro)
    - Marque ✅ **Auto Confirm User**
 4. Clique **Create user**
 5. **Copie o User UID** que aparece (ex: `12345678-aaaa-bbbb-cccc-deadbeef0001`)
@@ -45,8 +45,8 @@ MCP não expõe a `service_role` por segurança. Você precisa pegar manualmente
    values (
      '<COLE_O_USER_UID>',
      'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-     'Roberto',
-     'contato@infinitycomercialia.com',
+     'Seu Nome',
+     '<seu email>',
      'owner'
    );
    ```
@@ -88,7 +88,7 @@ npm run dev
 
 > Nota: como ainda não criamos a tela `/login` (Fase 1), qualquer URL vai redirecionar e cair em 404. Isso é **esperado** nesta fase. O importante é o servidor subir sem erro no terminal.
 
-Quando estiver OK, me chama no Claude pra começar **Fase 1** (auth UI + CRUD clientes).
+Quando estiver OK, chame na próxima sessão para começar **Fase 1** (auth UI + CRUD clientes).
 
 ---
 

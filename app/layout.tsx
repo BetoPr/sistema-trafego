@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Sistema de Gestão de Tráfego",
-  description: "MVP de gestão de tráfego pago multi-cliente — Infinity Consultoria",
+  description: "MVP de gestão de tráfego pago multi-cliente — projeto de estudo.",
 };
 
 export default function RootLayout({
