@@ -110,7 +110,8 @@ export function buildAuthorizeUrl(params: { redirectUri: string; state: string }
   url.searchParams.set("redirect_uri", params.redirectUri);
   url.searchParams.set("state", params.state);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "ads_read,business_management,read_insights");
+  // ads_read já dá acesso a insights de ads. read_insights é só pra Pages (deprecado pra ads).
+  url.searchParams.set("scope", "ads_read,business_management");
   return url.toString();
 }
 
