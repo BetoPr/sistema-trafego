@@ -2,9 +2,17 @@ import Link from "next/link";
 import { requireUserWithAgencia } from "@/lib/auth";
 import { WizardMeta } from "./_wizard";
 import { DesconectarBotao } from "./_desconectar";
+import { SincronizarBotao } from "./_sync-btn";
 
 interface PageProps {
-  searchParams: Promise<{ erro?: string; msg?: string; ok?: string }>;
+  searchParams: Promise<{
+    erro?: string;
+    msg?: string;
+    ok?: string;
+    campanhas?: string;
+    anuncios?: string;
+    metricas?: string;
+  }>;
 }
 
 const ERROS_MSG: Record<string, string> = {
@@ -20,6 +28,7 @@ const ERROS_MSG: Record<string, string> = {
   sem_contas: "Nenhuma ad account vinculada ao usuário Meta",
   sessao_expirada: "Sessão de conexão expirou — refaça",
   cookie_invalido: "Cookie de conexão inválido",
+  sync_failed: "Falha ao sincronizar dados Meta",
 };
 
 export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
@@ -36,12 +45,20 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
 
   const { data: integracoes } = await supabase
     .from("integracoes")
-    .select("id, cliente_id, account_id, account_name, status, token_expires_at")
+    .select("id, cliente_id, account_id, account_name, status, token_expires_at, ultima_sync, erro_ultima_sync")
     .eq("plataforma", "meta_ads");
 
   const byCliente = new Map<
     string,
-    { id: string; account_id: string; account_name: string | null; status: string; token_expires_at: string | null }
+    {
+      id: string;
+      account_id: string;
+      account_name: string | null;
+      status: string;
+      token_expires_at: string | null;
+      ultima_sync: string | null;
+      erro_ultima_sync: string | null;
+    }
   >();
   for (const i of integracoes || []) {
     byCliente.set(i.cliente_id, i);
@@ -89,7 +106,15 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
             className="ti ti-circle-check"
             style={{ marginRight: 8, color: "#6B8E4E", verticalAlign: -2 }}
           />
-          Conta conectada com sucesso. Sync inicial roda em breve.
+          {sp.ok === "sync" ? (
+            <>
+              Sync concluído. <strong>{sp.campanhas || 0}</strong> campanha(s),{" "}
+              <strong>{sp.anuncios || 0}</strong> anúncio(s),{" "}
+              <strong>{sp.metricas || 0}</strong> métrica(s) diária(s) atualizadas.
+            </>
+          ) : (
+            <>Conta conectada. Clique em <strong>Sincronizar</strong> pra puxar dados Meta.</>
+          )}
         </div>
       )}
 
@@ -234,7 +259,20 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
                   </div>
                   {conectado ? (
                     <>
-                      <span className="mk-badge b-green">● Conectado</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, marginRight: 6 }}>
+                        <span className="mk-badge b-green">● Conectado</span>
+                        {integ!.ultima_sync && (
+                          <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>
+                            Última sync: {new Date(integ!.ultima_sync).toLocaleString("pt-BR")}
+                          </span>
+                        )}
+                        {integ!.erro_ultima_sync && (
+                          <span style={{ fontSize: 10, color: "#C97064" }}>
+                            Erro: {integ!.erro_ultima_sync.slice(0, 60)}
+                          </span>
+                        )}
+                      </div>
+                      <SincronizarBotao integracaoId={integ!.id} />
                       <DesconectarBotao integracaoId={integ!.id} />
                     </>
                   ) : credsSetup ? (

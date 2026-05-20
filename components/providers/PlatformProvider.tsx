@@ -12,20 +12,32 @@ interface PlatformCtx {
 const Ctx = createContext<PlatformCtx | undefined>(undefined);
 
 const STORAGE_KEY = "mk-platform-ativa";
-const CONECTADAS_KEY = "mk-platform-conectadas";
 
-export function PlatformProvider({ children }: { children: ReactNode }) {
+export function PlatformProvider({
+  children,
+  initialConectadas = [],
+}: {
+  children: ReactNode;
+  initialConectadas?: Plataforma[];
+}) {
   const [ativa, setAtivaState] = useState<Plataforma | null>(null);
-  const [conectadas, setConectadas] = useState<Plataforma[]>([]);
+  const conectadas = initialConectadas;
 
+  // Lê preferência salva. Se não existe, pega primeira conectada como default.
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "meta_ads" || saved === "google_ads") setAtivaState(saved);
-      const conn = localStorage.getItem(CONECTADAS_KEY);
-      if (conn) setConectadas(JSON.parse(conn));
+      if (saved === "meta_ads" || saved === "google_ads") {
+        if (conectadas.includes(saved as Plataforma)) {
+          setAtivaState(saved as Plataforma);
+          return;
+        }
+      }
+      if (conectadas.length > 0) {
+        setAtivaState(conectadas[0]);
+      }
     } catch {}
-  }, []);
+  }, [conectadas]);
 
   const setAtiva = (p: Plataforma | null) => {
     setAtivaState(p);
