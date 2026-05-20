@@ -64,6 +64,14 @@
 - Route handlers retornam `Response.json(...)` ou `NextResponse.json(...)`.
 - Errors em PT-BR (vão pro usuário). Logs estruturados em EN se preferir.
 
+## Auto-push GitHub
+
+Todo commit dispara `git push origin <branch>` via `.git/hooks/post-commit`. Repo público: https://github.com/BetoPr/sistema-trafego.
+
+- Não desativar o hook sem permissão.
+- Se push falhar, hook avisa no terminal — rode manual: `git push origin main`.
+- Hook não vai pro repo (`.git/` é local). Em clones novos, recriar manualmente.
+
 ## O que NUNCA fazer
 
 - Commitar `.env.local` ou qualquer chave.
@@ -72,3 +80,4 @@
 - Cron acoplado a route handler.
 - Criptografia via pgcrypto pra tokens (use app-level).
 - Skipar verificação de state OAuth.
+- Desativar o hook de auto-push.
