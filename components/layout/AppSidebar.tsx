@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { useCollapse } from "@/components/providers/CollapseProvider";
 
 interface NavItem {
@@ -94,6 +95,10 @@ const SECTIONS: NavSection[] = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { collapsed, toggle } = useCollapse();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted && resolvedTheme === "dark";
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (id: string) => {
@@ -127,6 +132,7 @@ export function AppSidebar() {
           </button>
         </div>
 
+        <nav style={{ display: "flex", flexDirection: "column" }}>
         {SECTIONS.map((section) => {
           const closed = !!closedSections[section.id];
           return (
@@ -163,6 +169,34 @@ export function AppSidebar() {
             </div>
           );
         })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <Link href="/guia" className="footer-item" title="Guia & Tutoriais">
+            <span className="footer-icon footer-icon-guia">
+              <i className="ti ti-school" />
+            </span>
+            <span className="footer-text">
+              <span className="footer-title">Guia &amp; Tutoriais</span>
+              <span className="footer-sub">Aprenda a usar tudo</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="footer-item"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            title={isDark ? "Mudar para claro" : "Mudar para escuro"}
+            aria-label="Alternar tema"
+          >
+            <span className="footer-icon footer-icon-theme">
+              <i className={`ti ${isDark ? "ti-moon" : "ti-sun"}`} />
+            </span>
+            <span className="footer-text">
+              <span className="footer-title">{isDark ? "Modo Escuro" : "Modo Claro"}</span>
+              <span className="footer-sub">Clique pra alternar</span>
+            </span>
+          </button>
+        </div>
       </div>
     </aside>
   );

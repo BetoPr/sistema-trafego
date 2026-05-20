@@ -1,7 +1,5 @@
 "use client";
 
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,12 +17,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const initial = userName.charAt(0).toUpperCase() || "U";
-  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <header className="mk-topbar">
@@ -43,15 +36,6 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
           Últimos 30 dias
           <i className="ti ti-chevron-down" style={{ fontSize: 14 }} />
         </div>
-        <button
-          className="mk-icon-btn"
-          onClick={() => setTheme(isDark ? "light" : "dark")}
-          title="Alternar tema"
-          aria-label="Alternar tema"
-          type="button"
-        >
-          <i className={`ti ${isDark ? "ti-sun" : "ti-moon"}`} style={{ fontSize: 16 }} />
-        </button>
         <button type="button" className="cta-btn">
           <i className="ti ti-plus" style={{ fontSize: 14 }} />
           Nova campanha
