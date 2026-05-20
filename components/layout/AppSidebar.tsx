@@ -132,7 +132,7 @@ export function AppSidebar() {
           </button>
         </div>
 
-        <nav style={{ display: "flex", flexDirection: "column" }}>
+        <nav className="sidebar-nav">
         {SECTIONS.map((section) => {
           const closed = !!closedSections[section.id];
           return (
