@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { signOutAction } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { PlatformSelector } from "./PlatformSelector";
 
 interface TopbarProps {
@@ -20,7 +21,17 @@ interface TopbarProps {
 
 export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
   const initial = userName.charAt(0).toUpperCase() || "U";
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  function handleSignOut() {
+    startTransition(async () => {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.replace("/login");
+      router.refresh();
+    });
+  }
 
   return (
     <header className="mk-topbar">
@@ -56,7 +67,7 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={pending}
-              onClick={() => startTransition(() => signOutAction())}
+              onClick={handleSignOut}
               className="cursor-pointer"
             >
               <i className="ti ti-logout mr-2" style={{ fontSize: 14 }} />
