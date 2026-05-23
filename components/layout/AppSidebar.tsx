@@ -40,12 +40,7 @@ const SECTIONS: NavSection[] = [
     icon: "ti-chart-pie",
     iconColor: "var(--mk-icon-blue)",
     items: [
-      {
-        href: "/criativos",
-        label: "Criativos",
-        icon: "ti-photo-square-rounded",
-        badge: { text: "NOVO" },
-      },
+      { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded" },
       { href: "/publico", label: "Público", icon: "ti-users-group" },
       { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics" },
     ],
@@ -56,7 +51,7 @@ const SECTIONS: NavSection[] = [
     icon: "ti-sparkles",
     iconColor: "var(--mk-icon-purple)",
     items: [
-      { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", dot: true },
+      { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing" },
       {
         href: "/ia-insights",
         label: "Insights IA",
@@ -71,12 +66,7 @@ const SECTIONS: NavSection[] = [
     icon: "ti-users",
     iconColor: "var(--mk-icon-pink)",
     items: [
-      {
-        href: "/clientes",
-        label: "Clientes",
-        icon: "ti-briefcase",
-        badge: { text: "12" },
-      },
+      { href: "/clientes", label: "Clientes", icon: "ti-briefcase" },
       { href: "/integracoes", label: "Integrações", icon: "ti-plug" },
     ],
   },
