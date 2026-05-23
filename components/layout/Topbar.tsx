@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ interface TopbarProps {
 
 export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
   const initial = userName.charAt(0).toUpperCase() || "U";
+  const [pending, startTransition] = useTransition();
 
   return (
     <header className="mk-topbar">
@@ -52,20 +54,14 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <form action={signOutAction}>
-              <DropdownMenuItem
-                render={(props) => (
-                  <button
-                    {...props}
-                    type="submit"
-                    className={`${props.className ?? ""} w-full cursor-pointer`}
-                  />
-                )}
-              >
-                <i className="ti ti-logout mr-2" style={{ fontSize: 14 }} />
-                Sair
-              </DropdownMenuItem>
-            </form>
+            <DropdownMenuItem
+              disabled={pending}
+              onClick={() => startTransition(() => signOutAction())}
+              className="cursor-pointer"
+            >
+              <i className="ti ti-logout mr-2" style={{ fontSize: 14 }} />
+              {pending ? "Saindo..." : "Sair"}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
