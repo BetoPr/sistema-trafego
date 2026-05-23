@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -55,15 +56,17 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
             {initial}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="font-medium">{userName}</div>
-              <div className="text-xs font-normal" style={{ color: "var(--mk-text-muted)" }}>
-                {userEmail}
-              </div>
-              <div className="text-xs font-normal mt-1" style={{ color: "var(--mk-text-muted)" }}>
-                {agencia}
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <div className="font-medium">{userName}</div>
+                <div className="text-xs font-normal" style={{ color: "var(--mk-text-muted)" }}>
+                  {userEmail}
+                </div>
+                <div className="text-xs font-normal mt-1" style={{ color: "var(--mk-text-muted)" }}>
+                  {agencia}
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={pending}

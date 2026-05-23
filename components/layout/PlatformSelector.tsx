@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -74,7 +75,9 @@ export function PlatformSelector() {
         <i className="ti ti-chevron-down" style={{ fontSize: 14 }} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Plataforma ativa</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Plataforma ativa</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {PLATFORM_LIST.map((p) => {
           const conectada = conectadas.includes(p.id as Plataforma);
