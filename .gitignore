@@ -34,6 +34,11 @@ yarn-error.log*
 .env*
 !.env.example
 
+# scripts locais com credenciais (ex: fix-env.ps1) — NUNCA commitar
+*.ps1
+*.sh
+.fix-env*
+
 # vercel
 .vercel
 
