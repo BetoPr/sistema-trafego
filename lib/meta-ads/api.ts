@@ -110,8 +110,13 @@ export function buildAuthorizeUrl(params: { redirectUri: string; state: string }
   url.searchParams.set("redirect_uri", params.redirectUri);
   url.searchParams.set("state", params.state);
   url.searchParams.set("response_type", "code");
-  // ads_read já dá acesso a insights de ads. read_insights é só pra Pages (deprecado pra ads).
-  url.searchParams.set("scope", "ads_read,business_management");
+  // Apenas ads_read — escopo mínimo pra leitura de campanhas/insights/ads.
+  // business_management foi removido em 2026-05-24 pq exigia Business Manager
+  // selecionado no popup Meta; usuários sem Business Manager (ou com app não
+  // vinculado a um Business) viam o dialog cancelar sozinho com
+  // action=reentry_finish + selected_business_id vazio. ads_read sozinho
+  // permite listar ad accounts pessoais + sync de campanhas/insights.
+  url.searchParams.set("scope", "ads_read");
   return url.toString();
 }
 
