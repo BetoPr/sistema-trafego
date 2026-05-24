@@ -18,7 +18,7 @@ const ERROS_MSG: Record<string, string> = {
   fb_error: "Facebook retornou erro durante autorização. Tente novamente.",
   missing_params: "Parâmetros OAuth ausentes. Refaça a conexão.",
   state_mismatch:
-    "Sessão de autorização expirou (5 min). Clique Conectar novamente.",
+    "Sessão de autorização expirou (10 min). Clique Conectar novamente e finalize sem pausar.",
   state_invalid:
     "Sessão de autorização inválida. Clique Conectar novamente.",
   user_mismatch:

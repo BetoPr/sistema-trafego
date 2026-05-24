@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 300,
+    maxAge: 600,
   });
 
   const authorizeUrl = buildAuthorizeUrl({

@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-const STATE_TTL_MS = 5 * 60 * 1000;
+// 10min — TTL antes era 5min mas usuário 2FA / hesitação leva mais
+const STATE_TTL_MS = 10 * 60 * 1000;
 
 export interface OAuthStatePayload {
   cliente_id: string;
