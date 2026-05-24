@@ -10,9 +10,18 @@ function isPublic(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  const publishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!publishableKey) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (ou NEXT_PUBLIC_SUPABASE_ANON_KEY) ausente",
+    );
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    publishableKey,
     {
       cookies: {
         getAll() {
