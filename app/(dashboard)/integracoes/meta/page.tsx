@@ -256,13 +256,13 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
                       <DesconectarBotao integracaoId={integ!.id} />
                     </>
                   ) : (
-                    <Link
+                    <a
                       href={`/oauth/meta/start?cliente_id=${c.id}`}
                       className="cta-btn"
                       style={{ fontSize: 12 }}
                     >
                       <i className="ti ti-plug" style={{ fontSize: 13 }} /> Conectar Meta Ads
-                    </Link>
+                    </a>
                   )}
                 </div>
               );

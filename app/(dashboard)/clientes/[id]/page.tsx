@@ -216,12 +216,12 @@ export default async function ClienteDetalhePage({ params }: Props) {
             }}
           >
             Nenhuma integração vinculada.{" "}
-            <Link
+            <a
               href={`/oauth/meta/start?cliente_id=${cliente.id}`}
               style={{ color: "var(--mk-accent)" }}
             >
               Conectar Meta Ads
-            </Link>
+            </a>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
