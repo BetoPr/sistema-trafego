@@ -117,7 +117,10 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
               <strong>{sp.metricas || 0}</strong> métrica(s) diária(s) atualizadas.
             </>
           ) : (
-            <>Conta conectada e sincronizada com sucesso.</>
+            <>
+              Conta conectada. Clique em <strong>Sincronizar</strong> para puxar dados
+              Meta.
+            </>
           )}
         </div>
       )}

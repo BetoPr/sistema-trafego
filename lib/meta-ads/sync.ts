@@ -95,7 +95,20 @@ export async function syncMetaIntegracao(integracaoId: string): Promise<SyncResu
   const adAccountId = integ.account_id.startsWith("act_") ? integ.account_id : `act_${integ.account_id}`;
   let accessToken: string;
   try {
-    accessToken = decryptToken(Buffer.from(integ.access_token_encrypted));
+    // bytea de Postgres via supabase-js volta como string "\xHEX" OU Buffer
+    // (dependendo de versão/driver). Normalizamos pra Buffer real.
+    const raw = integ.access_token_encrypted as unknown;
+    let blob: Buffer;
+    if (Buffer.isBuffer(raw)) {
+      blob = raw;
+    } else if (typeof raw === "string" && raw.startsWith("\\x")) {
+      blob = Buffer.from(raw.slice(2), "hex");
+    } else if (typeof raw === "string") {
+      blob = Buffer.from(raw, "hex");
+    } else {
+      throw new Error(`tipo inesperado para access_token_encrypted: ${typeof raw}`);
+    }
+    accessToken = decryptToken(blob);
   } catch (e) {
     await svc
       .from("integracoes")

@@ -26,7 +26,11 @@ export async function salvarContaSelecionada(formData: FormData) {
   if (!user) redirect("/login");
   if (user.id !== pending.user_id) throw new Error("Usuário mudou — refaça o OAuth");
 
+  // Supabase-js serializa Buffer como JSON ({"type":"Buffer","data":[...]})
+  // quando passado direto pra payload. Convertemos manualmente pra hex
+  // com prefixo \x — formato literal bytea aceito pelo Postgres.
   const tokenBlob = Buffer.from(pending.access_token_b64, "base64");
+  const tokenHex = `\\x${tokenBlob.toString("hex")}`;
 
   const { data: inserted, error } = await supabase
     .from("integracoes")
@@ -37,7 +41,7 @@ export async function salvarContaSelecionada(formData: FormData) {
         plataforma: "meta_ads",
         account_id: account.account_id,
         account_name: account.name,
-        access_token_encrypted: tokenBlob,
+        access_token_encrypted: tokenHex,
         token_expires_at: new Date(pending.token_expires_at).toISOString(),
         status: "ativa",
         erro_ultima_sync: null,
