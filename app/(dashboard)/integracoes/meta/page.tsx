@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireUserWithAgencia } from "@/lib/auth";
-import { WizardMeta } from "./_wizard";
 import { DesconectarBotao } from "./_desconectar";
 import { SincronizarBotao } from "./_sync-btn";
 
@@ -16,26 +15,29 @@ interface PageProps {
 }
 
 const ERROS_MSG: Record<string, string> = {
-  fb_error: "Facebook retornou erro durante autorização",
-  missing_params: "Parâmetros OAuth ausentes",
-  state_mismatch: "State CSRF não bate (possível ataque ou cookie expirado)",
-  state_invalid: "State OAuth inválido ou expirado",
-  user_mismatch: "Usuário diferente do que iniciou a conexão",
-  usuario_nao_encontrado: "Seu usuário não foi encontrado",
-  cliente_invalido: "Cliente inválido para sua agência",
-  exchange_failed: "Falha ao trocar code por token Meta",
-  list_adaccounts_failed: "Falha ao listar contas de anúncio",
-  sem_contas: "Nenhuma ad account vinculada ao usuário Meta",
-  sessao_expirada: "Sessão de conexão expirou — refaça",
-  cookie_invalido: "Cookie de conexão inválido",
-  sync_failed: "Falha ao sincronizar dados Meta",
+  fb_error: "Facebook retornou erro durante autorização. Tente novamente.",
+  missing_params: "Parâmetros OAuth ausentes. Refaça a conexão.",
+  state_mismatch:
+    "Sessão de autorização expirou (5 min). Clique Conectar novamente.",
+  state_invalid:
+    "Sessão de autorização inválida. Clique Conectar novamente.",
+  user_mismatch:
+    "Usuário diferente do que iniciou a conexão. Faça login com a mesma conta e tente novamente.",
+  usuario_nao_encontrado: "Seu usuário não foi encontrado.",
+  cliente_invalido: "Cliente inválido para sua agência.",
+  exchange_failed: "Falha ao trocar code por token Meta. Tente novamente.",
+  list_adaccounts_failed:
+    "Falha ao listar contas de anúncio. Verifique permissões no Meta.",
+  sem_contas:
+    "Nenhuma conta de anúncio vinculada ao seu usuário Meta. Adicione uma conta no Business Manager.",
+  sessao_expirada: "Sessão expirou. Clique Conectar novamente.",
+  cookie_invalido: "Cookie de conexão inválido. Tente novamente.",
+  sync_failed: "Falha ao sincronizar dados Meta.",
 };
 
 export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const { supabase } = await requireUserWithAgencia();
-
-  const credsSetup = !!(process.env.META_APP_ID && process.env.META_APP_SECRET);
 
   const { data: clientes } = await supabase
     .from("clientes")
@@ -45,7 +47,9 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
 
   const { data: integracoes } = await supabase
     .from("integracoes")
-    .select("id, cliente_id, account_id, account_name, status, token_expires_at, ultima_sync, erro_ultima_sync")
+    .select(
+      "id, cliente_id, account_id, account_name, status, token_expires_at, ultima_sync, erro_ultima_sync",
+    )
     .eq("plataforma", "meta_ads");
 
   const byCliente = new Map<
@@ -82,11 +86,11 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
           <i className="ti ti-arrow-left" style={{ fontSize: 13 }} />
           Voltar para integrações
         </Link>
-        <div className="mk-eyebrow">Conexão · Meta Ads</div>
+        <div className="mk-eyebrow">Integração · Meta Ads</div>
         <h1 className="mk-page-title">Meta Ads</h1>
         <p className="mk-page-sub">
-          Conecte uma conta de anúncios Meta por cliente. Tokens são criptografados antes
-          de irem ao banco.
+          Conecte uma conta Meta Ads por cliente. Dados de campanhas, ad sets, anúncios e
+          métricas são sincronizados sob demanda.
         </p>
       </div>
 
@@ -113,7 +117,7 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
               <strong>{sp.metricas || 0}</strong> métrica(s) diária(s) atualizadas.
             </>
           ) : (
-            <>Conta conectada. Clique em <strong>Sincronizar</strong> pra puxar dados Meta.</>
+            <>Conta conectada e sincronizada com sucesso.</>
           )}
         </div>
       )}
@@ -139,44 +143,6 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Status setup credenciais */}
-      <div
-        className="mk-card mk-card-lg"
-        style={{ marginBottom: 14, display: "flex", gap: 12, alignItems: "flex-start" }}
-      >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 9,
-            background: credsSetup ? "rgba(107,142,78,0.2)" : "rgba(201,168,118,0.25)",
-            color: credsSetup ? "#6B8E4E" : "#C9A876",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <i
-            className={`ti ${credsSetup ? "ti-circle-check" : "ti-alert-circle"}`}
-            style={{ fontSize: 20 }}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          <h3 className="card-title" style={{ marginBottom: 4 }}>
-            {credsSetup
-              ? "Credenciais da app Meta configuradas"
-              : "Falta configurar credenciais"}
-          </h3>
-          <p className="card-sub" style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 0 }}>
-            {credsSetup
-              ? "META_APP_ID e META_APP_SECRET detectados em produção. Conexão OAuth pronta."
-              : "Adicione META_APP_ID e META_APP_SECRET nas variáveis Vercel + redeploy antes de conectar."}
-          </p>
-        </div>
-      </div>
-
-      {/* Lista de clientes pra conectar */}
       <div className="mk-card mk-card-lg">
         <h3 className="card-title" style={{ marginBottom: 14 }}>
           Clientes ({clientes?.length || 0})
@@ -193,7 +159,7 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
           >
             Nenhum cliente cadastrado.{" "}
             <Link href="/clientes/novo" style={{ color: "var(--mk-accent)" }}>
-              Criar cliente
+              Cadastrar primeiro cliente
             </Link>
           </div>
         ) : (
@@ -252,18 +218,29 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
                         {integ!.account_name} · {integ!.account_id}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2 }}>
+                      <div
+                        style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2 }}
+                      >
                         {c.segmento || "—"}
                       </div>
                     )}
                   </div>
                   {conectado ? (
                     <>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, marginRight: 6 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-end",
+                          gap: 4,
+                          marginRight: 6,
+                        }}
+                      >
                         <span className="mk-badge b-green">● Conectado</span>
                         {integ!.ultima_sync && (
                           <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>
-                            Última sync: {new Date(integ!.ultima_sync).toLocaleString("pt-BR")}
+                            Última sync:{" "}
+                            {new Date(integ!.ultima_sync).toLocaleString("pt-BR")}
                           </span>
                         )}
                         {integ!.erro_ultima_sync && (
@@ -275,18 +252,14 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
                       <SincronizarBotao integracaoId={integ!.id} />
                       <DesconectarBotao integracaoId={integ!.id} />
                     </>
-                  ) : credsSetup ? (
+                  ) : (
                     <Link
                       href={`/oauth/meta/start?cliente_id=${c.id}`}
                       className="cta-btn"
                       style={{ fontSize: 12 }}
                     >
-                      <i className="ti ti-plug" style={{ fontSize: 13 }} /> Conectar
+                      <i className="ti ti-plug" style={{ fontSize: 13 }} /> Conectar Meta Ads
                     </Link>
-                  ) : (
-                    <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
-                      Configure credenciais
-                    </span>
                   )}
                 </div>
               );
@@ -294,28 +267,6 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
           </div>
         )}
       </div>
-
-      <details style={{ marginTop: 14 }}>
-        <summary
-          style={{
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "var(--mk-text)",
-            padding: "12px 14px",
-            borderRadius: 10,
-            background: "var(--mk-surface)",
-            border: "0.5px solid var(--mk-border)",
-            listStyle: "none",
-          }}
-        >
-          <i className="ti ti-book" style={{ marginRight: 6, verticalAlign: -1 }} />
-          Ver tutorial passo a passo (Wizard)
-        </summary>
-        <div style={{ marginTop: 14 }}>
-          <WizardMeta />
-        </div>
-      </details>
     </section>
   );
 }

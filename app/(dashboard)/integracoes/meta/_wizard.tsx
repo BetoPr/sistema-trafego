@@ -140,11 +140,10 @@ export function WizardMeta() {
               style={{ marginTop: 12 }}
               disabled={!appId || !appSecret}
               onClick={() => {
-                try {
-                  localStorage.setItem("meta-app-id", appId);
-                  localStorage.setItem("meta-app-secret", appSecret);
-                  setSaved(true);
-                } catch {}
+                // Secrets não vão pro localStorage. Wizard é apenas guia visual
+                // — o app SaaS já configura essas vars no Vercel. Mantemos o
+                // botão pra UX (visualizar passo concluído) sem persistir nada.
+                setSaved(true);
               }}
             >
               <i className="ti ti-device-floppy" style={{ fontSize: 14 }} />

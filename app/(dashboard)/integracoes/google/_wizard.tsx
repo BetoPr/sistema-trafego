@@ -163,12 +163,8 @@ export function WizardGoogle() {
               style={{ marginTop: 12 }}
               disabled={!clientId || !clientSecret || !devToken}
               onClick={() => {
-                try {
-                  localStorage.setItem("google-client-id", clientId);
-                  localStorage.setItem("google-client-secret", clientSecret);
-                  localStorage.setItem("google-dev-token", devToken);
-                  setSaved(true);
-                } catch {}
+                // Secrets não vão pro localStorage. Wizard é apenas guia visual.
+                setSaved(true);
               }}
             >
               <i className="ti ti-device-floppy" style={{ fontSize: 14 }} />
