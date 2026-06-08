@@ -5,7 +5,7 @@ import { ChatView } from "./_chat";
 import { PainelDireito } from "./_painel";
 
 interface PageProps {
-  searchParams: Promise<{ tab?: string; t?: string; q?: string }>;
+  searchParams: Promise<{ tab?: string; t?: string; q?: string; canal?: string }>;
 }
 
 const TABS: Array<{ id: "aberto" | "pendente" | "fechado"; label: string }> = [
@@ -20,14 +20,16 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   const sb = createServiceClient();
   const tab = (TABS.find((t) => t.id === sp.tab)?.id) || "aberto";
 
-  // Counts
+  // Counts (respeitam filtro de canal)
   const counts: Record<string, number> = { aberto: 0, pendente: 0, fechado: 0 };
   for (const t of TABS) {
-    const { count } = await sb
+    let cq = sb
       .from("tickets")
       .select("id", { count: "exact", head: true })
       .eq("agencia_id", ctx.agenciaId)
       .eq("status", t.id);
+    if (sp.canal && sp.canal !== "todos") cq = cq.eq("canal_id", sp.canal);
+    const { count } = await cq;
     counts[t.id] = count || 0;
   }
 
@@ -43,7 +45,17 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   if (sp.q) {
     q = q.ilike("ultima_mensagem_preview", `%${sp.q}%`);
   }
+  if (sp.canal && sp.canal !== "todos") {
+    q = q.eq("canal_id", sp.canal);
+  }
   const { data: tickets } = await q;
+
+  // Canais ativos pra dropdown filtro
+  const { data: canaisAtivos } = await sb
+    .from("canais")
+    .select("id, nome, status, numero_conectado, nome_perfil")
+    .eq("agencia_id", ctx.agenciaId)
+    .order("nome");
 
   // Ticket aberto
   const ticketAbertoId = sp.t;
@@ -129,16 +141,27 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
       <aside style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--mk-border)" }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)" }}>Atendimentos</h2>
-          <form method="get" style={{ marginTop: 8 }}>
+          <form method="get" style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            <select name="canal" defaultValue={sp.canal || "todos"} style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 11.5 }}>
+              <option value="todos">📥 Todos canais ({canaisAtivos?.length || 0})</option>
+              {canaisAtivos?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.status === "connected" ? "● " : "○ "}
+                  {c.nome}
+                  {c.numero_conectado ? ` · ${c.numero_conectado}` : ""}
+                </option>
+              ))}
+            </select>
             <input name="q" defaultValue={sp.q || ""} placeholder="Buscar mensagem…" style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 11.5 }} />
             <input type="hidden" name="tab" value={tab} />
+            <button type="submit" className="ghost-btn" style={{ fontSize: 11 }}><i className="ti ti-filter" /> Aplicar</button>
           </form>
         </div>
         <div style={{ display: "flex", borderBottom: "0.5px solid var(--mk-border)" }}>
           {TABS.map((t) => (
             <Link
               key={t.id}
-              href={`/atendimentos?tab=${t.id}`}
+              href={`/atendimentos?tab=${t.id}${sp.canal && sp.canal !== "todos" ? `&canal=${sp.canal}` : ""}`}
               style={{
                 flex: 1,
                 padding: "8px 6px",
@@ -166,7 +189,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
               return (
                 <Link
                   key={t.id}
-                  href={`/atendimentos?tab=${tab}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}&t=${t.id}`}
+                  href={`/atendimentos?tab=${tab}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}${sp.canal && sp.canal !== "todos" ? `&canal=${sp.canal}` : ""}&t=${t.id}`}
                   style={{
                     display: "flex",
                     gap: 10,

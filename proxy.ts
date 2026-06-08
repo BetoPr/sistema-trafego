@@ -1,7 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/oauth", "/_next", "/favicon.ico"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/oauth",
+  "/api", // todas API routes — cada handler valida sua própria auth
+  // (webhooks via secret no path, cron via Bearer header, user routes via getUser)
+  "/_next",
+  "/favicon.ico",
+  "/manifest.json",
+  "/sw.js",
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
