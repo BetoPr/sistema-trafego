@@ -32,7 +32,7 @@ export default async function DashboardLayout({
     <CollapseProvider>
       <PlatformProvider initialConectadas={conectadas}>
         <AppShell>
-          <AppSidebar />
+          <AppSidebar role={usuario.role} />
           <main className="mk-main">
             <Topbar
               userName={usuario.nome}

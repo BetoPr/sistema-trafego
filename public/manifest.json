@@ -1,0 +1,16 @@
+{
+  "name": "Sistema Tráfego — CRM + Ads",
+  "short_name": "Tráfego&Co",
+  "description": "CRM de atendimento WhatsApp + Gestão de tráfego pago (Meta Ads/Google Ads)",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1a1a1a",
+  "theme_color": "#9B7DBF",
+  "icons": [
+    { "src": "/icons/meta-ads.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/meta-ads.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "pt-BR"
+}

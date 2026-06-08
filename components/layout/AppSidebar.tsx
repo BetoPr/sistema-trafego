@@ -22,74 +22,127 @@ interface NavSection {
   items: NavItem[];
 }
 
-const SECTIONS: NavSection[] = [
-  {
-    id: "principal",
-    label: "Principal",
-    icon: "ti-layout-grid",
+function buildSections(role?: string): NavSection[] {
+  const list: NavSection[] = [
+    {
+      id: "principal",
+      label: "Principal",
+      icon: "ti-layout-grid",
+      iconColor: "var(--mk-icon-green)",
+      items: [
+        { href: "/dashboard", label: "Dashboard", icon: "ti-home" },
+      ],
+    },
+    {
+      id: "atendimento",
+      label: "Atendimento",
+      icon: "ti-message",
+      iconColor: "var(--mk-icon-pink)",
+      items: [
+        { href: "/atendimentos", label: "Atendimentos", icon: "ti-messages" },
+        { href: "/contatos", label: "Contatos", icon: "ti-address-book" },
+      ],
+    },
+    {
+      id: "comunicacao",
+      label: "Comunicação",
+      icon: "ti-send",
+      iconColor: "var(--mk-icon-blue)",
+      items: [
+        { href: "/envio-massa", label: "Envio em Massa", icon: "ti-rocket" },
+        { href: "/mensagens-rapidas", label: "Mensagens Rápidas", icon: "ti-bolt" },
+        { href: "/galeria", label: "Galeria", icon: "ti-photo" },
+        { href: "/grupos", label: "Grupos", icon: "ti-users-group" },
+      ],
+    },
+    {
+      id: "trafego",
+      label: "Tráfego (Ads)",
+      icon: "ti-speakerphone",
+      iconColor: "var(--mk-icon-purple)",
+      items: [
+        { href: "/campanhas", label: "Campanhas", icon: "ti-speakerphone" },
+        { href: "/funil", label: "Funil", icon: "ti-filter" },
+        { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded" },
+        { href: "/publico", label: "Público", icon: "ti-users-group" },
+        { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics" },
+        { href: "/ia-insights", label: "Insights IA", icon: "ti-brain", badge: { text: "BREVE", variant: "amber" } },
+        { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing" },
+      ],
+    },
+    {
+      id: "administracao",
+      label: "Administração",
+      icon: "ti-shield-lock",
+      iconColor: "var(--mk-icon-amber)",
+      items: [
+        { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp" },
+        { href: "/filas", label: "Filas", icon: "ti-list-tree" },
+        { href: "/equipes", label: "Equipes", icon: "ti-users-group" },
+        { href: "/usuarios", label: "Usuários", icon: "ti-user-circle" },
+        { href: "/clientes", label: "Clientes (Ads)", icon: "ti-briefcase" },
+      ],
+    },
+    {
+      id: "configuracao",
+      label: "Configuração",
+      icon: "ti-settings",
+      iconColor: "var(--mk-icon-blue)",
+      items: [
+        { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
+        { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles" },
+        { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card" },
+        { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook" },
+        { href: "/integracoes", label: "Integrações", icon: "ti-plug" },
+        { href: "/auditoria", label: "Log de Auditoria", icon: "ti-file-text" },
+      ],
+    },
+  ];
+
+  if (role === "super_admin") {
+    list.push({
+      id: "super",
+      label: "Super Admin",
+      icon: "ti-crown",
+      iconColor: "#C97064",
+      items: [
+        { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
+      ],
+    });
+  }
+
+  list.push({
+    id: "conta",
+    label: "Conta",
+    icon: "ti-user",
     iconColor: "var(--mk-icon-green)",
     items: [
-      { href: "/dashboard", label: "Visão geral", icon: "ti-home" },
-      { href: "/campanhas", label: "Campanhas", icon: "ti-speakerphone" },
-      { href: "/funil", label: "Funil", icon: "ti-filter" },
-    ],
-  },
-  {
-    id: "analise",
-    label: "Análise",
-    icon: "ti-chart-pie",
-    iconColor: "var(--mk-icon-blue)",
-    items: [
-      { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded" },
-      { href: "/publico", label: "Público", icon: "ti-users-group" },
-      { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics" },
-    ],
-  },
-  {
-    id: "inteligencia",
-    label: "Inteligência",
-    icon: "ti-sparkles",
-    iconColor: "var(--mk-icon-purple)",
-    items: [
-      { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing" },
-      {
-        href: "/ia-insights",
-        label: "Insights IA",
-        icon: "ti-brain",
-        badge: { text: "BREVE", variant: "amber" },
-      },
-    ],
-  },
-  {
-    id: "crm",
-    label: "CRM",
-    icon: "ti-users",
-    iconColor: "var(--mk-icon-pink)",
-    items: [
-      { href: "/clientes", label: "Clientes", icon: "ti-briefcase" },
-      { href: "/integracoes", label: "Integrações", icon: "ti-plug" },
-    ],
-  },
-  {
-    id: "sistema",
-    label: "Sistema",
-    icon: "ti-settings",
-    iconColor: "var(--mk-icon-amber)",
-    items: [
-      { href: "/configuracoes", label: "Configurações", icon: "ti-user-cog" },
+      { href: "/conta", label: "Meu Perfil", icon: "ti-user-circle" },
       { href: "/plano", label: "Plano Pro", icon: "ti-credit-card" },
     ],
-  },
-];
+  });
 
-export function AppSidebar() {
+  return list;
+}
+
+export function AppSidebar({ role }: { role?: string } = {}) {
   const pathname = usePathname();
   const { collapsed, toggle } = useCollapse();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<{ prompt: () => Promise<void> } | null>(null);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as unknown as { prompt: () => Promise<void> });
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
   const isDark = mounted && resolvedTheme === "dark";
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>({});
+  const SECTIONS = buildSections(role);
 
   const toggleSection = (id: string) => {
     if (collapsed) return;
@@ -162,6 +215,23 @@ export function AppSidebar() {
         </nav>
 
         <div className="sidebar-footer">
+          {installPrompt && (
+            <button
+              type="button"
+              className="footer-item"
+              onClick={() => installPrompt.prompt()}
+              title="Instalar como aplicativo"
+              aria-label="Instalar PWA"
+            >
+              <span className="footer-icon">
+                <i className="ti ti-device-mobile-down" />
+              </span>
+              <span className="footer-text">
+                <span className="footer-title">Instalar app</span>
+                <span className="footer-sub">PWA</span>
+              </span>
+            </button>
+          )}
           <button
             type="button"
             className="footer-item"
