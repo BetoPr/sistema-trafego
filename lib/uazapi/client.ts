@@ -436,19 +436,48 @@ export interface InstanceWebhookConfig {
 /**
  * POST /webhook — configura webhook da instância.
  *
- * Modo Simples (recomendado): omita action/id, sistema gerencia 1 webhook por instância.
- * Sempre incluir `excludeMessages: ["wasSentByApi"]` pra evitar loops.
+ * mode:
+ *  - 'add' (default): ADICIONA webhook novo, preservando os existentes
+ *    (UAZAPI suporta múltiplos webhooks por instância)
+ *  - 'replace': substitui o webhook único (modo simples)
+ *
+ * Sempre inclui `excludeMessages: ["wasSentByApi"]` pra evitar loops.
  */
 export async function instanceSetWebhook(
   inst: UazapiInstance,
   url: string,
   events: string[] = ["messages", "messages_update", "connection"],
   excludeMessages: string[] = ["wasSentByApi"],
+  mode: "add" | "replace" = "add",
+): Promise<unknown> {
+  const body: Record<string, unknown> = {
+    url,
+    events,
+    excludeMessages,
+    addUrlEvents: false,
+    addUrlTypesMessages: false,
+  };
+  if (mode === "add") {
+    body.action = "add";
+  }
+  return await call(inst.baseUrl, "/webhook", {
+    method: "POST",
+    headers: { token: inst.token },
+    body,
+  });
+}
+
+/**
+ * Remove webhook específico por ID.
+ */
+export async function instanceRemoveWebhook(
+  inst: UazapiInstance,
+  webhookId: string,
 ): Promise<unknown> {
   return await call(inst.baseUrl, "/webhook", {
     method: "POST",
     headers: { token: inst.token },
-    body: { url, events, excludeMessages, addUrlEvents: false, addUrlTypesMessages: false },
+    body: { action: "remove", id: webhookId },
   });
 }
 
