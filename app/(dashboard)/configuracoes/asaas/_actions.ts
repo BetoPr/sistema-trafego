@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
-import { encryptToken } from "@/lib/crypto/tokens";
+import { encryptToken, bufferToBytea } from "@/lib/crypto/tokens";
 import { audit } from "@/lib/crm/audit";
 
 export async function salvarConfigAsaas(formData: FormData) {
@@ -31,7 +31,7 @@ export async function salvarConfigAsaas(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
   if (apiKey && apiKey !== "•••GUARDADO•••") {
-    patch.api_key_encrypted = encryptToken(apiKey);
+    patch.api_key_encrypted = bufferToBytea(encryptToken(apiKey));
   }
 
   // Upsert por agencia_id

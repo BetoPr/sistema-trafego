@@ -28,7 +28,7 @@ export default async function GruposPage({ searchParams }: PageProps) {
       const baseUrl = (canalSel as unknown as { servidor: { base_url: string } }).servidor.base_url;
       const token = decryptToken(byteaToBuffer(canalSel.instance_token_encrypted));
       const r = await instanceListGroups({ baseUrl, token });
-      grupos = r.map((g) => ({ id: g.id, subject: g.subject, participantsCount: g.participants?.length }));
+      grupos = r.map((g) => ({ id: g.JID, subject: g.Name, participantsCount: g.Participants?.length }));
     } catch (e) {
       erro = e instanceof Error ? e.message : String(e);
     }

@@ -4,12 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
-import { encryptToken, decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+import { encryptToken, decryptToken, byteaToBuffer, bufferToBytea } from "@/lib/crypto/tokens";
 import {
-  adminInitInstance,
-  adminDeleteInstance,
+  adminCreateInstance,
+  instanceDelete,
   instanceConnect,
-  instanceGetMe,
   instanceGetStatus,
   instanceDisconnect,
   instanceSetWebhook,
@@ -67,12 +66,12 @@ export async function criarCanal(formData: FormData) {
   let instanceId: string;
   let instanceToken: string;
   try {
-    const inst = await adminInitInstance(
+    const { instance, token } = await adminCreateInstance(
       { baseUrl: servidor.baseUrl, adminToken: servidor.adminToken },
-      { name: nome, systemName: "Sistema Trafego CRM" },
+      { name: nome },
     );
-    instanceId = inst.id;
-    instanceToken = inst.token || "";
+    instanceId = instance.id;
+    instanceToken = token || "";
     if (!instanceId || !instanceToken) {
       throw new Error("UAZAPI não retornou id/token da instância.");
     }
@@ -85,7 +84,7 @@ export async function criarCanal(formData: FormData) {
     await sb.from("canais").update({ padrao: false }).eq("agencia_id", ctx.agenciaId).eq("padrao", true);
   }
 
-  const tokenCripto = encryptToken(instanceToken);
+  const tokenCripto = bufferToBytea(encryptToken(instanceToken));
 
   const { data: novo, error } = await sb
     .from("canais")
@@ -153,12 +152,13 @@ export async function conectarCanal(formData: FormData) {
 
   try {
     const r = await instanceConnect({ baseUrl, token });
+    const qr = r.instance?.qrcode || r.instance?.paircode || null;
     await sb
       .from("canais")
       .update({
-        qr_code_atual: r.qrcode || r.paircode || null,
+        qr_code_atual: qr,
         qr_atualizado_em: new Date().toISOString(),
-        status: r.qrcode ? "pending_qr" : "pending_qr",
+        status: r.connected ? "connected" : "pending_qr",
       })
       .eq("id", id);
   } catch (e) {
@@ -187,19 +187,18 @@ export async function atualizarStatusCanal(formData: FormData) {
   const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
 
   try {
-    const [status, me] = await Promise.all([
-      instanceGetStatus({ baseUrl, token }).catch(() => null),
-      instanceGetMe({ baseUrl, token }).catch(() => null),
-    ]);
-    const conectado = (status?.status || "").toLowerCase().includes("connect") && !(status?.status || "").toLowerCase().includes("dis");
+    const r = await instanceGetStatus({ baseUrl, token }).catch(() => null);
+    const conectado = !!r?.status?.connected;
+    const numero = r?.status?.jid?.user || null;
+    const instStatus = (r?.instance?.status || "").toLowerCase();
     await sb
       .from("canais")
       .update({
-        status: conectado ? "connected" : (status?.status || "pending_qr").toLowerCase().includes("dis") ? "disconnected" : "pending_qr",
-        numero_conectado: me?.number || status?.number || null,
-        nome_perfil: me?.profileName || status?.profileName || null,
-        foto_perfil_url: me?.profilePicUrl || status?.profilePicUrl || null,
-        qr_code_atual: conectado ? null : (status?.qrcode || null),
+        status: conectado ? "connected" : instStatus === "disconnected" ? "disconnected" : "pending_qr",
+        numero_conectado: numero,
+        nome_perfil: r?.instance?.profileName || null,
+        foto_perfil_url: r?.instance?.profilePicUrl || null,
+        qr_code_atual: conectado ? null : (r?.instance?.qrcode || null),
         qr_atualizado_em: conectado ? null : new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -295,20 +294,20 @@ export async function deletarCanal(formData: FormData) {
 
   const { data: canal } = await sb
     .from("canais")
-    .select("id, instance_id, servidor:super_admin_servidores(base_url, admin_token_encrypted)")
+    .select("id, instance_id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
     .eq("id", id)
     .eq("agencia_id", ctx.agenciaId)
     .single();
   if (!canal) redirect("/canais?erro=nao_encontrado");
 
-  const s = (canal as unknown as { servidor: ServidorRow }).servidor;
+  const s = (canal as unknown as { servidor: { base_url: string } }).servidor;
   try {
-    const adminToken = decryptToken(byteaToBuffer(s.admin_token_encrypted));
-    if (canal.instance_id) {
-      await adminDeleteInstance({ baseUrl: s.base_url, adminToken }, canal.instance_id);
+    if (canal.instance_token_encrypted) {
+      const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+      await instanceDelete({ baseUrl: s.base_url, token });
     }
   } catch (e) {
-    console.error("[canais] adminDelete:", e);
+    console.error("[canais] instanceDelete:", e);
   }
 
   await sb.from("canais").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);

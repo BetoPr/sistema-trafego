@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/crm/permissions";
-import { encryptToken, decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+import { encryptToken, decryptToken, byteaToBuffer, bufferToBytea } from "@/lib/crypto/tokens";
 import { createServiceClient } from "@/lib/supabase/service";
 import { adminGetGlobalWebhook, adminSetGlobalWebhook } from "@/lib/uazapi/client";
 import { audit } from "@/lib/crm/audit";
@@ -32,7 +32,7 @@ export async function criarServidor(formData: FormData) {
       nome,
       plataforma: "uazapi",
       base_url: baseUrl.replace(/\/$/, ""),
-      admin_token_encrypted: cripto,
+      admin_token_encrypted: bufferToBytea(cripto),
       observacoes,
       ativo: true,
     })
@@ -83,7 +83,7 @@ export async function atualizarServidor(formData: FormData) {
   };
 
   if (adminToken && adminToken !== "•••GUARDADO•••") {
-    patch.admin_token_encrypted = encryptToken(adminToken);
+    patch.admin_token_encrypted = bufferToBytea(encryptToken(adminToken));
   }
 
   const { error } = await sb.from("super_admin_servidores").update(patch).eq("id", id);

@@ -25,6 +25,17 @@ export function encryptToken(plaintext: string): Buffer {
 }
 
 /**
+ * Converte Buffer pra literal `\xHEX` aceito pelo Postgres em campo `bytea`.
+ *
+ * IMPORTANTE: nunca passe Buffer direto em payload do supabase-js — ele
+ * serializa como `{"type":"Buffer","data":[...]}` e vira lixo no banco.
+ * Use SEMPRE este helper antes de insert/update em colunas `_encrypted`.
+ */
+export function bufferToBytea(buf: Buffer): string {
+  return `\\x${buf.toString("hex")}`;
+}
+
+/**
  * Converte campo `bytea` retornado pelo supabase-js em Buffer.
  * O driver retorna como string "\xHEX" (default) ou Buffer real.
  */

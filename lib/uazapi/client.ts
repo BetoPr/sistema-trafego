@@ -1,11 +1,14 @@
 /**
- * UAZAPI client — chamadas ao servidor UAZAPI (admin + por instância).
+ * UAZAPI client v2.1.0 — alinhado ao OpenAPI spec oficial.
  *
  * Auth:
- *  - Admin endpoints: header `admintoken`
- *  - Instance endpoints: header `token` (instance token)
+ *  - Admin endpoints (criação de instância, listagem, webhook global):
+ *    header `admintoken`
+ *  - Instance endpoints (resto): header `token` (instance token)
  *
- * Docs: https://docs.uazapi.com (referência geral, paths podem variar por versão)
+ * Estados da instância: `disconnected | connecting | connected`
+ *
+ * Docs: https://docs.uazapi.com
  */
 
 export interface UazapiServer {
@@ -74,39 +77,54 @@ async function call(baseUrl: string, path: string, opts: ReqOpts = {}): Promise<
 }
 
 // =========================================
-// ADMIN — servidor / criação de instâncias / webhook global
+// Tipos compartilhados (subset do schema oficial)
 // =========================================
 
 export interface InstanceInfo {
   id: string;
   name?: string;
-  token?: string;
-  status?: string;
-  number?: string;
+  status?: "disconnected" | "connecting" | "connected" | string;
   profileName?: string;
   profilePicUrl?: string;
   qrcode?: string;
   paircode?: string;
+  jid?: { user?: string; server?: string } | null;
+  adminField01?: string;
+  adminField02?: string;
 }
 
+export interface ConnectionStatus {
+  connected: boolean;
+  loggedIn: boolean;
+  jid: { user?: string; server?: string } | null;
+}
+
+// =========================================
+// ADMIN — criação/listagem de instâncias + webhook global
+// =========================================
+
 /**
- * Cria nova instância no servidor UAZAPI.
- * Retorna instance ID + token de instância (que vai criptografado no banco).
+ * POST /instance/create — cria nova instância.
+ * Body: { name, adminField01?, adminField02? }
+ * Retorna: { instance, token, connected, loggedIn, ... }
  */
-export async function adminInitInstance(
+export async function adminCreateInstance(
   server: UazapiServer,
-  params: { name: string; systemName?: string; adminField01?: string; adminField02?: string },
-): Promise<InstanceInfo> {
-  const r = (await call(server.baseUrl, "/instance/init", {
+  params: { name: string; adminField01?: string; adminField02?: string },
+): Promise<{ instance: InstanceInfo; token: string }> {
+  const r = (await call(server.baseUrl, "/instance/create", {
     method: "POST",
     headers: { admintoken: server.adminToken },
     body: params,
-  })) as { instance?: InstanceInfo } & InstanceInfo;
-  return r.instance ?? (r as InstanceInfo);
+  })) as { instance: InstanceInfo; token: string };
+  return { instance: r.instance, token: r.token };
 }
 
+/** Alias retrocompatível. */
+export const adminInitInstance = adminCreateInstance;
+
 /**
- * Lista todas instâncias do servidor.
+ * GET /instance/all — lista todas instâncias do servidor.
  */
 export async function adminListInstances(server: UazapiServer): Promise<InstanceInfo[]> {
   const r = (await call(server.baseUrl, "/instance/all", {
@@ -115,17 +133,6 @@ export async function adminListInstances(server: UazapiServer): Promise<Instance
   })) as InstanceInfo[] | { instances?: InstanceInfo[] };
   if (Array.isArray(r)) return r;
   return r.instances ?? [];
-}
-
-/**
- * Deleta instância no servidor.
- */
-export async function adminDeleteInstance(server: UazapiServer, instanceId: string): Promise<void> {
-  await call(server.baseUrl, "/instance/init", {
-    method: "DELETE",
-    headers: { admintoken: server.adminToken },
-    body: { id: instanceId },
-  });
 }
 
 export interface GlobalWebhookConfig {
@@ -162,44 +169,43 @@ export async function adminSetGlobalWebhook(
 }
 
 // =========================================
-// INSTANCE — chamadas com token da instância
+// INSTANCE — autenticado com `token` da instância
 // =========================================
 
 /**
- * Solicita conexão / QR Code (ou pair code) da instância.
- * Resposta inclui qrcode (base64 PNG) ou paircode.
+ * POST /instance/connect — inicia conexão (gera QR ou pair code).
+ * Body opcional: { phone?, browser?, systemName?, proxy_managed_* }
+ *  - sem phone → gera QR
+ *  - com phone → gera código de pareamento
+ * Retorna: { connected, loggedIn, jid, instance: { qrcode?, paircode?, ... } }
  */
 export async function instanceConnect(
   inst: UazapiInstance,
-  params: { phone?: string } = {},
-): Promise<InstanceInfo> {
+  params: { phone?: string; browser?: "auto" | "safari" | "firefox" | "edge" | "chrome"; systemName?: string } = {},
+): Promise<{ connected: boolean; loggedIn: boolean; jid: unknown; instance: InstanceInfo }> {
   return (await call(inst.baseUrl, "/instance/connect", {
     method: "POST",
     headers: { token: inst.token },
     body: params,
-  })) as InstanceInfo;
+  })) as { connected: boolean; loggedIn: boolean; jid: unknown; instance: InstanceInfo };
 }
 
 /**
- * Status atual da instância (connected, connecting, disconnected, etc).
+ * GET /instance/status — status + qr atualizado + jid.
+ * Retorna: { instance, status: { connected, loggedIn, jid } }
  */
-export async function instanceGetStatus(inst: UazapiInstance): Promise<InstanceInfo> {
+export async function instanceGetStatus(
+  inst: UazapiInstance,
+): Promise<{ instance: InstanceInfo; status: ConnectionStatus }> {
   return (await call(inst.baseUrl, "/instance/status", {
     method: "GET",
     headers: { token: inst.token },
-  })) as InstanceInfo;
+  })) as { instance: InstanceInfo; status: ConnectionStatus };
 }
 
 /**
- * Perfil do número conectado (nome, foto, número).
+ * POST /instance/disconnect — desconecta sessão WhatsApp.
  */
-export async function instanceGetMe(inst: UazapiInstance): Promise<InstanceInfo> {
-  return (await call(inst.baseUrl, "/instance/me", {
-    method: "GET",
-    headers: { token: inst.token },
-  })) as InstanceInfo;
-}
-
 export async function instanceDisconnect(inst: UazapiInstance): Promise<void> {
   await call(inst.baseUrl, "/instance/disconnect", {
     method: "POST",
@@ -207,22 +213,51 @@ export async function instanceDisconnect(inst: UazapiInstance): Promise<void> {
   });
 }
 
+/**
+ * DELETE /instance — remove a instância no servidor (autenticada com instance token).
+ *
+ * IMPORTANTE: spec usa instance token (não admintoken).
+ */
+export async function instanceDelete(inst: UazapiInstance): Promise<void> {
+  await call(inst.baseUrl, "/instance", {
+    method: "DELETE",
+    headers: { token: inst.token },
+  });
+}
+
+/**
+ * Backwards-compat alias — UAZAPI não tem admin delete-by-id;
+ * use o instance token disponível.
+ *
+ * @deprecated use instanceDelete com UazapiInstance
+ */
+export async function adminDeleteInstance(_server: UazapiServer, _instanceId: string): Promise<void> {
+  throw new Error("UAZAPI não suporta admin-delete por ID. Use instanceDelete com instance token.");
+}
+
 // =========================================
 // SEND messages
 // =========================================
 
 export interface SendTextParams {
-  number: string; // 5511999999999 ou 5511999999999@s.whatsapp.net
+  number: string; // 5511999999999 ou {jid}@s.whatsapp.net ou {jid}@g.us ou {jid}@newsletter
   text: string;
   replyid?: string;
   mentions?: string[];
   delay?: number;
   readchat?: boolean;
+  readmessages?: boolean;
+  linkPreview?: boolean;
+  linkPreviewTitle?: string;
+  linkPreviewDescription?: string;
+  linkPreviewImage?: string;
+  linkPreviewLarge?: boolean;
 }
 
 export interface SendMessageResult {
   id?: string;
   status?: string;
+  messageid?: string;
   raw?: unknown;
 }
 
@@ -239,12 +274,18 @@ export async function instanceSendText(
 
 export interface SendMediaParams {
   number: string;
-  type: "image" | "video" | "audio" | "document" | "ptt";
-  file: string; // URL ou base64
-  filename?: string;
-  caption?: string;
+  /**
+   * image | video | videoplay | document | audio | myaudio | ptt | ptv | sticker
+   */
+  type: "image" | "video" | "videoplay" | "document" | "audio" | "myaudio" | "ptt" | "ptv" | "sticker";
+  /** URL ou base64 do arquivo. */
+  file: string;
+  /** Caption/legenda — placeholders suportados. */
+  text?: string;
+  docName?: string;
   replyid?: string;
   delay?: number;
+  viewOnce?: boolean;
 }
 
 export async function instanceSendMedia(
@@ -259,84 +300,166 @@ export async function instanceSendMedia(
 }
 
 // =========================================
-// CHAT — grupos
+// GROUPS
 // =========================================
 
 export interface UazapiGroup {
-  id: string;
-  subject: string;
-  participants?: Array<{ id: string; admin?: string | null }>;
-  desc?: string;
-  imageUrl?: string;
+  JID: string;
+  Name: string;
+  OwnerJID?: string;
+  Topic?: string;
+  IsAnnounce?: boolean;
+  IsLocked?: boolean;
+  Participants?: Array<{ JID: string; IsAdmin?: boolean; IsSuperAdmin?: boolean }>;
 }
 
-export async function instanceListGroups(inst: UazapiInstance): Promise<UazapiGroup[]> {
-  const r = (await call(inst.baseUrl, "/chat/groups", {
+/**
+ * GET /group/list — lista grupos da conta conectada.
+ */
+export async function instanceListGroups(
+  inst: UazapiInstance,
+  opts: { force?: boolean; noparticipants?: boolean } = {},
+): Promise<UazapiGroup[]> {
+  const qs = new URLSearchParams();
+  if (opts.force) qs.set("force", "true");
+  if (opts.noparticipants) qs.set("noparticipants", "true");
+  const path = qs.toString() ? `/group/list?${qs.toString()}` : "/group/list";
+  const r = (await call(inst.baseUrl, path, {
     method: "GET",
     headers: { token: inst.token },
-  })) as UazapiGroup[] | { groups?: UazapiGroup[] };
+  })) as { groups?: UazapiGroup[] } | UazapiGroup[];
   if (Array.isArray(r)) return r;
   return r.groups ?? [];
 }
 
-export async function instanceGetGroupParticipants(
+/**
+ * POST /group/info — detalhes do grupo (inclui participantes).
+ */
+export async function instanceGetGroupInfo(
   inst: UazapiInstance,
-  groupId: string,
-): Promise<Array<{ id: string; admin?: string | null }>> {
-  const r = (await call(inst.baseUrl, `/chat/groupParticipants/${encodeURIComponent(groupId)}`, {
-    method: "GET",
+  params: { groupjid: string; getInviteLink?: boolean; getRequestsParticipants?: boolean; force?: boolean },
+): Promise<UazapiGroup> {
+  return (await call(inst.baseUrl, "/group/info", {
+    method: "POST",
     headers: { token: inst.token },
-  })) as Array<{ id: string; admin?: string | null }> | {
-    participants?: Array<{ id: string; admin?: string | null }>;
-  };
-  if (Array.isArray(r)) return r;
-  return r.participants ?? [];
+    body: params,
+  })) as UazapiGroup;
 }
 
+/**
+ * POST /group/updateParticipants — adiciona/remove/promote/demote membros.
+ */
+export async function instanceGroupParticipantsAction(
+  inst: UazapiInstance,
+  params: {
+    groupjid: string;
+    action: "add" | "remove" | "promote" | "demote";
+    participants: string[];
+  },
+): Promise<unknown> {
+  return await call(inst.baseUrl, "/group/updateParticipants", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+  });
+}
+
+export async function instanceGroupUpdateName(
+  inst: UazapiInstance,
+  params: { groupjid: string; name: string },
+): Promise<unknown> {
+  return await call(inst.baseUrl, "/group/updateName", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+  });
+}
+
+export async function instanceGroupUpdateDescription(
+  inst: UazapiInstance,
+  params: { groupjid: string; description: string },
+): Promise<unknown> {
+  return await call(inst.baseUrl, "/group/updateDescription", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+  });
+}
+
+export async function instanceGroupUpdateImage(
+  inst: UazapiInstance,
+  params: { groupjid: string; image: string },
+): Promise<unknown> {
+  return await call(inst.baseUrl, "/group/updateImage", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+  });
+}
+
+/**
+ * Alias retrocompatível: modifica subject/description/image em chamadas separadas.
+ */
 export async function instanceModifyGroup(
   inst: UazapiInstance,
   groupId: string,
-  changes: {
-    subject?: string;
-    description?: string;
-    imageUrl?: string;
-    onlyAdmins?: boolean;
-  },
-): Promise<unknown> {
-  return await call(inst.baseUrl, `/chat/modifyGroup/${encodeURIComponent(groupId)}`, {
-    method: "POST",
-    headers: { token: inst.token },
-    body: changes,
-  });
-}
-
-export async function instanceGroupParticipantsAction(
-  inst: UazapiInstance,
-  groupId: string,
-  action: "add" | "remove" | "promote" | "demote",
-  participants: string[],
-): Promise<unknown> {
-  return await call(inst.baseUrl, `/chat/groupParticipants/${encodeURIComponent(groupId)}`, {
-    method: "POST",
-    headers: { token: inst.token },
-    body: { action, participants },
-  });
+  changes: { subject?: string; description?: string; imageUrl?: string; onlyAdmins?: boolean },
+): Promise<void> {
+  if (changes.subject) {
+    await instanceGroupUpdateName(inst, { groupjid: groupId, name: changes.subject });
+  }
+  if (changes.description) {
+    await instanceGroupUpdateDescription(inst, { groupjid: groupId, description: changes.description });
+  }
+  if (changes.imageUrl) {
+    await instanceGroupUpdateImage(inst, { groupjid: groupId, image: changes.imageUrl });
+  }
+  // onlyAdmins → /group/updateAnnounce (anuncio: true = só admins falam)
+  // Não implementado aqui pra manter MVP simples.
 }
 
 // =========================================
 // WEBHOOK por instância (canal)
 // =========================================
 
+export interface InstanceWebhookConfig {
+  url: string;
+  events?: string[];
+  excludeMessages?: string[];
+  addUrlEvents?: boolean;
+  addUrlTypesMessages?: boolean;
+  enabled?: boolean;
+  id?: string;
+  action?: "add" | "update" | "remove";
+}
+
+/**
+ * POST /webhook — configura webhook da instância.
+ *
+ * Modo Simples (recomendado): omita action/id, sistema gerencia 1 webhook por instância.
+ * Sempre incluir `excludeMessages: ["wasSentByApi"]` pra evitar loops.
+ */
 export async function instanceSetWebhook(
   inst: UazapiInstance,
   url: string,
   events: string[] = ["messages", "messages_update", "connection"],
+  excludeMessages: string[] = ["wasSentByApi"],
 ): Promise<unknown> {
   return await call(inst.baseUrl, "/webhook", {
     method: "POST",
     headers: { token: inst.token },
-    body: { enabled: true, url, events },
+    body: { url, events, excludeMessages, addUrlEvents: false, addUrlTypesMessages: false },
   });
+}
+
+/** GET /webhook — retorna config atual (array de webhooks). */
+export async function instanceGetWebhook(inst: UazapiInstance): Promise<InstanceWebhookConfig[]> {
+  const r = (await call(inst.baseUrl, "/webhook", {
+    method: "GET",
+    headers: { token: inst.token },
+  })) as InstanceWebhookConfig[] | InstanceWebhookConfig;
+  if (Array.isArray(r)) return r;
+  return [r];
 }
 
 export { UazapiError };
