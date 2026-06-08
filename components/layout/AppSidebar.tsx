@@ -90,6 +90,7 @@ function buildSections(role?: string): NavSection[] {
       iconColor: "var(--mk-icon-blue)",
       items: [
         { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
+        { href: "/configuracoes/ia", label: "Chaves IA (Groq)", icon: "ti-key" },
         { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles" },
         { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card" },
         { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook" },
