@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { BotaoCobranca } from "./_cobranca";
 
 interface Mensagem {
   id: string;
@@ -126,6 +127,7 @@ export function ChatView(props: Props) {
           {props.contatoNomeCurto}
         </div>
         <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{props.contatoNome}</div>
+        <BotaoCobranca ticketId={props.ticketId} canalConectado={props.canalConectado} />
         <button onClick={encerrar} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }} title="Encerrar atendimento">
           <i className="ti ti-check" /> Encerrar
         </button>
