@@ -24,6 +24,21 @@ export function encryptToken(plaintext: string): Buffer {
   return Buffer.concat([iv, tag, ct]);
 }
 
+/**
+ * Converte campo `bytea` retornado pelo supabase-js em Buffer.
+ * O driver retorna como string "\xHEX" (default) ou Buffer real.
+ */
+export function byteaToBuffer(raw: unknown): Buffer {
+  if (Buffer.isBuffer(raw)) return raw;
+  if (typeof raw === "string") {
+    if (raw.startsWith("\\x")) return Buffer.from(raw.slice(2), "hex");
+    // Fallback: base64 (alguns clientes podem retornar assim).
+    if (/^[A-Za-z0-9+/=]+$/.test(raw)) return Buffer.from(raw, "base64");
+    return Buffer.from(raw, "hex");
+  }
+  throw new Error(`bytea inesperado: ${typeof raw}`);
+}
+
 export function decryptToken(blob: Buffer): string {
   const key = getKey();
   const iv = blob.subarray(0, IV_BYTES);

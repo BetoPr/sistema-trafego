@@ -2,7 +2,7 @@
  * Orquestrador IA — alto nível, lê prompts + key da agência.
  */
 import { createServiceClient } from "@/lib/supabase/service";
-import { decryptToken } from "@/lib/crypto/tokens";
+import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { transcribeAudio } from "@/lib/groq/transcribe";
 import {
   analisarSentimento as _analisar,
@@ -23,7 +23,7 @@ export async function getGroqKey(agenciaId: string): Promise<string | null> {
 
   if (data?.groq_key_encrypted) {
     try {
-      return decryptToken(Buffer.from(data.groq_key_encrypted as unknown as string, "base64"));
+      return decryptToken(byteaToBuffer(data.groq_key_encrypted));
     } catch {
       // continua
     }
