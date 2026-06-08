@@ -448,7 +448,7 @@ export async function instanceSetWebhook(
   url: string,
   events: string[] = ["messages", "messages_update", "connection"],
   excludeMessages: string[] = ["wasSentByApi"],
-  mode: "add" | "replace" = "add",
+  mode: "add" | "replace" = "replace",
 ): Promise<unknown> {
   const body: Record<string, unknown> = {
     url,

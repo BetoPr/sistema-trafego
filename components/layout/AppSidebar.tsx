@@ -107,6 +107,7 @@ function buildSections(role?: string): NavSection[] {
       iconColor: "#C97064",
       items: [
         { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
+        { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
       ],
     });
   }
