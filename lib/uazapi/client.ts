@@ -456,6 +456,7 @@ export async function instanceSetWebhook(
     excludeMessages,
     addUrlEvents: false,
     addUrlTypesMessages: false,
+    enabled: true,
   };
   if (mode === "add") {
     body.action = "add";
