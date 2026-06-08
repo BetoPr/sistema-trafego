@@ -9,6 +9,8 @@ import {
   revalidarWebhook,
   desconectarCanal,
   deletarCanal,
+  importarCanalExistente,
+  listarInstanciasDisponiveis,
 } from "./_actions";
 
 interface PageProps {
@@ -20,7 +22,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const [{ data: canais }, { data: filas }, { data: usuarios }, { data: servidores }] = await Promise.all([
+  const [{ data: canais }, { data: filas }, { data: usuarios }, { data: servidores }, instanciasDisponiveis] = await Promise.all([
     sb
       .from("canais")
       .select("id, numero, nome, tipo, status, instance_id, numero_conectado, nome_perfil, foto_perfil_url, padrao, fila_id, usuario_id, qr_code_atual, qr_atualizado_em, updated_at")
@@ -29,6 +31,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
     sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId).is("deleted_at", null).order("nome"),
     sb.from("super_admin_servidores").select("id, nome").eq("ativo", true),
+    listarInstanciasDisponiveis().catch(() => []),
   ]);
 
   const filaById = new Map((filas || []).map((f) => [f.id, f]));
@@ -183,6 +186,74 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         })}
       </div>
 
+      {/* Importar instância existente — lista do servidor */}
+      {instanciasDisponiveis.length > 0 && (
+        <div className="mk-card mk-card-lg" id="importar" style={{ marginBottom: 14, borderLeft: "3px solid #6B8E4E" }}>
+          <h3 className="card-title" style={{ marginBottom: 6 }}>
+            <i className="ti ti-download" style={{ marginRight: 6, color: "#6B8E4E" }} />
+            Importar instância já existente no servidor
+          </h3>
+          <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
+            Encontramos {instanciasDisponiveis.length} instância(s) no servidor UAZAPI que ainda não foram importadas pro sistema.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {instanciasDisponiveis.map((i) => {
+              const conectada = i.status === "connected";
+              return (
+                <form key={i.id} action={importarCanalExistente} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)" }}>
+                  <input type="hidden" name="nome" value={i.name} />
+                  <input type="hidden" name="instance_token" value="" />
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: "linear-gradient(135deg, #25D366, #128C7E)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8" }}>
+                    <i className="ti ti-brand-whatsapp" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{i.name}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
+                      {i.id} · {i.profileName || "—"} · {i.numberConectado || "—"}
+                    </div>
+                  </div>
+                  <span className={`mk-badge ${conectada ? "b-green" : "b-gray"}`} style={{ fontSize: 10 }}>
+                    {i.status.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>
+                    cole o token p/ importar →
+                  </span>
+                </form>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Importar via Instance Token manual */}
+      <div className="mk-card mk-card-lg" id="importar-token" style={{ marginBottom: 14 }}>
+        <h3 className="card-title" style={{ marginBottom: 6 }}>
+          <i className="ti ti-key" style={{ marginRight: 6, color: "var(--mk-accent)" }} />
+          Importar instância via Instance Token
+        </h3>
+        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
+          Se você já criou e conectou a instância no painel UAZAPI, cole aqui o <strong>Instance Token</strong>.
+          O sistema busca o status, salva o canal e configura o webhook automaticamente.
+        </p>
+        <form action={importarCanalExistente} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Field label="Nome do canal" name="nome" placeholder="Interno Infinity" required />
+          <Field label="Instance Token (UUID)" name="instance_token" placeholder="04a631c8-d7bf-420b-87c1-a4b09433944b" required />
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--mk-text-secondary)" }}>
+            <input type="checkbox" name="padrao" /> Definir como canal padrão
+          </label>
+          <details>
+            <summary style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text)", cursor: "pointer", padding: "6px 0" }}>Atribuições (opcional)</summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6, paddingLeft: 14 }}>
+              <Select label="Fila padrão" name="fila_id" options={[{ id: "", nome: "Nenhuma" }, ...(filas || [])]} />
+              <Select label="Usuário padrão" name="usuario_id" options={[{ id: "", nome: "Nenhum" }, ...(usuarios || [])]} />
+            </div>
+          </details>
+          <button type="submit" className="cta-btn" disabled={semServidor}>
+            <i className="ti ti-download" /> Importar instância
+          </button>
+        </form>
+      </div>
+
       {/* Form novo canal */}
       <div className="mk-card mk-card-lg" id="novo">
         <h3 className="card-title" style={{ marginBottom: 14 }}>Novo canal UAZAPI</h3>
@@ -219,10 +290,10 @@ export default async function CanaisPage({ searchParams }: PageProps) {
 const menuBtn: React.CSSProperties = { fontSize: 11, padding: "4px 8px" };
 
 function labelOk(k: string) {
-  return ({ criado: "Canal criado. Clique em 'Ver QR Code'.", atualizado: "Status atualizado.", padrao_definido: "Canal definido como padrão.", webhook_revalidado: "Webhook revalidado na UAZAPI.", desconectado: "Canal desconectado.", deletado: "Canal removido." } as Record<string, string>)[k] || "OK.";
+  return ({ criado: "Canal criado. Clique em 'Ver QR Code'.", importado: "Instância importada com dados do servidor.", atualizado: "Status atualizado.", padrao_definido: "Canal definido como padrão.", webhook_revalidado: "Webhook revalidado na UAZAPI.", desconectado: "Canal desconectado.", deletado: "Canal removido." } as Record<string, string>)[k] || "OK.";
 }
 function labelErr(k: string) {
-  return ({ nome_vazio: "Nome obrigatório.", sem_servidor: "Sem servidor UAZAPI ativo.", uazapi: "Erro chamando UAZAPI.", db: "Erro no banco.", conectar: "Falha ao gerar QR.", webhook: "Falha ao configurar webhook.", nao_encontrado: "Canal não encontrado." } as Record<string, string>)[k] || "Erro.";
+  return ({ nome_vazio: "Nome obrigatório.", campos_obrigatorios: "Preencha nome e instance token.", sem_servidor: "Sem servidor UAZAPI ativo.", uazapi: "Erro chamando UAZAPI.", db: "Erro no banco.", conectar: "Falha ao gerar QR.", webhook: "Falha ao configurar webhook.", nao_encontrado: "Canal não encontrado.", token_invalido: "Servidor não reconheceu o token. Cole o Instance Token (UUID) do painel UAZAPI.", ja_importado: "Essa instância já está no sistema." } as Record<string, string>)[k] || "Erro.";
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro" | "warn"; children: React.ReactNode }) {

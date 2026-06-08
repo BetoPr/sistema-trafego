@@ -12,6 +12,7 @@ import {
   instanceGetStatus,
   instanceDisconnect,
   instanceSetWebhook,
+  adminListInstances,
 } from "@/lib/uazapi/client";
 import { audit } from "@/lib/crm/audit";
 
@@ -131,6 +132,149 @@ export async function criarCanal(formData: FormData) {
 
   revalidatePath("/canais");
   redirect(`/canais?ok=criado&id=${novo.id}`);
+}
+
+/**
+ * Importa instância UAZAPI já existente (criada/conectada direto no servidor).
+ * Usuário cola o instance_token. Sistema chama /instance/status com esse token,
+ * salva row em canais com dados já preenchidos + configura webhook.
+ */
+export async function importarCanalExistente(formData: FormData) {
+  const ctx = await requireAdmin();
+  const nome = String(formData.get("nome") || "").trim();
+  const instanceToken = String(formData.get("instance_token") || "").trim();
+  const padrao = formData.get("padrao") === "on";
+  const filaId = String(formData.get("fila_id") || "") || null;
+  const usuarioId = String(formData.get("usuario_id") || "") || null;
+
+  if (!nome || !instanceToken) {
+    redirect("/canais?erro=campos_obrigatorios");
+  }
+
+  const sb = createServiceClient();
+  let servidor: { id: string; baseUrl: string; adminToken: string };
+  try {
+    servidor = await getServidorAtivo();
+  } catch (e) {
+    redirect(`/canais?erro=sem_servidor&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
+
+  // Pega status atual da instância no servidor.
+  let instanceId = "";
+  let conectado = false;
+  let numeroConectado: string | null = null;
+  let nomePerfil: string | null = null;
+  let fotoPerfil: string | null = null;
+  try {
+    const r = await instanceGetStatus({ baseUrl: servidor.baseUrl, token: instanceToken });
+    instanceId = r.instance?.id || "";
+    conectado = !!r.status?.connected;
+    numeroConectado = r.status?.jid?.user || null;
+    nomePerfil = r.instance?.profileName || null;
+    fotoPerfil = r.instance?.profilePicUrl || null;
+    if (!instanceId) throw new Error("Servidor não reconheceu o token (id ausente).");
+  } catch (e) {
+    redirect(`/canais?erro=token_invalido&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
+
+  // Verifica se já não foi importado.
+  const { data: existente } = await sb
+    .from("canais")
+    .select("id")
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("instance_id", instanceId)
+    .maybeSingle();
+  if (existente) {
+    redirect(`/canais?erro=ja_importado&msg=${encodeURIComponent(`Instância ${instanceId} já está no sistema.`)}`);
+  }
+
+  if (padrao) {
+    await sb.from("canais").update({ padrao: false }).eq("agencia_id", ctx.agenciaId).eq("padrao", true);
+  }
+
+  const tokenCripto = bufferToBytea(encryptToken(instanceToken));
+
+  const { data: novo, error } = await sb
+    .from("canais")
+    .insert({
+      agencia_id: ctx.agenciaId,
+      servidor_id: servidor.id,
+      nome,
+      tipo: "uazapi",
+      status: conectado ? "connected" : "pending_qr",
+      instance_id: instanceId,
+      instance_token_encrypted: tokenCripto,
+      numero_conectado: numeroConectado,
+      nome_perfil: nomePerfil,
+      foto_perfil_url: fotoPerfil,
+      padrao,
+      fila_id: filaId,
+      usuario_id: usuarioId,
+    })
+    .select("id, webhook_secret")
+    .single();
+
+  if (error) {
+    redirect(`/canais?erro=db&msg=${encodeURIComponent(error.message)}`);
+  }
+
+  // Configura webhook da instância pro nosso endpoint.
+  try {
+    await instanceSetWebhook(
+      { baseUrl: servidor.baseUrl, token: instanceToken },
+      webhookUrl(novo.webhook_secret),
+      ["messages", "messages_update", "connection"],
+    );
+  } catch (e) {
+    console.error("[canais] importar setWebhook falhou:", e);
+  }
+
+  await audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "create",
+    entidade: "canal",
+    entidadeId: novo.id,
+    payload: { acao: "import", instanceId, conectado, numeroConectado },
+  });
+
+  revalidatePath("/canais");
+  redirect(`/canais?ok=importado&id=${novo.id}`);
+}
+
+/**
+ * Lista instâncias do servidor UAZAPI ativo — pra UI mostrar opções pra importar.
+ * Retorna apenas instâncias que ainda NÃO estão no banco do tenant.
+ */
+export async function listarInstanciasDisponiveis(): Promise<Array<{ id: string; name: string; status: string; profileName: string | null; numberConectado: string | null }>> {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+  let servidor: { id: string; baseUrl: string; adminToken: string };
+  try {
+    servidor = await getServidorAtivo();
+  } catch {
+    return [];
+  }
+  try {
+    const todas = await adminListInstances({ baseUrl: servidor.baseUrl, adminToken: servidor.adminToken });
+    const { data: jaImportadas } = await sb
+      .from("canais")
+      .select("instance_id")
+      .eq("agencia_id", ctx.agenciaId);
+    const jaSet = new Set((jaImportadas || []).map((c) => c.instance_id));
+    return todas
+      .filter((i) => !jaSet.has(i.id))
+      .map((i) => ({
+        id: i.id,
+        name: i.name || i.id,
+        status: i.status || "unknown",
+        profileName: i.profileName || null,
+        numberConectado: i.jid?.user || null,
+      }));
+  } catch (e) {
+    console.error("[canais] listarInstancias:", e);
+    return [];
+  }
 }
 
 export async function conectarCanal(formData: FormData) {
