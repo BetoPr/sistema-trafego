@@ -1,0 +1,180 @@
+/**
+ * Ingest de mensagens do UAZAPI → Sistema.
+ *
+ * Fluxo:
+ *  1. Webhook UAZAPI cai em /api/webhooks/uazapi/[secret]
+ *  2. Identifica canal pelo secret
+ *  3. Parser extrai evento
+ *  4. Esta função: localiza/cria contato → localiza/cria ticket → insere mensagem
+ *  5. Se áudio: dispara transcrição em background
+ *  6. Dispara webhook OUT mensagem.recebida
+ *
+ * Service role apenas. RLS bypassed.
+ */
+import { createServiceClient } from "@/lib/supabase/service";
+import type { ParsedMessage } from "@/lib/uazapi/webhook-parser";
+import { dispatchWebhook } from "./webhook-dispatcher";
+
+export interface IngestContext {
+  agenciaId: string;
+  canalId: string;
+  canalFilaPadrao: string | null;
+  canalUsuarioPadrao: string | null;
+}
+
+export interface IngestResult {
+  ticketId: string;
+  ticketNumero: number;
+  mensagemId: string;
+  contatoId: string;
+  novoContato: boolean;
+  novoTicket: boolean;
+}
+
+function normalizeWaToWhatsapp(waChatId: string): string {
+  // "5511999999999@s.whatsapp.net" → "5511999999999"
+  return waChatId.replace(/@.+$/, "");
+}
+
+export async function ingestMensagem(
+  ctx: IngestContext,
+  m: ParsedMessage,
+): Promise<IngestResult> {
+  const sb = createServiceClient();
+  const whatsapp = normalizeWaToWhatsapp(m.waChatId);
+
+  // 1. Localiza ou cria contato.
+  let novoContato = false;
+  const { data: contatoExistente } = await sb
+    .from("contatos")
+    .select("id")
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("wa_id", m.waChatId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  let contatoId: string;
+  if (contatoExistente) {
+    contatoId = contatoExistente.id;
+  } else {
+    novoContato = true;
+    const { data: novo, error } = await sb
+      .from("contatos")
+      .insert({
+        agencia_id: ctx.agenciaId,
+        wa_id: m.waChatId,
+        whatsapp,
+        nome: m.pushName || whatsapp,
+        primeiro_nome: m.pushName?.split(" ")[0] || null,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    contatoId = novo.id;
+  }
+
+  // 2. Localiza ticket aberto/pendente OU cria novo.
+  let novoTicket = false;
+  const { data: ticketExistente } = await sb
+    .from("tickets")
+    .select("id, numero, status")
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("contato_id", contatoId)
+    .in("status", ["aberto", "pendente"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let ticketId: string;
+  let ticketNumero: number;
+
+  if (ticketExistente) {
+    ticketId = ticketExistente.id;
+    ticketNumero = ticketExistente.numero;
+  } else {
+    novoTicket = true;
+    const status = m.fromMe ? "aberto" : "pendente";
+    const { data: novo, error } = await sb
+      .from("tickets")
+      .insert({
+        agencia_id: ctx.agenciaId,
+        contato_id: contatoId,
+        canal_id: ctx.canalId,
+        fila_id: ctx.canalFilaPadrao,
+        usuario_id: m.fromMe ? ctx.canalUsuarioPadrao : null,
+        status,
+      })
+      .select("id, numero")
+      .single();
+    if (error) throw error;
+    ticketId = novo.id;
+    ticketNumero = novo.numero;
+  }
+
+  // 3. Insere mensagem.
+  const autor = m.fromMe ? "atendente" : "cliente";
+  const { data: msgRow, error: msgErr } = await sb
+    .from("mensagens")
+    .insert({
+      ticket_id: ticketId,
+      agencia_id: ctx.agenciaId,
+      autor,
+      tipo: m.tipo,
+      conteudo: m.conteudo,
+      midia_url: m.midia?.url ?? null,
+      midia_mime: m.midia?.mimeType ?? null,
+      midia_filename: m.midia?.filename ?? null,
+      wa_message_id: m.waMessageId,
+      status: "entregue",
+      metadata: { source: "uazapi", raw_keys: Object.keys(m.raw) },
+    })
+    .select("id")
+    .single();
+  if (msgErr) throw msgErr;
+
+  // 4. Disparos pós (não bloqueia).
+  if (autor === "cliente") {
+    void dispatchWebhook({
+      agenciaId: ctx.agenciaId,
+      evento: "mensagem.recebida",
+      payload: {
+        ticket_id: ticketId,
+        ticket_numero: ticketNumero,
+        contato_id: contatoId,
+        mensagem_id: msgRow.id,
+        tipo: m.tipo,
+        conteudo: m.conteudo,
+        midia_url: m.midia?.url,
+      },
+    });
+  }
+
+  if (novoTicket) {
+    void dispatchWebhook({
+      agenciaId: ctx.agenciaId,
+      evento: "ticket.criado",
+      payload: {
+        ticket_id: ticketId,
+        ticket_numero: ticketNumero,
+        contato_id: contatoId,
+      },
+    });
+  }
+
+  if (novoContato) {
+    void dispatchWebhook({
+      agenciaId: ctx.agenciaId,
+      evento: "contato.criado",
+      payload: { contato_id: contatoId, whatsapp, nome: m.pushName || whatsapp },
+    });
+  }
+
+  return {
+    ticketId,
+    ticketNumero,
+    mensagemId: msgRow.id,
+    contatoId,
+    novoContato,
+    novoTicket,
+  };
+}

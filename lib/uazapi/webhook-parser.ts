@@ -1,0 +1,241 @@
+/**
+ * Parser de eventos do webhook UAZAPI.
+ *
+ * UAZAPI envia eventos como POST com body JSON. Exemplo (visto no Log de Auditoria):
+ * {
+ *   "BaseUrl": "https://infinitycomercialia.uazapi.com",
+ *   "EventType": "messages",
+ *   "chat": { "id": "...", "wa_chatid": "...", "lead_email": "...", ... },
+ *   "message": { ... } // quando EventType=messages
+ * }
+ */
+
+export type UazapiEventType =
+  | "messages"
+  | "messages_update"
+  | "connection"
+  | "presence"
+  | "groups"
+  | "newsletter_messages"
+  | "unknown";
+
+export interface UazapiWebhookPayload {
+  BaseUrl?: string;
+  EventType?: string;
+  event?: string; // alguns envios usam minúsculo
+  type?: string;
+  chat?: Record<string, unknown>;
+  message?: Record<string, unknown>;
+  connection?: Record<string, unknown>;
+  presence?: Record<string, unknown>;
+  groups?: Record<string, unknown>;
+  newsletter?: Record<string, unknown>;
+  [k: string]: unknown;
+}
+
+export interface ParsedMessage {
+  waMessageId: string;
+  waChatId: string; // contato WA (5511XXX@s.whatsapp.net ou grupo)
+  fromMe: boolean;
+  isGroup: boolean;
+  pushName: string | null;
+  timestamp: number; // unix ms
+  tipo:
+    | "texto"
+    | "audio"
+    | "imagem"
+    | "documento"
+    | "video"
+    | "sticker"
+    | "localizacao"
+    | "contato"
+    | "interactive";
+  conteudo: string | null;
+  midia: {
+    url?: string;
+    mimeType?: string;
+    filename?: string;
+    caption?: string;
+    durationSeconds?: number;
+  } | null;
+  raw: Record<string, unknown>;
+}
+
+export interface ParsedConnection {
+  status: "connected" | "disconnected" | "connecting" | "qr" | "unknown";
+  number?: string;
+  profileName?: string;
+  profilePicUrl?: string;
+  qrcode?: string;
+  raw: Record<string, unknown>;
+}
+
+export function detectEventType(p: UazapiWebhookPayload): UazapiEventType {
+  const ev = (p.EventType || p.event || p.type || "").toString().toLowerCase();
+  if (ev === "messages") return "messages";
+  if (ev === "messages_update") return "messages_update";
+  if (ev === "connection") return "connection";
+  if (ev === "presence") return "presence";
+  if (ev === "groups") return "groups";
+  if (ev === "newsletter_messages") return "newsletter_messages";
+  return "unknown";
+}
+
+function pickString(obj: Record<string, unknown> | undefined, ...keys: string[]): string | null {
+  if (!obj) return null;
+  for (const k of keys) {
+    const v = obj[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return null;
+}
+
+function pickBool(obj: Record<string, unknown> | undefined, ...keys: string[]): boolean {
+  if (!obj) return false;
+  for (const k of keys) {
+    const v = obj[k];
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v !== 0;
+    if (typeof v === "string") return v.toLowerCase() === "true" || v === "1";
+  }
+  return false;
+}
+
+function pickNumber(obj: Record<string, unknown> | undefined, ...keys: string[]): number | null {
+  if (!obj) return null;
+  for (const k of keys) {
+    const v = obj[k];
+    if (typeof v === "number" && !Number.isNaN(v)) return v;
+    if (typeof v === "string" && v && !Number.isNaN(Number(v))) return Number(v);
+  }
+  return null;
+}
+
+export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
+  const msg = p.message as Record<string, unknown> | undefined;
+  const chat = p.chat as Record<string, unknown> | undefined;
+  if (!msg && !chat) return null;
+
+  const waMessageId =
+    pickString(msg, "id", "messageid", "message_id", "key_id") ||
+    pickString(chat, "lastmessage_id") ||
+    `wa_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const waChatId =
+    pickString(msg, "chatid", "chat_id", "remoteJid", "wa_chatid") ||
+    pickString(chat, "id", "wa_chatid", "chatid") ||
+    "";
+
+  const fromMe =
+    pickBool(msg, "fromMe", "fromme", "wasSentByApi") ||
+    pickBool(chat, "wasSentByApi");
+
+  const isGroup = waChatId.includes("@g.us") || pickBool(msg, "isGroup", "isgroup");
+
+  const pushName =
+    pickString(msg, "pushName", "pushname", "senderName") ||
+    pickString(chat, "name", "pushname", "wa_name");
+
+  const ts =
+    pickNumber(msg, "messageTimestamp", "timestamp", "t") ||
+    pickNumber(chat, "lastmessage_t") ||
+    Math.floor(Date.now() / 1000);
+  const tsMs = ts > 9_999_999_999 ? ts : ts * 1000;
+
+  // Detecta tipo + conteúdo
+  const messageType = pickString(msg, "messageType", "type", "msgtype")?.toLowerCase() || "";
+
+  let tipo: ParsedMessage["tipo"] = "texto";
+  let conteudo: string | null = null;
+  let midia: ParsedMessage["midia"] = null;
+
+  if (messageType.includes("audio") || messageType.includes("ptt")) {
+    tipo = "audio";
+    midia = {
+      url: pickString(msg, "url", "fileUrl", "mediaUrl") || undefined,
+      mimeType: pickString(msg, "mimetype", "mimeType") || undefined,
+      durationSeconds: pickNumber(msg, "seconds", "duration") || undefined,
+    };
+  } else if (messageType.includes("image")) {
+    tipo = "imagem";
+    midia = {
+      url: pickString(msg, "url", "fileUrl", "mediaUrl") || undefined,
+      mimeType: pickString(msg, "mimetype", "mimeType") || undefined,
+      caption: pickString(msg, "caption", "text") || undefined,
+    };
+    conteudo = midia.caption ?? null;
+  } else if (messageType.includes("video")) {
+    tipo = "video";
+    midia = {
+      url: pickString(msg, "url", "fileUrl", "mediaUrl") || undefined,
+      mimeType: pickString(msg, "mimetype", "mimeType") || undefined,
+      caption: pickString(msg, "caption", "text") || undefined,
+    };
+    conteudo = midia.caption ?? null;
+  } else if (messageType.includes("document")) {
+    tipo = "documento";
+    midia = {
+      url: pickString(msg, "url", "fileUrl", "mediaUrl") || undefined,
+      mimeType: pickString(msg, "mimetype", "mimeType") || undefined,
+      filename: pickString(msg, "filename", "fileName") || undefined,
+      caption: pickString(msg, "caption") || undefined,
+    };
+    conteudo = midia.caption ?? null;
+  } else if (messageType.includes("sticker")) {
+    tipo = "sticker";
+    midia = {
+      url: pickString(msg, "url", "fileUrl", "mediaUrl") || undefined,
+      mimeType: pickString(msg, "mimetype", "mimeType") || undefined,
+    };
+  } else if (messageType.includes("location")) {
+    tipo = "localizacao";
+    conteudo = JSON.stringify({
+      lat: pickNumber(msg, "lat", "latitude"),
+      lng: pickNumber(msg, "lng", "longitude"),
+      name: pickString(msg, "name"),
+      address: pickString(msg, "address"),
+    });
+  } else if (messageType.includes("contact")) {
+    tipo = "contato";
+    conteudo = pickString(msg, "vcard") || pickString(msg, "displayName");
+  } else if (messageType.includes("interactive") || messageType.includes("buttons") || messageType.includes("list")) {
+    tipo = "interactive";
+    conteudo = pickString(msg, "text", "body", "content");
+  } else {
+    tipo = "texto";
+    conteudo = pickString(msg, "text", "body", "content", "conversation", "extendedTextMessage");
+  }
+
+  return {
+    waMessageId,
+    waChatId,
+    fromMe,
+    isGroup,
+    pushName,
+    timestamp: tsMs,
+    tipo,
+    conteudo,
+    midia,
+    raw: { message: msg, chat },
+  };
+}
+
+export function parseConnection(p: UazapiWebhookPayload): ParsedConnection {
+  const c = (p.connection as Record<string, unknown> | undefined) || {};
+  const status = (pickString(c, "status", "state") || "").toLowerCase();
+
+  let normalized: ParsedConnection["status"] = "unknown";
+  if (status.includes("connect") && !status.includes("dis")) normalized = "connected";
+  else if (status.includes("disconnect") || status === "close") normalized = "disconnected";
+  else if (status.includes("connecting") || status.includes("init")) normalized = "connecting";
+  else if (status.includes("qr") || status === "scan") normalized = "qr";
+
+  return {
+    status: normalized,
+    number: pickString(c, "number", "phone") || undefined,
+    profileName: pickString(c, "profileName", "pushname", "name") || undefined,
+    profilePicUrl: pickString(c, "profilePicUrl", "picture", "pic") || undefined,
+    qrcode: pickString(c, "qrcode", "qr") || undefined,
+    raw: c,
+  };
+}
