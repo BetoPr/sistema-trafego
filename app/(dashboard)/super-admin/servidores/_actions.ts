@@ -139,6 +139,7 @@ export async function testarServidor(formData: FormData) {
 
   if (!s) redirect("/super-admin/servidores?erro=nao_encontrado");
 
+  let resultado: { ok: true; webhook: string } | { ok: false; msg: string };
   try {
     const adminToken = decryptToken(byteaToBuffer(s.admin_token_encrypted));
     const r = await adminGetGlobalWebhook({ baseUrl: s.base_url, adminToken });
@@ -150,10 +151,17 @@ export async function testarServidor(formData: FormData) {
       entidadeId: id,
       payload: { teste: "ok", webhook: r },
     });
-    redirect(`/super-admin/servidores?ok=teste_ok&msg=${encodeURIComponent(`Webhook global: ${r?.url || "(não configurado)"}`)}`);
+    resultado = { ok: true, webhook: r?.url || "(não configurado)" };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    redirect(`/super-admin/servidores?erro=teste_falhou&msg=${encodeURIComponent(msg)}`);
+    resultado = { ok: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+
+  // redirect() FORA do try/catch — em Next 15+ ele joga NEXT_REDIRECT
+  // que seria capturado pelo catch e renderizado como "erro".
+  if (resultado.ok) {
+    redirect(`/super-admin/servidores?ok=teste_ok&msg=${encodeURIComponent(`Webhook global: ${resultado.webhook}`)}`);
+  } else {
+    redirect(`/super-admin/servidores?erro=teste_falhou&msg=${encodeURIComponent(resultado.msg)}`);
   }
 }
 

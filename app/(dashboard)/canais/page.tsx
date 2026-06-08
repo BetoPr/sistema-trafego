@@ -12,6 +12,7 @@ import {
   importarCanalExistente,
   listarInstanciasDisponiveis,
 } from "./_actions";
+import { CanaisAutoRefresh } from "./_auto-refresh";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; qr?: string }>;
@@ -38,9 +39,11 @@ export default async function CanaisPage({ searchParams }: PageProps) {
   const userById = new Map((usuarios || []).map((u) => [u.id, u]));
   const semServidor = !servidores || servidores.length === 0;
   const canalQrAberto = sp.qr ? canais?.find((c) => c.id === sp.qr) : null;
+  const temPendente = (canais || []).some((c) => c.status === "pending_qr" || c.status === "connecting");
 
   return (
     <section className="mk-page">
+      <CanaisAutoRefresh pollPending={temPendente} />
       <div className="mk-page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
           <div className="mk-eyebrow">Administração</div>
