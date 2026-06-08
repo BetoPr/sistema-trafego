@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ChatView } from "./_chat";
 import { PainelDireito } from "./_painel";
+import { AtenderBotao } from "./_atender-btn";
+import { AtendimentosRefresh } from "./_refresh";
 
 interface PageProps {
   searchParams: Promise<{ tab?: string; t?: string; q?: string; canal?: string }>;
@@ -137,6 +139,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
 
   return (
     <section style={{ display: "grid", gridTemplateColumns: ticketSelFull ? "340px 1fr 340px" : "340px 1fr", height: "calc(100vh - 80px)", minHeight: 0, gap: 0, background: "var(--mk-bg)" }}>
+      <AtendimentosRefresh />
       {/* COLUNA 1 — Lista */}
       <aside style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--mk-border)" }}>
@@ -266,11 +269,9 @@ function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; m
       <div style={{ padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", display: "flex", gap: 8, alignItems: "center" }}>
         <i className="ti ti-eye" style={{ color: "#C9A876" }} />
         <span style={{ fontSize: 13, fontWeight: 600 }}>Espiando — {contatoNome}</span>
-        <form action={`/api/atendimentos/${ticketId}/atender`} method="post" style={{ marginLeft: "auto" }}>
-          <button type="submit" className="cta-btn" style={{ fontSize: 11 }}>
-            <i className="ti ti-arrow-narrow-right" /> Atender
-          </button>
-        </form>
+        <div style={{ marginLeft: "auto" }}>
+          <AtenderBotao ticketId={ticketId} />
+        </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 14, background: "var(--mk-surface-2)" }}>
         {mensagens.length === 0 ? (
