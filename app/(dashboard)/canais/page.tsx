@@ -258,8 +258,14 @@ export default async function CanaisPage({ searchParams }: PageProps) {
       </div>
 
       {/* Form novo canal */}
-      <div className="mk-card mk-card-lg" id="novo">
-        <h3 className="card-title" style={{ marginBottom: 14 }}>Novo canal UAZAPI</h3>
+      <div className="mk-card mk-card-lg" id="novo" style={{ borderLeft: "3px solid #25D366" }}>
+        <h3 className="card-title" style={{ marginBottom: 6 }}>
+          <i className="ti ti-qrcode" style={{ marginRight: 6, color: "#25D366" }} />
+          Conectar novo número via QR Code
+        </h3>
+        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
+          Cria instância nova no servidor UAZAPI e mostra o QR Code na hora pra você escanear com WhatsApp.
+        </p>
         <div style={{ background: "rgba(91,139,166,0.10)", borderLeft: "3px solid #5B8BA6", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)", marginBottom: 14, lineHeight: 1.6 }}>
           <strong>Atenção:</strong> use uma conta WhatsApp dedicada. Não use o mesmo número em outros sistemas. Certifique-se que o celular tem internet estável.
         </div>

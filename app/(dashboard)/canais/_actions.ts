@@ -130,8 +130,26 @@ export async function criarCanal(formData: FormData) {
     payload: { nome, instanceId },
   });
 
+  // Auto-gera QR Code imediatamente pra UX direta
+  try {
+    const r = await instanceConnect({ baseUrl: servidor.baseUrl, token: instanceToken });
+    const qr = r.instance?.qrcode || r.instance?.paircode || null;
+    if (qr) {
+      const sb2 = createServiceClient();
+      await sb2
+        .from("canais")
+        .update({
+          qr_code_atual: qr,
+          qr_atualizado_em: new Date().toISOString(),
+        })
+        .eq("id", novo.id);
+    }
+  } catch (e) {
+    console.error("[canais] auto-connect falhou:", e);
+  }
+
   revalidatePath("/canais");
-  redirect(`/canais?ok=criado&id=${novo.id}`);
+  redirect(`/canais?ok=criado&qr=${novo.id}`);
 }
 
 /**
