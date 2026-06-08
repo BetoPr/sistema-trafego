@@ -50,6 +50,11 @@ export function ChatView(props: Props) {
     }
   }, [msgs.length]);
 
+  // Sync server-side initial messages quando refresh acontece
+  useEffect(() => {
+    setMsgs(props.mensagensIniciais);
+  }, [props.mensagensIniciais]);
+
   // Realtime subscription
   useEffect(() => {
     const sb = createClient();
@@ -60,7 +65,22 @@ export function ChatView(props: Props) {
         { event: "INSERT", schema: "public", table: "mensagens", filter: `ticket_id=eq.${props.ticketId}` },
         (payload) => {
           const m = payload.new as Mensagem;
-          setMsgs((prev) => (prev.find((x) => x.id === m.id) ? prev : [...prev, m]));
+          setMsgs((prev) => {
+            // Se já existe (incluindo optimistic com wa_message_id batendo), substitui
+            const idx = prev.findIndex((x) => x.id === m.id);
+            if (idx !== -1) return prev;
+            // Remove optimistic se conteúdo+autor batem
+            const filtered = prev.filter((x) => !(x.id.startsWith("temp_") && x.conteudo === m.conteudo && x.autor === m.autor));
+            return [...filtered, m];
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mensagens", filter: `ticket_id=eq.${props.ticketId}` },
+        (payload) => {
+          const m = payload.new as Mensagem;
+          setMsgs((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
         },
       )
       .subscribe();
@@ -86,21 +106,48 @@ export function ChatView(props: Props) {
   async function enviar() {
     if (!text.trim() || !props.canalId) return;
     setSending(true);
+    const textoEnviado = text;
+    // Optimistic insert imediato — UX instantâneo enquanto fetch processa
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Mensagem = {
+      id: tempId,
+      autor: "atendente",
+      tipo: "texto",
+      conteudo: textoEnviado,
+      transcricao: null,
+      midia_url: null,
+      midia_mime: null,
+      status: "pendente",
+      created_at: new Date().toISOString(),
+      usuario_id: null,
+    };
+    setMsgs((prev) => [...prev, optimistic]);
+    setText("");
+
     try {
       const r = await fetch(`/api/canais/${props.canalId}/send`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId: props.ticketId, text }),
+        body: JSON.stringify({ ticketId: props.ticketId, text: textoEnviado }),
       });
       const j = await r.json();
       if (!r.ok) {
         alert(`Falha ao enviar: ${j.error || j.msg || r.statusText}`);
+        // rollback optimistic
+        setMsgs((prev) => prev.filter((m) => m.id !== tempId));
+        setText(textoEnviado);
       } else {
-        setText("");
+        // Marca como enviada (server vai logo logo retornar via realtime
+        // a versão definitiva com o id real e substituirá; até lá fica pendente)
+        setMsgs((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...m, status: "enviada", id: j.mensagemId || tempId } : m)),
+        );
         router.refresh();
       }
     } catch (e) {
       alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+      setMsgs((prev) => prev.filter((m) => m.id !== tempId));
+      setText(textoEnviado);
     } finally {
       setSending(false);
     }
@@ -182,9 +229,17 @@ export function ChatView(props: Props) {
                 )}
                 <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", marginTop: 4, textAlign: "right" }}>
                   {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  {m.autor === "atendente" && (
-                    <i className={`ti ${m.status === "lida" ? "ti-checks" : m.status === "entregue" ? "ti-checks" : "ti-check"}`} style={{ marginLeft: 4, color: m.status === "lida" ? "#5B8BA6" : undefined }} />
-                  )}
+                  {m.autor === "atendente" && (() => {
+                    const icone = m.status === "pendente" ? "ti-clock"
+                      : m.status === "falha" ? "ti-alert-circle"
+                      : (m.status === "entregue" || m.status === "lida") ? "ti-checks"
+                      : "ti-check";
+                    const cor = m.status === "lida" ? "#5B8BA6"
+                      : m.status === "falha" ? "#C97064"
+                      : m.status === "pendente" ? "var(--mk-text-muted)"
+                      : undefined;
+                    return <i className={`ti ${icone}`} style={{ marginLeft: 4, color: cor }} />;
+                  })()}
                 </div>
               </div>
             </div>

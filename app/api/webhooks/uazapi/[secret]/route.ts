@@ -125,6 +125,39 @@ export async function POST(
       });
     }
 
+    if (evento === "messages_update") {
+      // Update de status (enviada → entregue → lida) ou edição.
+      // UAZAPI envia { message: { id, ack?, status? } }
+      // ack: 0 pendente, 1 enviada, 2 entregue, 3 lida, 4 falha
+      const msg = payload.message as Record<string, unknown> | undefined;
+      const waId = msg?.id || msg?.messageid || msg?.key_id;
+      if (!waId) return NextResponse.json({ ok: true, skipped: "sem_id" });
+
+      const ack = Number(msg?.ack ?? msg?.status ?? -1);
+      let novoStatus: string | null = null;
+      if (ack === 0) novoStatus = "pendente";
+      else if (ack === 1) novoStatus = "enviada";
+      else if (ack === 2) novoStatus = "entregue";
+      else if (ack === 3) novoStatus = "lida";
+      else if (ack === 4) novoStatus = "falha";
+      else {
+        const s = String(msg?.status || "").toLowerCase();
+        if (s.includes("read")) novoStatus = "lida";
+        else if (s.includes("deliver")) novoStatus = "entregue";
+        else if (s.includes("sent")) novoStatus = "enviada";
+        else if (s.includes("fail") || s.includes("error")) novoStatus = "falha";
+      }
+
+      if (novoStatus) {
+        await sb
+          .from("mensagens")
+          .update({ status: novoStatus })
+          .eq("agencia_id", canal.agencia_id)
+          .eq("wa_message_id", String(waId));
+      }
+      return NextResponse.json({ ok: true, status: novoStatus });
+    }
+
     if (evento === "connection") {
       const conn = parseConnection(payload);
       const update: Record<string, unknown> = {
