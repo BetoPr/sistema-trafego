@@ -5,6 +5,7 @@ import { ChatView } from "./_chat";
 import { PainelDireito } from "./_painel";
 import { AtenderBotao } from "./_atender-btn";
 import { AtendimentosRefresh } from "./_refresh";
+import { ListaAtendimentos } from "./_lista";
 
 interface PageProps {
   searchParams: Promise<{ tab?: string; t?: string; q?: string; canal?: string; detalhes?: string }>;
@@ -151,8 +152,29 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   return (
     <section style={{ display: "grid", gridTemplateColumns: "340px 1fr", height: "calc(100vh - 64px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden", margin: "-20px -28px -30px", border: "0.5px solid var(--mk-border)" }}>
       <AtendimentosRefresh />
-      {/* COLUNA 1 — Lista */}
-      <aside style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
+      {/* COLUNA 1 — Lista (nova versão ZPRO style) */}
+      <div style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <ListaAtendimentos
+          tab={tab}
+          ticketSel={sp.t}
+          q={sp.q}
+          canal={sp.canal}
+          tickets={(tickets || []).map((t) => ({
+            id: t.id,
+            numero: t.numero,
+            status: t.status,
+            ultima_mensagem_em: t.ultima_mensagem_em,
+            ultima_mensagem_preview: t.ultima_mensagem_preview,
+            sentimento: t.sentimento,
+            contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as { id: string; nome: string; whatsapp: string | null; foto_url: string | null } | null,
+            canal: (Array.isArray(t.canal) ? t.canal[0] : t.canal) as { id: string; nome: string; status: string; instance_id: string | null } | null,
+            fila: (Array.isArray(t.fila) ? t.fila[0] : t.fila) as { id: string; nome: string; cor: string } | null,
+          }))}
+          canais={(canaisAtivos || []).map((c) => ({ id: c.id, nome: c.nome, status: c.status, numero_conectado: c.numero_conectado }))}
+          counts={counts}
+        />
+      </div>
+      <aside style={{ display: "none" }}>
         <div style={{ padding: "12px 14px", borderBottom: "0.5px solid var(--mk-border)" }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)" }}>Atendimentos</h2>
           <form method="get" style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
