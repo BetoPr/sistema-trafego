@@ -45,9 +45,23 @@ export async function transcribeAudio(p: TranscribeParams): Promise<TranscribeRe
     const r = await fetch(p.audioUrl);
     if (!r.ok) throw new Error(`Groq transcribe: fetch áudio falhou ${r.status}`);
     blob = await r.blob();
-    filename = p.audioFilename ?? p.audioUrl.split("/").pop() ?? "audio.ogg";
+    filename = p.audioFilename ?? p.audioUrl.split("/").pop()?.split("?")[0] ?? "audio.ogg";
   } else {
     throw new Error("Groq transcribe: audioUrl ou audioBlob obrigatório");
+  }
+
+  // Groq exige filename com extensão válida (flac/mp3/mp4/mpeg/mpga/m4a/ogg/opus/wav/webm).
+  // UAZAPI/WhatsApp gera UUID sem ext — força .ogg (formato OPUS padrão WA).
+  const extOk = /\.(flac|mp3|mp4|mpeg|mpga|m4a|ogg|opus|wav|webm)$/i.test(filename);
+  if (!extOk) {
+    // Detecta por mime se disponível
+    const mime = (blob.type || "").toLowerCase();
+    if (mime.includes("opus") || mime.includes("ogg")) filename += ".ogg";
+    else if (mime.includes("mp3") || mime.includes("mpeg")) filename += ".mp3";
+    else if (mime.includes("m4a") || mime.includes("mp4") || mime.includes("aac")) filename += ".m4a";
+    else if (mime.includes("wav")) filename += ".wav";
+    else if (mime.includes("webm")) filename += ".webm";
+    else filename += ".ogg"; // default WhatsApp
   }
 
   const form = new FormData();

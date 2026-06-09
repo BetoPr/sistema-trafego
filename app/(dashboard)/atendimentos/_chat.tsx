@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BotaoCobranca } from "./_cobranca";
 import { AudioPlayer } from "./_audio";
+import { ChatHeader } from "./_header";
 
 interface Mensagem {
   id: string;
@@ -27,10 +27,19 @@ interface MensagemRapida {
 
 interface Props {
   ticketId: string;
+  ticketNumero: number;
   canalId: string | null;
   canalConectado: boolean;
   contatoNome: string;
   contatoNomeCurto: string;
+  contatoTelefone?: string | null;
+  filaAtualNome?: string | null;
+  usuarioAtualNome?: string | null;
+  filas: Array<{ id: string; nome: string; cor?: string | null }>;
+  usuarios: Array<{ id: string; nome: string }>;
+  canais: Array<{ id: string; nome: string; status: string; numero_conectado?: string | null }>;
+  detalhesAbertos: boolean;
+  urlToggleDetalhes: string;
   mensagensIniciais: Mensagem[];
   mensagensRapidas: MensagemRapida[];
   userNomeMap: Record<string, string>;
@@ -169,17 +178,22 @@ export function ChatView(props: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", gap: 8 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600 }}>
-          {props.contatoNomeCurto}
-        </div>
-        <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{props.contatoNome}</div>
-        <BotaoCobranca ticketId={props.ticketId} canalConectado={props.canalConectado} canalId={props.canalId} />
-        <button onClick={encerrar} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }} title="Encerrar atendimento">
-          <i className="ti ti-check" /> Encerrar
-        </button>
-      </div>
+      <ChatHeader
+        ticketId={props.ticketId}
+        ticketNumero={props.ticketNumero}
+        canalId={props.canalId}
+        canalConectado={props.canalConectado}
+        contatoNome={props.contatoNome}
+        contatoIniciais={props.contatoNomeCurto}
+        contatoTelefone={props.contatoTelefone}
+        filaAtualNome={props.filaAtualNome}
+        usuarioAtualNome={props.usuarioAtualNome}
+        filas={props.filas}
+        usuarios={props.usuarios}
+        canais={props.canais}
+        detalhesAbertos={props.detalhesAbertos}
+        urlToggleDetalhes={props.urlToggleDetalhes}
+      />
 
       {/* Mensagens */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>

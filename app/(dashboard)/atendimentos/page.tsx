@@ -7,7 +7,7 @@ import { AtenderBotao } from "./_atender-btn";
 import { AtendimentosRefresh } from "./_refresh";
 
 interface PageProps {
-  searchParams: Promise<{ tab?: string; t?: string; q?: string; canal?: string }>;
+  searchParams: Promise<{ tab?: string; t?: string; q?: string; canal?: string; detalhes?: string }>;
 }
 
 const TABS: Array<{ id: "aberto" | "pendente" | "fechado"; label: string }> = [
@@ -59,6 +59,12 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     .eq("agencia_id", ctx.agenciaId)
     .order("nome");
 
+  // Filas/Usuarios pra modal transferir
+  const [{ data: filasAll }, { data: usuariosAll }] = await Promise.all([
+    sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
+    sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).is("deleted_at", null).order("nome"),
+  ]);
+
   // Ticket aberto
   const ticketAbertoId = sp.t;
   interface TicketSel {
@@ -69,6 +75,8 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sentimento_motivo: string | null;
     resumo: string | null;
     resumo_atualizado_em: string | null;
+    fila_id: string | null;
+    usuario_id: string | null;
     contato: { id: string; nome: string; whatsapp: string | null; ia_habilitada: boolean };
     canal: { id: string; nome: string; status: string } | null;
   }
@@ -92,7 +100,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   if (ticketAbertoId) {
     const { data: t } = await sb
       .from("tickets")
-      .select("id, numero, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, contato:contatos(id, nome, whatsapp, ia_habilitada), canal:canais(id, nome, status)")
+      .select("id, numero, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, fila_id, usuario_id, contato:contatos(id, nome, whatsapp, ia_habilitada), canal:canais(id, nome, status)")
       .eq("id", ticketAbertoId)
       .eq("agencia_id", ctx.agenciaId)
       .maybeSingle();
@@ -138,7 +146,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   }
 
   return (
-    <section style={{ display: "grid", gridTemplateColumns: ticketSelFull ? "340px 1fr 340px" : "340px 1fr", height: "calc(100vh - 80px)", minHeight: 0, gap: 0, background: "var(--mk-bg)" }}>
+    <section style={{ display: "grid", gridTemplateColumns: ticketSelFull && sp.detalhes !== "0" ? "340px 1fr 340px" : ticketSelFull ? "340px 1fr" : "340px 1fr", height: "calc(100vh - 80px)", minHeight: 0, gap: 0, background: "var(--mk-bg)" }}>
       <AtendimentosRefresh />
       {/* COLUNA 1 — Lista */}
       <aside style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -239,22 +247,44 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
           </div>
         ) : tab === "pendente" ? (
           <PendingView ticketId={ticketSelFull.id} mensagens={mensagens} contatoNome={ticketSelFull.contato.nome} />
-        ) : (
-          <ChatView
-            ticketId={ticketSelFull.id}
-            canalId={ticketSelFull.canal?.id ?? null}
-            canalConectado={ticketSelFull.canal?.status === "connected"}
-            contatoNome={ticketSelFull.contato.nome}
-            contatoNomeCurto={(ticketSelFull.contato.nome.slice(0, 2) || "?").toUpperCase()}
-            mensagensIniciais={mensagens}
-            mensagensRapidas={mensagensRapidas}
-            userNomeMap={userNomeMap}
-          />
-        )}
+        ) : (() => {
+          const detalhesAbertos = sp.detalhes !== "0";
+          // Toggle URL: mantém tudo e flipa detalhes
+          const params = new URLSearchParams();
+          params.set("tab", tab);
+          if (sp.q) params.set("q", sp.q);
+          if (sp.canal && sp.canal !== "todos") params.set("canal", sp.canal);
+          params.set("t", ticketSelFull.id);
+          if (detalhesAbertos) params.set("detalhes", "0");
+          const urlToggleDetalhes = `/atendimentos?${params.toString()}`;
+          const filaNome = ticketSelFull.fila_id ? (filasAll || []).find((f) => f.id === ticketSelFull!.fila_id)?.nome : null;
+          const userNome = ticketSelFull.usuario_id ? userNomeMap[ticketSelFull.usuario_id] : null;
+          return (
+            <ChatView
+              ticketId={ticketSelFull.id}
+              ticketNumero={ticketSelFull.numero}
+              canalId={ticketSelFull.canal?.id ?? null}
+              canalConectado={ticketSelFull.canal?.status === "connected"}
+              contatoNome={ticketSelFull.contato.nome}
+              contatoNomeCurto={(ticketSelFull.contato.nome.slice(0, 2) || "?").toUpperCase()}
+              contatoTelefone={ticketSelFull.contato.whatsapp}
+              filaAtualNome={filaNome}
+              usuarioAtualNome={userNome}
+              filas={(filasAll || []) as Array<{ id: string; nome: string; cor?: string | null }>}
+              usuarios={(usuariosAll || []) as Array<{ id: string; nome: string }>}
+              canais={(canaisAtivos || []) as Array<{ id: string; nome: string; status: string; numero_conectado?: string | null }>}
+              detalhesAbertos={detalhesAbertos}
+              urlToggleDetalhes={urlToggleDetalhes}
+              mensagensIniciais={mensagens}
+              mensagensRapidas={mensagensRapidas}
+              userNomeMap={userNomeMap}
+            />
+          );
+        })()}
       </main>
 
       {/* COLUNA 3 — Painel direito */}
-      {ticketSelFull && (
+      {ticketSelFull && sp.detalhes !== "0" && (
         <aside style={{ borderLeft: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
           <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} />
         </aside>
