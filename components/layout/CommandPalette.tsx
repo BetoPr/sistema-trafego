@@ -51,6 +51,7 @@ function buildItems(role?: string): PaletteItem[] {
   ]);
   push("Configuração", "#5B8BA6", [
     { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
+    { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
     { href: "/configuracoes/ia", label: "Chaves IA (Groq)", icon: "ti-key" },
     { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles" },
     { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card" },

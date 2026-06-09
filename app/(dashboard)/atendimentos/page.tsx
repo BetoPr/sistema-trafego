@@ -99,6 +99,8 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   let todasEtiquetas: Array<{ id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }> = [];
   let mensagensRapidas: Array<{ id: string; comando: string; conteudo: string }> = [];
   let userNomeMap: Record<string, string> = {};
+  let servicosLista: Array<{ id: string; nome: string }> = [];
+  let servicosHabilitados = false;
   let ticketSelFull: TicketSel | null = null;
 
   if (ticketAbertoId) {
@@ -122,7 +124,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     }
 
     if (ticketSelFull) {
-      const [{ data: msgs }, { data: tags }, { data: rap }, { data: us }, { data: todasTagsAg }] = await Promise.all([
+      const [{ data: msgs }, { data: tags }, { data: rap }, { data: us }, { data: todasTagsAg }, { data: servicosRows }, { data: agRow }] = await Promise.all([
         sb
           .from("mensagens")
           .select("id, autor, tipo, conteudo, transcricao, midia_url, midia_mime, status, created_at, usuario_id")
@@ -140,7 +142,11 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
           .or(`usuario_id.eq.${ctx.userId},global.eq.true`),
         sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId),
         sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).order("nome"),
+        sb.from("servicos").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
+        sb.from("agencias").select("servicos_habilitados").eq("id", ctx.agenciaId).single(),
       ]);
+      servicosLista = (servicosRows || []) as Array<{ id: string; nome: string }>;
+      servicosHabilitados = !!(agRow as { servicos_habilitados?: boolean } | null)?.servicos_habilitados;
       todasEtiquetas = (todasTagsAg || []) as Array<{ id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }>;
       mensagens = (msgs || []) as typeof mensagens;
       etiquetas = ((tags || []) as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" } | { id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }[] | null }>)
@@ -338,7 +344,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
             zIndex: 10,
           }}
         >
-          <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} todasEtiquetas={todasEtiquetas} />
+          <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} todasEtiquetas={todasEtiquetas} servicos={servicosLista} servicosHabilitados={servicosHabilitados} />
         </aside>
       )}
     </section>

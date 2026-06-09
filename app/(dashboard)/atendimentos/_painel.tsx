@@ -35,14 +35,21 @@ interface Tag {
   categoria?: "etiqueta" | "flag";
 }
 
+interface ServicoOpt {
+  id: string;
+  nome: string;
+}
+
 interface Props {
   ticket: Ticket;
   contato: Contato;
   etiquetas: Tag[];
   todasEtiquetas?: Tag[];
+  servicos?: ServicoOpt[];
+  servicosHabilitados?: boolean;
 }
 
-export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] }: Props) {
+export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [], servicos = [], servicosHabilitados = false }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"perfil" | "atend" | "util">("perfil");
   const [loadingResumo, setLoadingResumo] = useState(false);
@@ -358,13 +365,34 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
                 />
 
                 <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginTop: 4 }}>SERVIÇO</label>
-                <input
-                  type="text"
-                  value={fechServico}
-                  onChange={(e) => setFechServico(e.target.value)}
-                  placeholder="Ex: Gestão de tráfego"
-                  style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
-                />
+                {servicosHabilitados ? (
+                  <select
+                    value={fechServico}
+                    onChange={(e) => setFechServico(e.target.value)}
+                    style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                  >
+                    <option value="">— Selecione —</option>
+                    {servicos.map((s) => (
+                      <option key={s.id} value={s.nome}>{s.nome}</option>
+                    ))}
+                    {fechServico && !servicos.find((s) => s.nome === fechServico) && (
+                      <option value={fechServico}>{fechServico} (antigo)</option>
+                    )}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={fechServico}
+                    onChange={(e) => setFechServico(e.target.value)}
+                    placeholder="Ex: Gestão de tráfego"
+                    style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                  />
+                )}
+                {servicosHabilitados && servicos.length === 0 && (
+                  <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#C9A876", textDecoration: "none" }}>
+                    <i className="ti ti-plus" /> Cadastre serviços em Configurações → Serviços
+                  </a>
+                )}
 
                 <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginTop: 4 }}>QUANTIDADE</label>
                 <input
