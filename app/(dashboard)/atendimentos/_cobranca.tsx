@@ -5,9 +5,10 @@ import { useState } from "react";
 interface Props {
   ticketId: string;
   canalConectado: boolean;
+  canalId: string | null;
 }
 
-export function BotaoCobranca({ ticketId, canalConectado }: Props) {
+export function BotaoCobranca({ ticketId, canalConectado, canalId }: Props) {
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState<"pix" | "cartao">("pix");
   const [valor, setValor] = useState("");
@@ -17,6 +18,11 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
   const [resultado, setResultado] = useState<{ qrEncoded?: string; copiaCola?: string; link?: string } | null>(null);
 
   async function gerar() {
+    const valorNum = Number(valor.replace(",", "."));
+    if (!Number.isFinite(valorNum) || valorNum < 5) {
+      alert("Valor mínimo Asaas: R$ 5,00");
+      return;
+    }
     setLoading(true);
     setResultado(null);
     try {
@@ -43,11 +49,79 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
     }
   }
 
-  async function enviarNoChat(texto: string) {
-    // Reusa o endpoint /send do canal — mas precisamos saber o canal_id.
-    // Vou avisar usuário pra copiar manualmente nesse MVP.
+  async function copiarChat(texto: string) {
     await navigator.clipboard?.writeText(texto);
-    alert("Copiado pra área de transferência. Cole no chat e envie.");
+    alert("Copiado. Cole no chat e envie.");
+  }
+
+  const [enviando, setEnviando] = useState(false);
+
+  async function enviarTudoChat() {
+    if (!canalId || !resultado) return;
+    setEnviando(true);
+    try {
+      // 1) Envia QR como imagem
+      if (resultado.qrEncoded) {
+        const r1 = await fetch(`/api/canais/${canalId}/send`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ticketId,
+            media: {
+              type: "image",
+              fileBase64: resultado.qrEncoded,
+              caption: `💰 PIX R$ ${valor.replace(".", ",")}\n${descricao || "Cobrança"}`,
+              filename: "qr-pix.png",
+            },
+          }),
+        });
+        if (!r1.ok) {
+          const j = await r1.json().catch(() => ({}));
+          alert(`Falha ao enviar QR: ${j.error || j.msg || r1.statusText}`);
+          return;
+        }
+      }
+      // 2) Envia copia-cola como texto
+      if (resultado.copiaCola) {
+        const r2 = await fetch(`/api/canais/${canalId}/send`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ticketId,
+            text: `📋 Copia e cola PIX:\n\n${resultado.copiaCola}`,
+          }),
+        });
+        if (!r2.ok) {
+          const j = await r2.json().catch(() => ({}));
+          alert(`QR enviado, mas falhou copia-cola: ${j.error || j.msg || r2.statusText}`);
+          return;
+        }
+      }
+      // 3) Cartão — manda link
+      if (resultado.link) {
+        const r3 = await fetch(`/api/canais/${canalId}/send`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ticketId,
+            text: `💳 Link de pagamento:\n\n${resultado.link}`,
+          }),
+        });
+        if (!r3.ok) {
+          const j = await r3.json().catch(() => ({}));
+          alert(`Falha ao enviar link: ${j.error || j.msg || r3.statusText}`);
+          return;
+        }
+      }
+      setOpen(false);
+      setResultado(null);
+      setValor("");
+      setDescricao("");
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -76,7 +150,7 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
                 </div>
 
                 <div>
-                  <label style={lbl}>Valor (R$)</label>
+                  <label style={lbl}>Valor (R$) — mínimo 5,00</label>
                   <input type="text" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="99,90" style={inp} />
                 </div>
                 <div>
@@ -107,16 +181,35 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
                         <textarea readOnly value={resultado.copiaCola} rows={4} style={{ ...inp, fontFamily: "monospace", fontSize: 11 }} onClick={(e) => (e.target as HTMLTextAreaElement).select()} />
                       </div>
                     )}
-                    <button onClick={() => enviarNoChat(`PIX:\n${resultado.copiaCola || ""}`)} className="cta-btn"><i className="ti ti-copy" /> Copiar pra enviar no chat</button>
                   </>
                 )}
                 {resultado.link && (
-                  <>
-                    <div style={{ padding: 14, background: "var(--mk-surface-2)", borderRadius: 8, textAlign: "center" }}>
-                      <a href={resultado.link} target="_blank" rel="noreferrer" style={{ color: "var(--mk-accent)", textDecoration: "underline", fontSize: 13, wordBreak: "break-all" }}>{resultado.link}</a>
-                    </div>
-                    <button onClick={() => enviarNoChat(`Link de pagamento: ${resultado.link}`)} className="cta-btn"><i className="ti ti-copy" /> Copiar pra enviar no chat</button>
-                  </>
+                  <div style={{ padding: 14, background: "var(--mk-surface-2)", borderRadius: 8, textAlign: "center" }}>
+                    <a href={resultado.link} target="_blank" rel="noreferrer" style={{ color: "var(--mk-accent)", textDecoration: "underline", fontSize: 13, wordBreak: "break-all" }}>{resultado.link}</a>
+                  </div>
+                )}
+
+                {/* Botão principal: envia tudo direto no chat */}
+                <button
+                  onClick={enviarTudoChat}
+                  disabled={enviando || !canalId}
+                  className="cta-btn"
+                  style={{ background: "#25D366", color: "#FFFDF8" }}
+                  title={!canalId ? "Canal desconectado" : "Envia QR + copia-cola direto no chat"}
+                >
+                  <i className="ti ti-brand-whatsapp" /> {enviando ? "Enviando..." : "Enviar no chat"}
+                </button>
+
+                {/* Botão alternativo: só copiar pra área de transferência */}
+                {resultado.copiaCola && (
+                  <button onClick={() => copiarChat(resultado.copiaCola!)} className="ghost-btn" style={{ fontSize: 11 }}>
+                    <i className="ti ti-copy" /> Copiar copia-cola
+                  </button>
+                )}
+                {resultado.link && (
+                  <button onClick={() => copiarChat(resultado.link!)} className="ghost-btn" style={{ fontSize: 11 }}>
+                    <i className="ti ti-copy" /> Copiar link
+                  </button>
                 )}
                 <button onClick={() => { setResultado(null); setValor(""); setDescricao(""); }} className="ghost-btn">Nova cobrança</button>
               </div>
