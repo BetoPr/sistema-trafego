@@ -32,12 +32,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!auth?.user) return NextResponse.json({ error: "auth" }, { status: 401 });
 
   const body = (await req.json().catch(() => null)) as {
-    tipo?: "pix" | "pix_nominal" | "cartao";
+    tipo?: "pix" | "cartao";
     valor?: number;
     descricao?: string;
     parcelas?: number;
-    cpfCnpj?: string;
-    nome?: string;
   } | null;
   if (!body?.tipo || !body.valor) return NextResponse.json({ error: "body_invalido" }, { status: 400 });
 
@@ -68,12 +66,49 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   try {
     // =========================
-    // PIX SEM CPF (qrCodes/static)
+    // PIX — usa CPF/CNPJ padrão da agência (rastreável no painel Asaas)
+    // Se não tiver CPF padrão nem do contato, cai pro PIX estático sem customer
     // =========================
     if (body.tipo === "pix") {
+      const cpfCnpjFinal = (contato.cpf || cfg.cpf_cnpj_padrao || "").replace(/\D/g, "") || undefined;
+      const nomeFinal = contato.nome || cfg.nome_padrao || "Cliente";
+
+      if (cpfCnpjFinal) {
+        // Cobrança nominal com customer → aparece no painel Asaas com nome
+        const customer = await findOrCreateCustomer(client, {
+          name: nomeFinal,
+          cpfCnpj: cpfCnpjFinal,
+          email: contato.email || undefined,
+          phone: contato.telefone || contato.whatsapp || undefined,
+        });
+        const payment = await createPixPayment(client, {
+          customer: customer.id,
+          value: body.valor,
+          description: body.descricao || "Cobrança",
+          externalReference: `tk:${ticketId}`,
+        });
+        const qr = await getPixQrCode(client, payment.id);
+        await sb.from("asaas_cobrancas").insert({
+          agencia_id: u.agencia_id,
+          ticket_id: ticketId,
+          contato_id: contato.id,
+          asaas_id: payment.id,
+          tipo: "pix",
+          valor: body.valor,
+          descricao: body.descricao,
+          status: "pendente",
+          qr_code: qr.encodedImage,
+          copia_cola: qr.payload,
+          raw: payment as unknown as Record<string, unknown>,
+        });
+        await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: payment.id, payload: { tipo: "pix_nominal", valor: body.valor } });
+        return NextResponse.json({ ok: true, asaasId: payment.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
+      }
+
+      // Fallback: PIX estático (sem customer) — requer chave PIX configurada
       if (!cfg.pix_chave || !cfg.pix_tipo_chave) {
         return NextResponse.json({
-          error: "Configure a chave PIX padrão em /configuracoes/asaas antes de emitir PIX rápido.",
+          error: "Configure CPF/CNPJ padrão OU chave PIX em /configuracoes/asaas.",
         }, { status: 400 });
       }
       const qr = await createPixStaticQrCode(client, {
@@ -83,7 +118,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         description: body.descricao || cfg.pix_mensagem_padrao || `Cobrança ticket #${ticketId.slice(0, 8)}`,
         allowsMultiplePayments: false,
       });
-
       await sb.from("asaas_cobrancas").insert({
         agencia_id: u.agencia_id,
         ticket_id: ticketId,
@@ -97,58 +131,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         copia_cola: qr.payload,
         raw: qr as unknown as Record<string, unknown>,
       });
-
       await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: qr.id, payload: { tipo: "pix_estatico", valor: body.valor } });
       return NextResponse.json({ ok: true, asaasId: qr.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
-    }
-
-    // =========================
-    // PIX NOMINAL (vincula a customer, exige CPF/CNPJ)
-    // =========================
-    if (body.tipo === "pix_nominal") {
-      // Prioridade: body → contato → CPF padrão da agência
-      const cpfCnpjFinal = (body.cpfCnpj || contato.cpf || cfg.cpf_cnpj_padrao || "").replace(/\D/g, "") || undefined;
-      if (!cpfCnpjFinal) {
-        return NextResponse.json({
-          error: "CPF/CNPJ obrigatório. Configure CPF padrão em /configuracoes/asaas ou use tipo='pix' (sem CPF).",
-        }, { status: 400 });
-      }
-      // Mesma prioridade pra nome
-      const nomeFinal = body.nome?.trim() || contato.nome || cfg.nome_padrao || "Cliente";
-      if (body.cpfCnpj && cpfCnpjFinal !== contato.cpf) {
-        await sb.from("contatos").update({ cpf: cpfCnpjFinal, nome: nomeFinal }).eq("id", contato.id);
-      }
-
-      const customer = await findOrCreateCustomer(client, {
-        name: nomeFinal,
-        cpfCnpj: cpfCnpjFinal,
-        email: contato.email || undefined,
-        phone: contato.telefone || contato.whatsapp || undefined,
-      });
-      const payment = await createPixPayment(client, {
-        customer: customer.id,
-        value: body.valor,
-        description: body.descricao || "Cobrança",
-        externalReference: `tk:${ticketId}`,
-      });
-      const qr = await getPixQrCode(client, payment.id);
-
-      await sb.from("asaas_cobrancas").insert({
-        agencia_id: u.agencia_id,
-        ticket_id: ticketId,
-        contato_id: contato.id,
-        asaas_id: payment.id,
-        tipo: "pix",
-        valor: body.valor,
-        descricao: body.descricao,
-        status: "pendente",
-        qr_code: qr.encodedImage,
-        copia_cola: qr.payload,
-        raw: payment as unknown as Record<string, unknown>,
-      });
-
-      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: payment.id, payload: { tipo: "pix_nominal", valor: body.valor } });
-      return NextResponse.json({ ok: true, asaasId: payment.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
     }
 
     // =========================
