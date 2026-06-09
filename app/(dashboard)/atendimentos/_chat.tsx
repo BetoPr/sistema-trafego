@@ -7,6 +7,21 @@ import { AudioPlayer } from "./_audio";
 import { ChatHeader } from "./_header";
 import { InputBar } from "./_input";
 
+const scrollBtnStyle: React.CSSProperties = {
+  width: 30,
+  height: 30,
+  borderRadius: "50%",
+  border: "0.5px solid var(--mk-border)",
+  background: "var(--mk-surface)",
+  color: "var(--mk-text-secondary)",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 13,
+  boxShadow: "0 2px 6px rgba(0,0,0,0.18)",
+};
+
 interface Mensagem {
   id: string;
   autor: "cliente" | "atendente" | "sistema" | "bot";
@@ -197,7 +212,28 @@ export function ChatView(props: Props) {
       />
 
       {/* Mensagens */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)", position: "relative" }}>
+
+      {/* Botões scroll up/down flutuantes */}
+      <div style={{ position: "sticky", bottom: 8, alignSelf: "flex-end", display: "flex", flexDirection: "column", gap: 6, zIndex: 5, marginRight: -8, pointerEvents: "auto" }}>
+        <button
+          type="button"
+          onClick={() => scrollRef.current && (scrollRef.current.scrollTop = 0)}
+          title="Ir pra primeira mensagem"
+          style={scrollBtnStyle}
+        >
+          <i className="ti ti-chevrons-up" />
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight)}
+          title="Ir pra mais recente"
+          style={scrollBtnStyle}
+        >
+          <i className="ti ti-chevrons-down" />
+        </button>
+      </div>
+
         {msgs.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens neste ticket.</div>
         ) : (

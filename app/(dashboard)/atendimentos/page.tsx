@@ -149,7 +149,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   }
 
   return (
-    <section style={{ display: "grid", gridTemplateColumns: "340px 1fr", height: "calc(100vh - 80px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden" }}>
+    <section style={{ display: "grid", gridTemplateColumns: "340px 1fr", height: "calc(100vh - 64px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden", margin: "-20px -28px -30px", border: "0.5px solid var(--mk-border)" }}>
       <AtendimentosRefresh />
       {/* COLUNA 1 — Lista */}
       <aside style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
