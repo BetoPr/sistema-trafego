@@ -107,6 +107,27 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
     } catch {}
   }
 
+  async function exportarPDF(ticketId: string, numero: number, contatoNome: string) {
+    const w = window.open(`/api/atendimentos/${ticketId}/export-pdf`, "_blank");
+    if (!w) alert("Habilita popups pra exportar PDF");
+  }
+
+  async function sanitizar(contatoId: string) {
+    if (!confirm("Remover todos dados sensíveis deste contato? Ação irreversível.")) return;
+    try {
+      const r = await fetch(`/api/contatos/${contatoId}/sanitizar`, { method: "POST" });
+      if (r.ok) {
+        alert("Contato sanitizado");
+        router.refresh();
+      } else {
+        const j = await r.json();
+        alert(`Erro: ${j.error}`);
+      }
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   async function salvarNota() {
     if (!novaNota.trim()) return;
     try {
@@ -228,11 +249,8 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
                 </div>
               </div>
               <InfoLinha icon="ti-user" label="Nome" value={contato.nome} />
-              <InfoLinha icon="ti-phone" label="Telefone" value={contato.whatsapp || "—"} mono />
-              <InfoLinha icon="ti-mail" label="Email" value={contato.email || "—"} />
-              <InfoLinha icon="ti-briefcase" label="Empresa" value={contato.empresa || "—"} />
-              <InfoLinha icon="ti-map-pin" label="Cidade" value={contato.cidade ? `${contato.cidade}${contato.estado ? `/${contato.estado}` : ""}` : "—"} />
-              <InfoLinha icon="ti-id" label="CPF/CNPJ" value={contato.cpf || "—"} mono noBorder />
+              <InfoLinha icon="ti-phone" label="Telefone" value={formatarTel(contato.whatsapp)} mono />
+              <InfoLinha icon="ti-map-pin" label="Estado (DDD)" value={estadoPorDDD(contato.whatsapp) || contato.estado || "—"} noBorder />
               <div style={{ display: "flex", gap: 6, padding: "10px 12px 12px", borderTop: "0.5px solid var(--mk-border)" }}>
                 <a href={`/contatos?editar=${contato.id}`} className="ghost-btn" style={{ flex: 1, fontSize: 11, textAlign: "center" }}>
                   <i className="ti ti-edit" /> Editar
@@ -357,39 +375,70 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
 
         {tab === "atend" && (
           <>
-            <Section titulo="Sentimento (IA)">
-              <div style={{ fontSize: 12, color: sentimentoCor, fontWeight: 600, marginBottom: 4 }}>
-                <i className="ti ti-mood-smile" /> {sentimentoLabel}
-                {ticket.sentimento_confianca !== null && ` · ${ticket.sentimento_confianca}%`}
+            {/* CARD sentimento estilo ZPRO */}
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", borderBottom: "0.5px solid var(--mk-border)" }}>
+                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600 }}>
+                  <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
+                  Análise de sentimento
+                </div>
+                <button onClick={gerarSentimento} disabled={loadingSent} style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: loadingSent ? "wait" : "pointer", fontSize: 14 }} title="Re-analisar">
+                  <i className={`ti ${loadingSent ? "ti-loader-2" : "ti-refresh"}`} style={{ animation: loadingSent ? "spin 1s linear infinite" : undefined }} />
+                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+                </button>
               </div>
-              {ticket.sentimento_motivo && (
-                <div style={{ fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic" }}>“{ticket.sentimento_motivo}”</div>
-              )}
-              <button onClick={gerarSentimento} disabled={loadingSent} className="ghost-btn" style={{ marginTop: 8, fontSize: 11, width: "100%" }}>
-                <i className="ti ti-refresh" /> {loadingSent ? "Analisando..." : "Re-analisar"}
-              </button>
-            </Section>
+              <div style={{ padding: "12px 14px" }}>
+                {loadingSent ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--mk-text-muted)" }}>
+                    <i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite" }} /> Analisando...
+                  </div>
+                ) : ticket.sentimento ? (
+                  <>
+                    <div style={{ fontSize: 12.5, color: sentimentoCor, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                      <i className={`ti ${ticket.sentimento === "muito_bom" ? "ti-mood-happy" : ticket.sentimento === "bom" ? "ti-mood-smile" : "ti-mood-sad"}`} />
+                      {sentimentoLabel}
+                      {ticket.sentimento_confianca !== null && <span style={{ fontWeight: 400 }}>- {ticket.sentimento_confianca}%</span>}
+                    </div>
+                    {ticket.sentimento_motivo && (
+                      <div style={{ fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", marginTop: 6, lineHeight: 1.5 }}>
+                        &quot;{ticket.sentimento_motivo}&quot;
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>Ainda não analisado</div>
+                )}
+              </div>
+            </Card>
 
-            <Section titulo="Protocolo">
-              <Empty>Não emitido</Empty>
-            </Section>
-            <Section titulo="Avaliação">
-              <Empty>Não enviada</Empty>
-            </Section>
-            <Section titulo="Notas">
-              <Empty>Sem notas</Empty>
-            </Section>
+            <Card titulo="Protocolo">
+              <div style={{ padding: "10px 14px", fontSize: 11, color: "var(--mk-text-muted)" }}>Não emitido</div>
+            </Card>
+            <Card titulo="Avaliação">
+              <div style={{ padding: "10px 14px", fontSize: 11, color: "var(--mk-text-muted)" }}>Não enviada</div>
+            </Card>
           </>
         )}
 
         {tab === "util" && (
           <>
-            <Section titulo="Exportar conversa">
-              <button className="ghost-btn" style={{ fontSize: 11, width: "100%" }} disabled><i className="ti ti-file-export" /> Exportar PDF (em breve)</button>
-            </Section>
-            <Section titulo="Sanitizar contato">
-              <button className="ghost-btn" style={{ fontSize: 11, width: "100%", color: "#C97064" }} disabled><i className="ti ti-eraser" /> Remover dados sensíveis (em breve)</button>
-            </Section>
+            <Card titulo="Exportar conversa">
+              <div style={{ padding: "10px 14px" }}>
+                <button onClick={() => exportarPDF(ticket.id, ticket.numero, contato.nome)} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-file-export" /> Exportar PDF
+                </button>
+              </div>
+            </Card>
+            <Card titulo="Sanitizar contato">
+              <div style={{ padding: "10px 14px" }}>
+                <p style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginBottom: 8, lineHeight: 1.5 }}>
+                  Remove nome, telefone, email e CPF do contato (LGPD). Mensagens preservadas.
+                </p>
+                <button onClick={() => sanitizar(contato.id)} className="ghost-btn" style={{ fontSize: 11, width: "100%", color: "#C97064" }}>
+                  <i className="ti ti-eraser" /> Remover dados sensíveis
+                </button>
+              </div>
+            </Card>
           </>
         )}
       </div>
@@ -484,6 +533,53 @@ function InfoLinha({ icon, label, value, mono, noBorder }: { icon: string; label
       </div>
     </div>
   );
+}
+
+const DDD_ESTADO: Record<string, string> = {
+  "11": "SP", "12": "SP", "13": "SP", "14": "SP", "15": "SP", "16": "SP", "17": "SP", "18": "SP", "19": "SP",
+  "21": "RJ", "22": "RJ", "24": "RJ",
+  "27": "ES", "28": "ES",
+  "31": "MG", "32": "MG", "33": "MG", "34": "MG", "35": "MG", "37": "MG", "38": "MG",
+  "41": "PR", "42": "PR", "43": "PR", "44": "PR", "45": "PR", "46": "PR",
+  "47": "SC", "48": "SC", "49": "SC",
+  "51": "RS", "53": "RS", "54": "RS", "55": "RS",
+  "61": "DF",
+  "62": "GO", "64": "GO",
+  "63": "TO",
+  "65": "MT", "66": "MT",
+  "67": "MS",
+  "68": "AC",
+  "69": "RO",
+  "71": "BA", "73": "BA", "74": "BA", "75": "BA", "77": "BA",
+  "79": "SE",
+  "81": "PE", "87": "PE",
+  "82": "AL",
+  "83": "PB",
+  "84": "RN",
+  "85": "CE", "88": "CE",
+  "86": "PI", "89": "PI",
+  "91": "PA", "93": "PA", "94": "PA",
+  "92": "AM", "97": "AM",
+  "95": "RR",
+  "96": "AP",
+  "98": "MA", "99": "MA",
+};
+
+function estadoPorDDD(whatsapp: string | null | undefined): string {
+  if (!whatsapp) return "";
+  const digits = whatsapp.replace(/\D/g, "");
+  // Formato esperado: 55 DD NNNNNNNNN. Pega 2 dígitos após o 55.
+  const ddd = digits.startsWith("55") ? digits.slice(2, 4) : digits.slice(0, 2);
+  return DDD_ESTADO[ddd] || "—";
+}
+
+function formatarTel(whatsapp: string | null | undefined): string {
+  if (!whatsapp) return "—";
+  const d = whatsapp.replace(/\D/g, "");
+  if (d.length === 13) return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9)}`;
+  if (d.length === 12) return `+${d.slice(0, 2)} (${d.slice(2, 4)}) ${d.slice(4, 8)}-${d.slice(8)}`;
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  return whatsapp;
 }
 
 function labelAcao(a: string): string {
