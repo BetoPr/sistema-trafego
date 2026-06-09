@@ -32,6 +32,7 @@ interface Tag {
   id: string;
   nome: string;
   cor: string;
+  categoria?: "etiqueta" | "flag";
 }
 
 interface Props {
@@ -48,7 +49,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
   const [loadingSent, setLoadingSent] = useState(false);
   const [streamingResumo, setStreamingResumo] = useState<string>("");
   const [streamingActive, setStreamingActive] = useState(false);
-  const [showEtiquetaPicker, setShowEtiquetaPicker] = useState(false);
+  const [showEtiquetaPicker, setShowEtiquetaPicker] = useState<null | "etiqueta" | "flag">(null);
   const [novaEtiquetaNome, setNovaEtiquetaNome] = useState("");
   const [modalLog, setModalLog] = useState<null | "ticket" | "notas">(null);
   const [logsTicket, setLogsTicket] = useState<Array<{ id: string; acao: string; entidade: string | null; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null; payload?: Record<string, unknown> | null }>>([]);
@@ -78,16 +79,16 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
     finally { setSavingFech(false); }
   }
 
-  async function addEtiqueta(etiquetaId?: string, nome?: string) {
+  async function addEtiqueta(etiquetaId?: string, nome?: string, categoria?: "etiqueta" | "flag") {
     try {
       const r = await fetch(`/api/contatos/${contato.id}/etiquetas`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(etiquetaId ? { etiquetaId } : { nome, cor: corAleatoria() }),
+        body: JSON.stringify(etiquetaId ? { etiquetaId } : { nome, cor: corAleatoria(), categoria: categoria || "etiqueta" }),
       });
       const j = await r.json();
       if (!r.ok) alert(`Erro: ${j.error}`);
-      else { router.refresh(); setShowEtiquetaPicker(false); setNovaEtiquetaNome(""); }
+      else { router.refresh(); setShowEtiquetaPicker(null); setNovaEtiquetaNome(""); }
     } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
   }
 
@@ -307,20 +308,38 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
               </div>
             </Card>
 
-            {/* CARD flags */}
-            <Card titulo="Flags">
-              {etiquetas.length > 0 ? (
+            {/* CARD Etiquetas */}
+            <Card titulo="Etiquetas">
+              {etiquetas.filter((e) => (e.categoria || "etiqueta") === "etiqueta").length > 0 ? (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "10px 12px" }}>
-                  {etiquetas.map((e) => (
+                  {etiquetas.filter((e) => (e.categoria || "etiqueta") === "etiqueta").map((e) => (
                     <span key={e.id} onClick={() => removeEtiqueta(e.id)} title="Clique pra remover deste contato" style={{ fontSize: 10, padding: "3px 8px", borderRadius: 12, background: `${e.cor}33`, color: e.cor, border: `0.5px solid ${e.cor}`, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
                       {e.nome} <i className="ti ti-x" style={{ fontSize: 9 }} />
                     </span>
                   ))}
                 </div>
+              ) : <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--mk-text-muted)" }}>Sem etiquetas</div>}
+              <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
+                <button onClick={() => setShowEtiquetaPicker("etiqueta")} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-plus" /> Adicionar etiqueta
+                </button>
+              </div>
+            </Card>
+
+            {/* CARD Flags */}
+            <Card titulo="Flags">
+              {etiquetas.filter((e) => e.categoria === "flag").length > 0 ? (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "10px 12px" }}>
+                  {etiquetas.filter((e) => e.categoria === "flag").map((e) => (
+                    <span key={e.id} onClick={() => removeEtiqueta(e.id)} title="Clique pra remover deste contato" style={{ fontSize: 10, padding: "3px 8px", borderRadius: 12, background: `${e.cor}33`, color: e.cor, border: `0.5px solid ${e.cor}`, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <i className="ti ti-flag" style={{ fontSize: 9 }} /> {e.nome} <i className="ti ti-x" style={{ fontSize: 9 }} />
+                    </span>
+                  ))}
+                </div>
               ) : <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--mk-text-muted)" }}>Sem flags</div>}
               <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
-                <button onClick={() => setShowEtiquetaPicker(true)} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
-                  <i className="ti ti-plus" /> Adicionar flag
+                <button onClick={() => setShowEtiquetaPicker("flag")} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-flag-plus" /> Adicionar Flag
                 </button>
               </div>
             </Card>
@@ -550,73 +569,81 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
         </ModalLog>
       )}
 
-      {/* MODAL Adicionar Flag — via portal pra escapar do transform translateX do painel */}
+      {/* MODAL Adicionar Etiqueta/Flag — via portal pra escapar do transform translateX do painel */}
       {showEtiquetaPicker && typeof window !== "undefined" && createPortal(
-        <div
-          onClick={() => { setShowEtiquetaPicker(false); setNovaEtiquetaNome(""); }}
-          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 12, width: "min(460px, 92vw)", maxHeight: "75vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.55)" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "0.5px solid var(--mk-border)" }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Adicionar flag</div>
-              <button onClick={() => { setShowEtiquetaPicker(false); setNovaEtiquetaNome(""); }} style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 16 }}><i className="ti ti-x" /></button>
-            </div>
-
-            <div style={{ padding: 14, overflowY: "auto" }} className="chat-scroll">
-              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 8 }}>EXISTENTES</div>
-              {todasEtiquetas.length === 0 ? (
-                <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "6px 0" }}>Nenhuma flag criada ainda.</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {todasEtiquetas.map((t) => {
-                    const jaAplicada = !!etiquetas.find((e) => e.id === t.id);
-                    return (
-                      <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 6px", borderRadius: 6, background: jaAplicada ? "var(--mk-surface-2)" : "transparent" }}>
-                        <button
-                          onClick={() => !jaAplicada && addEtiqueta(t.id)}
-                          disabled={jaAplicada}
-                          style={{ flex: 1, fontSize: 11, padding: "5px 10px", borderRadius: 12, background: `${t.cor}22`, color: t.cor, border: `0.5px solid ${t.cor}`, cursor: jaAplicada ? "default" : "pointer", textAlign: "left", opacity: jaAplicada ? 0.55 : 1 }}
-                          title={jaAplicada ? "Já está aplicada neste contato" : "Aplicar"}
-                        >
-                          {t.nome}{jaAplicada && " ✓"}
-                        </button>
-                        <button onClick={() => editarEtiqueta(t.id, t.nome)} title="Renomear" style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", padding: "4px 6px", fontSize: 13 }}>
-                          <i className="ti ti-pencil" />
-                        </button>
-                        <button onClick={() => excluirEtiqueta(t.id, t.nome)} title="Excluir" style={{ background: "transparent", border: 0, color: "#C97064", cursor: "pointer", padding: "4px 6px", fontSize: 13 }}>
-                          <i className="ti ti-trash" />
-                        </button>
-                      </div>
-                    );
-                  })}
+        (() => {
+          const cat = showEtiquetaPicker;
+          const labelSingular = cat === "flag" ? "flag" : "etiqueta";
+          const labelTitulo = cat === "flag" ? "Adicionar Flag" : "Adicionar Etiqueta";
+          const disponiveis = todasEtiquetas.filter((t) => (t.categoria || "etiqueta") === cat);
+          return (
+            <div
+              onClick={() => { setShowEtiquetaPicker(null); setNovaEtiquetaNome(""); }}
+              style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{ background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 12, width: "min(460px, 92vw)", maxHeight: "75vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.55)" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "0.5px solid var(--mk-border)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{labelTitulo}</div>
+                  <button onClick={() => { setShowEtiquetaPicker(null); setNovaEtiquetaNome(""); }} style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 16 }}><i className="ti ti-x" /></button>
                 </div>
-              )}
 
-              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, margin: "16px 0 6px" }}>CRIAR NOVA</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input
-                  value={novaEtiquetaNome}
-                  onChange={(e) => setNovaEtiquetaNome(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome)}
-                  placeholder="Nome da flag"
-                  autoFocus
-                  style={{ flex: 1, padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
-                />
-                <button
-                  onClick={() => novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome)}
-                  disabled={!novaEtiquetaNome.trim()}
-                  className="cta-btn"
-                  style={{ fontSize: 11, padding: "7px 14px" }}
-                >
-                  <i className="ti ti-plus" /> Criar
-                </button>
+                <div style={{ padding: 14, overflowY: "auto" }} className="chat-scroll">
+                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 8 }}>EXISTENTES</div>
+                  {disponiveis.length === 0 ? (
+                    <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "6px 0" }}>Nenhuma {labelSingular} criada ainda.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {disponiveis.map((t) => {
+                        const jaAplicada = !!etiquetas.find((e) => e.id === t.id);
+                        return (
+                          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 6px", borderRadius: 6, background: jaAplicada ? "var(--mk-surface-2)" : "transparent" }}>
+                            <button
+                              onClick={() => !jaAplicada && addEtiqueta(t.id)}
+                              disabled={jaAplicada}
+                              style={{ flex: 1, fontSize: 11, padding: "5px 10px", borderRadius: 12, background: `${t.cor}22`, color: t.cor, border: `0.5px solid ${t.cor}`, cursor: jaAplicada ? "default" : "pointer", textAlign: "left", opacity: jaAplicada ? 0.55 : 1 }}
+                              title={jaAplicada ? "Já aplicada neste contato" : "Aplicar"}
+                            >
+                              {cat === "flag" && <i className="ti ti-flag" style={{ marginRight: 4, fontSize: 10 }} />}{t.nome}{jaAplicada && " ✓"}
+                            </button>
+                            <button onClick={() => editarEtiqueta(t.id, t.nome)} title="Renomear" style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", padding: "4px 6px", fontSize: 13 }}>
+                              <i className="ti ti-pencil" />
+                            </button>
+                            <button onClick={() => excluirEtiqueta(t.id, t.nome)} title="Excluir" style={{ background: "transparent", border: 0, color: "#C97064", cursor: "pointer", padding: "4px 6px", fontSize: 13 }}>
+                              <i className="ti ti-trash" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, margin: "16px 0 6px" }}>CRIAR NOVA</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      value={novaEtiquetaNome}
+                      onChange={(e) => setNovaEtiquetaNome(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome, cat)}
+                      placeholder={`Nome da ${labelSingular}`}
+                      autoFocus
+                      style={{ flex: 1, padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                    />
+                    <button
+                      onClick={() => novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome, cat)}
+                      disabled={!novaEtiquetaNome.trim()}
+                      className="cta-btn"
+                      style={{ fontSize: 11, padding: "7px 14px" }}
+                    >
+                      <i className="ti ti-plus" /> Criar
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>,
+          );
+        })(),
         document.body
       )}
     </div>

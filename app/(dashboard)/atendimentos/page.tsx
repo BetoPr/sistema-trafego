@@ -95,8 +95,8 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     created_at: string;
     usuario_id: string | null;
   }> = [];
-  let etiquetas: Array<{ id: string; nome: string; cor: string }> = [];
-  let todasEtiquetas: Array<{ id: string; nome: string; cor: string }> = [];
+  let etiquetas: Array<{ id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }> = [];
+  let todasEtiquetas: Array<{ id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }> = [];
   let mensagensRapidas: Array<{ id: string; comando: string; conteudo: string }> = [];
   let userNomeMap: Record<string, string> = {};
   let ticketSelFull: TicketSel | null = null;
@@ -131,7 +131,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
           .limit(500),
         sb
           .from("contato_etiquetas")
-          .select("etiqueta:etiquetas(id, nome, cor)")
+          .select("etiqueta:etiquetas(id, nome, cor, categoria)")
           .eq("contato_id", ticketSelFull.contato.id),
         sb
           .from("mensagens_rapidas")
@@ -139,13 +139,13 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
           .eq("agencia_id", ctx.agenciaId)
           .or(`usuario_id.eq.${ctx.userId},global.eq.true`),
         sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId),
-        sb.from("etiquetas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).order("nome"),
+        sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).order("nome"),
       ]);
-      todasEtiquetas = (todasTagsAg || []) as Array<{ id: string; nome: string; cor: string }>;
+      todasEtiquetas = (todasTagsAg || []) as Array<{ id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }>;
       mensagens = (msgs || []) as typeof mensagens;
-      etiquetas = ((tags || []) as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string } | { id: string; nome: string; cor: string }[] | null }>)
+      etiquetas = ((tags || []) as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" } | { id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }[] | null }>)
         .map((e) => (Array.isArray(e.etiqueta) ? e.etiqueta[0] : e.etiqueta))
-        .filter((e): e is { id: string; nome: string; cor: string } => !!e);
+        .filter((e): e is { id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" } => !!e);
       mensagensRapidas = (rap || []) as typeof mensagensRapidas;
       userNomeMap = Object.fromEntries((us || []).map((u) => [u.id, u.nome]));
     }

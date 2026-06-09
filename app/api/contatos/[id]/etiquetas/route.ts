@@ -21,14 +21,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const ctx = await getCtx(req);
   if (!ctx) return NextResponse.json({ error: "auth" }, { status: 401 });
 
-  const body = (await req.json().catch(() => null)) as { etiquetaId?: string; nome?: string; cor?: string } | null;
+  const body = (await req.json().catch(() => null)) as { etiquetaId?: string; nome?: string; cor?: string; categoria?: "etiqueta" | "flag" } | null;
   if (!body || (!body.etiquetaId && !body.nome)) return NextResponse.json({ error: "body_invalido" }, { status: 400 });
 
   let etiquetaId = body.etiquetaId;
   if (!etiquetaId && body.nome) {
+    const categoria = body.categoria === "flag" ? "flag" : "etiqueta";
     const { data: nova, error } = await ctx.svc
       .from("etiquetas")
-      .insert({ agencia_id: ctx.agenciaId, nome: body.nome.trim(), cor: body.cor || "#C9A876" })
+      .insert({ agencia_id: ctx.agenciaId, nome: body.nome.trim(), cor: body.cor || "#C9A876", categoria })
       .select("id")
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
