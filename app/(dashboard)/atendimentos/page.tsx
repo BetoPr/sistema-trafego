@@ -76,6 +76,8 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sentimento_motivo: string | null;
     resumo: string | null;
     resumo_atualizado_em: string | null;
+    valor_fechado: number | null;
+    metadata: { servico?: string; quantidade?: number } | null;
     fila_id: string | null;
     usuario_id: string | null;
     contato: { id: string; nome: string; whatsapp: string | null; ia_habilitada: boolean; email?: string | null; empresa?: string | null; cidade?: string | null; estado?: string | null; cpf?: string | null };
@@ -102,7 +104,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   if (ticketAbertoId) {
     const { data: t } = await sb
       .from("tickets")
-      .select("id, numero, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, fila_id, usuario_id, contato:contatos(id, nome, whatsapp, ia_habilitada, email, empresa, cidade, estado, cpf), canal:canais(id, nome, status)")
+      .select("id, numero, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, valor_fechado, metadata, fila_id, usuario_id, contato:contatos(id, nome, whatsapp, ia_habilitada, email, empresa, cidade, estado, cpf), canal:canais(id, nome, status)")
       .eq("id", ticketAbertoId)
       .eq("agencia_id", ctx.agenciaId)
       .maybeSingle();

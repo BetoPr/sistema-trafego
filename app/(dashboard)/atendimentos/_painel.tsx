@@ -23,6 +23,8 @@ interface Ticket {
   sentimento_motivo: string | null;
   resumo: string | null;
   resumo_atualizado_em: string | null;
+  valor_fechado?: number | null;
+  metadata?: { servico?: string; quantidade?: number } | null;
 }
 
 interface Tag {
@@ -51,6 +53,29 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
   const [logsTicket, setLogsTicket] = useState<Array<{ id: string; acao: string; entidade: string | null; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null; payload?: Record<string, unknown> | null }>>([]);
   const [notas, setNotas] = useState<Array<{ id: string; conteudo: string; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null }>>([]);
   const [novaNota, setNovaNota] = useState("");
+  const [fechValor, setFechValor] = useState<string>(ticket.valor_fechado != null ? String(ticket.valor_fechado) : "");
+  const [fechServico, setFechServico] = useState<string>(ticket.metadata?.servico || "");
+  const [fechQtd, setFechQtd] = useState<string>(ticket.metadata?.quantidade != null ? String(ticket.metadata.quantidade) : "");
+  const [savingFech, setSavingFech] = useState(false);
+
+  async function salvarFechamento() {
+    setSavingFech(true);
+    try {
+      const r = await fetch(`/api/atendimentos/${ticket.id}/fechamento`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          valor: fechValor ? Number(fechValor.replace(",", ".")) : null,
+          servico: fechServico.trim() || null,
+          quantidade: fechQtd ? Number(fechQtd) : null,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) alert(`Erro: ${j.error || j.msg}`);
+      else { alert("Fechamento salvo"); router.refresh(); }
+    } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
+    finally { setSavingFech(false); }
+  }
 
   async function addEtiqueta(etiquetaId?: string, nome?: string) {
     try {
@@ -238,7 +263,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
         ))}
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+      <div className="chat-scroll" style={{ flex: 1, overflowY: "auto", padding: 12 }}>
         {tab === "perfil" && (
           <>
             {/* CARD info do cliente com separadores */}
@@ -270,44 +295,8 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
                 </div>
               ) : <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--mk-text-muted)" }}>Sem etiquetas</div>}
               <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
-                {!showEtiquetaPicker ? (
-                  <button onClick={() => setShowEtiquetaPicker(true)} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
-                    <i className="ti ti-plus" /> Adicionar tag
-                  </button>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {todasEtiquetas.filter((t) => !etiquetas.find((e) => e.id === t.id)).length > 0 && (
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxHeight: 100, overflowY: "auto" }}>
-                        {todasEtiquetas.filter((t) => !etiquetas.find((e) => e.id === t.id)).map((t) => (
-                          <button key={t.id} onClick={() => addEtiqueta(t.id)} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: `${t.cor}33`, color: t.cor, border: `0.5px solid ${t.cor}`, cursor: "pointer" }}>
-                            {t.nome}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <input value={novaEtiquetaNome} onChange={(e) => setNovaEtiquetaNome(e.target.value)} placeholder="Nova tag…" style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 11 }} />
-                      <button onClick={() => novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome)} disabled={!novaEtiquetaNome.trim()} className="cta-btn" style={{ fontSize: 11, padding: "5px 10px" }}>Criar</button>
-                      <button onClick={() => { setShowEtiquetaPicker(false); setNovaEtiquetaNome(""); }} className="ghost-btn" style={{ fontSize: 11, padding: "5px 8px" }}><i className="ti ti-x" /></button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* CARD Comunicação */}
-            <Card titulo="Comunicação">
-              <div style={{ display: "flex", gap: 4, padding: "10px 12px" }}>
-                <button onClick={() => marcarLido(true)} className="ghost-btn" style={{ flex: 1, fontSize: 10.5, padding: "6px 4px" }}>
-                  <i className="ti ti-mail-opened" /> Marcar lido
-                </button>
-                <button onClick={() => marcarLido(false)} className="ghost-btn" style={{ flex: 1, fontSize: 10.5, padding: "6px 4px" }}>
-                  <i className="ti ti-mail" /> Não lido
-                </button>
-              </div>
-              <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
-                <button onClick={abrirLogTicket} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
-                  <i className="ti ti-list" /> Log do ticket
+                <button onClick={() => setShowEtiquetaPicker(true)} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-plus" /> Adicionar tag
                 </button>
               </div>
             </Card>
@@ -415,6 +404,60 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
 
         {tab === "util" && (
           <>
+            <Card titulo="Comunicação">
+              <div style={{ display: "flex", gap: 4, padding: "10px 12px" }}>
+                <button onClick={() => marcarLido(true)} className="ghost-btn" style={{ flex: 1, fontSize: 10.5, padding: "6px 4px" }}>
+                  <i className="ti ti-mail-opened" /> Marcar lido
+                </button>
+                <button onClick={() => marcarLido(false)} className="ghost-btn" style={{ flex: 1, fontSize: 10.5, padding: "6px 4px" }}>
+                  <i className="ti ti-mail" /> Não lido
+                </button>
+              </div>
+              <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
+                <button onClick={abrirLogTicket} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-list" /> Log do ticket
+                </button>
+              </div>
+            </Card>
+
+            <Card titulo="Fechamento">
+              <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>VALOR (R$)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={fechValor}
+                  onChange={(e) => setFechValor(e.target.value.replace(/[^0-9.,]/g, ""))}
+                  placeholder="0,00"
+                  style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                />
+
+                <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginTop: 4 }}>SERVIÇO</label>
+                <input
+                  type="text"
+                  value={fechServico}
+                  onChange={(e) => setFechServico(e.target.value)}
+                  placeholder="Ex: Gestão de tráfego"
+                  style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                />
+
+                <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginTop: 4 }}>QUANTIDADE</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={fechQtd}
+                  onChange={(e) => setFechQtd(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="1"
+                  style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                />
+              </div>
+              <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
+                <button onClick={salvarFechamento} disabled={savingFech} className="cta-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-check" /> {savingFech ? "Salvando..." : "Salvar fechamento"}
+                </button>
+              </div>
+            </Card>
+
             <Card titulo="Exportar conversa">
               <div style={{ padding: "10px 14px" }}>
                 <button onClick={() => exportarPDF(ticket.id, ticket.numero, contato.nome)} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
@@ -480,6 +523,63 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
             )
           )}
         </ModalLog>
+      )}
+
+      {/* MODAL Adicionar Etiqueta */}
+      {showEtiquetaPicker && (
+        <div
+          onClick={() => { setShowEtiquetaPicker(false); setNovaEtiquetaNome(""); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1600 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 12, width: "min(420px, 92vw)", maxHeight: "70vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.55)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "0.5px solid var(--mk-border)" }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Adicionar etiqueta</div>
+              <button onClick={() => { setShowEtiquetaPicker(false); setNovaEtiquetaNome(""); }} style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 16 }}><i className="ti ti-x" /></button>
+            </div>
+
+            <div style={{ padding: 14, overflowY: "auto" }} className="chat-scroll">
+              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 6 }}>EXISTENTES</div>
+              {todasEtiquetas.filter((t) => !etiquetas.find((e) => e.id === t.id)).length === 0 ? (
+                <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "6px 0" }}>Nenhuma tag disponível.</div>
+              ) : (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {todasEtiquetas.filter((t) => !etiquetas.find((e) => e.id === t.id)).map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => addEtiqueta(t.id)}
+                      style={{ fontSize: 11, padding: "4px 10px", borderRadius: 12, background: `${t.cor}22`, color: t.cor, border: `0.5px solid ${t.cor}`, cursor: "pointer" }}
+                    >
+                      {t.nome}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, margin: "14px 0 6px" }}>CRIAR NOVA</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  value={novaEtiquetaNome}
+                  onChange={(e) => setNovaEtiquetaNome(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome)}
+                  placeholder="Nome da tag"
+                  autoFocus
+                  style={{ flex: 1, padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                />
+                <button
+                  onClick={() => novaEtiquetaNome.trim() && addEtiqueta(undefined, novaEtiquetaNome)}
+                  disabled={!novaEtiquetaNome.trim()}
+                  className="cta-btn"
+                  style={{ fontSize: 11, padding: "7px 14px" }}
+                >
+                  <i className="ti ti-plus" /> Criar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

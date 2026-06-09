@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AudioPlayer } from "./_audio";
+import { MediaPreview } from "./_media";
 import { ChatHeader } from "./_header";
 import { InputBar } from "./_input";
 
@@ -275,11 +276,12 @@ export function ChatView(props: Props) {
                       )}
                     </>
                   )
-                ) : m.tipo === "imagem" || m.tipo === "video" || m.tipo === "documento" ? (
+                ) : m.tipo === "imagem" || m.tipo === "video" ? (
+                  <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo} />
+                ) : m.tipo === "documento" ? (
                   <>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
-                      <i className={`ti ${m.tipo === "imagem" ? "ti-photo" : m.tipo === "video" ? "ti-video" : "ti-file"}`} />
-                      [{m.tipo}]
+                      <i className="ti ti-file" /> [documento]
                     </div>
                     {m.conteudo && <div style={{ marginTop: 4 }}>{m.conteudo}</div>}
                   </>
