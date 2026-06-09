@@ -50,7 +50,7 @@ export function InputBar(p: Props) {
   }, []);
 
   function textoFinal(): string {
-    if (assinado && p.text.trim()) return `*${p.atendenteNome}:*\n${p.text}`;
+    if (assinado && p.text.trim()) return `*${p.atendenteNome}*:\n${p.text}`;
     return p.text;
   }
 
