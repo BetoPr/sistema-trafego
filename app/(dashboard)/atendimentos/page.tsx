@@ -77,7 +77,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     resumo_atualizado_em: string | null;
     fila_id: string | null;
     usuario_id: string | null;
-    contato: { id: string; nome: string; whatsapp: string | null; ia_habilitada: boolean };
+    contato: { id: string; nome: string; whatsapp: string | null; ia_habilitada: boolean; email?: string | null; empresa?: string | null; cidade?: string | null; estado?: string | null; cpf?: string | null };
     canal: { id: string; nome: string; status: string } | null;
   }
   let mensagens: Array<{
@@ -93,6 +93,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     usuario_id: string | null;
   }> = [];
   let etiquetas: Array<{ id: string; nome: string; cor: string }> = [];
+  let todasEtiquetas: Array<{ id: string; nome: string; cor: string }> = [];
   let mensagensRapidas: Array<{ id: string; comando: string; conteudo: string }> = [];
   let userNomeMap: Record<string, string> = {};
   let ticketSelFull: TicketSel | null = null;
@@ -100,7 +101,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   if (ticketAbertoId) {
     const { data: t } = await sb
       .from("tickets")
-      .select("id, numero, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, fila_id, usuario_id, contato:contatos(id, nome, whatsapp, ia_habilitada), canal:canais(id, nome, status)")
+      .select("id, numero, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, fila_id, usuario_id, contato:contatos(id, nome, whatsapp, ia_habilitada, email, empresa, cidade, estado, cpf), canal:canais(id, nome, status)")
       .eq("id", ticketAbertoId)
       .eq("agencia_id", ctx.agenciaId)
       .maybeSingle();
@@ -118,7 +119,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     }
 
     if (ticketSelFull) {
-      const [{ data: msgs }, { data: tags }, { data: rap }, { data: us }] = await Promise.all([
+      const [{ data: msgs }, { data: tags }, { data: rap }, { data: us }, { data: todasTagsAg }] = await Promise.all([
         sb
           .from("mensagens")
           .select("id, autor, tipo, conteudo, transcricao, midia_url, midia_mime, status, created_at, usuario_id")
@@ -135,7 +136,9 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
           .eq("agencia_id", ctx.agenciaId)
           .or(`usuario_id.eq.${ctx.userId},global.eq.true`),
         sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId),
+        sb.from("etiquetas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).order("nome"),
       ]);
+      todasEtiquetas = (todasTagsAg || []) as Array<{ id: string; nome: string; cor: string }>;
       mensagens = (msgs || []) as typeof mensagens;
       etiquetas = ((tags || []) as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string } | { id: string; nome: string; cor: string }[] | null }>)
         .map((e) => (Array.isArray(e.etiqueta) ? e.etiqueta[0] : e.etiqueta))
@@ -311,7 +314,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
             zIndex: 10,
           }}
         >
-          <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} />
+          <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} todasEtiquetas={todasEtiquetas} />
         </aside>
       )}
     </section>
