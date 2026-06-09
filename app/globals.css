@@ -235,9 +235,9 @@
   padding-right: 2px;
   margin-right: -2px;
 }
-.sidebar-nav::-webkit-scrollbar { width: 5px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-nav::-webkit-scrollbar-thumb {
+.sidebar-nav::-webkit-scrollbar, .chat-scroll::-webkit-scrollbar { width: 5px; }
+.sidebar-nav::-webkit-scrollbar-track, .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb, .chat-scroll::-webkit-scrollbar-thumb {
   background: rgba(245, 239, 228, 0.1);
   border-radius: 3px;
 }
