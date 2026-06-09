@@ -26,6 +26,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     valor?: number;
     descricao?: string;
     parcelas?: number;
+    cpfCnpj?: string;
+    nome?: string;
   } | null;
   if (!body?.tipo || !body.valor) return NextResponse.json({ error: "body_invalido" }, { status: 400 });
 
@@ -54,10 +56,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const contato = (ticket.contato as unknown as { id: string; nome: string; email?: string; cpf?: string; telefone?: string; whatsapp?: string }) || null;
   if (!contato) return NextResponse.json({ error: "sem_contato" }, { status: 400 });
 
+  // CPF/CNPJ pode vir do contato OU do form (modal cobrança). Asaas exige em produção.
+  const cpfCnpjFinal = (body.cpfCnpj || contato.cpf || "").replace(/\D/g, "") || undefined;
+  if (!cpfCnpjFinal) {
+    return NextResponse.json({ error: "CPF ou CNPJ do cliente é obrigatório pra Asaas em produção. Preencha no modal ou edite o contato." }, { status: 400 });
+  }
+  const nomeFinal = body.nome?.trim() || contato.nome;
+
+  // Atualiza contato pra reuso futuro
+  if (body.cpfCnpj && cpfCnpjFinal && cpfCnpjFinal !== contato.cpf) {
+    await sb.from("contatos").update({ cpf: cpfCnpjFinal, nome: nomeFinal }).eq("id", contato.id);
+  }
+
   try {
     const customer = await findOrCreateCustomer(client, {
-      name: contato.nome,
-      cpfCnpj: contato.cpf || undefined,
+      name: nomeFinal,
+      cpfCnpj: cpfCnpjFinal,
       email: contato.email || undefined,
       phone: contato.telefone || contato.whatsapp || undefined,
     });

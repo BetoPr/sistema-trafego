@@ -13,6 +13,8 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
   const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
   const [parcelas, setParcelas] = useState("1");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<{ qrEncoded?: string; copiaCola?: string; link?: string } | null>(null);
 
@@ -28,6 +30,8 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
           valor: Number(valor.replace(",", ".")),
           descricao,
           parcelas: tipo === "cartao" ? Number(parcelas) : undefined,
+          cpfCnpj: cpfCnpj.replace(/\D/g, "") || undefined,
+          nome: nome.trim() || undefined,
         }),
       });
       const j = await r.json();
@@ -76,6 +80,15 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
                 </div>
 
                 <div>
+                  <label style={lbl}>Nome do cliente (se não tiver no contato)</label>
+                  <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="João Silva" style={inp} />
+                </div>
+                <div>
+                  <label style={lbl}>CPF/CNPJ do cliente <span style={{ color: "#C97064" }}>*</span></label>
+                  <input type="text" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} placeholder="000.000.000-00" style={inp} required />
+                  <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 2 }}>Asaas exige pra emitir cobrança em produção</div>
+                </div>
+                <div>
                   <label style={lbl}>Valor (R$)</label>
                   <input type="text" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="99,90" style={inp} />
                 </div>
@@ -91,7 +104,7 @@ export function BotaoCobranca({ ticketId, canalConectado }: Props) {
                     </select>
                   </div>
                 )}
-                <button onClick={gerar} disabled={loading || !valor} className="cta-btn" style={{ marginTop: 6 }}>
+                <button onClick={gerar} disabled={loading || !valor || !cpfCnpj} className="cta-btn" style={{ marginTop: 6 }}>
                   <i className="ti ti-bolt" /> {loading ? "Gerando..." : "Gerar cobrança"}
                 </button>
               </div>
