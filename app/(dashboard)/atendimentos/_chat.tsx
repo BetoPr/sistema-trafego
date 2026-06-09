@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AudioPlayer } from "./_audio";
 import { ChatHeader } from "./_header";
+import { InputBar } from "./_input";
 
 interface Mensagem {
   id: string;
@@ -295,36 +296,43 @@ export function ChatView(props: Props) {
         </div>
       )}
 
-      {/* Input */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "10px 12px", borderTop: "0.5px solid var(--mk-border)", background: "var(--mk-surface)" }}>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              enviar();
-            }
-          }}
-          placeholder={props.canalConectado ? "Mensagem… (Enter envia, Shift+Enter quebra linha; / para atalho)" : "Canal desconectado — reconecte pra enviar."}
-          disabled={!props.canalConectado || sending}
-          rows={Math.min(4, Math.max(1, text.split("\n").length))}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            borderRadius: 10,
-            border: "0.5px solid var(--mk-border)",
-            background: "var(--mk-surface-2)",
-            color: "var(--mk-text)",
-            fontSize: 12.5,
-            resize: "none",
-            fontFamily: "inherit",
-          }}
-        />
-        <button onClick={enviar} disabled={!props.canalConectado || sending || !text.trim()} className="cta-btn">
-          <i className="ti ti-send" /> {sending ? "..." : "Enviar"}
-        </button>
-      </div>
+      {/* Input bar nova estilo ZPRO */}
+      <InputBar
+        ticketId={props.ticketId}
+        canalId={props.canalId}
+        canalConectado={props.canalConectado}
+        atendenteNome={props.usuarioAtualNome || "Atendente"}
+        text={text}
+        setText={setText}
+        sending={sending}
+        onSend={enviar}
+        onOptimisticAudio={(blob: Blob) => {
+          // Optimistic add audio msg local
+          const tempId = `temp_${Date.now()}`;
+          const optimistic: Mensagem = {
+            id: tempId,
+            autor: "atendente",
+            tipo: "audio",
+            conteudo: null,
+            transcricao: null,
+            midia_url: URL.createObjectURL(blob),
+            midia_mime: blob.type,
+            status: "pendente",
+            created_at: new Date().toISOString(),
+            usuario_id: null,
+          };
+          setMsgs((prev) => [...prev, optimistic]);
+          return tempId;
+        }}
+        onAudioConfirm={(tempId: string, mensagemId?: string) => {
+          setMsgs((prev) =>
+            prev.map((m) => (m.id === tempId ? { ...m, status: "enviada", id: mensagemId || tempId } : m)),
+          );
+        }}
+        onAudioFail={(tempId: string) => {
+          setMsgs((prev) => prev.filter((m) => m.id !== tempId));
+        }}
+      />
     </div>
   );
 }
