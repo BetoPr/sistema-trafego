@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BotaoCobranca } from "./_cobranca";
+import { AudioPlayer } from "./_audio";
 
 interface Mensagem {
   id: string;
@@ -206,16 +207,20 @@ export function ChatView(props: Props) {
                   </div>
                 )}
                 {m.tipo === "audio" ? (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
-                      <i className="ti ti-microphone" /> Áudio
-                    </div>
-                    {m.transcricao && (
-                      <div style={{ marginTop: 6, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-border)", paddingLeft: 6 }}>
-                        {m.transcricao}
+                  m.midia_url ? (
+                    <AudioPlayer midiaPath={m.midia_url} transcricao={m.transcricao} />
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
+                        <i className="ti ti-microphone" /> Áudio <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>(baixando...)</span>
                       </div>
-                    )}
-                  </>
+                      {m.transcricao && (
+                        <div style={{ marginTop: 6, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-border)", paddingLeft: 6 }}>
+                          {m.transcricao}
+                        </div>
+                      )}
+                    </>
+                  )
                 ) : m.tipo === "imagem" || m.tipo === "video" || m.tipo === "documento" ? (
                   <>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>

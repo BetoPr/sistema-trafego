@@ -25,7 +25,9 @@ import {
 import { ingestMensagem } from "@/lib/crm/ingest";
 import { audit, getIp } from "@/lib/crm/audit";
 import { transcreverMensagemAudio } from "@/lib/crm/ia";
-import { downloadAndUpload } from "@/lib/crm/storage";
+import { downloadAndUpload, uploadMedia } from "@/lib/crm/storage";
+import { instanceDownloadMessage } from "@/lib/uazapi/client";
+import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +41,7 @@ export async function POST(
 
   const { data: canal } = await sb
     .from("canais")
-    .select("id, agencia_id, fila_id, usuario_id, instance_id")
+    .select("id, agencia_id, fila_id, usuario_id, instance_id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
     .eq("webhook_secret", secret)
     .maybeSingle();
 
@@ -87,21 +89,75 @@ export async function POST(
       );
 
       // Mídia: baixa e sobe pro bucket em background.
-      if (parsed.midia?.url) {
+      const ehMidia = ["audio", "imagem", "video", "documento", "sticker"].includes(parsed.tipo);
+      if (ehMidia) {
         void (async () => {
           try {
+            let sourceUrl = parsed.midia?.url;
+            let mimeType = parsed.midia?.mimeType;
+            let filename = parsed.midia?.filename;
+
+            // Se URL ausente, baixa via /message/download da UAZAPI
+            if (!sourceUrl) {
+              const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+              const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+              const typeMap: Record<string, "image" | "audio" | "video" | "document" | "sticker"> = {
+                audio: "audio", imagem: "image", video: "video", documento: "document", sticker: "sticker",
+              };
+              const dl = await instanceDownloadMessage(
+                { baseUrl, token },
+                { id: parsed.waMessageId, type: typeMap[parsed.tipo] },
+              );
+              sourceUrl = dl.fileURL || undefined;
+              mimeType = dl.mimetype || mimeType;
+              filename = dl.filename || filename;
+
+              // Se veio base64 em vez de URL, faz upload direto
+              if (!sourceUrl && dl.base64) {
+                const buf = Buffer.from(dl.base64.includes(",") ? dl.base64.split(",")[1] : dl.base64, "base64");
+                const up = await uploadMedia({
+                  agenciaId: canal.agencia_id,
+                  ticketId: ingest.ticketId,
+                  data: buf,
+                  filename: filename || `${parsed.tipo}.bin`,
+                  contentType: mimeType || "application/octet-stream",
+                });
+                if (up?.path) {
+                  await sb.from("mensagens").update({
+                    midia_url: up.path,
+                    midia_mime: mimeType || null,
+                    midia_filename: filename || null,
+                  }).eq("id", ingest.mensagemId);
+                }
+                if (parsed.tipo === "audio" && up?.signedUrl) {
+                  await transcreverMensagemAudio({
+                    agenciaId: canal.agencia_id,
+                    mensagemId: ingest.mensagemId,
+                    audioUrl: up.signedUrl,
+                  });
+                }
+                return;
+              }
+            }
+
+            if (!sourceUrl) {
+              console.warn("[webhook uazapi] mídia sem URL nem base64 — pulando", parsed.waMessageId);
+              return;
+            }
+
             const up = await downloadAndUpload({
               agenciaId: canal.agencia_id,
               ticketId: ingest.ticketId,
-              sourceUrl: parsed.midia!.url!,
-              filename: parsed.midia!.filename,
-              contentType: parsed.midia!.mimeType,
+              sourceUrl,
+              filename: filename,
+              contentType: mimeType,
             });
             if (up?.path) {
-              await sb
-                .from("mensagens")
-                .update({ midia_url: up.path })
-                .eq("id", ingest.mensagemId);
+              await sb.from("mensagens").update({
+                midia_url: up.path,
+                midia_mime: mimeType || null,
+                midia_filename: filename || null,
+              }).eq("id", ingest.mensagemId);
             }
             // Áudio → transcreve via Groq
             if (parsed.tipo === "audio" && up?.signedUrl) {

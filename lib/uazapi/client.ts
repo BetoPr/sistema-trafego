@@ -316,6 +316,32 @@ export interface UazapiGroup {
 /**
  * GET /group/list — lista grupos da conta conectada.
  */
+// =========================================
+// DOWNLOAD de mídia recebida (áudio, imagem, doc)
+// =========================================
+
+export interface DownloadedMedia {
+  fileURL?: string;
+  base64?: string;
+  mimetype?: string;
+  filename?: string;
+}
+
+/**
+ * POST /message/download — baixa mídia de uma mensagem recebida.
+ * Necessário pra áudios/imagens/docs que UAZAPI não envia URL direta no webhook.
+ */
+export async function instanceDownloadMessage(
+  inst: UazapiInstance,
+  params: { id: string; type?: "image" | "audio" | "document" | "video" | "sticker" },
+): Promise<DownloadedMedia> {
+  return (await call(inst.baseUrl, "/message/download", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+  })) as DownloadedMedia;
+}
+
 export async function instanceListGroups(
   inst: UazapiInstance,
   opts: { force?: boolean; noparticipants?: boolean } = {},
