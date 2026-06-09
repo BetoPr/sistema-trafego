@@ -28,6 +28,7 @@ import { transcreverMensagemAudio } from "@/lib/crm/ia";
 import { downloadAndUpload, uploadMedia } from "@/lib/crm/storage";
 import { instanceDownloadMessage } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+import { uploadImageToImgbb, uploadImageFromUrlToImgbb } from "@/lib/imgbb/upload";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,8 +113,24 @@ export async function POST(
               mimeType = dl.mimetype || mimeType;
               filename = dl.filename || filename;
 
-              // Se veio base64 em vez de URL, faz upload direto
+              // Se veio base64 em vez de URL
               if (!sourceUrl && dl.base64) {
+                // IMAGEM → ImgBB (não polui banco/bucket)
+                if (parsed.tipo === "imagem") {
+                  try {
+                    const ib = await uploadImageToImgbb({ base64: dl.base64, filename });
+                    await sb.from("mensagens").update({
+                      midia_url: ib.url,
+                      midia_mime: mimeType || "image/jpeg",
+                      midia_filename: filename || null,
+                    }).eq("id", ingest.mensagemId);
+                  } catch (e) {
+                    console.error("[webhook uazapi] imgbb base64 falhou:", e);
+                  }
+                  return;
+                }
+
+                // Áudio/video/documento → bucket
                 const buf = Buffer.from(dl.base64.includes(",") ? dl.base64.split(",")[1] : dl.base64, "base64");
                 const up = await uploadMedia({
                   agenciaId: canal.agencia_id,
@@ -142,6 +159,21 @@ export async function POST(
 
             if (!sourceUrl) {
               console.warn("[webhook uazapi] mídia sem URL nem base64 — pulando", parsed.waMessageId);
+              return;
+            }
+
+            // IMAGEM com URL → ImgBB direto (download interno + upload)
+            if (parsed.tipo === "imagem") {
+              try {
+                const ib = await uploadImageFromUrlToImgbb({ sourceUrl, filename });
+                await sb.from("mensagens").update({
+                  midia_url: ib.url,
+                  midia_mime: mimeType || "image/jpeg",
+                  midia_filename: filename || null,
+                }).eq("id", ingest.mensagemId);
+              } catch (e) {
+                console.error("[webhook uazapi] imgbb url falhou:", e);
+              }
               return;
             }
 

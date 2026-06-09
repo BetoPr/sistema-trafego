@@ -11,6 +11,7 @@ import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { audit, getIp } from "@/lib/crm/audit";
 import { dispatchWebhook } from "@/lib/crm/webhook-dispatcher";
+import { uploadImageToImgbb } from "@/lib/imgbb/upload";
 
 export const runtime = "nodejs";
 
@@ -67,6 +68,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   let wamid: string | undefined;
   let tipoMsg: "texto" | "imagem" | "video" | "audio" | "documento" | "sticker" = "texto";
   let conteudoMsg = body.text || "";
+  let midiaUrlSalvar: string | null = null;
+  let midiaMimeSalvar: string | null = null;
 
   try {
     if (body.media) {
@@ -91,6 +94,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         : body.media.type === "sticker" ? "sticker"
         : "texto";
       conteudoMsg = body.media.caption || `[${tipoMsg}]`;
+
+      // Imagem → ImgBB pra exibir como foto normal no chat (sem onerar bucket/banco)
+      if (body.media.type === "image") {
+        try {
+          const ib = await uploadImageToImgbb({ base64: file, filename: body.media.filename });
+          midiaUrlSalvar = ib.url;
+          midiaMimeSalvar = "image/jpeg";
+        } catch (e) {
+          console.error("[send] imgbb upload falhou:", e);
+        }
+      }
     } else {
       const r = await instanceSendText({ baseUrl, token }, { number: waId, text: body.text! });
       wamid = r.id;
@@ -110,6 +124,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       conteudo: conteudoMsg,
       wa_message_id: wamid || null,
       status: "enviada",
+      midia_url: midiaUrlSalvar,
+      midia_mime: midiaMimeSalvar,
+      midia_filename: body.media?.filename || null,
     })
     .select("id")
     .single();
