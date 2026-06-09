@@ -60,9 +60,6 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
         >
           <i className="ti ti-search" style={{ fontSize: 14 }} />
           <span style={{ flex: 1 }}>Buscar páginas, sessões...</span>
-          <span style={{ fontSize: 9.5, padding: "2px 6px", borderRadius: 4, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text-secondary)", fontFamily: "monospace", letterSpacing: 0.3 }}>
-            ⌘K
-          </span>
         </button>
       </div>
       <div className="topbar-right">

@@ -431,13 +431,13 @@
 /* MAIN */
 .mk-main {
   background: var(--mk-bg);
-  padding: 14px 28px 30px;
+  padding: 22px 28px 30px;
   transition: background 0.3s ease;
   overflow: hidden;
 }
 .mk-topbar {
   display: flex; justify-content: space-between;
-  align-items: center; margin-bottom: 16px;
+  align-items: center; margin-bottom: 18px;
 }
 .topbar-left, .topbar-right {
   display: flex; align-items: center; gap: 10px;
