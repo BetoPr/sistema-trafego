@@ -14,7 +14,7 @@ export default async function AsaasConfigPage({ searchParams }: PageProps) {
 
   const { data: cfg } = await sb
     .from("asaas_config")
-    .select("api_key_encrypted, ambiente, pix_tipo_chave, pix_chave, pix_nome_recebedor, pix_mensagem_padrao, mensagem_pagamento_auto, webhook_secret, ativo")
+    .select("api_key_encrypted, ambiente, pix_tipo_chave, pix_chave, pix_nome_recebedor, pix_mensagem_padrao, mensagem_pagamento_auto, webhook_secret, ativo, cpf_cnpj_padrao, nome_padrao")
     .eq("agencia_id", ctx.agenciaId)
     .maybeSingle();
 
@@ -80,6 +80,18 @@ export default async function AsaasConfigPage({ searchParams }: PageProps) {
             <div style={grid2}>
               <Field label="Nome do recebedor" name="pix_nome_recebedor" defaultValue={cfg?.pix_nome_recebedor ?? ""} placeholder="Sua Empresa Ltda" />
               <Field label="Mensagem padrão" name="pix_mensagem_padrao" defaultValue={cfg?.pix_mensagem_padrao ?? ""} placeholder="Pagamento referente a..." />
+            </div>
+          </div>
+
+          <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 14 }}>
+            <h4 style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>CPF/CNPJ padrão (cobrança nominal)</h4>
+            <p style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 10 }}>
+              Quando precisar emitir cobrança vinculada a customer (modo nominal) e o contato não tem CPF preenchido,
+              usa esses dados. Útil pra evitar pedir CPF de cliente toda vez — pode usar SEU CNPJ/CPF como titular.
+            </p>
+            <div style={grid2}>
+              <Field label="CPF ou CNPJ padrão" name="cpf_cnpj_padrao" defaultValue={cfg?.cpf_cnpj_padrao ?? ""} placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+              <Field label="Nome padrão" name="nome_padrao" defaultValue={cfg?.nome_padrao ?? ""} placeholder="Sua Empresa Ltda" />
             </div>
           </div>
 

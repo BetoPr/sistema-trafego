@@ -16,6 +16,8 @@ export async function salvarConfigAsaas(formData: FormData) {
   const pixNome = String(formData.get("pix_nome_recebedor") || "").trim() || null;
   const pixMsg = String(formData.get("pix_mensagem_padrao") || "").trim() || null;
   const msgPag = String(formData.get("mensagem_pagamento_auto") || "").trim() || "Recebi seu pagamento! 😊";
+  const cpfCnpjPadrao = String(formData.get("cpf_cnpj_padrao") || "").replace(/\D/g, "") || null;
+  const nomePadrao = String(formData.get("nome_padrao") || "").trim() || null;
   const ativo = formData.get("ativo") === "on";
 
   const sb = createServiceClient();
@@ -27,6 +29,8 @@ export async function salvarConfigAsaas(formData: FormData) {
     pix_nome_recebedor: pixNome,
     pix_mensagem_padrao: pixMsg,
     mensagem_pagamento_auto: msgPag,
+    cpf_cnpj_padrao: cpfCnpjPadrao,
+    nome_padrao: nomePadrao,
     ativo,
     updated_at: new Date().toISOString(),
   };

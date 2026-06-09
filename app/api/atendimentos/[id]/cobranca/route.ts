@@ -47,7 +47,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: cfg } = await sb
     .from("asaas_config")
-    .select("api_key_encrypted, ambiente, ativo, pix_tipo_chave, pix_chave, pix_nome_recebedor, pix_mensagem_padrao")
+    .select("api_key_encrypted, ambiente, ativo, pix_tipo_chave, pix_chave, pix_nome_recebedor, pix_mensagem_padrao, cpf_cnpj_padrao, nome_padrao")
     .eq("agencia_id", u.agencia_id)
     .maybeSingle();
   if (!cfg?.ativo || !cfg.api_key_encrypted) {
@@ -106,11 +106,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // PIX NOMINAL (vincula a customer, exige CPF/CNPJ)
     // =========================
     if (body.tipo === "pix_nominal") {
-      const cpfCnpjFinal = (body.cpfCnpj || contato.cpf || "").replace(/\D/g, "") || undefined;
+      // Prioridade: body → contato → CPF padrão da agência
+      const cpfCnpjFinal = (body.cpfCnpj || contato.cpf || cfg.cpf_cnpj_padrao || "").replace(/\D/g, "") || undefined;
       if (!cpfCnpjFinal) {
-        return NextResponse.json({ error: "CPF/CNPJ obrigatório pra cobrança nominal. Use tipo='pix' pra cobrança sem CPF." }, { status: 400 });
+        return NextResponse.json({
+          error: "CPF/CNPJ obrigatório. Configure CPF padrão em /configuracoes/asaas ou use tipo='pix' (sem CPF).",
+        }, { status: 400 });
       }
-      const nomeFinal = body.nome?.trim() || contato.nome;
+      // Mesma prioridade pra nome
+      const nomeFinal = body.nome?.trim() || contato.nome || cfg.nome_padrao || "Cliente";
       if (body.cpfCnpj && cpfCnpjFinal !== contato.cpf) {
         await sb.from("contatos").update({ cpf: cpfCnpjFinal, nome: nomeFinal }).eq("id", contato.id);
       }
