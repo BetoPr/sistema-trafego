@@ -37,16 +37,56 @@ export function PainelDireito({ ticket, contato, etiquetas }: Props) {
   const [tab, setTab] = useState<"perfil" | "atend" | "util">("perfil");
   const [loadingResumo, setLoadingResumo] = useState(false);
   const [loadingSent, setLoadingSent] = useState(false);
+  const [streamingResumo, setStreamingResumo] = useState<string>("");
+  const [streamingActive, setStreamingActive] = useState(false);
 
   async function gerarResumo() {
     setLoadingResumo(true);
+    setStreamingResumo("");
+    setStreamingActive(true);
     try {
-      const r = await fetch(`/api/atendimentos/${ticket.id}/resumo`, { method: "POST" });
-      const j = await r.json();
-      if (!r.ok) alert(`Erro: ${j.error || j.msg}`);
-      else router.refresh();
+      const res = await fetch(`/api/atendimentos/${ticket.id}/resumo-stream`);
+      if (!res.ok || !res.body) {
+        alert(`Erro: ${res.statusText}`);
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let aborted = false;
+      while (!aborted) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const chunk = buffer.slice(0, idx).trim();
+          buffer = buffer.slice(idx + 2);
+          if (!chunk.startsWith("data:")) continue;
+          const data = chunk.slice(5).trim();
+          try {
+            const json = JSON.parse(data) as { delta?: string; done?: boolean; error?: string };
+            if (json.error) {
+              alert(`Erro: ${json.error}`);
+              aborted = true;
+              break;
+            }
+            if (json.delta) {
+              setStreamingResumo((prev) => prev + json.delta);
+            }
+            if (json.done) {
+              router.refresh();
+              aborted = true;
+              break;
+            }
+          } catch {}
+        }
+      }
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoadingResumo(false);
+      setStreamingActive(false);
     }
   }
 
@@ -103,9 +143,6 @@ export function PainelDireito({ ticket, contato, etiquetas }: Props) {
               </div>
               <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{contato.nome}</div>
               <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{contato.whatsapp || "—"}</div>
-              <div style={{ marginTop: 6, display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap" }}>
-                {contato.ia_habilitada && <span className="mk-badge b-purple" style={{ fontSize: 9.5 }}>✨ IA</span>}
-              </div>
             </div>
 
             <Section titulo="Etiquetas">
@@ -119,7 +156,25 @@ export function PainelDireito({ ticket, contato, etiquetas }: Props) {
             </Section>
 
             <Section titulo="Resumo IA">
-              {ticket.resumo ? (
+              {streamingActive && !streamingResumo ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "#9B7DBF", padding: "10px 0" }}>
+                  <i className="ti ti-sparkles" style={{ fontSize: 16 }} />
+                  <span style={{ fontStyle: "italic" }}>IA está escrevendo</span>
+                  <span className="ia-dots"><span>.</span><span>.</span><span>.</span></span>
+                  <style>{`
+                    .ia-dots span { animation: iadot 1.4s infinite; display: inline-block; }
+                    .ia-dots span:nth-child(2) { animation-delay: 0.2s; }
+                    .ia-dots span:nth-child(3) { animation-delay: 0.4s; }
+                    @keyframes iadot { 0%, 60%, 100% { opacity: 0.3 } 30% { opacity: 1 } }
+                  `}</style>
+                </div>
+              ) : streamingResumo ? (
+                <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                  {streamingResumo}
+                  {streamingActive && <span style={{ display: "inline-block", width: 6, height: 12, background: "#9B7DBF", marginLeft: 2, animation: "blink 1s infinite" }} />}
+                  <style>{`@keyframes blink { 50% { opacity: 0 } }`}</style>
+                </div>
+              ) : ticket.resumo ? (
                 <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
                   {ticket.resumo}
                   {ticket.resumo_atualizado_em && (
@@ -130,7 +185,7 @@ export function PainelDireito({ ticket, contato, etiquetas }: Props) {
                 </div>
               ) : <Empty>Não gerado ainda.</Empty>}
               <button onClick={gerarResumo} disabled={loadingResumo} className="cta-btn" style={{ marginTop: 8, fontSize: 11, width: "100%" }}>
-                <i className="ti ti-sparkles" /> {loadingResumo ? "Gerando..." : "Gerar resumo"}
+                <i className="ti ti-sparkles" /> {loadingResumo ? "Gerando..." : ticket.resumo ? "Gerar novo resumo" : "Gerar resumo"}
               </button>
             </Section>
           </>
