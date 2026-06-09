@@ -218,7 +218,7 @@ export function ChatView(props: Props) {
       <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: 8, zIndex: 10, pointerEvents: "auto" }}>
         <button
           type="button"
-          onClick={() => scrollRef.current && (scrollRef.current.scrollTop = 0)}
+          onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
           title="Ir pra primeira mensagem"
           style={scrollBtnStyle}
         >
@@ -226,7 +226,7 @@ export function ChatView(props: Props) {
         </button>
         <button
           type="button"
-          onClick={() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight)}
+          onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
           title="Ir pra mais recente"
           style={scrollBtnStyle}
         >
