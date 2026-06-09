@@ -211,11 +211,11 @@ export function ChatView(props: Props) {
         urlToggleDetalhes={props.urlToggleDetalhes}
       />
 
-      {/* Mensagens */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)", position: "relative" }}>
+      {/* Wrapper relativo pros botões fixos */}
+      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", minHeight: 0 }}>
 
-      {/* Botões scroll up/down flutuantes */}
-      <div style={{ position: "sticky", bottom: 8, alignSelf: "flex-end", display: "flex", flexDirection: "column", gap: 6, zIndex: 5, marginRight: -8, pointerEvents: "auto" }}>
+      {/* Botões scroll up/down — fixos no canto, não rolam com mensagens */}
+      <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: 8, zIndex: 10, pointerEvents: "auto" }}>
         <button
           type="button"
           onClick={() => scrollRef.current && (scrollRef.current.scrollTop = 0)}
@@ -233,6 +233,9 @@ export function ChatView(props: Props) {
           <i className="ti ti-chevrons-down" />
         </button>
       </div>
+
+      {/* Mensagens */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>
 
         {msgs.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens neste ticket.</div>
@@ -301,6 +304,7 @@ export function ChatView(props: Props) {
             </div>
           ))
         )}
+      </div>
       </div>
 
       {/* Slash shortcuts */}

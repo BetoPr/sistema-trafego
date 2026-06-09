@@ -40,15 +40,27 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
-          className="search-wrap"
-          style={{ cursor: "pointer", background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", textAlign: "left" }}
           title="Buscar (Cmd+K)"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            width: 320,
+            height: 36,
+            padding: "0 12px",
+            background: "var(--mk-surface)",
+            border: "0.5px solid var(--mk-border)",
+            borderRadius: 22,
+            color: "var(--mk-text-muted)",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            fontSize: 12.5,
+            textAlign: "left",
+          }}
         >
-          <i className="ti ti-search" />
-          <span className="search-input" style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", flex: 1, padding: 0, fontSize: 13 }}>
-            Buscar páginas, sessões...
-          </span>
-          <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
+          <i className="ti ti-search" style={{ fontSize: 14 }} />
+          <span style={{ flex: 1 }}>Buscar páginas, sessões...</span>
+          <span style={{ fontSize: 9.5, padding: "2px 6px", borderRadius: 4, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text-secondary)", fontFamily: "monospace", letterSpacing: 0.3 }}>
             ⌘K
           </span>
         </button>

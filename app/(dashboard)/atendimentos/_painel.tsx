@@ -410,13 +410,6 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [] 
                 )}
               </div>
             </Card>
-
-            <Card titulo="Protocolo">
-              <div style={{ padding: "10px 14px", fontSize: 11, color: "var(--mk-text-muted)" }}>Não emitido</div>
-            </Card>
-            <Card titulo="Avaliação">
-              <div style={{ padding: "10px 14px", fontSize: 11, color: "var(--mk-text-muted)" }}>Não enviada</div>
-            </Card>
           </>
         )}
 
