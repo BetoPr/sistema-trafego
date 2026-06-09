@@ -2,18 +2,28 @@
  * POST /api/atendimentos/[id]/cobranca
  * Body:
  *  - { tipo: "pix", valor, descricao }
+ *    → PIX estático sem CPF (usa /pix/qrCodes/static + chave PIX da agência)
+ *  - { tipo: "pix_nominal", valor, descricao, cpfCnpj, nome }
+ *    → PIX vinculado a customer (entra no extrato Asaas com nome do cliente)
  *  - { tipo: "cartao", valor, descricao, parcelas }
- * Cria cobrança Asaas + retorna QR/link. Não envia mensagem automaticamente
- * (UI decide quando postar no chat).
+ *    → Link de pagamento cartão (sem CPF obrigatório)
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
-import { findOrCreateCustomer, createPixPayment, getPixQrCode, createPaymentLink } from "@/lib/asaas/api";
+import {
+  findOrCreateCustomer,
+  createPixPayment,
+  getPixQrCode,
+  createPaymentLink,
+  createPixStaticQrCode,
+} from "@/lib/asaas/api";
 import { audit } from "@/lib/crm/audit";
 
 export const runtime = "nodejs";
+
+type AsaasPixKeyType = "EVP" | "CPF" | "CNPJ" | "EMAIL" | "PHONE";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: ticketId } = await params;
@@ -22,7 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!auth?.user) return NextResponse.json({ error: "auth" }, { status: 401 });
 
   const body = (await req.json().catch(() => null)) as {
-    tipo?: "pix" | "cartao";
+    tipo?: "pix" | "pix_nominal" | "cartao";
     valor?: number;
     descricao?: string;
     parcelas?: number;
@@ -37,7 +47,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: cfg } = await sb
     .from("asaas_config")
-    .select("api_key_encrypted, ambiente, ativo")
+    .select("api_key_encrypted, ambiente, ativo, pix_tipo_chave, pix_chave, pix_nome_recebedor, pix_mensagem_padrao")
     .eq("agencia_id", u.agencia_id)
     .maybeSingle();
   if (!cfg?.ativo || !cfg.api_key_encrypted) {
@@ -56,27 +66,61 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const contato = (ticket.contato as unknown as { id: string; nome: string; email?: string; cpf?: string; telefone?: string; whatsapp?: string }) || null;
   if (!contato) return NextResponse.json({ error: "sem_contato" }, { status: 400 });
 
-  // CPF/CNPJ pode vir do contato OU do form (modal cobrança). Asaas exige em produção.
-  const cpfCnpjFinal = (body.cpfCnpj || contato.cpf || "").replace(/\D/g, "") || undefined;
-  if (!cpfCnpjFinal) {
-    return NextResponse.json({ error: "CPF ou CNPJ do cliente é obrigatório pra Asaas em produção. Preencha no modal ou edite o contato." }, { status: 400 });
-  }
-  const nomeFinal = body.nome?.trim() || contato.nome;
-
-  // Atualiza contato pra reuso futuro
-  if (body.cpfCnpj && cpfCnpjFinal && cpfCnpjFinal !== contato.cpf) {
-    await sb.from("contatos").update({ cpf: cpfCnpjFinal, nome: nomeFinal }).eq("id", contato.id);
-  }
-
   try {
-    const customer = await findOrCreateCustomer(client, {
-      name: nomeFinal,
-      cpfCnpj: cpfCnpjFinal,
-      email: contato.email || undefined,
-      phone: contato.telefone || contato.whatsapp || undefined,
-    });
-
+    // =========================
+    // PIX SEM CPF (qrCodes/static)
+    // =========================
     if (body.tipo === "pix") {
+      if (!cfg.pix_chave || !cfg.pix_tipo_chave) {
+        return NextResponse.json({
+          error: "Configure a chave PIX padrão em /configuracoes/asaas antes de emitir PIX rápido.",
+        }, { status: 400 });
+      }
+      const qr = await createPixStaticQrCode(client, {
+        addressKey: cfg.pix_chave,
+        addressKeyType: cfg.pix_tipo_chave as AsaasPixKeyType,
+        value: body.valor,
+        description: body.descricao || cfg.pix_mensagem_padrao || `Cobrança ticket #${ticketId.slice(0, 8)}`,
+        allowsMultiplePayments: false,
+      });
+
+      await sb.from("asaas_cobrancas").insert({
+        agencia_id: u.agencia_id,
+        ticket_id: ticketId,
+        contato_id: contato.id,
+        asaas_id: qr.id,
+        tipo: "pix",
+        valor: body.valor,
+        descricao: body.descricao,
+        status: "pendente",
+        qr_code: qr.encodedImage,
+        copia_cola: qr.payload,
+        raw: qr as unknown as Record<string, unknown>,
+      });
+
+      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: qr.id, payload: { tipo: "pix_estatico", valor: body.valor } });
+      return NextResponse.json({ ok: true, asaasId: qr.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
+    }
+
+    // =========================
+    // PIX NOMINAL (vincula a customer, exige CPF/CNPJ)
+    // =========================
+    if (body.tipo === "pix_nominal") {
+      const cpfCnpjFinal = (body.cpfCnpj || contato.cpf || "").replace(/\D/g, "") || undefined;
+      if (!cpfCnpjFinal) {
+        return NextResponse.json({ error: "CPF/CNPJ obrigatório pra cobrança nominal. Use tipo='pix' pra cobrança sem CPF." }, { status: 400 });
+      }
+      const nomeFinal = body.nome?.trim() || contato.nome;
+      if (body.cpfCnpj && cpfCnpjFinal !== contato.cpf) {
+        await sb.from("contatos").update({ cpf: cpfCnpjFinal, nome: nomeFinal }).eq("id", contato.id);
+      }
+
+      const customer = await findOrCreateCustomer(client, {
+        name: nomeFinal,
+        cpfCnpj: cpfCnpjFinal,
+        email: contato.email || undefined,
+        phone: contato.telefone || contato.whatsapp || undefined,
+      });
       const payment = await createPixPayment(client, {
         customer: customer.id,
         value: body.valor,
@@ -99,10 +143,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         raw: payment as unknown as Record<string, unknown>,
       });
 
-      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: payment.id, payload: { tipo: "pix", valor: body.valor } });
+      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: payment.id, payload: { tipo: "pix_nominal", valor: body.valor } });
       return NextResponse.json({ ok: true, asaasId: payment.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
     }
 
+    // =========================
+    // CARTÃO (paymentLinks, sem CPF obrigatório)
+    // =========================
     if (body.tipo === "cartao") {
       const link = await createPaymentLink(client, {
         name: body.descricao || "Cobrança",

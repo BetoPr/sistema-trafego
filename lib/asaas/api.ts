@@ -169,6 +169,42 @@ export async function getPixQrCode(client: AsaasClient, paymentId: string): Prom
   return (await call(client, `/payments/${encodeURIComponent(paymentId)}/pixQrCode`)) as PixQrCode;
 }
 
+// =========================================
+// PIX QR CODE estático (sem customer/CPF)
+// =========================================
+
+export interface PixQrCodeStatic {
+  id: string;
+  encodedImage: string;
+  payload: string;
+  allowsMultiplePayments?: boolean;
+  expirationDate?: string;
+}
+
+/**
+ * POST /pix/qrCodes/static — gera QR Code PIX SEM customer obrigatório.
+ * Não vincula a cliente. Pagamento entra no extrato da conta Asaas direto.
+ * Útil pra cobrança rápida sem cadastrar CPF/CNPJ.
+ *
+ * Requer chave PIX habilitada na conta.
+ */
+export async function createPixStaticQrCode(
+  client: AsaasClient,
+  params: {
+    addressKey: string; // chave PIX da conta (EVP, CPF, CNPJ, email, phone)
+    addressKeyType: "EVP" | "CPF" | "CNPJ" | "EMAIL" | "PHONE";
+    value?: number; // omitir = valor livre que cliente define
+    description?: string;
+    expirationDate?: string;
+    allowsMultiplePayments?: boolean;
+  },
+): Promise<PixQrCodeStatic> {
+  return (await call(client, "/pix/qrCodes/static", {
+    method: "POST",
+    body: params,
+  })) as PixQrCodeStatic;
+}
+
 export async function getPayment(client: AsaasClient, paymentId: string): Promise<AsaasPayment> {
   return (await call(client, `/payments/${encodeURIComponent(paymentId)}`)) as AsaasPayment;
 }
