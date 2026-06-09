@@ -146,7 +146,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   }
 
   return (
-    <section style={{ display: "grid", gridTemplateColumns: ticketSelFull && sp.detalhes !== "0" ? "340px 1fr 340px" : ticketSelFull ? "340px 1fr" : "340px 1fr", height: "calc(100vh - 80px)", minHeight: 0, gap: 0, background: "var(--mk-bg)" }}>
+    <section style={{ display: "grid", gridTemplateColumns: "340px 1fr", height: "calc(100vh - 80px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden" }}>
       <AtendimentosRefresh />
       {/* COLUNA 1 — Lista */}
       <aside style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -236,8 +236,16 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
         </div>
       </aside>
 
-      {/* COLUNA 2 — Chat */}
-      <main style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+      {/* COLUNA 2 — Chat (margem dinâmica pro painel direito) */}
+      <main
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          marginRight: ticketSelFull && sp.detalhes !== "0" ? 340 : 0,
+          transition: "margin-right 280ms cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
         {!ticketSelFull ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--mk-text-muted)", fontSize: 13 }}>
             <div style={{ textAlign: "center" }}>
@@ -283,9 +291,26 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
         })()}
       </main>
 
-      {/* COLUNA 3 — Painel direito */}
-      {ticketSelFull && sp.detalhes !== "0" && (
-        <aside style={{ borderLeft: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
+      {/* COLUNA 3 — Painel direito (slide animado) */}
+      {ticketSelFull && (
+        <aside
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: 340,
+            borderLeft: "0.5px solid var(--mk-border)",
+            display: "flex",
+            flexDirection: "column",
+            background: "var(--mk-bg)",
+            transform: sp.detalhes === "0" ? "translateX(100%)" : "translateX(0)",
+            opacity: sp.detalhes === "0" ? 0 : 1,
+            transition: "transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 220ms",
+            boxShadow: sp.detalhes === "0" ? "none" : "-4px 0 12px rgba(0,0,0,0.08)",
+            zIndex: 10,
+          }}
+        >
           <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} />
         </aside>
       )}
@@ -293,7 +318,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   );
 }
 
-function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; mensagens: Array<{ id: string; autor: string; tipo: string; conteudo: string | null; transcricao: string | null; created_at: string }>; contatoNome: string }) {
+function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; mensagens: Array<{ id: string; autor: string; tipo: string; conteudo: string | null; transcricao: string | null; midia_url?: string | null; created_at: string }>; contatoNome: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <div style={{ padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", display: "flex", gap: 8, alignItems: "center" }}>
@@ -303,14 +328,47 @@ function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; m
           <AtenderBotao ticketId={ticketId} />
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: 14, background: "var(--mk-surface-2)" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", background: "var(--mk-surface-2)", display: "flex", flexDirection: "column", gap: 10 }}>
         {mensagens.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens.</div>
         ) : (
           mensagens.map((m) => (
-            <div key={m.id} style={{ marginBottom: 8, padding: "8px 12px", borderRadius: 8, background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", fontSize: 12, color: "var(--mk-text)" }}>
-              <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginBottom: 2 }}>{m.autor} · {new Date(m.created_at).toLocaleString("pt-BR")}</div>
-              {m.conteudo || m.transcricao || `[${m.tipo}]`}
+            <div key={m.id} style={{ display: "flex", justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
+              <div
+                style={{
+                  maxWidth: "72%",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  background: m.autor === "cliente" ? "var(--mk-surface)" : "rgba(155,125,191,0.18)",
+                  border: "0.5px solid var(--mk-border)",
+                  color: "var(--mk-text)",
+                  fontSize: 12.5,
+                  lineHeight: 1.5,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                <div style={{ fontSize: 9.5, fontWeight: 600, color: m.autor === "cliente" ? "#9B7DBF" : "#5B8BA6", marginBottom: 3 }}>
+                  {m.autor === "cliente" ? contatoNome : "Atendente"}
+                </div>
+                {m.tipo === "audio" ? (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)", fontSize: 12 }}>
+                      <i className="ti ti-microphone" /> Áudio
+                    </div>
+                    {m.transcricao && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-accent)", paddingLeft: 6 }}>
+                        <div style={{ fontSize: 9.5, color: "var(--mk-accent)", fontWeight: 600, letterSpacing: 0.5, marginBottom: 2 }}>📝 TRANSCRIÇÃO</div>
+                        {m.transcricao}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  m.conteudo || m.transcricao || `[${m.tipo}]`
+                )}
+                <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", marginTop: 4, textAlign: "right" }}>
+                  {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              </div>
             </div>
           ))
         )}

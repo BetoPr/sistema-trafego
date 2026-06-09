@@ -320,23 +320,33 @@ function ModalTransferirCanal({
   const [canalId, setCanalId] = useState("");
   return (
     <Modal title="Transferir Canal" subtitle="Mude o canal WhatsApp do ticket" onClose={onClose}>
-      <div>
-        <label style={lbl}>Novo canal</label>
-        <select value={canalId} onChange={(e) => setCanalId(e.target.value)} style={inp}>
-          <option value="">— Selecione —</option>
-          {canais.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.status === "connected" ? "● " : "○ "} {c.nome} {c.numero_conectado ? `· ${c.numero_conectado}` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-        <button onClick={onClose} className="ghost-btn">Cancelar</button>
-        <button onClick={() => canalId && onSubmit(canalId)} disabled={loading || !canalId} className="cta-btn">
-          {loading ? "..." : "Transferir"}
-        </button>
-      </div>
+      {canais.length === 0 ? (
+        <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--mk-text-muted)", lineHeight: 1.6 }}>
+          <i className="ti ti-info-circle" style={{ fontSize: 24, color: "#C9A876", display: "block", marginBottom: 8 }} />
+          Não há outros canais cadastrados pra transferir.<br />
+          <a href="/canais" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Cadastra um novo canal</a> em Administração → Canais.
+        </div>
+      ) : (
+        <>
+          <div>
+            <label style={lbl}>Novo canal</label>
+            <select value={canalId} onChange={(e) => setCanalId(e.target.value)} style={inp}>
+              <option value="">— Selecione —</option>
+              {canais.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.status === "connected" ? "● " : "○ "} {c.nome} {c.numero_conectado ? `· ${c.numero_conectado}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+            <button onClick={onClose} className="ghost-btn">Cancelar</button>
+            <button onClick={() => canalId && onSubmit(canalId)} disabled={loading || !canalId} className="cta-btn">
+              {loading ? "..." : "Transferir"}
+            </button>
+          </div>
+        </>
+      )}
     </Modal>
   );
 }
