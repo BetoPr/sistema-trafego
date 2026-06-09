@@ -37,13 +37,21 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
   return (
     <header className="mk-topbar">
       <div className="topbar-left">
-        <div className="search-wrap">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
+          className="search-wrap"
+          style={{ cursor: "pointer", background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", textAlign: "left" }}
+          title="Buscar (Cmd+K)"
+        >
           <i className="ti ti-search" />
-          <input
-            className="search-input"
-            placeholder="Buscar campanha, criativo, cliente..."
-          />
-        </div>
+          <span className="search-input" style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", flex: 1, padding: 0, fontSize: 13 }}>
+            Buscar páginas, sessões...
+          </span>
+          <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
+            ⌘K
+          </span>
+        </button>
       </div>
       <div className="topbar-right">
         <PlatformSelector />

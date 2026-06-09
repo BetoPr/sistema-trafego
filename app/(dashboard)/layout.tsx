@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
@@ -39,6 +40,7 @@ export default async function DashboardLayout({
               userEmail={usuario.email}
               agencia={agencia?.nome ?? "—"}
             />
+            <CommandPalette role={usuario.role} />
             {children}
           </main>
         </AppShell>
