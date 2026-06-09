@@ -60,56 +60,35 @@ export function BotaoCobranca({ ticketId, canalConectado, canalId }: Props) {
     if (!canalId || !resultado) return;
     setEnviando(true);
     try {
-      // 1) Envia QR como imagem
-      if (resultado.qrEncoded) {
-        const r1 = await fetch(`/api/canais/${canalId}/send`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            ticketId,
-            media: {
-              type: "image",
-              fileBase64: resultado.qrEncoded,
-              caption: `💰 PIX R$ ${valor.replace(".", ",")}\n${descricao || "Cobrança"}`,
-              filename: "qr-pix.png",
-            },
-          }),
-        });
-        if (!r1.ok) {
-          const j = await r1.json().catch(() => ({}));
-          alert(`Falha ao enviar QR: ${j.error || j.msg || r1.statusText}`);
-          return;
-        }
-      }
-      // 2) Envia copia-cola como texto
+      // PIX → manda só copia-cola como texto
       if (resultado.copiaCola) {
-        const r2 = await fetch(`/api/canais/${canalId}/send`, {
+        const r = await fetch(`/api/canais/${canalId}/send`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             ticketId,
-            text: `📋 Copia e cola PIX:\n\n${resultado.copiaCola}`,
+            text: `📋 Copia e cola PIX:\n${resultado.copiaCola}`,
           }),
         });
-        if (!r2.ok) {
-          const j = await r2.json().catch(() => ({}));
-          alert(`QR enviado, mas falhou copia-cola: ${j.error || j.msg || r2.statusText}`);
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          alert(`Falha: ${j.error || j.msg || r.statusText}`);
           return;
         }
       }
-      // 3) Cartão — manda link
+      // Cartão → link
       if (resultado.link) {
-        const r3 = await fetch(`/api/canais/${canalId}/send`, {
+        const r = await fetch(`/api/canais/${canalId}/send`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             ticketId,
-            text: `💳 Link de pagamento:\n\n${resultado.link}`,
+            text: `💳 Link de pagamento:\n${resultado.link}`,
           }),
         });
-        if (!r3.ok) {
-          const j = await r3.json().catch(() => ({}));
-          alert(`Falha ao enviar link: ${j.error || j.msg || r3.statusText}`);
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          alert(`Falha: ${j.error || j.msg || r.statusText}`);
           return;
         }
       }
