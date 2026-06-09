@@ -68,6 +68,7 @@ export async function testarGroq() {
     redirect("/configuracoes/ia?erro=sem_chave");
   }
 
+  let resultado: { ok: true; reply: string } | { ok: false; msg: string };
   try {
     const { decryptToken, byteaToBuffer } = await import("@/lib/crypto/tokens");
     const apiKey = decryptToken(byteaToBuffer(data.groq_key_encrypted));
@@ -83,11 +84,18 @@ export async function testarGroq() {
     });
     const j = await r.json();
     if (!r.ok) {
-      redirect(`/configuracoes/ia?erro=teste_falhou&msg=${encodeURIComponent(j.error?.message || r.statusText)}`);
+      resultado = { ok: false, msg: j.error?.message || r.statusText };
+    } else {
+      resultado = { ok: true, reply: j.choices?.[0]?.message?.content || "(vazio)" };
     }
-    const reply = j.choices?.[0]?.message?.content || "(vazio)";
-    redirect(`/configuracoes/ia?ok=teste&msg=${encodeURIComponent(`Groq respondeu: "${reply}"`)}`);
   } catch (e) {
-    redirect(`/configuracoes/ia?erro=teste_falhou&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+    resultado = { ok: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+
+  // redirect FORA do try/catch (NEXT_REDIRECT throw seria capturado)
+  if (resultado.ok) {
+    redirect(`/configuracoes/ia?ok=teste&msg=${encodeURIComponent(`Groq respondeu: "${resultado.reply}"`)}`);
+  } else {
+    redirect(`/configuracoes/ia?erro=teste_falhou&msg=${encodeURIComponent(resultado.msg)}`);
   }
 }
