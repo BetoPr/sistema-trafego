@@ -295,6 +295,151 @@ export async function listarInstanciasDisponiveis(): Promise<Array<{ id: string;
   }
 }
 
+// =========================================
+// Versões JSON (sem redirect) — fluxo em balão no client
+// =========================================
+
+export async function criarCanalJson(input: {
+  nome: string;
+  padrao?: boolean;
+  filaId?: string | null;
+  usuarioId?: string | null;
+  mensagemDespedida?: string | null;
+}): Promise<{ ok: true; canalId: string } | { ok: false; msg: string }> {
+  const ctx = await requireAdmin();
+  const nome = input.nome.trim();
+  if (!nome) return { ok: false, msg: "Nome obrigatório." };
+
+  const sb = createServiceClient();
+  let servidor: { id: string; baseUrl: string; adminToken: string };
+  try {
+    servidor = await getServidorAtivo();
+  } catch (e) {
+    return { ok: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+
+  let instanceId: string;
+  let instanceToken: string;
+  try {
+    const { instance, token } = await adminCreateInstance(
+      { baseUrl: servidor.baseUrl, adminToken: servidor.adminToken },
+      { name: nome },
+    );
+    instanceId = instance.id;
+    instanceToken = token || "";
+    if (!instanceId || !instanceToken) throw new Error("UAZAPI não retornou id/token da instância.");
+  } catch (e) {
+    return { ok: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+
+  if (input.padrao) {
+    await sb.from("canais").update({ padrao: false }).eq("agencia_id", ctx.agenciaId).eq("padrao", true);
+  }
+
+  const { data: novo, error } = await sb
+    .from("canais")
+    .insert({
+      agencia_id: ctx.agenciaId,
+      servidor_id: servidor.id,
+      nome,
+      tipo: "uazapi",
+      status: "pending_qr",
+      instance_id: instanceId,
+      instance_token_encrypted: bufferToBytea(encryptToken(instanceToken)),
+      padrao: !!input.padrao,
+      fila_id: input.filaId || null,
+      usuario_id: input.usuarioId || null,
+      mensagem_despedida: input.mensagemDespedida || null,
+    })
+    .select("id, webhook_secret")
+    .single();
+  if (error) return { ok: false, msg: error.message };
+
+  try {
+    await instanceSetWebhook(
+      { baseUrl: servidor.baseUrl, token: instanceToken },
+      webhookUrl(novo.webhook_secret),
+      ["messages", "messages_update", "connection"],
+    );
+  } catch (e) {
+    console.error("[canais] setWebhook falhou:", e);
+  }
+
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "canal", entidadeId: novo.id, payload: { nome, instanceId } });
+  revalidatePath("/canais");
+  return { ok: true, canalId: novo.id };
+}
+
+/** Gera (ou renova) o QR Code do canal. Retorna QR base64 ou connected=true. */
+export async function gerarQrCanal(canalId: string): Promise<{ ok: true; qr: string | null; connected: boolean } | { ok: false; msg: string }> {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+  const { data: canal } = await sb
+    .from("canais")
+    .select("id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .eq("id", canalId)
+    .eq("agencia_id", ctx.agenciaId)
+    .single();
+  if (!canal) return { ok: false, msg: "Canal não encontrado." };
+
+  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+
+  try {
+    const r = await instanceConnect({ baseUrl, token });
+    const connected = !!r.connected;
+    const qr = r.instance?.qrcode || r.instance?.paircode || null;
+    await sb
+      .from("canais")
+      .update({
+        qr_code_atual: connected ? null : qr,
+        qr_atualizado_em: new Date().toISOString(),
+        status: connected ? "connected" : "pending_qr",
+      })
+      .eq("id", canalId);
+    return { ok: true, qr, connected };
+  } catch (e) {
+    return { ok: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Consulta status do canal no UAZAPI e sincroniza o banco. */
+export async function statusCanalJson(canalId: string): Promise<{ ok: true; connected: boolean; numero: string | null } | { ok: false; msg: string }> {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+  const { data: canal } = await sb
+    .from("canais")
+    .select("id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .eq("id", canalId)
+    .eq("agencia_id", ctx.agenciaId)
+    .single();
+  if (!canal) return { ok: false, msg: "Canal não encontrado." };
+
+  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+
+  try {
+    const r = await instanceGetStatus({ baseUrl, token });
+    const connected = !!r?.status?.connected;
+    const numero = r?.status?.jid?.user || null;
+    await sb
+      .from("canais")
+      .update({
+        status: connected ? "connected" : "pending_qr",
+        numero_conectado: numero,
+        nome_perfil: r?.instance?.profileName || null,
+        foto_perfil_url: r?.instance?.profilePicUrl || null,
+        qr_code_atual: connected ? null : undefined,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", canalId);
+    if (connected) revalidatePath("/canais");
+    return { ok: true, connected, numero };
+  } catch (e) {
+    return { ok: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export async function conectarCanal(formData: FormData) {
   const ctx = await requireAdmin();
   const id = String(formData.get("id") || "");

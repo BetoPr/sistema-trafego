@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin, PERMISSOES_MENU } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { criarUsuario, atualizarUsuario, alternarAtivo, softDeleteUsuario } from "./_actions";
+import { UsuarioFormBalao } from "./_form-balao";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
@@ -88,10 +89,7 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
 
       {mostrarForm && (
-        <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
-          <h3 className="card-title" style={{ marginBottom: 14 }}>
-            {editando ? `Editar usuário — ${editando.nome}` : "Novo usuário"}
-          </h3>
+        <UsuarioFormBalao titulo={editando ? `Editar usuário — ${editando.nome}` : "Novo usuário"}>
           <form action={editando ? atualizarUsuario : criarUsuario} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {editando && <input type="hidden" name="id" value={editando.id} />}
 
@@ -209,7 +207,7 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
               <Link href="/usuarios" className="ghost-btn">Cancelar</Link>
             </div>
           </form>
-        </div>
+        </UsuarioFormBalao>
       )}
 
       <div className="mk-card mk-card-lg">

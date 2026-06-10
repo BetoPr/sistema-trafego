@@ -2,8 +2,6 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
-  criarCanal,
-  conectarCanal,
   atualizarStatusCanal,
   definirPadrao,
   revalidarWebhook,
@@ -13,6 +11,7 @@ import {
 } from "./_actions";
 import { CanaisAutoRefresh } from "./_auto-refresh";
 import { InstanciasDisponiveis } from "./_instancias";
+import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; qr?: string }>;
@@ -38,7 +37,6 @@ export default async function CanaisPage({ searchParams }: PageProps) {
   const filaById = new Map((filas || []).map((f) => [f.id, f]));
   const userById = new Map((usuarios || []).map((u) => [u.id, u]));
   const semServidor = !servidores || servidores.length === 0;
-  const canalQrAberto = sp.qr ? canais?.find((c) => c.id === sp.qr) : null;
   const temPendente = (canais || []).some((c) => c.status === "pending_qr" || c.status === "connecting");
 
   return (
@@ -50,7 +48,11 @@ export default async function CanaisPage({ searchParams }: PageProps) {
           <h1 className="mk-page-title">Canais</h1>
           <p className="mk-page-sub">Instâncias WhatsApp via UAZAPI. Conecte uma conta por canal.</p>
         </div>
-        <Link href="#novo" className="cta-btn"><i className="ti ti-plus" /> Adicionar canal</Link>
+        <NovoCanalBalao
+          filas={(filas || []).map((f) => ({ id: f.id, nome: f.nome }))}
+          usuarios={(usuarios || []).map((u) => ({ id: u.id, nome: u.nome }))}
+          disabled={semServidor}
+        />
       </div>
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
@@ -60,44 +62,6 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         <Banner tipo="warn">
           Nenhum servidor UAZAPI ativo. <Link href="/super-admin/servidores" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Cadastre um servidor</Link> antes de criar canais (super_admin only).
         </Banner>
-      )}
-
-      {/* QR modal inline */}
-      {canalQrAberto && (
-        <div className="mk-card mk-card-lg" style={{ marginBottom: 14, borderLeft: "3px solid #C9A876" }}>
-          <h3 className="card-title" style={{ marginBottom: 10 }}>
-            QR Code — {canalQrAberto.nome}
-          </h3>
-          {canalQrAberto.qr_code_atual ? (
-            <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={canalQrAberto.qr_code_atual.startsWith("data:") ? canalQrAberto.qr_code_atual : `data:image/png;base64,${canalQrAberto.qr_code_atual}`}
-                alt="QR Code"
-                style={{ width: 280, height: 280, borderRadius: 12, background: "#FFFDF8", padding: 14 }}
-              />
-              <div style={{ flex: 1 }}>
-                <ol style={{ fontSize: 12, color: "var(--mk-text-secondary)", lineHeight: 1.8, paddingLeft: 22 }}>
-                  <li>Abra WhatsApp no celular dedicado</li>
-                  <li>Menu → <strong>Dispositivos conectados</strong></li>
-                  <li>Toque em <strong>Conectar um aparelho</strong></li>
-                  <li>Aponte a câmera para este QR</li>
-                  <li>Aguarde alguns segundos</li>
-                </ol>
-                <form action={atualizarStatusCanal} style={{ marginTop: 10 }}>
-                  <input type="hidden" name="id" value={canalQrAberto.id} />
-                  <button type="submit" className="cta-btn"><i className="ti ti-refresh" /> Verificar conexão</button>
-                </form>
-                <div style={{ marginTop: 8, fontSize: 10.5, color: "var(--mk-text-muted)" }}>
-                  QR atualizado: {canalQrAberto.qr_atualizado_em ? new Date(canalQrAberto.qr_atualizado_em).toLocaleString("pt-BR") : "—"}
-                </div>
-              </div>
-              <Link href="/canais" className="ghost-btn"><i className="ti ti-x" /></Link>
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: "var(--mk-text-muted)" }}>QR Code não disponível. Clique em &quot;Ver QR Code&quot; no card do canal.</div>
-          )}
-        </div>
       )}
 
       {/* Lista cards */}
@@ -142,10 +106,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                 </div>
               ) : (
                 <div style={{ padding: "8px 0", borderTop: "0.5px solid var(--mk-border)", display: "flex", gap: 8 }}>
-                  <form action={conectarCanal}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className="cta-btn" style={{ fontSize: 11 }}><i className="ti ti-qrcode" /> Ver QR Code</button>
-                  </form>
+                  <VerQrButton canalId={c.id} nome={c.nome} />
                   <form action={atualizarStatusCanal}>
                     <input type="hidden" name="id" value={c.id} />
                     <button type="submit" className="ghost-btn" style={{ fontSize: 11 }}><i className="ti ti-refresh" /></button>
@@ -221,41 +182,6 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         </form>
       </div>
 
-      {/* Form novo canal */}
-      <div className="mk-card mk-card-lg" id="novo" style={{ borderLeft: "3px solid #25D366" }}>
-        <h3 className="card-title" style={{ marginBottom: 6 }}>
-          <i className="ti ti-qrcode" style={{ marginRight: 6, color: "#25D366" }} />
-          Conectar novo número via QR Code
-        </h3>
-        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
-          Cria instância nova no servidor UAZAPI e mostra o QR Code na hora pra você escanear com WhatsApp.
-        </p>
-        <div style={{ background: "rgba(91,139,166,0.10)", borderLeft: "3px solid #5B8BA6", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)", marginBottom: 14, lineHeight: 1.6 }}>
-          <strong>Atenção:</strong> use uma conta WhatsApp dedicada. Não use o mesmo número em outros sistemas. Certifique-se que o celular tem internet estável.
-        </div>
-        <form action={criarCanal} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <Field label="Nome do canal" name="nome" placeholder="Comercial SDR" required />
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--mk-text-secondary)" }}>
-            <input type="checkbox" name="padrao" /> Definir como canal padrão
-          </label>
-          <details>
-            <summary style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text)", cursor: "pointer", padding: "6px 0" }}>Atribuições</summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6, paddingLeft: 14 }}>
-              <Select label="Fila padrão" name="fila_id" options={[{ id: "", nome: "Nenhuma" }, ...(filas || [])]} />
-              <Select label="Usuário padrão" name="usuario_id" options={[{ id: "", nome: "Nenhum" }, ...(usuarios || [])]} />
-            </div>
-          </details>
-          <details>
-            <summary style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text)", cursor: "pointer", padding: "6px 0" }}>Mensagem de despedida (opcional)</summary>
-            <div style={{ marginTop: 6, paddingLeft: 14 }}>
-              <textarea name="mensagem_despedida" rows={2} placeholder="Atendimento encerrado. Volte sempre!" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }} />
-            </div>
-          </details>
-          <button type="submit" className="cta-btn" disabled={semServidor} style={{ marginTop: 6 }}>
-            <i className="ti ti-plus" /> Criar canal
-          </button>
-        </form>
-      </div>
     </section>
   );
 }
