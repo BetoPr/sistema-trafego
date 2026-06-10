@@ -252,6 +252,7 @@ export function ChatView(props: Props) {
               <div
                 style={{
                   maxWidth: "72%",
+                  minWidth: 0,
                   padding: "8px 12px",
                   borderRadius: 10,
                   background: m.autor === "cliente" ? "var(--mk-surface)" : "rgba(155,125,191,0.18)",
@@ -260,6 +261,8 @@ export function ChatView(props: Props) {
                   fontSize: 12.5,
                   lineHeight: 1.5,
                   whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  wordBreak: "break-word",
                 }}
               >
                 {m.autor !== "cliente" && m.usuario_id && (

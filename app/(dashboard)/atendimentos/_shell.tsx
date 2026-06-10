@@ -245,6 +245,7 @@ function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; m
               <div
                 style={{
                   maxWidth: "72%",
+                  minWidth: 0,
                   padding: "8px 12px",
                   borderRadius: 10,
                   background: m.autor === "cliente" ? "var(--mk-surface)" : "rgba(155,125,191,0.18)",
@@ -253,6 +254,8 @@ function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; m
                   fontSize: 12.5,
                   lineHeight: 1.5,
                   whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  wordBreak: "break-word",
                 }}
               >
                 <div style={{ fontSize: 9.5, fontWeight: 600, color: m.autor === "cliente" ? "#9B7DBF" : "#5B8BA6", marginBottom: 3 }}>
