@@ -30,7 +30,6 @@ function buildItems(role?: string): PaletteItem[] {
   push("Comunicação", "#5B8BA6", [
     { href: "/envio-massa", label: "Envio em Massa", icon: "ti-rocket" },
     { href: "/mensagens-rapidas", label: "Mensagens Rápidas", icon: "ti-bolt" },
-    { href: "/galeria", label: "Galeria", icon: "ti-photo" },
     { href: "/grupos", label: "Grupos", icon: "ti-users-group" },
   ]);
   push("Tráfego (Ads)", "#9B7DBF", [
