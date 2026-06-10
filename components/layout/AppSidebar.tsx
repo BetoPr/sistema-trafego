@@ -90,12 +90,6 @@ function buildSections(role?: string): NavSection[] {
       items: [
         { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
         { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
-        { href: "/configuracoes/ia", label: "Chaves IA (Groq)", icon: "ti-key" },
-        { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles" },
-        { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card" },
-        { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook" },
-        { href: "/integracoes", label: "Integrações", icon: "ti-plug" },
-        { href: "/auditoria", label: "Log de Auditoria", icon: "ti-file-text" },
       ],
     },
   ];

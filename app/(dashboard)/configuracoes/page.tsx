@@ -1,7 +1,17 @@
+import Link from "next/link";
 import { requireUserWithAgencia } from "@/lib/auth";
 import { PerfilForm } from "./_components/PerfilForm";
 import { AgenciaForm } from "./_components/AgenciaForm";
 import { ConfigToggles } from "./_components/ConfigToggles";
+
+const ATALHOS = [
+  { href: "/configuracoes/ia", label: "Chaves IA (Groq)", icon: "ti-key", cor: "#9B7DBF", desc: "API keys dos provedores de IA" },
+  { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles", cor: "#9B7DBF", desc: "Personalize resumo, sentimento e reescrita" },
+  { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card", cor: "#5B8BA6", desc: "Cobranças PIX e cartão" },
+  { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook", cor: "#C9A876", desc: "Notifique sistemas externos" },
+  { href: "/integracoes", label: "Integrações", icon: "ti-plug", cor: "#6B8E4E", desc: "Meta Ads, Google Ads" },
+  { href: "/auditoria", label: "Log de Auditoria", icon: "ti-file-text", cor: "#C97064", desc: "Histórico de ações no sistema" },
+];
 
 export default async function ConfiguracoesPage() {
   const { usuario } = await requireUserWithAgencia();
@@ -42,6 +52,29 @@ export default async function ConfiguracoesPage() {
       <div className="mk-card mk-card-lg">
         <h3 className="card-title">Preferências</h3>
         <ConfigToggles />
+      </div>
+
+      {/* Atalhos pras configurações avançadas (saíram do sidebar) */}
+      <div className="mk-card mk-card-lg" style={{ marginTop: 14 }}>
+        <h3 className="card-title" style={{ marginBottom: 4 }}>Mais configurações</h3>
+        <p className="card-sub" style={{ marginBottom: 16 }}>IA, pagamentos, integrações e auditoria.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+          {ATALHOS.map((a) => (
+            <Link
+              key={a.href}
+              href={a.href}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", textDecoration: "none", color: "var(--mk-text)", transition: "border-color 0.15s ease" }}
+            >
+              <span style={{ width: 34, height: 34, borderRadius: 9, background: `${a.cor}22`, color: a.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+                <i className={`ti ${a.icon}`} />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600 }}>{a.label}</span>
+                <span style={{ display: "block", fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 1 }}>{a.desc}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );
