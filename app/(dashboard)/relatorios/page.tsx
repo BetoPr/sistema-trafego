@@ -17,7 +17,7 @@ export default function RelatoriosPage() {
       <NeedsPlatform contexto="de relatórios">
         <EmptyState
           icon="ti-file-analytics"
-          iconColor="#C9A876"
+          iconColor="#10b981"
           iconBg="rgba(201, 168, 118, 0.18)"
           titulo="Nenhum relatório gerado"
           descricao="Após conectar plataforma e ter dados de pelo menos 7 dias, você pode gerar PDF e Excel."

@@ -61,7 +61,7 @@ export function TransferirCanalBtn({ canalId, canalNome, outros }: { canalId: st
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ background: "rgba(201,168,118,0.15)", borderLeft: "3px solid #C9A876", padding: 10, borderRadius: 6, fontSize: 11.5, color: "var(--mk-text-secondary)", lineHeight: 1.6 }}>
+            <div style={{ background: "rgba(16,185,129,0.15)", borderLeft: "3px solid #10b981", padding: 10, borderRadius: 6, fontSize: 11.5, color: "var(--mk-text-secondary)", lineHeight: 1.6 }}>
               Move <strong>todos os tickets</strong> deste canal — com histórico de conversas, mensagens, transcrições e fechamentos — pra sessão de destino. Use quando precisar trocar de número/instância sem perder nada.
             </div>
 

@@ -150,8 +150,13 @@ export function AppSidebar({ role }: { role?: string } = {}) {
     setClosedSections((s) => ({ ...s, [id]: !s[id] }));
   };
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+  // Item ativo = o href que melhor casa com a rota atual (o mais longo).
+  // Evita que /configuracoes e /configuracoes/servicos fiquem ativos juntos.
+  const todosHrefs = SECTIONS.flatMap((s) => s.items.map((i) => i.href));
+  const melhorMatch = todosHrefs
+    .filter((h) => pathname === h || pathname.startsWith(h + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+  const isActive = (href: string) => href === melhorMatch;
 
   return (
     <aside className="mk-sidebar">

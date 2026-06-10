@@ -221,7 +221,7 @@ function Aviso({ tipo, children }: { tipo: "info" | "ok" | "warn"; children: Rea
   const colors = {
     info: { bg: "rgba(91,139,166,0.12)", border: "#5B8BA6", icon: "ti-info-circle" },
     ok: { bg: "rgba(16,185,129,0.12)", border: "#10b981", icon: "ti-circle-check" },
-    warn: { bg: "rgba(201,168,118,0.15)", border: "#C9A876", icon: "ti-alert-triangle" },
+    warn: { bg: "rgba(16,185,129,0.15)", border: "#10b981", icon: "ti-alert-triangle" },
   }[tipo];
   return (
     <div style={{ background: colors.bg, borderLeft: `3px solid ${colors.border}`, padding: "10px 12px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", lineHeight: 1.6, display: "flex", gap: 10 }}>

@@ -74,8 +74,8 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          <div style={{ background: "rgba(201,168,118,0.15)", borderLeft: "3px solid #C9A876", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)" }}>
-            <i className="ti ti-alert-triangle" style={{ marginRight: 6, color: "#C9A876" }} />
+          <div style={{ background: "rgba(16,185,129,0.15)", borderLeft: "3px solid #10b981", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+            <i className="ti ti-alert-triangle" style={{ marginRight: 6, color: "#10b981" }} />
             MVP: envia direto via UAZAPI sem fila persistente. Para volumes grandes (1000+), aguarde Wave futura com BullMQ.
           </div>
 

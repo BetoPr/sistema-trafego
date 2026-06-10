@@ -134,7 +134,7 @@ export function ClientesLista({ clientes }: Props) {
                             width: 34,
                             height: 34,
                             borderRadius: 8,
-                            background: "linear-gradient(135deg, #8B6F47, #C9A876)",
+                            background: "linear-gradient(135deg, #8B6F47, #10b981)",
                             color: "#fff",
                             display: "flex",
                             alignItems: "center",

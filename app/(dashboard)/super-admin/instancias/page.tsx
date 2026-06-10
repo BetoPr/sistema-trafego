@@ -121,8 +121,8 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
                 <div key={`${i.servidorId}|${i.id}`} style={{
                   padding: "12px 14px",
                   borderRadius: 10,
-                  border: i.favorita ? "1px solid #C9A876" : "0.5px solid var(--mk-border)",
-                  background: i.favorita ? "rgba(201,168,118,0.06)" : "var(--mk-surface)",
+                  border: i.favorita ? "1px solid #10b981" : "0.5px solid var(--mk-border)",
+                  background: i.favorita ? "rgba(16,185,129,0.06)" : "var(--mk-surface)",
                   opacity: i.visivel ? 1 : 0.55,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -132,7 +132,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                         <span style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.name}</span>
-                        {i.favorita && <i className="ti ti-star-filled" style={{ color: "#C9A876", fontSize: 11 }} />}
+                        {i.favorita && <i className="ti ti-star-filled" style={{ color: "#10b981", fontSize: 11 }} />}
                       </div>
                       <div style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{i.servidorNome}</div>
                     </div>
@@ -152,7 +152,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
                       <input type="hidden" name="instance_id" value={i.id} />
                       <input type="hidden" name="favorita" value={String(i.favorita)} />
                       <button type="submit" className="ghost-btn" style={iconBtn} title={i.favorita ? "Desmarcar favorita" : "Marcar como favorita"}>
-                        <i className={`ti ${i.favorita ? "ti-star-filled" : "ti-star"}`} style={{ color: i.favorita ? "#C9A876" : undefined }} />
+                        <i className={`ti ${i.favorita ? "ti-star-filled" : "ti-star"}`} style={{ color: i.favorita ? "#10b981" : undefined }} />
                       </button>
                     </form>
                     <form action={alternarVisivel} style={{ display: "inline" }}>

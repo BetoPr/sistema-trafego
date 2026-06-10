@@ -335,7 +335,7 @@ function ModalTransferirCanal({
     <Modal title="Transferir Canal" subtitle="Mude o canal WhatsApp do ticket" onClose={onClose}>
       {canais.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--mk-text-muted)", lineHeight: 1.6 }}>
-          <i className="ti ti-info-circle" style={{ fontSize: 24, color: "#C9A876", display: "block", marginBottom: 8 }} />
+          <i className="ti ti-info-circle" style={{ fontSize: 24, color: "#10b981", display: "block", marginBottom: 8 }} />
           Não há outros canais cadastrados pra transferir.<br />
           <a href="/canais" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Cadastra um novo canal</a> em Administração → Canais.
         </div>

@@ -135,7 +135,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   }
 
   function corAleatoria() {
-    const cores = ["#C9A876", "#9B7DBF", "#5B8BA6", "#10b981", "#C97064", "#D4A574"];
+    const cores = ["#10b981", "#9B7DBF", "#5B8BA6", "#10b981", "#C97064", "#10b981"];
     return cores[Math.floor(Math.random() * cores.length)];
   }
 
@@ -426,7 +426,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                   />
                 )}
                 {servicosHabilitados && servicos.length === 0 && (
-                  <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#C9A876", textDecoration: "none" }}>
+                  <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#10b981", textDecoration: "none" }}>
                     <i className="ti ti-plus" /> Cadastre serviços em Configurações → Serviços
                   </a>
                 )}

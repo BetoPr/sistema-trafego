@@ -193,7 +193,7 @@ export function GestaoGrupos({ canais }: { canais: Canal[] }) {
               {resultado.participantes.map((p) => (
                 <tr key={p.numero} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
                   <td style={{ ...td, fontFamily: "monospace" }}>{p.numero}</td>
-                  <td style={td}>{p.admin ? <span style={{ color: "#C9A876" }}><i className="ti ti-shield-star" /> Admin</span> : "—"}</td>
+                  <td style={td}>{p.admin ? <span style={{ color: "#10b981" }}><i className="ti ti-shield-star" /> Admin</span> : "—"}</td>
                 </tr>
               ))}
             </tbody>

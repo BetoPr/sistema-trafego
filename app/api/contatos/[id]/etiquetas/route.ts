@@ -29,7 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const categoria = body.categoria === "flag" ? "flag" : "etiqueta";
     const { data: nova, error } = await ctx.svc
       .from("etiquetas")
-      .insert({ agencia_id: ctx.agenciaId, nome: body.nome.trim(), cor: body.cor || "#C9A876", categoria })
+      .insert({ agencia_id: ctx.agenciaId, nome: body.nome.trim(), cor: body.cor || "#10b981", categoria })
       .select("id")
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

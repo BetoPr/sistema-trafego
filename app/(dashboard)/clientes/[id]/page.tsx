@@ -86,7 +86,7 @@ export default async function ClienteDetalhePage({ params }: Props) {
                 width: 56,
                 height: 56,
                 borderRadius: 12,
-                background: "linear-gradient(135deg, #8B6F47, #C9A876)",
+                background: "linear-gradient(135deg, #8B6F47, #10b981)",
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",

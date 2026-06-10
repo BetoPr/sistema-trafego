@@ -153,7 +153,7 @@ export function ListaAtendimentos(p: Props) {
 
   const conexaoConfig = {
     connected: { icon: "ti-wifi", color: "#10b981", bg: "rgba(16,185,129,0.18)", border: "#10b981", lista: canaisConectados, label: "Conectado" },
-    connecting: { icon: "ti-qrcode", color: "#C9A876", bg: "rgba(201,168,118,0.18)", border: "#C9A876", lista: canaisConectando, label: "Conectando" },
+    connecting: { icon: "ti-qrcode", color: "#10b981", bg: "rgba(16,185,129,0.18)", border: "#10b981", lista: canaisConectando, label: "Conectando" },
     disconnected: { icon: "ti-wifi-off", color: "#C97064", bg: "rgba(201,112,100,0.18)", border: "#C97064", lista: canaisDesconectados, label: "Desconectado" },
   }[tipoConexao];
 
@@ -247,7 +247,7 @@ export function ListaAtendimentos(p: Props) {
         <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
           {TABS.map((t) => {
             const ativo = t.id === tab;
-            const cor = t.id === "aberto" ? "#10b981" : t.id === "pendente" ? "#C9A876" : "var(--mk-text-muted)";
+            const cor = t.id === "aberto" ? "#10b981" : t.id === "pendente" ? "#10b981" : "var(--mk-text-muted)";
             return (
               <button
                 key={t.id}
@@ -318,7 +318,7 @@ export function ListaAtendimentos(p: Props) {
                         role="button"
                         onClick={(e) => { e.stopPropagation(); abrirEspiar(t); }}
                         title="Espiar conversa"
-                        style={{ color: "#C9A876", fontSize: 14, padding: "0 2px", cursor: "pointer" }}
+                        style={{ color: "#10b981", fontSize: 14, padding: "0 2px", cursor: "pointer" }}
                       >
                         <i className="ti ti-eye" />
                       </span>
@@ -559,7 +559,7 @@ function tabPill(ativo: boolean): React.CSSProperties {
 }
 
 const chipBtn: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "var(--mk-surface-2)", color: "var(--mk-text-secondary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "inherit" };
-const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "rgba(201,168,118,0.18)", color: "#C9A876", border: "0.5px solid #C9A876", display: "inline-flex", alignItems: "center" };
+const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "rgba(16,185,129,0.18)", color: "#10b981", border: "0.5px solid #10b981", display: "inline-flex", alignItems: "center" };
 
 const modalOverlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 14, width: "min(560px, 92vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 16px 48px rgba(0,0,0,0.5)" };

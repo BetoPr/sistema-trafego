@@ -130,8 +130,8 @@ function QrBalao({ canalId, nome, onClose }: { canalId: string; nome: string; on
               <i className="ti ti-refresh" style={{ marginRight: 4 }} />
               O QR renova sozinho a cada {QR_TTL}s até conectar. Feche no X pra parar.
             </div>
-            <div style={{ marginTop: 10, background: "rgba(201,168,118,0.14)", borderLeft: "3px solid #C9A876", padding: 10, borderRadius: 6, fontSize: 10.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
-              <strong style={{ color: "#C9A876" }}><i className="ti ti-device-mobile" style={{ marginRight: 4 }} />Está acessando pelo celular?</strong>
+            <div style={{ marginTop: 10, background: "rgba(16,185,129,0.14)", borderLeft: "3px solid #10b981", padding: 10, borderRadius: 6, fontSize: 10.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
+              <strong style={{ color: "#10b981" }}><i className="ti ti-device-mobile" style={{ marginRight: 4 }} />Está acessando pelo celular?</strong>
               <div style={{ marginTop: 4 }}>
                 Você não consegue escanear o QR na mesma tela. Use um computador ou um segundo celular pra ler:
               </div>

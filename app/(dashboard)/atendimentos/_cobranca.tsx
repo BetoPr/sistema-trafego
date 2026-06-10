@@ -145,7 +145,7 @@ export function BotaoCobranca({ ticketId, canalConectado, canalId, servicos = []
                         ))}
                       </select>
                       {servicos.length === 0 && (
-                        <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#C9A876", textDecoration: "none", display: "inline-block", marginTop: 4 }}>
+                        <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#10b981", textDecoration: "none", display: "inline-block", marginTop: 4 }}>
                           <i className="ti ti-plus" /> Cadastre serviços em Configurações → Serviços
                         </a>
                       )}

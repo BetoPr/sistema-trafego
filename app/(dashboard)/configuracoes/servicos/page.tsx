@@ -95,7 +95,7 @@ export default async function ServicosConfigPage() {
                     <form action={toggleServicoAtivo}>
                       <input type="hidden" name="id" value={s.id} />
                       <input type="hidden" name="ativo" value={s.ativo ? "0" : "1"} />
-                      <button type="submit" title={s.ativo ? "Pausar" : "Ativar"} style={{ background: "transparent", border: 0, color: s.ativo ? "#C9A876" : "#10b981", cursor: "pointer", padding: "4px 8px", fontSize: 13 }}>
+                      <button type="submit" title={s.ativo ? "Pausar" : "Ativar"} style={{ background: "transparent", border: 0, color: s.ativo ? "#10b981" : "#10b981", cursor: "pointer", padding: "4px 8px", fontSize: 13 }}>
                         <i className={`ti ${s.ativo ? "ti-player-pause" : "ti-player-play"}`} />
                       </button>
                     </form>

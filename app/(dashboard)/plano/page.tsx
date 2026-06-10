@@ -25,7 +25,7 @@ export default function PlanoPage() {
           <span className="label-tiny">Clientes usados</span>
           <div className="big-num">12 / 20</div>
           <div className="mk-progress" style={{ marginTop: 8 }}>
-            <div style={{ background: "linear-gradient(90deg, #8B6F47, #C9A876)", width: "60%" }} />
+            <div style={{ background: "linear-gradient(90deg, #8B6F47, #10b981)", width: "60%" }} />
           </div>
         </div>
         <div className="mk-card">
