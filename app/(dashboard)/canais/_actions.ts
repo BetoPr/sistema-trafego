@@ -357,6 +357,18 @@ export async function criarCanalJson(input: {
   if (!nome) return { ok: false, msg: "Nome obrigatório." };
 
   const sb = createServiceClient();
+
+  // Plano atual: 1 sessão por conta (super_admin ilimitado)
+  if (ctx.role !== "super_admin") {
+    const { count } = await sb
+      .from("canais")
+      .select("id", { count: "exact", head: true })
+      .eq("agencia_id", ctx.agenciaId);
+    if ((count || 0) >= 1) {
+      return { ok: false, msg: "Seu plano permite 1 sessão de WhatsApp. Pra trocar de número, exclua a sessão atual (use Transferir Canal antes pra preservar o histórico) ou fale com o suporte pra adicionar sessões extras." };
+    }
+  }
+
   let servidor: { id: string; baseUrl: string; adminToken: string };
   try {
     servidor = await getServidorAtivo();
