@@ -47,11 +47,14 @@ interface Props {
   todasEtiquetas?: Tag[];
   servicos?: ServicoOpt[];
   servicosHabilitados?: boolean;
-  urlFechar?: string;
+  onFechar?: () => void;
+  onRefresh?: () => void;
 }
 
-export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [], servicos = [], servicosHabilitados = false, urlFechar }: Props) {
+export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [], servicos = [], servicosHabilitados = false, onFechar, onRefresh }: Props) {
   const router = useRouter();
+  // SPA mode: onRefresh refaz fetch do bundle; fallback router.refresh pro modo server
+  const refresh = () => (onRefresh ? onRefresh() : router.refresh());
   const [tab, setTab] = useState<"perfil" | "atend" | "util">("perfil");
   const [loadingResumo, setLoadingResumo] = useState(false);
   const [loadingSent, setLoadingSent] = useState(false);
@@ -82,7 +85,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
       });
       const j = await r.json();
       if (!r.ok) alert(`Erro: ${j.error || j.msg}`);
-      else { alert("Fechamento salvo"); router.refresh(); }
+      else { alert("Fechamento salvo"); refresh(); }
     } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
     finally { setSavingFech(false); }
   }
@@ -96,7 +99,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
       });
       const j = await r.json();
       if (!r.ok) alert(`Erro: ${j.error}`);
-      else { router.refresh(); setShowEtiquetaPicker(null); setNovaEtiquetaNome(""); }
+      else { refresh(); setShowEtiquetaPicker(null); setNovaEtiquetaNome(""); }
     } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
   }
 
@@ -104,7 +107,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
     if (!confirm("Remover flag deste contato?")) return;
     try {
       const r = await fetch(`/api/contatos/${contato.id}/etiquetas?etiquetaId=${etiquetaId}`, { method: "DELETE" });
-      if (r.ok) router.refresh();
+      if (r.ok) refresh();
     } catch {}
   }
 
@@ -117,7 +120,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ nome: novoNome.trim() }),
       });
-      if (r.ok) router.refresh();
+      if (r.ok) refresh();
       else { const j = await r.json(); alert(`Erro: ${j.error}`); }
     } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
   }
@@ -126,7 +129,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
     if (!confirm(`Excluir flag "${nome}" da agência? Vai remover de todos contatos.`)) return;
     try {
       const r = await fetch(`/api/etiquetas/${etiquetaId}`, { method: "DELETE" });
-      if (r.ok) router.refresh();
+      if (r.ok) refresh();
       else { const j = await r.json(); alert(`Erro: ${j.error}`); }
     } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
   }
@@ -143,7 +146,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ lido }),
       });
-      if (r.ok) router.refresh();
+      if (r.ok) refresh();
     } catch {}
   }
 
@@ -176,7 +179,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
       const r = await fetch(`/api/contatos/${contatoId}/sanitizar`, { method: "POST" });
       if (r.ok) {
         alert("Contato sanitizado");
-        router.refresh();
+        refresh();
       } else {
         const j = await r.json();
         alert(`Erro: ${j.error}`);
@@ -237,7 +240,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
               setStreamingResumo((prev) => prev + json.delta);
             }
             if (json.done) {
-              router.refresh();
+              refresh();
               aborted = true;
               break;
             }
@@ -258,7 +261,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
       const r = await fetch(`/api/atendimentos/${ticket.id}/sentimento`, { method: "POST" });
       const j = await r.json();
       if (!r.ok) alert(`Erro: ${j.error || j.msg}`);
-      else router.refresh();
+      else refresh();
     } finally {
       setLoadingSent(false);
     }
@@ -271,9 +274,9 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <div style={{ padding: "10px 12px", borderBottom: "0.5px solid var(--mk-border)", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center" }}>
         <span style={{ flex: 1 }}>Detalhes do contato</span>
-        {urlFechar && (
+        {onFechar && (
           <button
-            onClick={() => router.push(urlFechar)}
+            onClick={onFechar}
             title="Fechar painel"
             style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 16, padding: 2, lineHeight: 1 }}
           >

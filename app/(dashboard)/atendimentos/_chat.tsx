@@ -56,7 +56,8 @@ interface Props {
   usuarios: Array<{ id: string; nome: string }>;
   canais: Array<{ id: string; nome: string; status: string; numero_conectado?: string | null }>;
   detalhesAbertos: boolean;
-  urlToggleDetalhes: string;
+  onToggleDetalhes: () => void;
+  onRefresh?: () => void;
   mensagensIniciais: Mensagem[];
   mensagensRapidas: MensagemRapida[];
   userNomeMap: Record<string, string>;
@@ -209,7 +210,8 @@ export function ChatView(props: Props) {
         usuarios={props.usuarios}
         canais={props.canais}
         detalhesAbertos={props.detalhesAbertos}
-        urlToggleDetalhes={props.urlToggleDetalhes}
+        onToggleDetalhes={props.onToggleDetalhes}
+        onRefresh={props.onRefresh}
       />
 
       {/* Wrapper relativo pros botões fixos */}

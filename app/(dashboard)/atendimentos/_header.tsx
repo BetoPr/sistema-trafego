@@ -34,7 +34,8 @@ interface Props {
   usuarios: UsuarioOption[];
   canais: CanalOption[];
   detalhesAbertos: boolean;
-  urlToggleDetalhes: string;
+  onToggleDetalhes: () => void;
+  onRefresh?: () => void;
 }
 
 export function ChatHeader(props: Props) {
@@ -92,14 +93,16 @@ export function ChatHeader(props: Props) {
   async function transferir(filaId: string | null, usuarioId: string | null, msg: string) {
     if (await call(`/api/atendimentos/${props.ticketId}/transferir`, { filaId, usuarioId, mensagem: msg })) {
       setModal(null);
-      router.refresh();
+      if (props.onRefresh) props.onRefresh();
+      else router.refresh();
     }
   }
 
   async function transferirCanal(canalId: string) {
     if (await call(`/api/atendimentos/${props.ticketId}/transferir-canal`, { canalId })) {
       setModal(null);
-      router.refresh();
+      if (props.onRefresh) props.onRefresh();
+      else router.refresh();
     }
   }
 
@@ -127,14 +130,14 @@ export function ChatHeader(props: Props) {
         <IconBtn icon="ti-arrows-exchange" title="Transferir (fila/atendente)" onClick={() => setModal("transferir")} />
         <IconBtn icon="ti-broadcast" title="Transferir canal" onClick={() => setModal("transferir-canal")} />
         <BotaoCobranca ticketId={props.ticketId} canalConectado={props.canalConectado} canalId={props.canalId} />
-        <IconBtn icon="ti-info-circle" title={props.detalhesAbertos ? "Fechar detalhes" : "Detalhes do contato"} onClick={() => router.push(props.urlToggleDetalhes)} active={props.detalhesAbertos} />
+        <IconBtn icon="ti-info-circle" title={props.detalhesAbertos ? "Fechar detalhes" : "Detalhes do contato"} onClick={props.onToggleDetalhes} active={props.detalhesAbertos} />
 
         {/* Menu 3 pontos */}
         <div style={{ position: "relative" }} ref={menuRef}>
           <IconBtn icon="ti-dots-vertical" title="Mais ações" onClick={() => setShowMenu((s) => !s)} active={showMenu} />
           {showMenu && (
             <div style={menuStyle}>
-              <MenuItem icon="ti-info-circle" onClick={() => { setShowMenu(false); router.push(props.urlToggleDetalhes); }}>{props.detalhesAbertos ? "Fechar detalhes" : "Ver detalhes do contato"}</MenuItem>
+              <MenuItem icon="ti-info-circle" onClick={() => { setShowMenu(false); props.onToggleDetalhes(); }}>{props.detalhesAbertos ? "Fechar detalhes" : "Ver detalhes do contato"}</MenuItem>
               <MenuSep />
               <MenuItem icon="ti-arrows-exchange" onClick={() => { setShowMenu(false); setModal("transferir"); }}>Transferir</MenuItem>
               <MenuItem icon="ti-robot" disabled>Transferir p/ Chatbot</MenuItem>

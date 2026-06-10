@@ -4,7 +4,7 @@
  *  - texto: { ticketId, text }
  *  - mídia: { ticketId, media: { type, fileBase64, caption?, filename? } }
  */
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
@@ -97,17 +97,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         : body.media.type === "sticker" ? "sticker"
         : "texto";
       conteudoMsg = body.media.caption || `[${tipoMsg}]`;
-
-      // Imagem → ImgBB pra exibir como foto normal no chat (sem onerar bucket/banco)
-      if (body.media.type === "image") {
-        try {
-          const ib = await uploadImageToImgbb({ base64: file, filename: body.media.filename });
-          midiaUrlSalvar = ib.url;
-          midiaMimeSalvar = "image/jpeg";
-        } catch (e) {
-          console.error("[send] imgbb upload falhou:", e);
-        }
-      }
     } else {
       const r = await instanceSendText({ baseUrl, token }, { number: waId, text: body.text! });
       wamid = r.id;
@@ -134,6 +123,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .select("id")
     .single();
   if (error) return NextResponse.json({ error: "db", msg: error.message }, { status: 500 });
+
+  // Imagem → ImgBB em BACKGROUND (after responde primeiro; realtime UPDATE
+  // troca o placeholder pela foto quando o link ficar pronto). Não bloqueia o envio.
+  if (body.media?.type === "image") {
+    const rawB64 = body.media.fileBase64.includes(",") ? body.media.fileBase64.split(",")[1] : body.media.fileBase64;
+    const fname = body.media.filename;
+    const mensagemId = msgRow.id;
+    after(async () => {
+      try {
+        const ib = await uploadImageToImgbb({ base64: rawB64, filename: fname });
+        await sb.from("mensagens").update({ midia_url: ib.url, midia_mime: body.media?.mimetype || "image/jpeg" }).eq("id", mensagemId);
+      } catch (e) {
+        console.error("[send] imgbb background falhou:", e);
+      }
+    });
+  }
 
   // Promove pendente → aberto na primeira resposta.
   await sb

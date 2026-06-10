@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
 
-interface Ticket {
+export interface TicketLista {
   id: string;
   numero: number;
   status: string;
@@ -24,13 +22,12 @@ interface Canal {
 }
 
 interface Props {
-  tab: "aberto" | "pendente" | "fechado";
-  ticketSel: string | undefined;
-  q: string | undefined;
-  canal: string | undefined;
-  tickets: Ticket[];
+  tickets: TicketLista[];
   canais: Canal[];
-  counts: Record<string, number>;
+  ticketSel: string | undefined;
+  initialTab?: "aberto" | "pendente" | "fechado";
+  onSelectTicket: (id: string) => void;
+  onRefresh: () => void;
 }
 
 const TABS: Array<{ id: "aberto" | "pendente" | "fechado"; label: string }> = [
@@ -40,7 +37,8 @@ const TABS: Array<{ id: "aberto" | "pendente" | "fechado"; label: string }> = [
 ];
 
 export function ListaAtendimentos(p: Props) {
-  const router = useRouter();
+  const [tab, setTab] = useState<"aberto" | "pendente" | "fechado">(p.initialTab || "aberto");
+  const [canalFiltro, setCanalFiltro] = useState<string | null>(null);
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
   const [fechamentosModal, setFechamentosModal] = useState(false);
@@ -49,7 +47,7 @@ export function ListaAtendimentos(p: Props) {
   const [tipoConexao, setTipoConexao] = useState<"connected" | "connecting" | "disconnected">("connected");
   const [showCanais, setShowCanais] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQ, setSearchQ] = useState(p.q || "");
+  const [searchQ, setSearchQ] = useState("");
   const [searchMsgText, setSearchMsgText] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; numero: number; contato_nome: string; conteudo: string; created_at: string; ticketId: string }>>([]);
   const [aba, setAba] = useState<"privados" | "grupos">("privados");
@@ -63,18 +61,36 @@ export function ListaAtendimentos(p: Props) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function getQuery() {
-    const u = new URLSearchParams();
-    u.set("tab", p.tab);
-    if (searchQ) u.set("q", searchQ);
-    if (p.canal && p.canal !== "todos") u.set("canal", p.canal);
-    return u.toString();
-  }
+  // Filtragem 100% client-side — instantânea
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { aberto: 0, pendente: 0, fechado: 0 };
+    for (const t of p.tickets) {
+      if (canalFiltro && t.canal?.id !== canalFiltro) continue;
+      if (c[t.status] !== undefined) c[t.status]++;
+    }
+    return c;
+  }, [p.tickets, canalFiltro]);
 
-  function refresh() {
-    setRefreshing(true);
-    router.refresh();
-    setTimeout(() => setRefreshing(false), 800);
+  const ticketsVisiveis = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    return p.tickets.filter((t) => {
+      if (t.status !== tab) return false;
+      if (canalFiltro && t.canal?.id !== canalFiltro) return false;
+      if (q) {
+        const alvo = `${t.contato?.nome || ""} ${t.contato?.whatsapp || ""} ${t.numero}`.toLowerCase();
+        if (!alvo.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [p.tickets, tab, canalFiltro, searchQ]);
+
+  async function buscarMensagens() {
+    if (!searchMsgText.trim()) return;
+    try {
+      const r = await fetch(`/api/atendimentos/buscar-mensagens?q=${encodeURIComponent(searchMsgText)}`);
+      const j = await r.json();
+      setSearchResults(j.resultados || []);
+    } catch {}
   }
 
   async function abrirFechamentos() {
@@ -87,6 +103,12 @@ export function ListaAtendimentos(p: Props) {
     } catch {} finally {
       setFechamentosLoading(false);
     }
+  }
+
+  function refresh() {
+    setRefreshing(true);
+    p.onRefresh();
+    setTimeout(() => setRefreshing(false), 800);
   }
 
   function ciclarTipoConexao() {
@@ -102,17 +124,6 @@ export function ListaAtendimentos(p: Props) {
     connecting: { icon: "ti-qrcode", color: "#C9A876", bg: "rgba(201,168,118,0.18)", border: "#C9A876", lista: canaisConectando, label: "Conectando" },
     disconnected: { icon: "ti-wifi-off", color: "#C97064", bg: "rgba(201,112,100,0.18)", border: "#C97064", lista: canaisDesconectados, label: "Desconectado" },
   }[tipoConexao];
-
-  async function buscarMensagens() {
-    if (!searchMsgText.trim()) return;
-    try {
-      const r = await fetch(`/api/atendimentos/buscar-mensagens?q=${encodeURIComponent(searchMsgText)}`);
-      const j = await r.json();
-      setSearchResults(j.resultados || []);
-    } catch {
-      setSearchResults([]);
-    }
-  }
 
   return (
     <aside style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "var(--mk-bg)" }}>
@@ -145,7 +156,6 @@ export function ListaAtendimentos(p: Props) {
             <input
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") router.push(`/atendimentos?${getQuery()}`); }}
               placeholder="Buscar nome, número, ticket…"
               style={{ width: "100%", padding: "6px 8px 6px 28px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 11.5 }}
             />
@@ -188,34 +198,33 @@ export function ListaAtendimentos(p: Props) {
       </div>
 
       {/* Chips filtros aplicados */}
-      {(p.canal && p.canal !== "todos") && (
+      {canalFiltro && (
         <div style={sep}>
           <div style={{ display: "flex", gap: 4, padding: "8px 12px", flexWrap: "wrap" }}>
-            <Link href={`/atendimentos?tab=${p.tab}`} style={chipBtn}>Ver todos <i className="ti ti-x" /></Link>
+            <button onClick={() => setCanalFiltro(null)} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Ver todos <i className="ti ti-x" /></button>
             <span style={chipActive}>
-              {p.canais.find((c) => c.id === p.canal)?.nome || "Canal"}
-              <Link href={`/atendimentos?tab=${p.tab}${searchQ ? `&q=${searchQ}` : ""}`} style={{ marginLeft: 4 }}>×</Link>
+              {p.canais.find((c) => c.id === canalFiltro)?.nome || "Canal"}
+              <button onClick={() => setCanalFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
             </span>
           </div>
         </div>
       )}
 
-      {/* Tabs status */}
+      {/* Tabs status — troca instantânea, sem navegação */}
       <div style={sep}>
         <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
           {TABS.map((t) => {
-            const ativo = t.id === p.tab;
+            const ativo = t.id === tab;
             const cor = t.id === "aberto" ? "#6B8E4E" : t.id === "pendente" ? "#C9A876" : "var(--mk-text-muted)";
             return (
-              <Link
+              <button
                 key={t.id}
-                href={`/atendimentos?tab=${t.id}${p.canal && p.canal !== "todos" ? `&canal=${p.canal}` : ""}${searchQ ? `&q=${searchQ}` : ""}`}
+                onClick={() => setTab(t.id)}
                 style={{
                   flex: 1,
                   padding: "6px 8px",
                   borderRadius: 6,
                   textAlign: "center",
-                  textDecoration: "none",
                   background: ativo ? "var(--mk-surface)" : "transparent",
                   border: ativo ? `0.5px solid ${cor}` : "0.5px solid transparent",
                   color: ativo ? cor : "var(--mk-text-muted)",
@@ -225,39 +234,45 @@ export function ListaAtendimentos(p: Props) {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 4,
+                  cursor: "pointer",
                 }}
               >
                 <i className={`ti ${t.id === "aberto" ? "ti-message" : t.id === "pendente" ? "ti-clock" : "ti-check"}`} />
                 {t.label}
-                <span style={{ fontSize: 9.5, background: cor, color: "#FFFDF8", borderRadius: 8, padding: "0 5px", marginLeft: 2 }}>{p.counts[t.id]}</span>
-              </Link>
+                <span style={{ fontSize: 9.5, background: cor, color: "#FFFDF8", borderRadius: 8, padding: "0 5px", marginLeft: 2 }}>{counts[t.id]}</span>
+              </button>
             );
           })}
         </div>
       </div>
 
       {/* Lista tickets */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
-        {!p.tickets || p.tickets.length === 0 ? (
+      <div className="chat-scroll" style={{ flex: 1, overflowY: "auto" }}>
+        {ticketsVisiveis.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12 }}>Sem tickets.</div>
         ) : (
-          p.tickets.map((t) => {
+          ticketsVisiveis.map((t) => {
             const c = t.contato;
             const f = t.fila;
             const isOpen = t.id === p.ticketSel;
             return (
-              <Link
+              <button
                 key={t.id}
-                href={`/atendimentos?tab=${p.tab}${searchQ ? `&q=${encodeURIComponent(searchQ)}` : ""}${p.canal && p.canal !== "todos" ? `&canal=${p.canal}` : ""}&t=${t.id}`}
+                onClick={() => p.onSelectTicket(t.id)}
                 style={{
                   display: "flex",
                   gap: 10,
+                  width: "100%",
+                  textAlign: "left",
                   padding: "12px 14px",
+                  borderTop: 0,
+                  borderRight: 0,
                   borderBottom: "0.5px solid var(--mk-border)",
-                  textDecoration: "none",
                   color: "var(--mk-text)",
                   background: isOpen ? "var(--mk-surface)" : "transparent",
                   borderLeft: isOpen ? "2px solid var(--mk-accent)" : "2px solid transparent",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
                 }}
               >
                 <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
@@ -278,7 +293,7 @@ export function ListaAtendimentos(p: Props) {
                     {t.sentimento === "ruim" && <span style={{ fontSize: 9.5, color: "#C97064" }}>● ruim</span>}
                   </div>
                 </div>
-              </Link>
+              </button>
             );
           })
         )}
@@ -307,23 +322,22 @@ export function ListaAtendimentos(p: Props) {
                 />
                 <button onClick={buscarMensagens} className="cta-btn"><i className="ti ti-search" /> Buscar</button>
               </div>
-              <div style={{ marginTop: 14, maxHeight: 400, overflowY: "auto" }}>
+              <div className="chat-scroll" style={{ marginTop: 14, maxHeight: 400, overflowY: "auto" }}>
                 {searchResults.length === 0 ? (
                   <div style={{ textAlign: "center", color: "var(--mk-text-muted)", padding: 30, fontSize: 12 }}>
                     {searchMsgText ? "Sem resultados" : "Digite um termo pra buscar"}
                   </div>
                 ) : (
                   searchResults.map((r) => (
-                    <Link
+                    <button
                       key={r.id}
-                      href={`/atendimentos?tab=aberto&t=${r.ticketId}`}
-                      onClick={() => setSearchModal(false)}
-                      style={{ display: "block", padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", marginBottom: 6, color: "var(--mk-text)", textDecoration: "none" }}
+                      onClick={() => { setSearchModal(false); p.onSelectTicket(r.ticketId); }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", marginBottom: 6, color: "var(--mk-text)", cursor: "pointer", fontFamily: "inherit" }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-accent)" }}>#{r.numero} · {r.contato_nome}</div>
                       <div style={{ fontSize: 11.5, marginTop: 4, color: "var(--mk-text-secondary)" }}>{r.conteudo.slice(0, 200)}</div>
                       <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 4 }}>{new Date(r.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</div>
-                    </Link>
+                    </button>
                   ))
                 )}
               </div>
@@ -332,7 +346,7 @@ export function ListaAtendimentos(p: Props) {
         </div>
       )}
 
-      {/* Modal Filtros (simplificado) */}
+      {/* Modal Filtros */}
       {filtroAberto && (
         <div style={modalOverlay} onClick={() => setFiltroAberto(false)}>
           <div style={{ ...modalBox, width: "min(380px, 92vw)" }} onClick={(e) => e.stopPropagation()}>
@@ -343,34 +357,31 @@ export function ListaAtendimentos(p: Props) {
             <div style={{ padding: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>STATUS</div>
               {TABS.map((t) => (
-                <Link
+                <button
                   key={t.id}
-                  href={`/atendimentos?tab=${t.id}${p.canal && p.canal !== "todos" ? `&canal=${p.canal}` : ""}`}
-                  onClick={() => setFiltroAberto(false)}
-                  style={{ display: "block", padding: "8px 0", fontSize: 12.5, color: t.id === p.tab ? "var(--mk-accent)" : "var(--mk-text-secondary)", textDecoration: "none" }}
+                  onClick={() => { setTab(t.id); setFiltroAberto(false); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 0", fontSize: 12.5, color: t.id === tab ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
                 >
-                  {t.id === p.tab ? "● " : "○ "}{t.label} <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>({p.counts[t.id]})</span>
-                </Link>
+                  {t.id === tab ? "● " : "○ "}{t.label} <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>({counts[t.id]})</span>
+                </button>
               ))}
 
               <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 12, paddingTop: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>CANAIS</div>
-                <Link
-                  href={`/atendimentos?tab=${p.tab}`}
-                  onClick={() => setFiltroAberto(false)}
-                  style={{ display: "block", padding: "6px 0", fontSize: 12, color: !p.canal || p.canal === "todos" ? "var(--mk-accent)" : "var(--mk-text-secondary)", textDecoration: "none" }}
+                <button
+                  onClick={() => { setCanalFiltro(null); setFiltroAberto(false); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: !canalFiltro ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
                 >
-                  {!p.canal || p.canal === "todos" ? "● " : "○ "}Todos canais
-                </Link>
+                  {!canalFiltro ? "● " : "○ "}Todos canais
+                </button>
                 {p.canais.map((c) => (
-                  <Link
+                  <button
                     key={c.id}
-                    href={`/atendimentos?tab=${p.tab}&canal=${c.id}`}
-                    onClick={() => setFiltroAberto(false)}
-                    style={{ display: "block", padding: "6px 0", fontSize: 12, color: p.canal === c.id ? "var(--mk-accent)" : "var(--mk-text-secondary)", textDecoration: "none" }}
+                    onClick={() => { setCanalFiltro(c.id); setFiltroAberto(false); }}
+                    style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: canalFiltro === c.id ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
                   >
-                    {p.canal === c.id ? "● " : "○ "}{c.status === "connected" ? "🟢" : "🔴"} {c.nome}
-                  </Link>
+                    {canalFiltro === c.id ? "● " : "○ "}{c.status === "connected" ? "🟢" : "🔴"} {c.nome}
+                  </button>
                 ))}
               </div>
             </div>
@@ -403,11 +414,10 @@ export function ListaAtendimentos(p: Props) {
                     </strong>
                   </div>
                   {fechamentos.map((f) => (
-                    <Link
+                    <button
                       key={f.ticketId}
-                      href={`/atendimentos?ticket=${f.ticketId}`}
-                      onClick={() => setFechamentosModal(false)}
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 8px", borderBottom: "0.5px solid var(--mk-border)", textDecoration: "none", color: "var(--mk-text)" }}
+                      onClick={() => { setFechamentosModal(false); p.onSelectTicket(f.ticketId); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 8px", borderTop: 0, borderLeft: 0, borderRight: 0, borderBottom: "0.5px solid var(--mk-border)", color: "var(--mk-text)", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}
                     >
                       <i className="ti ti-circle-check" style={{ color: "#6B8E4E", fontSize: 16 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -423,7 +433,7 @@ export function ListaAtendimentos(p: Props) {
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#6B8E4E", whiteSpace: "nowrap" }}>
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </>
               )}
@@ -447,14 +457,14 @@ function tabPill(ativo: boolean): React.CSSProperties {
     cursor: "pointer",
     fontSize: 12,
     fontWeight: 600,
+    fontFamily: "inherit",
     background: ativo ? "var(--mk-text)" : "transparent",
     color: ativo ? "var(--mk-bg)" : "var(--mk-text-muted)",
-    transition: "all 150ms",
   };
 }
 
-const chipBtn: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 12, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text-secondary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 };
-const chipActive: React.CSSProperties = { ...chipBtn, background: "rgba(155,125,191,0.18)", color: "#9B7DBF", border: "0.5px solid #9B7DBF" };
+const chipBtn: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "var(--mk-surface-2)", color: "var(--mk-text-secondary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "inherit" };
+const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "rgba(201,168,118,0.18)", color: "#C9A876", border: "0.5px solid #C9A876", display: "inline-flex", alignItems: "center" };
 
 const modalOverlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 14, width: "min(560px, 92vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 16px 48px rgba(0,0,0,0.5)" };
