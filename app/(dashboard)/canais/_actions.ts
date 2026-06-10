@@ -300,6 +300,51 @@ export async function listarInstanciasDisponiveis(): Promise<Array<{ id: string;
 // Versões JSON (sem redirect) — fluxo em balão no client
 // =========================================
 
+/**
+ * Transfere TODOS os tickets (histórico de conversas, mensagens, fechamentos —
+ * tudo que pende do ticket) de um canal pra outro. Útil ao trocar de instância/número.
+ */
+export async function transferirCanalTudo(
+  origemId: string,
+  destinoId: string,
+): Promise<{ ok: true; movidos: number } | { ok: false; msg: string }> {
+  const ctx = await requireAdmin();
+  if (!origemId || !destinoId) return { ok: false, msg: "Origem e destino obrigatórios." };
+  if (origemId === destinoId) return { ok: false, msg: "Origem e destino são o mesmo canal." };
+
+  const sb = createServiceClient();
+
+  // Valida os dois canais na agência
+  const { data: canais } = await sb
+    .from("canais")
+    .select("id, nome")
+    .eq("agencia_id", ctx.agenciaId)
+    .in("id", [origemId, destinoId]);
+  if (!canais || canais.length !== 2) return { ok: false, msg: "Canal de origem ou destino não encontrado." };
+
+  const { data: movidos, error } = await sb
+    .from("tickets")
+    .update({ canal_id: destinoId })
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("canal_id", origemId)
+    .select("id");
+  if (error) return { ok: false, msg: error.message };
+
+  const qtd = movidos?.length || 0;
+  await audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "update",
+    entidade: "canal_transferencia",
+    entidadeId: origemId,
+    payload: { destinoId, ticketsMovidos: qtd },
+  });
+
+  revalidatePath("/canais");
+  revalidatePath("/atendimentos");
+  return { ok: true, movidos: qtd };
+}
+
 export async function criarCanalJson(input: {
   nome: string;
   padrao?: boolean;

@@ -11,6 +11,7 @@ import {
 import { CanaisAutoRefresh } from "./_auto-refresh";
 import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
 import { SubmitIconBtn } from "./_submit-btn";
+import { TransferirCanalBtn } from "./_transferir";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; qr?: string }>;
@@ -133,6 +134,11 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                   <input type="hidden" name="id" value={c.id} />
                   <SubmitIconBtn icon="ti-webhook" title="Revalidar webhook" />
                 </form>
+                <TransferirCanalBtn
+                  canalId={c.id}
+                  canalNome={c.nome}
+                  outros={(canais || []).filter((o) => o.id !== c.id).map((o) => ({ id: o.id, nome: o.nome, status: o.status }))}
+                />
                 {conectado && (
                   <form action={desconectarCanal} style={{ display: "inline" }}>
                     <input type="hidden" name="id" value={c.id} />
