@@ -286,7 +286,7 @@ export function ChatView(props: Props) {
                     </>
                   )
                 ) : m.tipo === "imagem" || m.tipo === "video" ? (
-                  <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo} />
+                  <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo && !/^\[(imagem|video)\]$/.test(m.conteudo) ? m.conteudo : null} />
                 ) : m.tipo === "documento" ? (
                   <>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>

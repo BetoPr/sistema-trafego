@@ -58,10 +58,10 @@ export function MediaPreview({ midiaPath, tipo, legenda }: Props) {
           src={url}
           alt={legenda || "imagem"}
           onClick={() => setLightbox(true)}
-          style={{ maxWidth: 240, maxHeight: 240, borderRadius: 8, cursor: "zoom-in", display: "block", border: "0.5px solid var(--mk-border)" }}
+          style={{ width: "100%", maxWidth: 260, maxHeight: 300, height: "auto", objectFit: "contain", borderRadius: 8, cursor: "zoom-in", display: "block", border: "0.5px solid var(--mk-border)" }}
         />
       ) : (
-        <video src={url} controls preload="metadata" style={{ maxWidth: 240, maxHeight: 240, borderRadius: 8, display: "block", border: "0.5px solid var(--mk-border)" }} />
+        <video src={url} controls preload="metadata" style={{ width: "100%", maxWidth: 260, maxHeight: 300, borderRadius: 8, display: "block", border: "0.5px solid var(--mk-border)" }} />
       )}
       {legenda && <div style={{ marginTop: 4, fontSize: 12 }}>{legenda}</div>}
 
