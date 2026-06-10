@@ -71,20 +71,24 @@ export default function LoginPage() {
   );
 }
 
-/** Marca "S" — recriação vetorial (esmeralda). */
+/** Marca "S" — recriação vetorial (esmeralda), em fita dupla serpenteada. */
 function LogoS() {
+  const c = "var(--mk-accent, #10b981)";
   return (
-    <svg width="46" height="46" viewBox="0 0 100 100" fill="none" aria-label="Logo" role="img">
+    <svg width="50" height="50" viewBox="0 0 100 100" fill="none" aria-label="Logo" role="img">
+      {/* Fita principal em S */}
       <path
-        d="M71 22 C45 18, 30 36, 47 50 C64 64, 50 84, 26 78"
-        stroke="var(--mk-accent, #10b981)"
-        strokeWidth="11"
+        d="M74 26 C74 15, 56 12, 43 19 C28 27, 31 43, 49 49 C67 55, 70 70, 56 78 C44 85, 28 82, 26 72"
+        stroke={c}
+        strokeWidth="12"
         strokeLinecap="round"
         fill="none"
       />
-      <path d="M30 30 L66 64" stroke="var(--mk-accent, #10b981)" strokeWidth="6" strokeLinecap="round" opacity="0.55" />
-      <circle cx="80" cy="30" r="4" fill="var(--mk-accent, #10b981)" />
-      <circle cx="86" cy="42" r="2.6" fill="var(--mk-accent, #10b981)" opacity="0.7" />
+      {/* Corte diagonal — dá o efeito de fita do logo */}
+      <path d="M34 32 L70 66" stroke={c} strokeWidth="5" strokeLinecap="round" opacity="0.45" />
+      {/* Faíscas (canto superior direito) */}
+      <circle cx="82" cy="30" r="4.2" fill={c} />
+      <circle cx="88" cy="43" r="2.6" fill={c} opacity="0.7" />
     </svg>
   );
 }
