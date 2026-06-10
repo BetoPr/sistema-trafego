@@ -104,7 +104,7 @@ export function ViewToggle({ atual }: { atual: "campanhas" | "atendimentos" }) {
 
   return (
     <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--mk-surface)", borderRadius: 10, border: "0.5px solid var(--mk-border)", marginBottom: 10, width: "fit-content" }}>
-      {(["campanhas", "atendimentos"] as const).map((v) => {
+      {(["atendimentos", "campanhas"] as const).map((v) => {
         const active = v === atual;
         return (
           <button
@@ -114,6 +114,9 @@ export function ViewToggle({ atual }: { atual: "campanhas" | "atendimentos" }) {
           >
             <i className={`ti ${v === "campanhas" ? "ti-speakerphone" : "ti-messages"}`} />
             {v === "campanhas" ? "Campanhas" : "Atendimentos"}
+            {v === "campanhas" && (
+              <span style={{ fontSize: 8.5, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "linear-gradient(135deg, #C9A876, #E8C896)", color: "#5A4810", letterSpacing: 0.3 }}>BREVE</span>
+            )}
           </button>
         );
       })}

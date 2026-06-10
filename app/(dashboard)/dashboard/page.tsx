@@ -29,7 +29,8 @@ export default async function DashboardPage({
   const primeiroNome = usuario.nome.split(" ")[0];
 
   const sp = await searchParams;
-  const view: "campanhas" | "atendimentos" = sp.view === "atendimentos" ? "atendimentos" : "campanhas";
+  // Atendimentos é o padrão — Campanhas fica em standby até a integração Meta ser aprovada em produção
+  const view: "campanhas" | "atendimentos" = sp.view === "campanhas" ? "campanhas" : "atendimentos";
   const periodo = parsePeriodo(sp.periodo);
   const faixa = resolverFaixa(sp.periodo, sp.de, sp.ate);
 
