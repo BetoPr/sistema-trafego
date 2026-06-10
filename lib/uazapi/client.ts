@@ -310,7 +310,11 @@ export interface UazapiGroup {
   Topic?: string;
   IsAnnounce?: boolean;
   IsLocked?: boolean;
-  Participants?: Array<{ JID: string; IsAdmin?: boolean; IsSuperAdmin?: boolean }>;
+  /**
+   * Em grupos com AddressingMode "lid", JID é um ID anônimo (@lid).
+   * O telefone real vem em PhoneNumber (formato 55...@s.whatsapp.net).
+   */
+  Participants?: Array<{ JID: string; PhoneNumber?: string; LID?: string; IsAdmin?: boolean; IsSuperAdmin?: boolean; DisplayName?: string }>;
 }
 
 /**

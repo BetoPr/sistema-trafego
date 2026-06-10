@@ -37,8 +37,9 @@ export async function GET(req: Request) {
     const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
     const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
     const info = await instanceGetGroupInfo({ baseUrl, token }, { groupjid: jid });
+    // Grupos "lid": JID é ID anônimo; telefone real vem em PhoneNumber.
     const participantes = (info.Participants || []).map((p) => ({
-      numero: p.JID.split("@")[0],
+      numero: (p.PhoneNumber || p.JID).split("@")[0],
       admin: !!(p.IsAdmin || p.IsSuperAdmin),
     }));
     return NextResponse.json({ grupo: { jid: info.JID, nome: info.Name }, participantes });

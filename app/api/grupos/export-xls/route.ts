@@ -54,7 +54,8 @@ export async function GET(req: Request) {
       for (const p of info.Participants || []) {
         ws.addRow({
           grupo: info.Name,
-          numero: p.JID.split("@")[0],
+          // Grupos "lid": telefone real em PhoneNumber; JID é ID anônimo
+          numero: (p.PhoneNumber || p.JID).split("@")[0],
           admin: p.IsAdmin || p.IsSuperAdmin ? "Sim" : "Não",
         });
       }
