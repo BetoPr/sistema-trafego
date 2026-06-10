@@ -3,8 +3,6 @@
 import { useState } from "react";
 
 const ITEMS = [
-  { id: "email-notif", label: "Notificações por e-mail", desc: "Alertas, relatórios e atualizações.", on: true },
-  { id: "resumo-diario", label: "Resumo diário", desc: "Todo dia às 9h.", on: false },
   { id: "modo-escuro", label: "Modo escuro automático", desc: "Sincronizar com sistema.", on: true },
 ];
 
