@@ -46,7 +46,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         <div>
           <div className="mk-eyebrow">Administração</div>
           <h1 className="mk-page-title">Canais</h1>
-          <p className="mk-page-sub">Instâncias WhatsApp via UAZAPI. Conecte uma conta por canal.</p>
+          <p className="mk-page-sub">Sessões WhatsApp. Conecte uma conta por canal.</p>
         </div>
         <NovoCanalBalao
           filas={(filas || []).map((f) => ({ id: f.id, nome: f.nome }))}
@@ -60,7 +60,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
 
       {semServidor && (
         <Banner tipo="warn">
-          Nenhum servidor UAZAPI ativo. <Link href="/super-admin/servidores" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Cadastre um servidor</Link> antes de criar canais (super_admin only).
+          Nenhum servidor de WhatsApp ativo. <Link href="/super-admin/servidores" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Cadastre um servidor</Link> antes de criar canais (super_admin only).
         </Banner>
       )}
 
@@ -85,7 +85,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                     {c.padrao && <i className="ti ti-star-filled" style={{ color: "#C9A876", fontSize: 13 }} />}
                   </div>
                   <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
-                    #{c.numero} · {c.tipo}
+                    #{c.numero} · {c.tipo === "uazapi" ? "whatsapp" : c.tipo}
                   </div>
                 </div>
                 <span className={`mk-badge ${conectado ? "b-green" : c.status === "pending_qr" ? "b-orange" : "b-gray"}`}>
@@ -132,7 +132,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                 )}
                 <form action={revalidarWebhook} style={{ display: "inline" }}>
                   <input type="hidden" name="id" value={c.id} />
-                  <button type="submit" className="ghost-btn" style={menuBtn} title="Revalidar webhook UAZAPI"><i className="ti ti-webhook" /></button>
+                  <button type="submit" className="ghost-btn" style={menuBtn} title="Revalidar webhook"><i className="ti ti-webhook" /></button>
                 </form>
                 {conectado && (
                   <form action={desconectarCanal} style={{ display: "inline" }}>
@@ -160,7 +160,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
           Importar instância via Instance Token
         </h3>
         <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
-          Se você já criou e conectou a instância no painel UAZAPI, cole aqui o <strong>Instance Token</strong>.
+          Se você já criou e conectou a sessão no painel do provedor, cole aqui o <strong>Instance Token</strong>.
           O sistema busca o status, salva o canal e configura o webhook automaticamente.
         </p>
         <form action={importarCanalExistente} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -189,10 +189,10 @@ export default async function CanaisPage({ searchParams }: PageProps) {
 const menuBtn: React.CSSProperties = { fontSize: 11, padding: "4px 8px" };
 
 function labelOk(k: string) {
-  return ({ criado: "Canal criado. Clique em 'Ver QR Code'.", importado: "Instância importada com dados do servidor.", atualizado: "Status atualizado.", padrao_definido: "Canal definido como padrão.", webhook_revalidado: "Webhook revalidado na UAZAPI.", desconectado: "Canal desconectado.", deletado: "Canal removido." } as Record<string, string>)[k] || "OK.";
+  return ({ criado: "Canal criado. Clique em 'Ver QR Code'.", importado: "Instância importada com dados do servidor.", atualizado: "Status atualizado.", padrao_definido: "Canal definido como padrão.", webhook_revalidado: "Webhook revalidado.", desconectado: "Canal desconectado.", deletado: "Canal removido." } as Record<string, string>)[k] || "OK.";
 }
 function labelErr(k: string) {
-  return ({ nome_vazio: "Nome obrigatório.", campos_obrigatorios: "Preencha nome e instance token.", sem_servidor: "Sem servidor UAZAPI ativo.", uazapi: "Erro chamando UAZAPI.", db: "Erro no banco.", conectar: "Falha ao gerar QR.", webhook: "Falha ao configurar webhook.", nao_encontrado: "Canal não encontrado.", token_invalido: "Servidor não reconheceu o token. Cole o Instance Token (UUID) do painel UAZAPI.", ja_importado: "Essa instância já está no sistema." } as Record<string, string>)[k] || "Erro.";
+  return ({ nome_vazio: "Nome obrigatório.", campos_obrigatorios: "Preencha nome e instance token.", sem_servidor: "Sem servidor de WhatsApp ativo.", uazapi: "Erro chamando o servidor de WhatsApp.", db: "Erro no banco.", conectar: "Falha ao gerar QR.", webhook: "Falha ao configurar webhook.", nao_encontrado: "Canal não encontrado.", token_invalido: "Servidor não reconheceu o token. Cole o Instance Token (UUID) do painel do provedor.", ja_importado: "Essa instância já está no sistema." } as Record<string, string>)[k] || "Erro.";
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro" | "warn"; children: React.ReactNode }) {

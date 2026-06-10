@@ -41,10 +41,10 @@ export function InstanciasDisponiveis() {
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 className="card-title" style={{ marginBottom: 4 }}>
             <i className="ti ti-download" style={{ marginRight: 6, color: "#6B8E4E" }} />
-            Instâncias no servidor UAZAPI
+            Sessões existentes no servidor
           </h3>
           <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>
-            Busca conexões e desconexões existentes no servidor que ainda não foram importadas.
+            Busca conexões e desconexões já existentes no servidor que ainda não foram importadas pro sistema.
           </p>
         </div>
         <button onClick={buscar} disabled={loading} className="cta-btn" style={{ fontSize: 12 }}>
@@ -99,7 +99,7 @@ export function InstanciasDisponiveis() {
                           <input type="hidden" name="nome" value={i.name} />
                           <div style={{ flex: 1 }}>
                             <label style={{ display: "block", fontSize: 10.5, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" }}>
-                              INSTANCE TOKEN (UUID) — pega no painel UAZAPI desta instância
+                              INSTANCE TOKEN (UUID) — pega no painel do provedor desta sessão
                             </label>
                             <input
                               name="instance_token"
