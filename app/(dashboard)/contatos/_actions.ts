@@ -39,6 +39,41 @@ export async function criarContato(formData: FormData) {
   if (error) redirect(`/contatos?erro=db&msg=${encodeURIComponent(error.message)}`);
 
   await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "contato", entidadeId: data.id });
+
+  // Fechamento opcional "por fora": cria ticket sintético já fechado com a venda
+  const fechValorRaw = String(formData.get("fech_valor") || "").trim();
+  if (fechValorRaw) {
+    const valor = Number(fechValorRaw.replace(",", "."));
+    if (Number.isFinite(valor) && valor > 0) {
+      const servico = String(formData.get("fech_servico") || "").trim() || null;
+      const qtdRaw = String(formData.get("fech_qtd") || "").trim();
+      const quantidade = qtdRaw ? Number(qtdRaw) : 1;
+      const meta: Record<string, unknown> = { origem: "manual_contato" };
+      if (servico) meta.servico = servico;
+      if (Number.isFinite(quantidade)) meta.quantidade = quantidade;
+
+      const { data: tk, error: tkErr } = await sb
+        .from("tickets")
+        .insert({
+          agencia_id: ctx.agenciaId,
+          contato_id: data.id,
+          status: "fechado",
+          valor_fechado: valor,
+          metadata: meta,
+          fechado_em: new Date().toISOString(),
+          fechado_por: ctx.userId,
+          ultima_mensagem_preview: "[fechamento manual]",
+        })
+        .select("id")
+        .single();
+      if (tkErr) {
+        console.error("[criarContato] ticket fechamento manual:", tkErr.message);
+      } else {
+        await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "ticket_fechamento", entidadeId: tk.id, payload: { valor, servico, quantidade, origem: "manual_contato" } });
+      }
+    }
+  }
+
   revalidatePath("/contatos");
   redirect("/contatos?ok=criado");
 }

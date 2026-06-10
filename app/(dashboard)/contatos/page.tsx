@@ -40,14 +40,18 @@ export default async function ContatosPage({ searchParams }: PageProps) {
     q = q.or(`nome.ilike.%${sp.q}%,whatsapp.ilike.%${sp.q}%`);
   }
 
-  const [{ data: contatos }, { data: fechRows }] = await Promise.all([
+  const [{ data: contatos }, { data: fechRows }, { data: servicosRows }, { data: agRow }] = await Promise.all([
     q.order("nome").limit(200),
     sb
       .from("tickets")
       .select("contato_id, valor_fechado, fechado_em, metadata")
       .eq("agencia_id", ctx.agenciaId)
       .not("valor_fechado", "is", null),
+    sb.from("servicos").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
+    sb.from("agencias").select("servicos_habilitados").eq("id", ctx.agenciaId).single(),
   ]);
+  const servicos = (servicosRows || []) as Array<{ id: string; nome: string }>;
+  const servicosHabilitados = !!(agRow as { servicos_habilitados?: boolean } | null)?.servicos_habilitados;
 
   // Agrega fechamentos por contato
   const fechPorContato = new Map<string, FechResumo>();
@@ -111,6 +115,31 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                 {estadoPorDDD(editando?.whatsapp)} <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>— detectado automaticamente pelo DDD do número</span>
               </div>
             </div>
+
+            {/* Fechamento opcional ao criar (registro de venda feita por fora) */}
+            {!editando && (
+              <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 12 }}>
+                <label style={lblMono}>Fechamento (opcional) — registre uma venda feita por fora</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 0.7fr", gap: 10 }}>
+                  <Field label="Valor (R$)" name="fech_valor" placeholder="0,00" />
+                  <div>
+                    <label style={lblMono}>Serviço</label>
+                    {servicosHabilitados ? (
+                      <select name="fech_servico" defaultValue="" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }}>
+                        <option value="">— Selecione —</option>
+                        {servicos.map((s) => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                      </select>
+                    ) : (
+                      <input type="text" name="fech_servico" placeholder="Ex: Ensaio Gestante" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }} />
+                    )}
+                  </div>
+                  <Field label="Quantidade" name="fech_qtd" placeholder="1" />
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
+                  Preencheu o valor? Entra no Dashboard e no log de fechamentos. Deixou vazio? Cria só o contato.
+                </div>
+              </div>
+            )}
 
             {/* Histórico de fechamentos do contato */}
             {editando && (
