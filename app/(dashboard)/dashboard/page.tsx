@@ -12,8 +12,8 @@ import { resolverFaixa, carregarDashboardAtendimentos } from "@/lib/crm/dashboar
 import { SyncNowButton } from "@/components/shared/SyncNowButton";
 import { DashboardKPIs } from "./_components/DashboardKPIs";
 import { GastoReceitaChart, StatusDonut, TopCampanhasChart } from "./_components/DashboardCharts";
-import { DashboardAtendimentos } from "./_components/DashboardAtendimentos";
 import { PeriodoToggle, ViewToggle } from "./_components/PeriodoToggle";
+import { AtendimentosLive } from "./_components/AtendimentosLive";
 
 function parsePeriodo(p: string | undefined): Periodo {
   if (p === "hoje" || p === "7d" || p === "30d") return p;
@@ -83,15 +83,31 @@ export default async function DashboardPage({
       </div>
 
       <ViewToggle atual={view} />
-      <PeriodoToggle view={view} />
 
       {view === "campanhas" ? (
-        <ViewCampanhas agenciaId={usuario.agencia_id} supabase={supabase} periodo={periodo} periodoLabel={faixa.label} />
+        <>
+          <PeriodoToggle view={view} />
+          <ViewCampanhas agenciaId={usuario.agencia_id} supabase={supabase} periodo={periodo} periodoLabel={faixa.label} />
+        </>
       ) : (
-        <ViewAtendimentos agenciaId={usuario.agencia_id} supabase={supabase} faixa={faixa} />
+        <ViewAtendimentosLive agenciaId={usuario.agencia_id} supabase={supabase} />
       )}
     </section>
   );
+}
+
+async function ViewAtendimentosLive({
+  agenciaId,
+  supabase,
+}: {
+  agenciaId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any;
+}) {
+  // Carga inicial (30 dias) server-side; filtros viram fetch client sem navegação
+  const faixa = resolverFaixa("30d");
+  const dados = await carregarDashboardAtendimentos(supabase, agenciaId, faixa);
+  return <AtendimentosLive inicial={{ ...dados, label: faixa.label }} />;
 }
 
 async function ViewCampanhas({
@@ -127,16 +143,3 @@ async function ViewCampanhas({
   );
 }
 
-async function ViewAtendimentos({
-  agenciaId,
-  supabase,
-  faixa,
-}: {
-  agenciaId: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any;
-  faixa: ReturnType<typeof resolverFaixa>;
-}) {
-  const { kpis, servicos, serie } = await carregarDashboardAtendimentos(supabase, agenciaId, faixa);
-  return <DashboardAtendimentos kpis={kpis} servicos={servicos} serie={serie} periodoLabel={faixa.label} />;
-}
