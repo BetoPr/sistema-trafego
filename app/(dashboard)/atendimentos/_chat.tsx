@@ -81,9 +81,31 @@ export function ChatView(props: Props) {
     }
   }, [msgs.length]);
 
-  // Sync server-side initial messages quando refresh acontece
+  // Sincroniza com o snapshot do servidor SEM apagar mensagens locais.
+  // Substituir a lista inteira fazia o balão otimista (recém-enviado) sumir
+  // quando o snapshot ainda não trazia a mensagem (lag de propagação) e
+  // reaparecer depois via realtime — o efeito "some e volta". Aqui mesclamos:
+  // mantém tudo que é local e ainda não está no snapshot; descarta só o
+  // otimista cuja versão real já chegou (mesmo conteúdo+autor+tipo).
   useEffect(() => {
-    setMsgs(props.mensagensIniciais);
+    setMsgs((prev) => {
+      const incoming = props.mensagensIniciais;
+      const incomingIds = new Set(incoming.map((m) => m.id));
+      const merged: Mensagem[] = [...incoming];
+      for (const m of prev) {
+        if (incomingIds.has(m.id)) continue;
+        if (
+          m.id.startsWith("temp_") &&
+          m.conteudo &&
+          incoming.some((im) => im.autor === m.autor && im.conteudo === m.conteudo && im.tipo === m.tipo)
+        ) {
+          continue;
+        }
+        merged.push(m);
+      }
+      merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
+      return merged;
+    });
   }, [props.mensagensIniciais]);
 
   // Realtime subscription
@@ -173,7 +195,9 @@ export function ChatView(props: Props) {
         setMsgs((prev) =>
           prev.map((m) => (m.id === tempId ? { ...m, status: "enviada", id: j.mensagemId || tempId } : m)),
         );
-        router.refresh();
+        // Atualiza só a lista lateral (ordenação/última msg) — sem router.refresh,
+        // que recarregava a página inteira e contribuía pro flicker do balão.
+        props.onRefresh?.();
       }
     } catch (e) {
       alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
