@@ -468,13 +468,14 @@ export async function statusCanalJson(canalId: string): Promise<{ ok: true; conn
     const r = await instanceGetStatus({ baseUrl, token });
     const connected = !!r?.status?.connected;
     const numero = r?.status?.jid?.user || null;
+    // undefined = não toca no campo (preserva nome/foto já salvos quando a API vier vazia)
     await sb
       .from("canais")
       .update({
         status: connected ? "connected" : "pending_qr",
-        numero_conectado: numero,
-        nome_perfil: r?.instance?.profileName || null,
-        foto_perfil_url: r?.instance?.profilePicUrl || null,
+        numero_conectado: numero || undefined,
+        nome_perfil: r?.instance?.profileName || undefined,
+        foto_perfil_url: r?.instance?.profilePicUrl || undefined,
         qr_code_atual: connected ? null : undefined,
         updated_at: new Date().toISOString(),
       })
@@ -544,13 +545,14 @@ export async function atualizarStatusCanal(formData: FormData) {
     const conectado = !!r?.status?.connected;
     const numero = r?.status?.jid?.user || null;
     const instStatus = (r?.instance?.status || "").toLowerCase();
+    // undefined = preserva valor salvo (API às vezes responde sem nome/foto)
     await sb
       .from("canais")
       .update({
         status: conectado ? "connected" : instStatus === "disconnected" ? "disconnected" : "pending_qr",
-        numero_conectado: numero,
-        nome_perfil: r?.instance?.profileName || null,
-        foto_perfil_url: r?.instance?.profilePicUrl || null,
+        numero_conectado: numero || undefined,
+        nome_perfil: r?.instance?.profileName || undefined,
+        foto_perfil_url: r?.instance?.profilePicUrl || undefined,
         qr_code_atual: conectado ? null : (r?.instance?.qrcode || null),
         qr_atualizado_em: conectado ? null : new Date().toISOString(),
         updated_at: new Date().toISOString(),

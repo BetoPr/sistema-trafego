@@ -253,10 +253,12 @@ export async function POST(
       };
       if (conn.status === "connected") {
         update.status = "connected";
-        update.numero_conectado = conn.number;
-        update.nome_perfil = conn.profileName;
-        update.foto_perfil_url = conn.profilePicUrl;
         update.qr_code_atual = null;
+        // Só grava se vierem preenchidos — logo após parear a API ainda manda
+        // vazio e apagava nome/foto já salvos
+        if (conn.number) update.numero_conectado = conn.number;
+        if (conn.profileName) update.nome_perfil = conn.profileName;
+        if (conn.profilePicUrl) update.foto_perfil_url = conn.profilePicUrl;
       } else if (conn.status === "disconnected") {
         update.status = "disconnected";
       } else if (conn.status === "qr") {
