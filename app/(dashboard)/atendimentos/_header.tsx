@@ -35,6 +35,7 @@ interface Props {
   canais: CanalOption[];
   detalhesAbertos: boolean;
   onToggleDetalhes: () => void;
+  onBack?: () => void;
   onRefresh?: () => void;
   servicos?: Array<{ id: string; nome: string }>;
   servicosHabilitados?: boolean;
@@ -111,6 +112,11 @@ export function ChatHeader(props: Props) {
   return (
     <>
       <div className="chat-header" style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", gap: 4 }}>
+        {props.onBack && (
+          <button onClick={props.onBack} title="Voltar à lista" aria-label="Voltar" style={{ background: "transparent", border: 0, color: "var(--mk-text-secondary)", cursor: "pointer", fontSize: 19, padding: "2px 4px 2px 0", flexShrink: 0 }}>
+            <i className="ti ti-arrow-left" />
+          </button>
+        )}
         <div title={`${props.contatoNome} · #${props.ticketNumero}`} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
           {props.contatoIniciais}
         </div>

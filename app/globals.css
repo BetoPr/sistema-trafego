@@ -773,7 +773,8 @@
 }
 .mk-page { animation: mk-fade-in 0.25s ease; }
 
-@media (max-width: 1000px) {
+/* TABLET (769–1000px): sidebar vira icon-rail */
+@media (min-width: 769px) and (max-width: 1000px) {
   .layout-grid { grid-template-columns: 68px 1fr; }
   .app-root.collapsed .layout-grid { grid-template-columns: 68px 1fr; }
   .nav-label, .nav-badge, .nav-dot, .logo-text, .section-label, .chevron { display: none; }
@@ -785,4 +786,86 @@
   .grid-2-3, .grid-2 { grid-template-columns: 1fr; }
   .search-input { width: 140px; }
   .funnel-side, .funnel-metrics { display: none; }
+}
+
+/* ============ MOBILE (≤768px): sidebar vira drawer off-canvas ============ */
+.mk-hamburger { display: none; }
+.mk-nav-scrim { display: none; }
+
+@media (max-width: 768px) {
+  /* Main ocupa tudo; sidebar sai do fluxo */
+  .layout-grid,
+  .app-root.collapsed .layout-grid { grid-template-columns: 1fr; }
+
+  .mk-sidebar,
+  .app-root.collapsed .mk-sidebar {
+    position: fixed; top: 0; left: 0; z-index: 3000;
+    width: 270px; height: 100vh; height: 100dvh;
+    padding: 18px 14px;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
+  }
+  .app-root.nav-open .mk-sidebar { transform: translateX(0); }
+
+  /* Drawer sempre expandido — anula o estado "collapsed" herdado do desktop */
+  .app-root.collapsed .logo-text { display: inline; }
+  .app-root.collapsed .logo-wrap { display: flex; }
+  .app-root.collapsed .mk-logo { justify-content: space-between; padding: 4px 6px 18px; }
+  .app-root.collapsed .nav-section-header { display: flex; justify-content: flex-start; }
+  .app-root.collapsed .section-label,
+  .app-root.collapsed .chevron { opacity: 1; pointer-events: auto; }
+  .app-root.collapsed .nav-section { margin-bottom: 6px; }
+  .app-root.collapsed .nav-label { display: block; }
+  .app-root.collapsed .nav-badge { display: inline-block; }
+  .app-root.collapsed .nav-dot { display: inline-block; }
+  .app-root.collapsed .nav-item { justify-content: flex-start; padding: 8px 10px 8px 14px; gap: 11px; }
+  .app-root.collapsed .nav-item.active::before { display: block; }
+  .app-root.collapsed .footer-text { display: flex; }
+
+  /* Scrim atrás do drawer */
+  .mk-nav-scrim {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.5); z-index: 2900;
+    animation: mk-fade-in 0.2s ease;
+  }
+
+  /* Topbar: hambúrguer aparece, busca encolhe */
+  .mk-hamburger {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; flex-shrink: 0;
+    border-radius: 9px; background: var(--mk-surface);
+    border: 0.5px solid var(--mk-border); color: var(--mk-text-secondary);
+    cursor: pointer; font-family: inherit;
+  }
+  .mk-topbar { gap: 8px; margin-bottom: 10px; }
+  .topbar-left { flex: 1; min-width: 0; }
+  .topbar-search { width: auto !important; flex: 1; min-width: 0; }
+  .topbar-search span { display: none; }
+
+  /* Conteúdo: menos respiro lateral */
+  .mk-main { padding: 12px 14px 24px; }
+  .mk-page-title { font-size: 20px; }
+  .mk-page-head { margin-bottom: 14px; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-3, .grid-2-3, .grid-2 { grid-template-columns: 1fr; }
+
+  /* Balão padrão vira bottom-sheet colado embaixo */
+  .balao-overlay { align-items: flex-end !important; }
+  .balao-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    animation: mk-sheet-up 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Tabelas largas: o card rola na horizontal em vez de espremer colunas */
+  .mk-card:has(table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mk-card table { min-width: 520px; }
+}
+
+@keyframes mk-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }

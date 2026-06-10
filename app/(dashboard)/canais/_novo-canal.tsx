@@ -130,6 +130,17 @@ function QrBalao({ canalId, nome, onClose }: { canalId: string; nome: string; on
               <i className="ti ti-refresh" style={{ marginRight: 4 }} />
               O QR renova sozinho a cada {QR_TTL}s até conectar. Feche no X pra parar.
             </div>
+            <div style={{ marginTop: 10, background: "rgba(201,168,118,0.14)", borderLeft: "3px solid #C9A876", padding: 10, borderRadius: 6, fontSize: 10.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
+              <strong style={{ color: "#C9A876" }}><i className="ti ti-device-mobile" style={{ marginRight: 4 }} />Está acessando pelo celular?</strong>
+              <div style={{ marginTop: 4 }}>
+                Você não consegue escanear o QR na mesma tela. Use um computador ou um segundo celular pra ler:
+              </div>
+              <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                <li>Tire um print desta tela.</li>
+                <li>Envie pra um amigo, ou pro WhatsApp/computador de alguém de confiança.</li>
+                <li>Abra o WhatsApp do número que vai conectar e escaneie o QR por esse outro aparelho.</li>
+              </ol>
+            </div>
             {erro && (
               <div style={{ marginTop: 8, padding: 8, background: "rgba(201,112,100,0.12)", borderRadius: 6, fontSize: 11, color: "#C97064" }}>{erro}</div>
             )}

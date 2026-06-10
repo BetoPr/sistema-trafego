@@ -6,10 +6,24 @@
  * + fetch de API. URL fica parada em /atendimentos; zero round-trip de navegação.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Balao } from "@/components/ui/Balao";
 import { ListaAtendimentos, type TicketLista } from "./_lista";
 import { ChatView } from "./_chat";
 import { PainelDireito } from "./_painel";
 import { AtenderBotao } from "./_atender-btn";
+
+/** True quando a viewport é de celular (≤768px). Reage a resize/rotação. */
+function useIsMobile(bp = 768) {
+  const [m, setM] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`);
+    const on = () => setM(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [bp]);
+  return m;
+}
 
 interface TicketFull {
   id: string;
@@ -63,11 +77,17 @@ interface Props {
 }
 
 export function AtendimentosShell(p: Props) {
+  const mobile = useIsMobile();
   const [tickets, setTickets] = useState<TicketLista[]>(p.ticketsIniciais);
   const [sel, setSel] = useState<{ ticket: TicketFull; mensagens: Mensagem[]; etiquetas: Tag[] } | null>(null);
   const [loadingSel, setLoadingSel] = useState(false);
   const [detalhes, setDetalhes] = useState(true);
   const selIdRef = useRef<string | null>(null);
+
+  const voltarLista = useCallback(() => {
+    selIdRef.current = null;
+    setSel(null);
+  }, []);
 
   const refetchLista = useCallback(async () => {
     try {
@@ -120,9 +140,9 @@ export function AtendimentosShell(p: Props) {
   const userNome = sel?.ticket.usuario_id ? p.userNomeMap[sel.ticket.usuario_id] ?? null : null;
 
   return (
-    <section style={{ display: "grid", gridTemplateColumns: "340px 1fr", height: "calc(100vh - 60px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden", margin: "-12px -28px -30px", border: "0.5px solid var(--mk-border)" }}>
-      {/* COLUNA 1 — Lista */}
-      <div style={{ borderRight: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <section style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "340px 1fr", height: "calc(100vh - 60px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden", margin: mobile ? "-12px -14px -24px" : "-12px -28px -30px", border: "0.5px solid var(--mk-border)" }}>
+      {/* COLUNA 1 — Lista (no mobile some quando um ticket está aberto) */}
+      <div style={{ borderRight: mobile ? "none" : "0.5px solid var(--mk-border)", display: mobile && sel ? "none" : "flex", flexDirection: "column", minHeight: 0 }}>
         <ListaAtendimentos
           tickets={tickets}
           canais={p.canais}
@@ -133,13 +153,13 @@ export function AtendimentosShell(p: Props) {
         />
       </div>
 
-      {/* COLUNA 2 — Chat */}
+      {/* COLUNA 2 — Chat (no mobile some quando nenhum ticket está aberto) */}
       <main
         style={{
-          display: "flex",
+          display: mobile && !sel ? "none" : "flex",
           flexDirection: "column",
           minHeight: 0,
-          marginRight: sel && detalhes && sel.ticket.status !== "pendente" ? 340 : 0,
+          marginRight: !mobile && sel && detalhes && sel.ticket.status !== "pendente" ? 340 : 0,
           transition: "margin-right 280ms cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
@@ -161,10 +181,11 @@ export function AtendimentosShell(p: Props) {
             </div>
           </div>
         ) : sel.ticket.status === "pendente" ? (
-          <PendingView ticketId={sel.ticket.id} mensagens={sel.mensagens} contatoNome={sel.ticket.contato.nome} />
+          <PendingView ticketId={sel.ticket.id} mensagens={sel.mensagens} contatoNome={sel.ticket.contato.nome} onBack={mobile ? voltarLista : undefined} />
         ) : (
           <ChatView
             key={sel.ticket.id}
+            onBack={mobile ? voltarLista : undefined}
             ticketId={sel.ticket.id}
             ticketNumero={sel.ticket.numero}
             canalId={sel.ticket.canal?.id ?? null}
@@ -189,8 +210,8 @@ export function AtendimentosShell(p: Props) {
         )}
       </main>
 
-      {/* COLUNA 3 — Painel direito (slide animado) */}
-      {sel && sel.ticket.status !== "pendente" && (
+      {/* COLUNA 3 — Painel direito: aside deslizante no desktop */}
+      {!mobile && sel && sel.ticket.status !== "pendente" && (
         <aside
           style={{
             position: "absolute",
@@ -222,14 +243,36 @@ export function AtendimentosShell(p: Props) {
           />
         </aside>
       )}
+
+      {/* No mobile, o painel vira bottom-sheet (balão) */}
+      {mobile && sel && sel.ticket.status !== "pendente" && (
+        <Balao open={detalhes} onClose={() => setDetalhes(false)} titulo="Detalhes do contato" icone="ti-info-circle" largura={460} alturaVh={90}>
+          <PainelDireito
+            key={sel.ticket.id}
+            ticket={sel.ticket}
+            contato={sel.ticket.contato}
+            etiquetas={sel.etiquetas}
+            todasEtiquetas={p.todasEtiquetas}
+            servicos={p.servicos}
+            servicosHabilitados={p.servicosHabilitados}
+            onFechar={() => setDetalhes(false)}
+            onRefresh={refreshSel}
+          />
+        </Balao>
+      )}
     </section>
   );
 }
 
-function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; mensagens: Mensagem[]; contatoNome: string }) {
+function PendingView({ ticketId, mensagens, contatoNome, onBack }: { ticketId: string; mensagens: Mensagem[]; contatoNome: string; onBack?: () => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <div style={{ padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", display: "flex", gap: 8, alignItems: "center" }}>
+        {onBack && (
+          <button onClick={onBack} title="Voltar" aria-label="Voltar" style={{ background: "transparent", border: 0, color: "var(--mk-text-secondary)", cursor: "pointer", fontSize: 18, padding: 2, marginRight: 2 }}>
+            <i className="ti ti-arrow-left" />
+          </button>
+        )}
         <i className="ti ti-eye" style={{ color: "#C9A876" }} />
         <span style={{ fontSize: 13, fontWeight: 600 }}>Espiando — {contatoNome}</span>
         <div style={{ marginLeft: "auto" }}>

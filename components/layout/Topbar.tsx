@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
+import { useCollapse } from "@/components/providers/CollapseProvider";
 import { PlatformSelector } from "./PlatformSelector";
 
 interface TopbarProps {
@@ -23,6 +24,7 @@ interface TopbarProps {
 export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
   const initial = userName.charAt(0).toUpperCase() || "U";
   const router = useRouter();
+  const { openMobile } = useCollapse();
   const [pending, startTransition] = useTransition();
 
   function handleSignOut() {
@@ -39,6 +41,16 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
       <div className="topbar-left">
         <button
           type="button"
+          className="mk-hamburger"
+          onClick={openMobile}
+          title="Abrir menu"
+          aria-label="Abrir menu"
+        >
+          <i className="ti ti-menu-2" style={{ fontSize: 18 }} />
+        </button>
+        <button
+          type="button"
+          className="topbar-search"
           onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
           title="Buscar (Cmd+K)"
           style={{

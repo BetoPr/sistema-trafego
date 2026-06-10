@@ -3,14 +3,20 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 interface CollapseCtx {
+  /** Recolhimento do menu no desktop (icon-rail). */
   collapsed: boolean;
   toggle: () => void;
+  /** Drawer aberto no mobile (off-canvas). */
+  mobileOpen: boolean;
+  openMobile: () => void;
+  closeMobile: () => void;
 }
 
 const Ctx = createContext<CollapseCtx | undefined>(undefined);
 
 export function CollapseProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("mk-collapsed") : null;
@@ -27,7 +33,14 @@ export function CollapseProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  return <Ctx.Provider value={{ collapsed, toggle }}>{children}</Ctx.Provider>;
+  const openMobile = () => setMobileOpen(true);
+  const closeMobile = () => setMobileOpen(false);
+
+  return (
+    <Ctx.Provider value={{ collapsed, toggle, mobileOpen, openMobile, closeMobile }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useCollapse() {

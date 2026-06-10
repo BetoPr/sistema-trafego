@@ -46,6 +46,7 @@ export function Balao({ open, onClose, titulo, icone, largura = 460, alturaVh = 
 
   return createPortal(
     <div
+      className="balao-overlay"
       onClick={onClose}
       style={{
         position: "fixed",
@@ -59,6 +60,7 @@ export function Balao({ open, onClose, titulo, icone, largura = 460, alturaVh = 
       }}
     >
       <div
+        className="balao-box"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--mk-bg)",

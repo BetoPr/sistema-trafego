@@ -123,11 +123,16 @@ function buildSections(role?: string): NavSection[] {
 
 export function AppSidebar({ role }: { role?: string } = {}) {
   const pathname = usePathname();
-  const { collapsed, toggle } = useCollapse();
+  const { collapsed, toggle, closeMobile } = useCollapse();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<{ prompt: () => Promise<void> } | null>(null);
   useEffect(() => setMounted(true), []);
+  // Fecha o drawer mobile sempre que a rota muda
+  useEffect(() => {
+    closeMobile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();

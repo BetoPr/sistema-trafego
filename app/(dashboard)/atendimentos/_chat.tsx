@@ -57,6 +57,7 @@ interface Props {
   canais: Array<{ id: string; nome: string; status: string; numero_conectado?: string | null }>;
   detalhesAbertos: boolean;
   onToggleDetalhes: () => void;
+  onBack?: () => void;
   onRefresh?: () => void;
   servicos?: Array<{ id: string; nome: string }>;
   servicosHabilitados?: boolean;
@@ -213,6 +214,7 @@ export function ChatView(props: Props) {
         canais={props.canais}
         detalhesAbertos={props.detalhesAbertos}
         onToggleDetalhes={props.onToggleDetalhes}
+        onBack={props.onBack}
         onRefresh={props.onRefresh}
         servicos={props.servicos}
         servicosHabilitados={props.servicosHabilitados}
