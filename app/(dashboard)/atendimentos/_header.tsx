@@ -36,6 +36,8 @@ interface Props {
   detalhesAbertos: boolean;
   onToggleDetalhes: () => void;
   onRefresh?: () => void;
+  servicos?: Array<{ id: string; nome: string }>;
+  servicosHabilitados?: boolean;
 }
 
 export function ChatHeader(props: Props) {
@@ -129,7 +131,7 @@ export function ChatHeader(props: Props) {
         <IconBtn icon="ti-circle-check" title="Marcar como resolvido (encerrar)" onClick={encerrar} disabled={loading} color="#6B8E4E" />
         <IconBtn icon="ti-arrows-exchange" title="Transferir (fila/atendente)" onClick={() => setModal("transferir")} />
         <IconBtn icon="ti-broadcast" title="Transferir canal" onClick={() => setModal("transferir-canal")} />
-        <BotaoCobranca ticketId={props.ticketId} canalConectado={props.canalConectado} canalId={props.canalId} />
+        <BotaoCobranca ticketId={props.ticketId} canalConectado={props.canalConectado} canalId={props.canalId} servicos={props.servicos} servicosHabilitados={props.servicosHabilitados} />
         <IconBtn icon="ti-info-circle" title={props.detalhesAbertos ? "Fechar detalhes" : "Detalhes do contato"} onClick={props.onToggleDetalhes} active={props.detalhesAbertos} />
 
         {/* Menu 3 pontos */}

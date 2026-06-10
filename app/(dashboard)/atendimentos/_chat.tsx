@@ -58,6 +58,8 @@ interface Props {
   detalhesAbertos: boolean;
   onToggleDetalhes: () => void;
   onRefresh?: () => void;
+  servicos?: Array<{ id: string; nome: string }>;
+  servicosHabilitados?: boolean;
   mensagensIniciais: Mensagem[];
   mensagensRapidas: MensagemRapida[];
   userNomeMap: Record<string, string>;
@@ -212,6 +214,8 @@ export function ChatView(props: Props) {
         detalhesAbertos={props.detalhesAbertos}
         onToggleDetalhes={props.onToggleDetalhes}
         onRefresh={props.onRefresh}
+        servicos={props.servicos}
+        servicosHabilitados={props.servicosHabilitados}
       />
 
       {/* Wrapper relativo pros botões fixos */}

@@ -180,6 +180,8 @@ export function AtendimentosShell(p: Props) {
             detalhesAbertos={detalhes}
             onToggleDetalhes={() => setDetalhes((d) => !d)}
             onRefresh={refreshSel}
+            servicos={p.servicos}
+            servicosHabilitados={p.servicosHabilitados}
             mensagensIniciais={sel.mensagens}
             mensagensRapidas={p.mensagensRapidas}
             userNomeMap={p.userNomeMap}

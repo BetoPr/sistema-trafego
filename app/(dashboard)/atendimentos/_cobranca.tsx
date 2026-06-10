@@ -6,9 +6,11 @@ interface Props {
   ticketId: string;
   canalConectado: boolean;
   canalId: string | null;
+  servicos?: Array<{ id: string; nome: string }>;
+  servicosHabilitados?: boolean;
 }
 
-export function BotaoCobranca({ ticketId, canalConectado, canalId }: Props) {
+export function BotaoCobranca({ ticketId, canalConectado, canalId, servicos = [], servicosHabilitados = false }: Props) {
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState<"pix" | "cartao">("pix");
   const [valor, setValor] = useState("");
@@ -133,8 +135,24 @@ export function BotaoCobranca({ ticketId, canalConectado, canalId }: Props) {
                   <input type="text" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="99,90" style={inp} />
                 </div>
                 <div>
-                  <label style={lbl}>Descrição</label>
-                  <input type="text" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Produto/Serviço" style={inp} />
+                  <label style={lbl}>{servicosHabilitados ? "Serviço" : "Descrição"}</label>
+                  {servicosHabilitados ? (
+                    <>
+                      <select value={descricao} onChange={(e) => setDescricao(e.target.value)} style={inp}>
+                        <option value="">— Selecione o serviço —</option>
+                        {servicos.map((s) => (
+                          <option key={s.id} value={s.nome}>{s.nome}</option>
+                        ))}
+                      </select>
+                      {servicos.length === 0 && (
+                        <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#C9A876", textDecoration: "none", display: "inline-block", marginTop: 4 }}>
+                          <i className="ti ti-plus" /> Cadastre serviços em Configurações → Serviços
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <input type="text" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Produto/Serviço" style={inp} />
+                  )}
                 </div>
                 {tipo === "cartao" && (
                   <div>
