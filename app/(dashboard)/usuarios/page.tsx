@@ -47,15 +47,31 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const { data: usuarios } = await sb
-    .from("usuarios")
-    .select("id, nome, email, telefone, role, ativo, online, restrito, permissoes_menu, horario_atendimento, ultimo_login")
-    .eq("agencia_id", ctx.agenciaId)
-    .is("deleted_at", null)
-    .order("nome");
+  const [{ data: usuarios }, { data: equipes }, { data: membros }] = await Promise.all([
+    sb
+      .from("usuarios")
+      .select("id, nome, email, telefone, role, ativo, online, restrito, permissoes_menu, horario_atendimento, ultimo_login")
+      .eq("agencia_id", ctx.agenciaId)
+      .is("deleted_at", null)
+      .order("nome"),
+    sb.from("equipes").select("id, nome").eq("agencia_id", ctx.agenciaId).order("nome"),
+    sb.from("usuario_equipes").select("usuario_id, equipe_id"),
+  ]);
+
+  // usuario_id → Set<equipe_id> (membros filtrados pelas equipes da agência)
+  const equipeIds = new Set((equipes || []).map((e) => e.id));
+  const equipesPorUsuario = new Map<string, Set<string>>();
+  for (const m of membros || []) {
+    if (!equipeIds.has(m.equipe_id)) continue;
+    const s = equipesPorUsuario.get(m.usuario_id) || new Set<string>();
+    s.add(m.equipe_id);
+    equipesPorUsuario.set(m.usuario_id, s);
+  }
+  const nomeEquipe = new Map((equipes || []).map((e) => [e.id, e.nome]));
 
   const editando = sp.editar ? usuarios?.find((u) => u.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
+  const equipesEditando = editando ? equipesPorUsuario.get(editando.id) || new Set<string>() : new Set<string>();
 
   return (
     <section className="mk-page">
@@ -113,6 +129,25 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
                   <input type="checkbox" name="restrito" defaultChecked={editando?.restrito ?? false} /> Habilitado (vê só próprios tickets)
                 </label>
               </div>
+            </div>
+
+            {/* Equipes */}
+            <div>
+              <label style={lblSt}>Equipes</label>
+              {!equipes || equipes.length === 0 ? (
+                <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", padding: "6px 0" }}>
+                  Nenhuma equipe cadastrada. <Link href="/equipes" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Criar equipe</Link>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {equipes.map((e) => (
+                    <label key={e.id} style={{ display: "inline-flex", gap: 6, alignItems: "center", fontSize: 11.5, color: "var(--mk-text-secondary)", padding: "6px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", cursor: "pointer" }}>
+                      <input type="checkbox" name="equipes" value={e.id} defaultChecked={equipesEditando.has(e.id)} />
+                      <i className="ti ti-users-group" style={{ fontSize: 12, color: "#9B7DBF" }} /> {e.nome}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Permissões de Menu */}
@@ -191,6 +226,7 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
                 <th style={thLi}>Email</th>
                 <th style={thLi}>Telefone</th>
                 <th style={thLi}>Perfil</th>
+                <th style={thLi}>Equipes</th>
                 <th style={thLi}>Status</th>
                 <th style={thLi}>Online</th>
                 <th style={thLi}>Ações</th>
@@ -213,6 +249,18 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
                     <span className={`mk-badge ${u.role === "super_admin" ? "b-red" : u.role === "admin" ? "b-purple" : "b-gray"}`}>
                       {u.role === "super_admin" ? "Super Admin" : u.role === "admin" ? "Administrador" : "Atendente"}
                     </span>
+                  </td>
+                  <td style={tdLi}>
+                    {(() => {
+                      const eqs = Array.from(equipesPorUsuario.get(u.id) || []).map((id) => nomeEquipe.get(id)).filter(Boolean);
+                      return eqs.length > 0 ? (
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {eqs.map((n) => (
+                            <span key={n} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 8, background: "rgba(155,125,191,0.18)", color: "#9B7DBF", border: "0.5px solid #9B7DBF" }}>{n}</span>
+                          ))}
+                        </div>
+                      ) : <span style={{ color: "var(--mk-text-muted)" }}>—</span>;
+                    })()}
                   </td>
                   <td style={tdLi}><span className={`mk-badge ${u.ativo ? "b-green" : "b-gray"}`}>{u.ativo ? "Ativo" : "Inativo"}</span></td>
                   <td style={tdLi}>{u.online ? <i className="ti ti-circle-filled" style={{ color: "#6B8E4E", fontSize: 11 }} /> : <i className="ti ti-circle" style={{ color: "var(--mk-text-muted)", fontSize: 11 }} />}</td>

@@ -29,6 +29,15 @@ function parseHorario(formData: FormData): Record<string, { status: string; p1?:
   return out;
 }
 
+/** Sincroniza usuario_equipes com os checkboxes name="equipes" do form. */
+async function syncEquipes(sb: ReturnType<typeof createServiceClient>, usuarioId: string, formData: FormData) {
+  const equipeIds = formData.getAll("equipes").map(String).filter(Boolean);
+  await sb.from("usuario_equipes").delete().eq("usuario_id", usuarioId);
+  if (equipeIds.length > 0) {
+    await sb.from("usuario_equipes").insert(equipeIds.map((equipe_id) => ({ usuario_id: usuarioId, equipe_id })));
+  }
+}
+
 export async function criarUsuario(formData: FormData) {
   const ctx = await requireAdmin();
   const nome = String(formData.get("nome") || "").trim();
@@ -76,6 +85,8 @@ export async function criarUsuario(formData: FormData) {
     try { await sb.auth.admin.deleteUser(created.user.id); } catch {}
     redirect(`/usuarios?erro=db&msg=${encodeURIComponent(error.message)}`);
   }
+
+  await syncEquipes(sb, created.user.id, formData);
 
   await audit({
     agenciaId: ctx.agenciaId,
@@ -131,6 +142,8 @@ export async function atualizarUsuario(formData: FormData) {
     .eq("agencia_id", ctx.agenciaId);
 
   if (error) redirect(`/usuarios?erro=db&msg=${encodeURIComponent(error.message)}`);
+
+  await syncEquipes(sb, id, formData);
 
   await audit({
     agenciaId: ctx.agenciaId,
