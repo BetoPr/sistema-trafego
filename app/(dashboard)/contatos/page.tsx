@@ -2,20 +2,15 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { estadoPorDDD } from "@/lib/br/ddd";
-import { criarContato, atualizarContato, deletarContato } from "./_actions";
+import { criarContato, atualizarContato } from "./_actions";
+
+import { ContatosTabela, type LinhaContato } from "./_tabela";
 
 interface PageProps {
-  searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string; q?: string }>;
+  searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
 }
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-function fmtWhats(n: string | null): string {
-  if (!n) return "—";
-  if (n.length === 13) return `+${n.slice(0, 2)} (${n.slice(2, 4)}) ${n.slice(4, 9)}-${n.slice(9)}`;
-  if (n.length === 12) return `+${n.slice(0, 2)} (${n.slice(2, 4)}) ${n.slice(4, 8)}-${n.slice(8)}`;
-  return n;
-}
 
 interface FechResumo {
   total: number;
@@ -30,18 +25,14 @@ export default async function ContatosPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  let q = sb
+  const q = sb
     .from("contatos")
     .select("id, nome, whatsapp, foto_url, created_at, etiquetas:contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))")
     .eq("agencia_id", ctx.agenciaId)
     .is("deleted_at", null);
 
-  if (sp.q) {
-    q = q.or(`nome.ilike.%${sp.q}%,whatsapp.ilike.%${sp.q}%`);
-  }
-
   const [{ data: contatos }, { data: fechRows }, { data: servicosRows }, { data: agRow }] = await Promise.all([
-    q.order("nome").limit(200),
+    q.order("nome").limit(500),
     sb
       .from("tickets")
       .select("contato_id, valor_fechado, fechado_em, metadata")
@@ -93,11 +84,6 @@ export default async function ContatosPage({ searchParams }: PageProps) {
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
-
-      <form method="get" style={{ marginBottom: 14, display: "flex", gap: 8 }}>
-        <input name="q" defaultValue={sp.q || ""} placeholder="Buscar nome ou número…" style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }} />
-        <button type="submit" className="ghost-btn"><i className="ti ti-search" /></button>
-      </form>
 
       {mostrarForm && (
         <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
@@ -177,75 +163,29 @@ export default async function ContatosPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <div className="mk-card mk-card-lg">
-        <h3 className="card-title" style={{ marginBottom: 14 }}>Contatos ({contatos?.length || 0})</h3>
-        {!contatos || contatos.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: "var(--mk-text-muted)", fontSize: 13 }}>Sem contatos.</div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12.5 }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 11 }}>
-                <th style={thLi}>Nome</th>
-                <th style={thLi}>WhatsApp</th>
-                <th style={thLi}>Estado</th>
-                <th style={thLi}>Fechamentos</th>
-                <th style={thLi}>Tags</th>
-                <th style={thLi}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contatos.map((c) => {
-                const tags = ((c.etiquetas as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string } | { id: string; nome: string; cor: string }[] | null }> | null) || [])
-                  .map((e) => (Array.isArray(e.etiqueta) ? e.etiqueta[0] : e.etiqueta))
-                  .filter((e): e is { id: string; nome: string; cor: string } => !!e);
-                const fech = fechPorContato.get(c.id);
-                return (
-                  <tr key={c.id} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
-                    <td style={tdLi}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600 }}>
-                          {c.nome.slice(0, 2).toUpperCase()}
-                        </div>
-                        {c.nome}
-                      </div>
-                    </td>
-                    <td style={{ ...tdLi, fontFamily: "monospace", fontSize: 11.5 }}>{fmtWhats(c.whatsapp)}</td>
-                    <td style={tdLi}>{estadoPorDDD(c.whatsapp)}</td>
-                    <td style={tdLi}>
-                      {fech ? (
-                        <div title={Array.from(fech.servicos.entries()).map(([n, s]) => `${n} × ${s.qtd} (${BRL.format(s.valor)})`).join("\n")}>
-                          <span style={{ fontWeight: 700, color: "#6B8E4E" }}>{BRL.format(fech.total)}</span>
-                          <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginLeft: 6 }}>
-                            {fech.fechamentos}× · {fech.quantidade} serviço{fech.quantidade === 1 ? "" : "s"}
-                          </span>
-                        </div>
-                      ) : (
-                        <span style={{ color: "var(--mk-text-muted)" }}>—</span>
-                      )}
-                    </td>
-                    <td style={tdLi}>
-                      {tags.length > 0 ? (
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                          {tags.map((t) => t && (
-                            <span key={t.id} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: `${t.cor}33`, color: t.cor, border: `0.5px solid ${t.cor}` }}>{t.nome}</span>
-                          ))}
-                        </div>
-                      ) : "—"}
-                    </td>
-                    <td style={tdLi}>
-                      <Link href={`/contatos?editar=${c.id}`} className="ghost-btn" style={iconBtn}><i className="ti ti-edit" /></Link>
-                      <form action={deletarContato} style={{ display: "inline", marginLeft: 4 }}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <button type="submit" className="ghost-btn" style={{ ...iconBtn, color: "#C97064" }}><i className="ti ti-trash" /></button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <ContatosTabela
+        linhas={(contatos || []).map((c): LinhaContato => {
+          const tags = ((c.etiquetas as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string } | { id: string; nome: string; cor: string }[] | null }> | null) || [])
+            .map((e) => (Array.isArray(e.etiqueta) ? e.etiqueta[0] : e.etiqueta))
+            .filter((e): e is { id: string; nome: string; cor: string } => !!e);
+          const fech = fechPorContato.get(c.id);
+          return {
+            id: c.id,
+            nome: c.nome,
+            whatsapp: c.whatsapp,
+            estado: estadoPorDDD(c.whatsapp),
+            tags,
+            fech: fech
+              ? {
+                  total: fech.total,
+                  fechamentos: fech.fechamentos,
+                  quantidade: fech.quantidade,
+                  servicos: Array.from(fech.servicos.entries()).map(([nome, s]) => ({ nome, qtd: s.qtd, valor: s.valor })),
+                }
+              : null,
+          };
+        })}
+      />
     </section>
   );
 }
@@ -278,6 +218,4 @@ function Field({ label, name, defaultValue, placeholder, required, type = "text"
 
 const lblMono: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
 const grid2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 };
-const iconBtn: React.CSSProperties = { fontSize: 11, padding: "4px 10px" };
-const thLi: React.CSSProperties = { padding: "8px 10px" };
-const tdLi: React.CSSProperties = { padding: "10px" };
+
