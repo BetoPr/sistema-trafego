@@ -67,6 +67,7 @@ function buildSections(role?: string): NavSection[] {
         { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics", badge: { text: "BREVE", variant: "amber" } },
         { href: "/ia-insights", label: "Insights IA", icon: "ti-brain", badge: { text: "BREVE", variant: "amber" } },
         { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", badge: { text: "BREVE", variant: "amber" } },
+        { href: "/clientes", label: "Clientes (Ads)", icon: "ti-briefcase" },
       ],
     },
     {
@@ -79,7 +80,6 @@ function buildSections(role?: string): NavSection[] {
         { href: "/filas", label: "Filas", icon: "ti-list-tree" },
         { href: "/equipes", label: "Equipes", icon: "ti-users-group" },
         { href: "/usuarios", label: "Usuários", icon: "ti-user-circle" },
-        { href: "/clientes", label: "Clientes (Ads)", icon: "ti-briefcase" },
       ],
     },
     {

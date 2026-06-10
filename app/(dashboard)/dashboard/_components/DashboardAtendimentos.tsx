@@ -15,14 +15,14 @@ interface Props {
 export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: Props) {
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 14 }}>
+      <div className="dash-kpis" style={{ marginBottom: 14 }}>
         <Kpi label="Faturamento" valor={BRL.format(kpis.faturamento_total)} icon="ti-cash" cor="#6B8E4E" sub={periodoLabel} />
         <Kpi label="Tickets fechados" valor={String(kpis.tickets_fechados)} icon="ti-checks" cor="#5B8BA6" sub={periodoLabel} />
         <Kpi label="Serviços vendidos" valor={String(kpis.quantidade_total)} icon="ti-shopping-bag" cor="#9B7DBF" sub="soma das quantidades" />
         <Kpi label="Ticket médio" valor={BRL.format(kpis.ticket_medio)} icon="ti-trending-up" cor="#C9A876" sub={periodoLabel} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14, marginTop: 14 }}>
+      <div className="dash-2col" style={{ marginTop: 14 }}>
         <div className="mk-card" style={{ padding: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 10 }}>FATURAMENTO DIÁRIO</div>
           {serie.length === 0 ? (

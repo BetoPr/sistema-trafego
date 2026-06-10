@@ -402,7 +402,7 @@ export function InputBar(p: Props) {
                 enviarComAssinatura();
               }
             }}
-            placeholder={!p.canalConectado ? "Canal desconectado" : anexos.length > 0 ? "Legenda (opcional)… Enter envia" : "Digite uma mensagem… (Enter envia, Shift+Enter quebra linha; / para atalho)"}
+            placeholder={!p.canalConectado ? "Canal desconectado" : anexos.length > 0 ? "Legenda (opcional)…" : "Digite uma mensagem…"}
             disabled={!p.canalConectado || p.sending}
             rows={Math.min(5, Math.max(1, p.text.split("\n").length))}
             style={{
@@ -487,9 +487,7 @@ export function InputBar(p: Props) {
               Assinado
             </label>
 
-            <div style={{ flex: 1, fontSize: 10, color: "var(--mk-text-muted)", textAlign: "right" }}>
-              Enter envia · Shift+Enter nova linha
-            </div>
+            <div style={{ flex: 1 }} />
 
             {/* Microfone */}
             <IconBtn icon="ti-microphone" title="Gravar áudio" onClick={iniciarGravacao} disabled={!p.canalConectado} />

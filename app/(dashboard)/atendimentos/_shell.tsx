@@ -81,7 +81,8 @@ export function AtendimentosShell(p: Props) {
   const [tickets, setTickets] = useState<TicketLista[]>(p.ticketsIniciais);
   const [sel, setSel] = useState<{ ticket: TicketFull; mensagens: Mensagem[]; etiquetas: Tag[] } | null>(null);
   const [loadingSel, setLoadingSel] = useState(false);
-  const [detalhes, setDetalhes] = useState(true);
+  // Começa no chat (painel de detalhes fechado); abre só ao tocar no ícone de info
+  const [detalhes, setDetalhes] = useState(false);
   const selIdRef = useRef<string | null>(null);
 
   const voltarLista = useCallback(() => {

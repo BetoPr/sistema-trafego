@@ -132,7 +132,7 @@ async function ViewCampanhas({
   return (
     <>
       <DashboardKPIs kpi={kpi} periodoLabel={periodoLabel} />
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14, marginTop: 14 }}>
+      <div className="dash-2col" style={{ marginTop: 14 }}>
         <GastoReceitaChart data={serie} />
         <StatusDonut data={status} />
       </div>

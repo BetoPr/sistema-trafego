@@ -773,6 +773,14 @@
 }
 .mk-page { animation: mk-fade-in 0.25s ease; }
 
+/* Grids do dashboard — empilham no celular pra não cortar/espremer cards */
+.dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.dash-2col { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+@media (max-width: 768px) {
+  .dash-kpis { grid-template-columns: 1fr 1fr; }
+  .dash-2col { grid-template-columns: 1fr; }
+}
+
 /* TABLET (769–1000px): sidebar vira icon-rail */
 @media (min-width: 769px) and (max-width: 1000px) {
   .layout-grid { grid-template-columns: 68px 1fr; }
