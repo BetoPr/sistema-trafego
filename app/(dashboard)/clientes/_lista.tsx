@@ -185,8 +185,8 @@ export function ClientesLista({ clientes }: Props) {
                       {c.integracoes_ativas > 0 ? (
                         <span
                           style={{
-                            background: "rgba(107,142,78,0.15)",
-                            color: "#6B8E4E",
+                            background: "rgba(16,185,129,0.15)",
+                            color: "#10b981",
                             padding: "2px 8px",
                             borderRadius: 10,
                             fontSize: 11,

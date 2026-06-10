@@ -37,7 +37,7 @@ export function WizardMeta() {
           >
             <div style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>Passo {s.id}</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text)", marginTop: 2 }}>
-              {step > s.id && <i className="ti ti-circle-check" style={{ fontSize: 13, color: "#6B8E4E", marginRight: 4 }} />}
+              {step > s.id && <i className="ti ti-circle-check" style={{ fontSize: 13, color: "#10b981", marginRight: 4 }} />}
               {s.label}
             </div>
           </div>
@@ -200,7 +200,7 @@ function ExternalA({ href, children }: { href: string; children: React.ReactNode
 function Aviso({ tipo, children }: { tipo: "info" | "ok" | "warn"; children: React.ReactNode }) {
   const colors = {
     info: { bg: "rgba(91,139,166,0.12)", border: "#5B8BA6", icon: "ti-info-circle" },
-    ok: { bg: "rgba(107,142,78,0.12)", border: "#6B8E4E", icon: "ti-circle-check" },
+    ok: { bg: "rgba(16,185,129,0.12)", border: "#10b981", icon: "ti-circle-check" },
     warn: { bg: "rgba(201,168,118,0.15)", border: "#C9A876", icon: "ti-alert-triangle" },
   }[tipo];
   return (

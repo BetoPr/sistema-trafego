@@ -52,7 +52,7 @@ export default async function ServidoresPage({ searchParams }: PageProps) {
 
       {sp.ok && (
         <div style={banner("ok")}>
-          <i className="ti ti-circle-check" style={{ marginRight: 8, color: "#6B8E4E" }} />
+          <i className="ti ti-circle-check" style={{ marginRight: 8, color: "#10b981" }} />
           {OKS[sp.ok] || "OK."}
           {sp.msg && <div style={{ marginTop: 4, fontSize: 11, opacity: 0.8 }}>{sp.msg}</div>}
         </div>
@@ -168,9 +168,9 @@ export default async function ServidoresPage({ searchParams }: PageProps) {
 }
 
 function banner(tipo: "ok" | "erro"): React.CSSProperties {
-  const cor = tipo === "ok" ? "#6B8E4E" : "#C97064";
+  const cor = tipo === "ok" ? "#10b981" : "#C97064";
   return {
-    background: tipo === "ok" ? "rgba(107,142,78,0.12)" : "rgba(201,112,100,0.12)",
+    background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)",
     borderLeft: `3px solid ${cor}`,
     padding: "10px 14px",
     borderRadius: 8,

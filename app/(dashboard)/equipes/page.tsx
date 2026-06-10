@@ -71,8 +71,8 @@ export default async function EquipesPage({ searchParams }: PageProps) {
 }
 
 function banner(t: "ok" | "erro"): React.CSSProperties {
-  const cor = t === "ok" ? "#6B8E4E" : "#C97064";
-  return { background: t === "ok" ? "rgba(107,142,78,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 };
+  const cor = t === "ok" ? "#10b981" : "#C97064";
+  return { background: t === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 };
 }
 const iconBtn: React.CSSProperties = { fontSize: 11, padding: "4px 10px" };
 const rowSt: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)" };

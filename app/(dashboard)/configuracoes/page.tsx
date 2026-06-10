@@ -9,7 +9,7 @@ const ATALHOS = [
   { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles", cor: "#9B7DBF", desc: "Personalize resumo, sentimento e reescrita" },
   { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card", cor: "#5B8BA6", desc: "Cobranças PIX e cartão" },
   { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook", cor: "#C9A876", desc: "Notifique sistemas externos" },
-  { href: "/integracoes", label: "Integrações", icon: "ti-plug", cor: "#6B8E4E", desc: "Meta Ads, Google Ads" },
+  { href: "/integracoes", label: "Integrações", icon: "ti-plug", cor: "#10b981", desc: "Meta Ads, Google Ads" },
   { href: "/auditoria", label: "Log de Auditoria", icon: "ti-file-text", cor: "#C97064", desc: "Histórico de ações no sistema" },
 ];
 

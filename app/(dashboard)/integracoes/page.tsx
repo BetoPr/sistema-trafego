@@ -99,7 +99,7 @@ function PlataformaCard({
       <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--mk-text)", marginBottom: 4 }}>{nome}</h3>
       <p style={{ fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 12, lineHeight: 1.5 }}>{desc}</p>
       <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 16 }}>
-        <i className="ti ti-clock" style={{ fontSize: 12, marginRight: 4, verticalAlign: -1, color: complexidade === "green" ? "#6B8E4E" : complexidade === "amber" ? "#C9A876" : "#C97064" }} />
+        <i className="ti ti-clock" style={{ fontSize: 12, marginRight: 4, verticalAlign: -1, color: complexidade === "green" ? "#10b981" : complexidade === "amber" ? "#C9A876" : "#C97064" }} />
         {dificuldade}
       </div>
       <Link href={href} className="cta-btn" style={{ width: "100%", justifyContent: "center" }}>

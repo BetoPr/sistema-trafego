@@ -178,8 +178,8 @@ function labelErr(k: string) {
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro" | "warn"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#6B8E4E" : tipo === "warn" ? "#C9A876" : "#C97064";
-  const bg = tipo === "ok" ? "rgba(107,142,78,0.12)" : tipo === "warn" ? "rgba(201,168,118,0.15)" : "rgba(201,112,100,0.12)";
+  const cor = tipo === "ok" ? "#10b981" : tipo === "warn" ? "#C9A876" : "#C97064";
+  const bg = tipo === "ok" ? "rgba(16,185,129,0.12)" : tipo === "warn" ? "rgba(201,168,118,0.15)" : "rgba(201,112,100,0.12)";
   const icon = tipo === "ok" ? "ti-circle-check" : tipo === "warn" ? "ti-alert-triangle" : "ti-alert-triangle";
   return (
     <div style={{ background: bg, borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}>

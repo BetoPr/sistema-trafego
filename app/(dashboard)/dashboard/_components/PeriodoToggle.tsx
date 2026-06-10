@@ -115,7 +115,7 @@ export function ViewToggle({ atual }: { atual: "campanhas" | "atendimentos" }) {
             <i className={`ti ${v === "campanhas" ? "ti-speakerphone" : "ti-messages"}`} />
             {v === "campanhas" ? "Campanhas" : "Atendimentos"}
             {v === "campanhas" && (
-              <span style={{ fontSize: 8.5, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "linear-gradient(135deg, #C9A876, #E8C896)", color: "#5A4810", letterSpacing: 0.3 }}>BREVE</span>
+              <span style={{ fontSize: 8.5, fontWeight: 700, padding: "1px 7px", borderRadius: 8, background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(16,185,129,0.30)", letterSpacing: 0.5 }}>BREVE</span>
             )}
           </button>
         );

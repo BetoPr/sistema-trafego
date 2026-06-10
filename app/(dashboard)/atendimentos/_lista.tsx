@@ -152,7 +152,7 @@ export function ListaAtendimentos(p: Props) {
   const canaisDesconectados = p.canais.filter((c) => c.status === "disconnected" || c.status === "error");
 
   const conexaoConfig = {
-    connected: { icon: "ti-wifi", color: "#6B8E4E", bg: "rgba(107,142,78,0.18)", border: "#6B8E4E", lista: canaisConectados, label: "Conectado" },
+    connected: { icon: "ti-wifi", color: "#10b981", bg: "rgba(16,185,129,0.18)", border: "#10b981", lista: canaisConectados, label: "Conectado" },
     connecting: { icon: "ti-qrcode", color: "#C9A876", bg: "rgba(201,168,118,0.18)", border: "#C9A876", lista: canaisConectando, label: "Conectando" },
     disconnected: { icon: "ti-wifi-off", color: "#C97064", bg: "rgba(201,112,100,0.18)", border: "#C97064", lista: canaisDesconectados, label: "Desconectado" },
   }[tipoConexao];
@@ -247,7 +247,7 @@ export function ListaAtendimentos(p: Props) {
         <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
           {TABS.map((t) => {
             const ativo = t.id === tab;
-            const cor = t.id === "aberto" ? "#6B8E4E" : t.id === "pendente" ? "#C9A876" : "var(--mk-text-muted)";
+            const cor = t.id === "aberto" ? "#10b981" : t.id === "pendente" ? "#C9A876" : "var(--mk-text-muted)";
             return (
               <button
                 key={t.id}
@@ -331,7 +331,7 @@ export function ListaAtendimentos(p: Props) {
                   <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
                     {f && <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: `${f.cor}22`, color: f.cor, border: `0.5px solid ${f.cor}` }}>{f.nome}</span>}
                     {t.canal && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, background: "rgba(37,211,102,0.12)", color: "#25D366" }}>{t.canal.nome}</span>}
-                    {t.sentimento === "muito_bom" && <span style={{ fontSize: 9.5, color: "#6B8E4E" }}>● ótimo</span>}
+                    {t.sentimento === "muito_bom" && <span style={{ fontSize: 9.5, color: "#10b981" }}>● ótimo</span>}
                     {t.sentimento === "ruim" && <span style={{ fontSize: 9.5, color: "#C97064" }}>● ruim</span>}
                   </div>
                 </div>
@@ -451,7 +451,7 @@ export function ListaAtendimentos(p: Props) {
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 4px 10px", fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
                     <span>{fechamentos.length} fechamento{fechamentos.length === 1 ? "" : "s"}</span>
-                    <strong style={{ color: "#6B8E4E" }}>
+                    <strong style={{ color: "#10b981" }}>
                       Total: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(fechamentos.reduce((s, f) => s + f.valor, 0))}
                     </strong>
                   </div>
@@ -465,7 +465,7 @@ export function ListaAtendimentos(p: Props) {
                         style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "var(--mk-text)", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
                         title="Abrir conversa"
                       >
-                        <i className="ti ti-circle-check" style={{ color: "#6B8E4E", fontSize: 16 }} />
+                        <i className="ti ti-circle-check" style={{ color: "#10b981", fontSize: 16 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {f.contato_nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>#{f.numero}</span>
@@ -477,7 +477,7 @@ export function ListaAtendimentos(p: Props) {
                           </div>
                         </div>
                       </button>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#6B8E4E", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#10b981", whiteSpace: "nowrap" }}>
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
                       </div>
                       <button

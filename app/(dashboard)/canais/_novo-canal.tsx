@@ -94,8 +94,8 @@ function QrBalao({ canalId, nome, onClose }: { canalId: string; nome: string; on
     <Balao open onClose={onClose} titulo={`QR Code — ${nome}`} icone="ti-qrcode" largura={520}>
       {conectado ? (
         <div style={{ textAlign: "center", padding: 30 }}>
-          <i className="ti ti-circle-check" style={{ fontSize: 48, color: "#6B8E4E" }} />
-          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 10, color: "#6B8E4E" }}>Conectado!</div>
+          <i className="ti ti-circle-check" style={{ fontSize: 48, color: "#10b981" }} />
+          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 10, color: "#10b981" }}>Conectado!</div>
         </div>
       ) : (
         <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

@@ -69,8 +69,8 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
               Risco de bloqueio do número
             </div>
             Disparos em excesso ou com intervalo muito curto entre mensagens podem fazer o WhatsApp <strong>banir o número permanentemente</strong>. Quanto menor o delay e maior o volume, maior o risco.
-            <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(107,142,78,0.12)", borderRadius: 6, border: "0.5px solid rgba(107,142,78,0.4)" }}>
-              <strong style={{ color: "#6B8E4E" }}><i className="ti ti-shield-check" style={{ marginRight: 4 }} />Configuração confortável:</strong> delay mín <strong>20s</strong> e máx <strong>45s</strong>, com lotes de até <strong>50 números por vez</strong> e pausa de ~30min entre lotes. Número novo (chip recém-ativado)? Comece com mín <strong>60s</strong> / máx <strong>120s</strong> e no máximo 20 contatos/dia na primeira semana.
+            <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(16,185,129,0.12)", borderRadius: 6, border: "0.5px solid rgba(16,185,129,0.4)" }}>
+              <strong style={{ color: "#10b981" }}><i className="ti ti-shield-check" style={{ marginRight: 4 }} />Configuração confortável:</strong> delay mín <strong>20s</strong> e máx <strong>45s</strong>, com lotes de até <strong>50 números por vez</strong> e pausa de ~30min entre lotes. Número novo (chip recém-ativado)? Comece com mín <strong>60s</strong> / máx <strong>120s</strong> e no máximo 20 contatos/dia na primeira semana.
             </div>
           </div>
 
@@ -89,8 +89,8 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#6B8E4E" : "#C97064";
-  return <div style={{ background: tipo === "ok" ? "rgba(107,142,78,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
+  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 
 function Label({ children }: { children: React.ReactNode }) { return <label style={{ display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" }}>{children}</label>; }

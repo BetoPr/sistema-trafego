@@ -37,7 +37,7 @@ export default function PlanoPage() {
           <span className="label-tiny">Relatórios/mês</span>
           <div className="big-num">28 / 100</div>
           <div className="mk-progress" style={{ marginTop: 8 }}>
-            <div style={{ background: "linear-gradient(90deg, #6B8E4E, #A8C77F)", width: "28%" }} />
+            <div style={{ background: "linear-gradient(90deg, #10b981, #34d399)", width: "28%" }} />
           </div>
         </div>
       </div>

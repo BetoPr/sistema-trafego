@@ -31,7 +31,7 @@ export default async function ServicosConfigPage() {
 
       {/* Toggle on/off */}
       <div className="mk-card mk-card-lg" style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 14 }}>
-        <i className={`ti ${habilitado ? "ti-toggle-right" : "ti-toggle-left"}`} style={{ fontSize: 28, color: habilitado ? "#6B8E4E" : "var(--mk-text-muted)" }} />
+        <i className={`ti ${habilitado ? "ti-toggle-right" : "ti-toggle-left"}`} style={{ fontSize: 28, color: habilitado ? "#10b981" : "var(--mk-text-muted)" }} />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Serviços fixos {habilitado ? "habilitados" : "desabilitados"}</div>
           <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginTop: 2 }}>
@@ -79,7 +79,7 @@ export default async function ServicosConfigPage() {
               <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
                 {servicos.map((s) => (
                   <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--mk-surface-2)", borderRadius: 8, opacity: s.ativo ? 1 : 0.55 }}>
-                    <i className={`ti ${s.ativo ? "ti-check" : "ti-circle"}`} style={{ color: s.ativo ? "#6B8E4E" : "var(--mk-text-muted)", fontSize: 14 }} />
+                    <i className={`ti ${s.ativo ? "ti-check" : "ti-circle"}`} style={{ color: s.ativo ? "#10b981" : "var(--mk-text-muted)", fontSize: 14 }} />
                     <form action={renomearServico} style={{ flex: 1, display: "flex" }}>
                       <input type="hidden" name="id" value={s.id} />
                       <input
@@ -95,7 +95,7 @@ export default async function ServicosConfigPage() {
                     <form action={toggleServicoAtivo}>
                       <input type="hidden" name="id" value={s.id} />
                       <input type="hidden" name="ativo" value={s.ativo ? "0" : "1"} />
-                      <button type="submit" title={s.ativo ? "Pausar" : "Ativar"} style={{ background: "transparent", border: 0, color: s.ativo ? "#C9A876" : "#6B8E4E", cursor: "pointer", padding: "4px 8px", fontSize: 13 }}>
+                      <button type="submit" title={s.ativo ? "Pausar" : "Ativar"} style={{ background: "transparent", border: 0, color: s.ativo ? "#C9A876" : "#10b981", cursor: "pointer", padding: "4px 8px", fontSize: 13 }}>
                         <i className={`ti ${s.ativo ? "ti-player-pause" : "ti-player-play"}`} />
                       </button>
                     </form>

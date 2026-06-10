@@ -20,7 +20,7 @@ type EstiloIA = "profissional" | "simpatico" | "marketing" | "ortografia";
 
 const ESTILOS: Array<{ id: EstiloIA; nome: string; sub: string; icon: string; cor: string }> = [
   { id: "profissional", nome: "Profissional", sub: "Tom formal e corporativo", icon: "ti-briefcase", cor: "#5B8BA6" },
-  { id: "simpatico", nome: "Simpático", sub: "Tom amigável e caloroso", icon: "ti-mood-smile", cor: "#6B8E4E" },
+  { id: "simpatico", nome: "Simpático", sub: "Tom amigável e caloroso", icon: "ti-mood-smile", cor: "#10b981" },
   { id: "marketing", nome: "Marketing", sub: "Tom persuasivo e envolvente", icon: "ti-sparkles", cor: "#C9A876" },
   { id: "ortografia", nome: "Ortografia", sub: "Correção ortográfica apenas", icon: "ti-spell-check", cor: "#9B7DBF" },
 ];
@@ -328,7 +328,7 @@ export function InputBar(p: Props) {
   // ====================
   return (
     <div
-      style={{ borderTop: dragOver ? "2px dashed #6B8E4E" : "0.5px solid var(--mk-border)", background: dragOver ? "rgba(107,142,78,0.08)" : "var(--mk-surface)", transition: "background 0.15s ease" }}
+      style={{ borderTop: dragOver ? "2px dashed #10b981" : "0.5px solid var(--mk-border)", background: dragOver ? "rgba(16,185,129,0.08)" : "var(--mk-surface)", transition: "background 0.15s ease" }}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => {

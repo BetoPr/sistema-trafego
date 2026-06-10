@@ -19,7 +19,7 @@ export default function FunilPage() {
       <NeedsPlatform contexto="do funil">
         <EmptyState
           icon="ti-filter"
-          iconColor="#6B8E4E"
+          iconColor="#10b981"
           iconBg="rgba(107, 142, 78, 0.18)"
           titulo="Funil sem dados"
           descricao="Após sync, as etapas (impressões → cliques → visitantes → conversas → leads → vendas) aparecem aqui."

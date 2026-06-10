@@ -86,7 +86,7 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
                   <td style={tdLi}>
                     {c.fech ? (
                       <div title={c.fech.servicos.map((s) => `${s.nome} × ${s.qtd} (${BRL.format(s.valor)})`).join("\n")}>
-                        <span style={{ fontWeight: 700, color: "#6B8E4E" }}>{BRL.format(c.fech.total)}</span>
+                        <span style={{ fontWeight: 700, color: "#10b981" }}>{BRL.format(c.fech.total)}</span>
                         <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginLeft: 6 }}>
                           {c.fech.fechamentos}× · {c.fech.quantidade} serviço{c.fech.quantidade === 1 ? "" : "s"}
                         </span>

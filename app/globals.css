@@ -163,6 +163,14 @@
     radial-gradient(ellipse 600px 400px at 50% 50%, rgba(16,185,129,0.06), transparent 70%);
 }
 
+/* color-scheme por tema: faz os controles nativos (select/option, date,
+   scrollbar) renderizarem com contraste certo. Sem isso, as opções do
+   dropdown ficam claras sobre fundo branco e o texto some. */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+.dark select option { background: #111111; color: #f5f5f5; }
+select option { background: #ffffff; color: #111111; }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -386,12 +394,13 @@
   flex: 1; overflow: hidden; text-overflow: ellipsis;
 }
 .nav-badge {
-  background: linear-gradient(135deg, #6B8E4E, #A8C77F);
-  color: #1F2A12; font-size: 9px; padding: 2px 6px;
-  border-radius: 8px; font-weight: 600;
-  letter-spacing: 0.3px;
+  background: var(--mk-accent-soft, rgba(16,185,129,0.15));
+  color: #34d399; font-size: 9px; padding: 2px 7px;
+  border-radius: 8px; font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(16,185,129,0.30);
 }
-.nav-badge.amber { background: linear-gradient(135deg, #C9A876, #E8C896); color: #5A4810; }
+.nav-badge.amber { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.30); }
 .nav-badge.red { background: linear-gradient(135deg, #C97064, #E8B5AC); color: #5A1F18; }
 .nav-dot {
   width: 6px; height: 6px;
@@ -606,7 +615,7 @@
 .delta-up {
   font-size: 11px; margin-top: 5px;
   display: flex; align-items: center; gap: 3px;
-  color: #6B8E4E; font-weight: 500;
+  color: #10b981; font-weight: 500;
 }
 .delta-up-warm { color: #E8C896; }
 .delta-down {
@@ -661,7 +670,7 @@
 .b-red { background: #F5D9D2; color: #913A2A; }
 .b-blue { background: #D9E5EE; color: #2F5670; }
 .b-purple { background: #E5DCEE; color: #604380; }
-.dark .b-green { background: rgba(107, 142, 78, 0.2); color: #A8C77F; }
+.dark .b-green { background: rgba(107, 142, 78, 0.2); color: #34d399; }
 .dark .b-amber { background: rgba(232, 200, 150, 0.18); color: #E8C896; }
 .dark .b-red { background: rgba(201, 112, 100, 0.18); color: #E8B5AC; }
 .dark .b-blue { background: rgba(91, 139, 166, 0.2); color: #8AB8D4; }

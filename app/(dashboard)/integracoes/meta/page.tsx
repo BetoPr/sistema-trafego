@@ -97,8 +97,8 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
       {sp.ok && (
         <div
           style={{
-            background: "rgba(107,142,78,0.12)",
-            borderLeft: "3px solid #6B8E4E",
+            background: "rgba(16,185,129,0.12)",
+            borderLeft: "3px solid #10b981",
             padding: "10px 14px",
             borderRadius: 8,
             fontSize: 12,
@@ -108,7 +108,7 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
         >
           <i
             className="ti ti-circle-check"
-            style={{ marginRight: 8, color: "#6B8E4E", verticalAlign: -2 }}
+            style={{ marginRight: 8, color: "#10b981", verticalAlign: -2 }}
           />
           {sp.ok === "sync" ? (
             <>

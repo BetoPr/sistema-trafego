@@ -55,7 +55,7 @@ export function TransferirCanalBtn({ canalId, canalNome, outros }: { canalId: st
       <Balao open={aberto} onClose={fechar} titulo={`Transferir canal — ${canalNome}`} icone="ti-arrows-exchange" largura={480}>
         {resultado ? (
           <div style={{ textAlign: "center", padding: 24 }}>
-            <i className="ti ti-circle-check" style={{ fontSize: 42, color: "#6B8E4E" }} />
+            <i className="ti ti-circle-check" style={{ fontSize: 42, color: "#10b981" }} />
             <div style={{ fontSize: 13, fontWeight: 600, marginTop: 10 }}>{resultado}</div>
             <button onClick={fechar} className="cta-btn" style={{ marginTop: 16, fontSize: 12 }}>Fechar</button>
           </div>
