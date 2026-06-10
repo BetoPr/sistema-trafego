@@ -320,8 +320,8 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                   {contato.nome.slice(0, 2).toUpperCase()}
                 </div>
               </div>
-              <InfoLinha icon="ti-user" label="Nome" value={contato.nome} />
-              <InfoLinha icon="ti-phone" label="Telefone" value={formatarTel(contato.whatsapp)} mono />
+              <InfoLinha icon="ti-user" label="Nome" value={contato.nome} copy={contato.nome} />
+              <InfoLinha icon="ti-phone" label="Telefone" value={formatarTel(contato.whatsapp)} mono copy={contato.whatsapp} />
               <InfoLinha icon="ti-map-pin" label="Estado (DDD)" value={estadoPorDDD(contato.whatsapp) || contato.estado || "—"} noBorder />
               <div style={{ display: "flex", gap: 6, padding: "10px 12px 12px", borderTop: "0.5px solid var(--mk-border)" }}>
                 <a href={`/contatos?editar=${contato.id}`} className="ghost-btn" style={{ flex: 1, fontSize: 11, textAlign: "center" }}>
@@ -553,15 +553,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         {tab === "util" && (
           <>
             <Card titulo="Comunicação">
-              <div style={{ display: "flex", gap: 4, padding: "10px 12px" }}>
-                <button onClick={() => marcarLido(true)} className="ghost-btn" style={{ flex: 1, fontSize: 10.5, padding: "6px 4px" }}>
-                  <i className="ti ti-mail-opened" /> Marcar lido
-                </button>
-                <button onClick={() => marcarLido(false)} className="ghost-btn" style={{ flex: 1, fontSize: 10.5, padding: "6px 4px" }}>
-                  <i className="ti ti-mail" /> Não lido
-                </button>
-              </div>
-              <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
+              <div style={{ padding: "8px 12px" }}>
                 <button onClick={abrirLogTicket} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
                   <i className="ti ti-list" /> Log do ticket
                 </button>
@@ -747,7 +739,8 @@ function Card({ titulo, children }: { titulo?: string; children: React.ReactNode
   );
 }
 
-function InfoLinha({ icon, label, value, mono, noBorder }: { icon: string; label: string; value: string; mono?: boolean; noBorder?: boolean }) {
+function InfoLinha({ icon, label, value, mono, noBorder, copy }: { icon: string; label: string; value: string; mono?: boolean; noBorder?: boolean; copy?: string | null }) {
+  const [copiado, setCopiado] = useState(false);
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 12px", borderBottom: noBorder ? 0 : "0.5px solid var(--mk-border)" }}>
       <i className={`ti ${icon}`} style={{ fontSize: 14, color: "var(--mk-text-muted)", marginTop: 2 }} />
@@ -755,6 +748,21 @@ function InfoLinha({ icon, label, value, mono, noBorder }: { icon: string; label
         <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", fontFamily: "monospace", letterSpacing: 0.5 }}>{label.toUpperCase()}</div>
         <div style={{ fontSize: 12.5, color: "var(--mk-text)", fontFamily: mono ? "monospace" : "inherit", wordBreak: "break-word" }}>{value}</div>
       </div>
+      {copy && (
+        <button
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(copy);
+              setCopiado(true);
+              setTimeout(() => setCopiado(false), 1500);
+            } catch {}
+          }}
+          title="Copiar"
+          style={{ background: "transparent", border: 0, color: copiado ? "#6B8E4E" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 14, padding: "2px 4px", marginTop: 2 }}
+        >
+          <i className={`ti ${copiado ? "ti-check" : "ti-copy"}`} />
+        </button>
+      )}
     </div>
   );
 }
