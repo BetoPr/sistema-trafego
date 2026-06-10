@@ -76,9 +76,18 @@ export default async function CanaisPage({ searchParams }: PageProps) {
           return (
             <div key={c.id} className="mk-card mk-card-lg">
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #25D366, #128C7E)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8", fontSize: 18 }}>
-                  <i className="ti ti-brand-whatsapp" />
-                </div>
+                {c.foto_perfil_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={c.foto_perfil_url}
+                    alt={c.nome_perfil || c.nome}
+                    style={{ width: 40, height: 40, borderRadius: 10, objectFit: "cover", border: "2px solid #25D366", flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #25D366, #128C7E)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8", fontSize: 18, flexShrink: 0 }}>
+                    <i className="ti ti-brand-whatsapp" />
+                  </div>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)" }}>{c.nome}</h4>
