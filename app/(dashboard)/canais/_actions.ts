@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { encryptToken, decryptToken, byteaToBuffer, bufferToBytea } from "@/lib/crypto/tokens";
@@ -573,11 +574,7 @@ export async function desconectarCanal(formData: FormData) {
   const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
   const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
 
-  try {
-    await instanceDisconnect({ baseUrl, token });
-  } catch (e) {
-    console.error("[canais] disconnect:", e);
-  }
+  // Banco primeiro (UI responde já); disconnect no provedor em background
   await sb
     .from("canais")
     .update({
@@ -588,6 +585,14 @@ export async function desconectarCanal(formData: FormData) {
       qr_code_atual: null,
     })
     .eq("id", id);
+
+  after(async () => {
+    try {
+      await instanceDisconnect({ baseUrl, token });
+    } catch (e) {
+      console.error("[canais] disconnect (bg):", e);
+    }
+  });
 
   await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "disconnect", entidade: "canal", entidadeId: id });
   revalidatePath("/canais");
@@ -604,21 +609,32 @@ export async function deletarCanal(formData: FormData) {
     .select("id, instance_id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
     .eq("id", id)
     .eq("agencia_id", ctx.agenciaId)
-    .single();
-  if (!canal) redirect("/canais?erro=nao_encontrado");
+    .maybeSingle();
 
-  const s = (canal as unknown as { servidor: { base_url: string } }).servidor;
-  try {
-    if (canal.instance_token_encrypted) {
-      const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
-      await instanceDelete({ baseUrl: s.base_url, token });
-    }
-  } catch (e) {
-    console.error("[canais] instanceDelete:", e);
+  // Idempotente: segundo clique/refresh acha o canal já removido → sucesso, não erro
+  if (!canal) {
+    revalidatePath("/canais");
+    redirect("/canais?ok=deletado");
   }
 
+  // Remove do banco PRIMEIRO (rápido) — UI responde na hora
   await sb.from("canais").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
   await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "delete", entidade: "canal", entidadeId: id });
+
+  // Limpeza da instância no provedor em BACKGROUND (era o que travava 3-8s)
+  const s = (canal as unknown as { servidor: { base_url: string } }).servidor;
+  const tokenEnc = canal.instance_token_encrypted;
+  if (tokenEnc) {
+    after(async () => {
+      try {
+        const token = decryptToken(byteaToBuffer(tokenEnc));
+        await instanceDelete({ baseUrl: s.base_url, token });
+      } catch (e) {
+        console.error("[canais] instanceDelete (bg):", e);
+      }
+    });
+  }
+
   revalidatePath("/canais");
   redirect("/canais?ok=deletado");
 }

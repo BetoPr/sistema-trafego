@@ -10,6 +10,7 @@ import {
 } from "./_actions";
 import { CanaisAutoRefresh } from "./_auto-refresh";
 import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
+import { SubmitIconBtn } from "./_submit-btn";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; qr?: string }>;
@@ -125,22 +126,22 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                 {!c.padrao && (
                   <form action={definirPadrao} style={{ display: "inline" }}>
                     <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className="ghost-btn" style={menuBtn} title="Definir como padrão"><i className="ti ti-star" /></button>
+                    <SubmitIconBtn icon="ti-star" title="Definir como padrão" />
                   </form>
                 )}
                 <form action={revalidarWebhook} style={{ display: "inline" }}>
                   <input type="hidden" name="id" value={c.id} />
-                  <button type="submit" className="ghost-btn" style={menuBtn} title="Revalidar webhook"><i className="ti ti-webhook" /></button>
+                  <SubmitIconBtn icon="ti-webhook" title="Revalidar webhook" />
                 </form>
                 {conectado && (
                   <form action={desconectarCanal} style={{ display: "inline" }}>
                     <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className="ghost-btn" style={menuBtn} title="Desconectar"><i className="ti ti-plug-off" /></button>
+                    <SubmitIconBtn icon="ti-plug-off" title="Desconectar" confirmMsg={`Desconectar "${c.nome}"?`} />
                   </form>
                 )}
                 <form action={deletarCanal} style={{ display: "inline", marginLeft: "auto" }}>
                   <input type="hidden" name="id" value={c.id} />
-                  <button type="submit" className="ghost-btn" style={{ ...menuBtn, color: "#C97064" }} title="Excluir canal"><i className="ti ti-trash" /></button>
+                  <SubmitIconBtn icon="ti-trash" title="Excluir canal" color="#C97064" confirmMsg={`Excluir o canal "${c.nome}"? A instância no servidor também será removida.`} />
                 </form>
               </div>
             </div>
