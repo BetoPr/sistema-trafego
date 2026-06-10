@@ -57,6 +57,22 @@
 - Datas: `date-fns` com locale `ptBR`.
 - Decimais: vírgula. Milhares: ponto.
 
+## Balão (modal padrão)
+
+Quando o Roberto pedir "abre um balão", "balão com X funções" etc., usar o componente **`components/ui/Balao.tsx`**:
+
+```tsx
+import { Balao } from "@/components/ui/Balao";
+
+const [aberto, setAberto] = useState(false);
+<button onClick={() => setAberto(true)}>Abrir</button>
+<Balao open={aberto} onClose={() => setAberto(false)} titulo="Título" icone="ti-flag" largura={460}>
+  ...conteúdo...
+</Balao>
+```
+
+Características: portal no `document.body` (imune a transform de pais), overlay com blur, centralizado, header com título+X, corpo `.chat-scroll`, Esc/clique-fora fecha, `footer` opcional pra botões. Não criar modais inline novos — sempre Balao.
+
 ## Convenções de código
 
 - Imports absolutos via `@/*` (configurado em `tsconfig.json`).
