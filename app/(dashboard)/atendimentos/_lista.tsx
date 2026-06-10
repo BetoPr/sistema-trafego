@@ -105,6 +105,20 @@ export function ListaAtendimentos(p: Props) {
     }
   }
 
+  async function excluirFechamento(ticketId: string, contatoNome: string, valor: number) {
+    const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
+    if (!confirm(`Excluir fechamento de ${brl} (${contatoNome})? Some do Dashboard também.`)) return;
+    try {
+      const r = await fetch(`/api/atendimentos/${ticketId}/fechamento`, { method: "DELETE" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { alert(`Erro: ${j.error || r.statusText}`); return; }
+      setFechamentos((prev) => prev.filter((f) => f.ticketId !== ticketId));
+      p.onRefresh();
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   function refresh() {
     setRefreshing(true);
     p.onRefresh();
@@ -414,26 +428,38 @@ export function ListaAtendimentos(p: Props) {
                     </strong>
                   </div>
                   {fechamentos.map((f) => (
-                    <button
+                    <div
                       key={f.ticketId}
-                      onClick={() => { setFechamentosModal(false); p.onSelectTicket(f.ticketId); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "10px 8px", borderTop: 0, borderLeft: 0, borderRight: 0, borderBottom: "0.5px solid var(--mk-border)", color: "var(--mk-text)", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 8px", borderBottom: "0.5px solid var(--mk-border)" }}
                     >
-                      <i className="ti ti-circle-check" style={{ color: "#6B8E4E", fontSize: 16 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {f.contato_nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>#{f.numero}</span>
+                      <button
+                        onClick={() => { setFechamentosModal(false); p.onSelectTicket(f.ticketId); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "var(--mk-text)", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+                        title="Abrir conversa"
+                      >
+                        <i className="ti ti-circle-check" style={{ color: "#6B8E4E", fontSize: 16 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {f.contato_nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>#{f.numero}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 1 }}>
+                            {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
+                            {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`}
+                            {f.fechado_por && ` · ${f.fechado_por}`}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 1 }}>
-                          {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
-                          {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`}
-                          {f.fechado_por && ` · ${f.fechado_por}`}
-                        </div>
-                      </div>
+                      </button>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#6B8E4E", whiteSpace: "nowrap" }}>
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
                       </div>
-                    </button>
+                      <button
+                        onClick={() => excluirFechamento(f.ticketId, f.contato_nome, f.valor)}
+                        title="Excluir fechamento"
+                        style={{ background: "transparent", border: 0, color: "#C97064", cursor: "pointer", fontSize: 14, padding: "4px 6px" }}
+                      >
+                        <i className="ti ti-trash" />
+                      </button>
+                    </div>
                   ))}
                 </>
               )}
