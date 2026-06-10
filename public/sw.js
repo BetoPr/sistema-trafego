@@ -1,7 +1,8 @@
 // Service Worker minimal — habilita PWA install.
-// Estratégia: network-first com fallback offline.
+// Estratégia: network-first; fallback offline SÓ pra navegação (HTML).
+// Nunca responder asset (JS/CSS) com HTML — quebra a página após deploys.
 
-const CACHE_NAME = "sistema-trafego-v1";
+const CACHE_NAME = "sistema-trafego-v2";
 const OFFLINE_FALLBACK = "/dashboard";
 
 self.addEventListener("install", (event) => {
@@ -12,7 +13,14 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Limpa caches de versões antigas (chunks de deploys anteriores)
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
+      await self.clients.claim();
+    })(),
+  );
 });
 
 self.addEventListener("fetch", (event) => {
@@ -20,6 +28,8 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   // Não interceptar API calls — sempre rede.
   if (req.url.includes("/api/") || req.url.includes("supabase.co")) return;
+
+  const isNavigation = req.mode === "navigate";
 
   event.respondWith(
     fetch(req)
@@ -30,6 +40,15 @@ self.addEventListener("fetch", (event) => {
         }
         return res;
       })
-      .catch(() => caches.match(req).then((cached) => cached || caches.match(OFFLINE_FALLBACK))),
+      .catch(async () => {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        // Fallback de página offline SÓ pra navegação — nunca pra JS/CSS/imagem
+        if (isNavigation) {
+          const fb = await caches.match(OFFLINE_FALLBACK);
+          if (fb) return fb;
+        }
+        return Response.error();
+      }),
   );
 });
