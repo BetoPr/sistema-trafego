@@ -7,10 +7,8 @@ import {
   revalidarWebhook,
   desconectarCanal,
   deletarCanal,
-  importarCanalExistente,
 } from "./_actions";
 import { CanaisAutoRefresh } from "./_auto-refresh";
-import { InstanciasDisponiveis } from "./_instancias";
 import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
 
 interface PageProps {
@@ -150,38 +148,6 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* Instâncias no servidor — busca on-demand (botão) */}
-      {!semServidor && <InstanciasDisponiveis />}
-
-      {/* Importar via Instance Token manual */}
-      <div className="mk-card mk-card-lg" id="importar-token" style={{ marginBottom: 14 }}>
-        <h3 className="card-title" style={{ marginBottom: 6 }}>
-          <i className="ti ti-key" style={{ marginRight: 6, color: "var(--mk-accent)" }} />
-          Importar instância via Instance Token
-        </h3>
-        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
-          Se você já criou e conectou a sessão no painel do provedor, cole aqui o <strong>Instance Token</strong>.
-          O sistema busca o status, salva o canal e configura o webhook automaticamente.
-        </p>
-        <form action={importarCanalExistente} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <Field label="Nome do canal" name="nome" placeholder="Interno Infinity" required />
-          <Field label="Instance Token (UUID)" name="instance_token" placeholder="04a631c8-d7bf-420b-87c1-a4b09433944b" required />
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--mk-text-secondary)" }}>
-            <input type="checkbox" name="padrao" /> Definir como canal padrão
-          </label>
-          <details>
-            <summary style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text)", cursor: "pointer", padding: "6px 0" }}>Atribuições (opcional)</summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6, paddingLeft: 14 }}>
-              <Select label="Fila padrão" name="fila_id" options={[{ id: "", nome: "Nenhuma" }, ...(filas || [])]} />
-              <Select label="Usuário padrão" name="usuario_id" options={[{ id: "", nome: "Nenhum" }, ...(usuarios || [])]} />
-            </div>
-          </details>
-          <button type="submit" className="cta-btn" disabled={semServidor}>
-            <i className="ti ti-download" /> Importar instância
-          </button>
-        </form>
-      </div>
-
     </section>
   );
 }
@@ -207,27 +173,7 @@ function Banner({ tipo, children }: { tipo: "ok" | "erro" | "warn"; children: Re
   );
 }
 
-function Field({ label, name, defaultValue, placeholder, required, type = "text" }: { label: string; name: string; defaultValue?: string; placeholder?: string; required?: boolean; type?: string }) {
-  return (
-    <div>
-      <label style={lblSt}>{label}{required && <span style={{ color: "#C97064" }}> *</span>}</label>
-      <input type={type} name={name} defaultValue={defaultValue} placeholder={placeholder} required={required} style={inpSt} />
-    </div>
-  );
-}
 
-function Select({ label, name, options }: { label: string; name: string; options: Array<{ id: string; nome: string; cor?: string | null }> }) {
-  return (
-    <div>
-      <label style={lblSt}>{label}</label>
-      <select name={name} style={inpSt}>
-        {options.map((o) => (
-          <option key={o.id || "_"} value={o.id}>{o.nome}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 const lblSt: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
 const inpSt: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 };
