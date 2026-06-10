@@ -235,6 +235,14 @@
   padding-right: 2px;
   margin-right: -2px;
 }
+/* Header do chat: quando o espaço aperta (tela pequena + painel detalhes aberto),
+   esconde nome/telefone e deixa só avatar + ícones de ação. */
+.chat-header { container-type: inline-size; }
+@container (max-width: 540px) {
+  .chat-header-info { display: none !important; }
+  .chat-header-spacer { display: block !important; }
+}
+
 .sidebar-nav::-webkit-scrollbar, .chat-scroll::-webkit-scrollbar { width: 5px; }
 .sidebar-nav::-webkit-scrollbar-track, .chat-scroll::-webkit-scrollbar-track { background: transparent; }
 .sidebar-nav::-webkit-scrollbar-thumb, .chat-scroll::-webkit-scrollbar-thumb {

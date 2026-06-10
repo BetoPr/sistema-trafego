@@ -47,9 +47,10 @@ interface Props {
   todasEtiquetas?: Tag[];
   servicos?: ServicoOpt[];
   servicosHabilitados?: boolean;
+  urlFechar?: string;
 }
 
-export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [], servicos = [], servicosHabilitados = false }: Props) {
+export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [], servicos = [], servicosHabilitados = false, urlFechar }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"perfil" | "atend" | "util">("perfil");
   const [loadingResumo, setLoadingResumo] = useState(false);
@@ -268,7 +269,18 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-      <div style={{ padding: "10px 12px", borderBottom: "0.5px solid var(--mk-border)", fontSize: 13, fontWeight: 600 }}>Detalhes do contato</div>
+      <div style={{ padding: "10px 12px", borderBottom: "0.5px solid var(--mk-border)", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center" }}>
+        <span style={{ flex: 1 }}>Detalhes do contato</span>
+        {urlFechar && (
+          <button
+            onClick={() => router.push(urlFechar)}
+            title="Fechar painel"
+            style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 16, padding: 2, lineHeight: 1 }}
+          >
+            <i className="ti ti-x" />
+          </button>
+        )}
+      </div>
       <div style={{ display: "flex", borderBottom: "0.5px solid var(--mk-border)" }}>
         {[
           { id: "perfil", label: "Perfil" },

@@ -325,7 +325,15 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
       </main>
 
       {/* COLUNA 3 — Painel direito (slide animado) */}
-      {ticketSelFull && (
+      {ticketSelFull && (() => {
+        const fecharParams = new URLSearchParams();
+        fecharParams.set("tab", tab);
+        if (sp.q) fecharParams.set("q", sp.q);
+        if (sp.canal && sp.canal !== "todos") fecharParams.set("canal", sp.canal);
+        fecharParams.set("t", ticketSelFull.id);
+        fecharParams.set("detalhes", "0");
+        const urlFecharDetalhes = `/atendimentos?${fecharParams.toString()}`;
+        return (
         <aside
           style={{
             position: "absolute",
@@ -344,9 +352,10 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
             zIndex: 10,
           }}
         >
-          <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} todasEtiquetas={todasEtiquetas} servicos={servicosLista} servicosHabilitados={servicosHabilitados} />
+          <PainelDireito ticket={ticketSelFull} contato={ticketSelFull.contato} etiquetas={etiquetas} todasEtiquetas={todasEtiquetas} servicos={servicosLista} servicosHabilitados={servicosHabilitados} urlFechar={urlFecharDetalhes} />
         </aside>
-      )}
+        );
+      })()}
     </section>
   );
 }

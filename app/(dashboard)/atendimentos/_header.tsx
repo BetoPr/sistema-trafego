@@ -105,19 +105,21 @@ export function ChatHeader(props: Props) {
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", gap: 4 }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+      <div className="chat-header" style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: "0.5px solid var(--mk-border)", gap: 4 }}>
+        <div title={`${props.contatoNome} · #${props.ticketNumero}`} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
           {props.contatoIniciais}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Info do contato — some quando header aperta (tela pequena + painel aberto), sobram só os ícones */}
+        <div className="chat-header-info" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{props.contatoNome}</div>
-          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 8 }}>
+          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 8, overflow: "hidden", whiteSpace: "nowrap" }}>
             <span style={{ fontFamily: "monospace" }}>#{props.ticketNumero}</span>
             {props.contatoTelefone && <span>· {props.contatoTelefone}</span>}
             {props.filaAtualNome && <span>· {props.filaAtualNome}</span>}
             {props.usuarioAtualNome && <span>· {props.usuarioAtualNome}</span>}
           </div>
         </div>
+        <div className="chat-header-spacer" style={{ flex: 1, display: "none" }} />
 
         {/* Ícones de ação inline */}
         <IconBtn icon="ti-arrow-back-up" title="Retornar à fila" onClick={retornarFila} disabled={loading} />
