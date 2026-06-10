@@ -28,23 +28,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: ticket } = await sb
     .from("tickets")
-    .select("id, metadata")
+    .select("id, metadata, valor_fechado")
     .eq("id", id)
     .eq("agencia_id", u.agencia_id)
     .single();
   if (!ticket) return NextResponse.json({ error: "ticket_nao_encontrado" }, { status: 404 });
 
+  // Um fechamento por ticket — já registrado, recusa
+  if (ticket.valor_fechado != null) {
+    return NextResponse.json({ error: "fechamento_ja_registrado" }, { status: 409 });
+  }
+
   const meta = (ticket.metadata && typeof ticket.metadata === "object") ? { ...ticket.metadata } : {};
   if (body.servico != null) meta.servico = body.servico;
   if (body.quantidade != null) meta.quantidade = body.quantidade;
 
-  // Fechamento marca ticket como fechado + carimba fechado_em pro Dashboard contabilizar
+  // NÃO muda status — ticket continua onde está; encerrar é ação separada.
+  // fechado_em carimba a data da venda pro Dashboard metrificar.
   const { error } = await sb
     .from("tickets")
     .update({
       valor_fechado: body.valor,
       metadata: meta,
-      status: "fechado",
       fechado_em: new Date().toISOString(),
       fechado_por: auth.user.id,
     })

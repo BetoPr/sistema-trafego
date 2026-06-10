@@ -352,6 +352,28 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             </Card>
 
             {/* CARD fechamento — abaixo de Flags */}
+            {ticket.valor_fechado != null ? (
+              <Card titulo="Fechamento">
+                <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#6B8E4E", fontSize: 12, fontWeight: 600 }}>
+                    <i className="ti ti-circle-check" style={{ fontSize: 16 }} />
+                    Fechamento registrado
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--mk-text)" }}>
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(ticket.valor_fechado))}
+                  </div>
+                  {ticket.metadata?.servico && (
+                    <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
+                      <i className="ti ti-package" style={{ marginRight: 4 }} />{ticket.metadata.servico}
+                      {ticket.metadata?.quantidade != null && <span style={{ color: "var(--mk-text-muted)" }}> × {ticket.metadata.quantidade}</span>}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 2 }}>
+                    Este ticket já tem fechamento — não é possível registrar outro.
+                  </div>
+                </div>
+              </Card>
+            ) : (
             <Card titulo="Fechamento">
               <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
                 <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>VALOR (R$)</label>
@@ -410,6 +432,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                 </button>
               </div>
             </Card>
+            )}
 
             <Card titulo="Resumo IA">
               <div style={{ padding: "10px 12px" }}>

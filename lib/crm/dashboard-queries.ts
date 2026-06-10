@@ -65,11 +65,12 @@ export async function carregarDashboardAtendimentos(
   agenciaId: string,
   faixa: FaixaDatas,
 ): Promise<{ kpis: KpisAtendimento; servicos: ServicoStat[]; serie: SerieDiaAtend[] }> {
+  // Venda = ticket com valor_fechado registrado (independente do status do ticket —
+  // fechamento de pedido não encerra o atendimento).
   const { data: tickets } = await supabase
     .from("tickets")
     .select("id, valor_fechado, fechado_em, metadata")
     .eq("agencia_id", agenciaId)
-    .eq("status", "fechado")
     .not("valor_fechado", "is", null)
     .gte("fechado_em", faixa.inicio.toISOString())
     .lte("fechado_em", faixa.fim.toISOString());

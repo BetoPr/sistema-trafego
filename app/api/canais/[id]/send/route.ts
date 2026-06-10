@@ -20,6 +20,7 @@ interface MediaPayload {
   fileBase64: string;
   caption?: string;
   filename?: string;
+  mimetype?: string;
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -73,14 +74,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   try {
     if (body.media) {
-      // Asegura base64 raw (sem prefixo data:...)
+      // Base64 raw (sem prefixo) pro ImgBB; data URI com mimetype pra UAZAPI
+      // identificar o formato (imagem sem mimetype falha no /send/media).
       const file = body.media.fileBase64.includes(",") ? body.media.fileBase64.split(",")[1] : body.media.fileBase64;
+      const fileUazapi = body.media.mimetype ? `data:${body.media.mimetype};base64,${file}` : file;
       const r = await instanceSendMedia(
         { baseUrl, token },
         {
           number: waId,
           type: body.media.type,
-          file,
+          file: fileUazapi,
           text: body.media.caption,
           docName: body.media.filename,
         },

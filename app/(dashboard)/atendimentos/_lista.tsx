@@ -43,6 +43,9 @@ export function ListaAtendimentos(p: Props) {
   const router = useRouter();
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
+  const [fechamentosModal, setFechamentosModal] = useState(false);
+  const [fechamentos, setFechamentos] = useState<Array<{ ticketId: string; numero: number; valor: number; servico: string | null; quantidade: number | null; fechado_em: string | null; contato_nome: string; fechado_por: string | null }>>([]);
+  const [fechamentosLoading, setFechamentosLoading] = useState(false);
   const [tipoConexao, setTipoConexao] = useState<"connected" | "connecting" | "disconnected">("connected");
   const [showCanais, setShowCanais] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,6 +75,18 @@ export function ListaAtendimentos(p: Props) {
     setRefreshing(true);
     router.refresh();
     setTimeout(() => setRefreshing(false), 800);
+  }
+
+  async function abrirFechamentos() {
+    setFechamentosModal(true);
+    setFechamentosLoading(true);
+    try {
+      const r = await fetch("/api/atendimentos/fechamentos");
+      const j = await r.json();
+      setFechamentos(j.fechamentos || []);
+    } catch {} finally {
+      setFechamentosLoading(false);
+    }
   }
 
   function ciclarTipoConexao() {
@@ -105,6 +120,9 @@ export function ListaAtendimentos(p: Props) {
       <div style={sep}>
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 6 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", flex: 1 }}>Atendimentos</h2>
+          <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos">
+            <i className="ti ti-receipt-2" />
+          </button>
           <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros">
             <i className="ti ti-filter" /> Filtros
           </button>
@@ -355,6 +373,60 @@ export function ListaAtendimentos(p: Props) {
                   </Link>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Log de Fechamentos */}
+      {fechamentosModal && (
+        <div style={modalOverlay} onClick={() => setFechamentosModal(false)}>
+          <div style={{ ...modalBox, width: "min(560px, 94vw)", maxHeight: "78vh", display: "flex", flexDirection: "column" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", padding: "14px 18px", borderBottom: "0.5px solid var(--mk-border)" }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, flex: 1 }}><i className="ti ti-receipt-2" style={{ marginRight: 6 }} /> Log de fechamentos</h3>
+              <button onClick={() => setFechamentosModal(false)} style={modalCloseBtn}><i className="ti ti-x" /></button>
+            </div>
+            <div className="chat-scroll" style={{ overflowY: "auto", padding: "10px 14px" }}>
+              {fechamentosLoading ? (
+                <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>Carregando…</div>
+              ) : fechamentos.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>
+                  <i className="ti ti-receipt-off" style={{ display: "block", fontSize: 26, marginBottom: 6, opacity: 0.6 }} />
+                  Nenhum fechamento registrado ainda.
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 4px 10px", fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
+                    <span>{fechamentos.length} fechamento{fechamentos.length === 1 ? "" : "s"}</span>
+                    <strong style={{ color: "#6B8E4E" }}>
+                      Total: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(fechamentos.reduce((s, f) => s + f.valor, 0))}
+                    </strong>
+                  </div>
+                  {fechamentos.map((f) => (
+                    <Link
+                      key={f.ticketId}
+                      href={`/atendimentos?ticket=${f.ticketId}`}
+                      onClick={() => setFechamentosModal(false)}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 8px", borderBottom: "0.5px solid var(--mk-border)", textDecoration: "none", color: "var(--mk-text)" }}
+                    >
+                      <i className="ti ti-circle-check" style={{ color: "#6B8E4E", fontSize: 16 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {f.contato_nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>#{f.numero}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 1 }}>
+                          {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
+                          {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+                          {f.fechado_por && ` · ${f.fechado_por}`}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#6B8E4E", whiteSpace: "nowrap" }}>
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>

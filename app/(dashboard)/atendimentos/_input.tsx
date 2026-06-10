@@ -25,6 +25,19 @@ const ESTILOS: Array<{ id: EstiloIA; nome: string; sub: string; icon: string; co
   { id: "ortografia", nome: "Ortografia", sub: "Correção ortográfica apenas", icon: "ti-spell-check", cor: "#9B7DBF" },
 ];
 
+interface Anexo {
+  id: string;
+  file: File;
+  tipo: "image" | "video" | "document";
+  previewUrl: string | null;
+}
+
+function formatBytes(b: number): string {
+  if (b >= 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(1)}MB`;
+  if (b >= 1024) return `${Math.round(b / 1024)}KB`;
+  return `${b}B`;
+}
+
 export function InputBar(p: Props) {
   const [assinado, setAssinado] = useState(false);
   const [menuAnexo, setMenuAnexo] = useState(false);
@@ -32,7 +45,12 @@ export function InputBar(p: Props) {
   const [iaLoading, setIaLoading] = useState<EstiloIA | null>(null);
   const [gravando, setGravando] = useState(false);
   const [tempoGrav, setTempoGrav] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const [enviandoAnexos, setEnviandoAnexos] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
@@ -55,6 +73,11 @@ export function InputBar(p: Props) {
   }
 
   async function enviarComAssinatura() {
+    // Com anexos na fila, envia mídia (texto vira legenda da primeira)
+    if (anexos.length > 0) {
+      await enviarAnexos();
+      return;
+    }
     if (assinado && p.text.trim()) {
       const t = textoFinal();
       p.setText(t);
@@ -66,35 +89,42 @@ export function InputBar(p: Props) {
   }
 
   // ====================
-  // Anexar arquivo
+  // Fila de anexos (preview antes de enviar)
   // ====================
-  async function anexarArquivo(file: File, tipo: "image" | "video" | "audio" | "document") {
-    if (!p.canalId) return;
-    setMenuAnexo(false);
-    const base64 = await fileToBase64(file);
-    try {
-      const r = await fetch(`/api/canais/${p.canalId}/send`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          ticketId: p.ticketId,
-          media: {
-            type: tipo,
-            fileBase64: base64,
-            filename: file.name,
-            caption: p.text.trim() || undefined,
-          },
-        }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) alert(`Falha: ${j.error || j.msg || r.statusText}`);
-      else p.setText("");
-    } catch (e) {
-      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
-    }
+  function detectarTipo(file: File): "image" | "video" | "document" {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    return "document";
   }
 
-  function fileToBase64(f: File): Promise<string> {
+  function addAnexos(files: FileList | File[]) {
+    const novos: Anexo[] = [];
+    for (const f of Array.from(files)) {
+      if (f.size > 30 * 1024 * 1024) {
+        alert(`"${f.name}" passa de 30MB — não dá pra enviar pelo WhatsApp.`);
+        continue;
+      }
+      const tipo = detectarTipo(f);
+      novos.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        file: f,
+        tipo,
+        previewUrl: tipo === "image" || tipo === "video" ? URL.createObjectURL(f) : null,
+      });
+    }
+    if (novos.length) setAnexos((prev) => [...prev, ...novos]);
+    setMenuAnexo(false);
+  }
+
+  function removerAnexo(id: string) {
+    setAnexos((prev) => {
+      const alvo = prev.find((a) => a.id === id);
+      if (alvo?.previewUrl) URL.revokeObjectURL(alvo.previewUrl);
+      return prev.filter((a) => a.id !== id);
+    });
+  }
+
+  function fileToBase64(f: File | Blob): Promise<string> {
     return new Promise((res, rej) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -106,17 +136,56 @@ export function InputBar(p: Props) {
     });
   }
 
-  function detectarTipo(file: File): "image" | "video" | "audio" | "document" {
-    if (file.type.startsWith("image/")) return "image";
-    if (file.type.startsWith("video/")) return "video";
-    if (file.type.startsWith("audio/")) return "audio";
-    return "document";
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files?.length) addAnexos(e.target.files);
+    e.target.value = "";
   }
 
-  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (f) anexarArquivo(f, detectarTipo(f));
-    e.target.value = "";
+  function onPaste(e: React.ClipboardEvent) {
+    const files = Array.from(e.clipboardData?.files || []);
+    if (files.length) {
+      e.preventDefault();
+      addAnexos(files);
+    }
+  }
+
+  async function enviarAnexos() {
+    if (!p.canalId || anexos.length === 0) return;
+    setEnviandoAnexos(true);
+    const caption = textoFinal().trim();
+    const fila = [...anexos];
+    try {
+      for (let i = 0; i < fila.length; i++) {
+        const a = fila[i];
+        const base64 = await fileToBase64(a.file);
+        const r = await fetch(`/api/canais/${p.canalId}/send`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ticketId: p.ticketId,
+            media: {
+              type: a.tipo,
+              fileBase64: base64,
+              filename: a.file.name,
+              mimetype: a.file.type || undefined,
+              caption: i === 0 && caption ? caption : undefined,
+            },
+          }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          alert(`Falha ao enviar "${a.file.name}": ${j.error || j.msg || r.statusText}`);
+          setEnviandoAnexos(false);
+          return; // mantém os restantes na fila
+        }
+        removerAnexo(a.id);
+      }
+      p.setText("");
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setEnviandoAnexos(false);
+    }
   }
 
   // ====================
@@ -258,7 +327,54 @@ export function InputBar(p: Props) {
   // Render
   // ====================
   return (
-    <div style={{ borderTop: "0.5px solid var(--mk-border)", background: "var(--mk-surface)" }}>
+    <div
+      style={{ borderTop: dragOver ? "2px dashed #6B8E4E" : "0.5px solid var(--mk-border)", background: dragOver ? "rgba(107,142,78,0.08)" : "var(--mk-surface)", transition: "background 0.15s ease" }}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        if (e.dataTransfer?.files?.length) addAnexos(e.dataTransfer.files);
+      }}
+    >
+      {/* Fila de anexos (preview antes de enviar) */}
+      {anexos.length > 0 && !gravando && (
+        <div style={{ display: "flex", gap: 10, padding: "12px 14px 4px", flexWrap: "wrap" }}>
+          {anexos.map((a) => (
+            <div key={a.id} style={{ position: "relative", width: 72, height: 72 }}>
+              {a.tipo === "image" && a.previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={a.previewUrl} alt={a.file.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, border: "0.5px solid var(--mk-border)", display: "block" }} />
+              ) : a.tipo === "video" && a.previewUrl ? (
+                <video src={a.previewUrl} muted style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, border: "0.5px solid var(--mk-border)", display: "block", background: "#000" }} />
+              ) : (
+                <div title={a.file.name} style={{ width: 72, height: 72, borderRadius: 10, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: "var(--mk-text-secondary)", overflow: "hidden", padding: 4 }}>
+                  <i className={`ti ${a.tipo === "video" ? "ti-video" : "ti-file"}`} style={{ fontSize: 22 }} />
+                  <span style={{ fontSize: 8, maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.file.name}</span>
+                </div>
+              )}
+              {/* Tamanho */}
+              <span style={{ position: "absolute", bottom: 3, left: 3, fontSize: 8.5, fontWeight: 600, padding: "1px 5px", borderRadius: 5, background: "rgba(0,0,0,0.65)", color: "#fff" }}>
+                {formatBytes(a.file.size)}
+              </span>
+              {/* X remover */}
+              <button
+                onClick={() => removerAnexo(a.id)}
+                title="Remover"
+                style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: 0, background: "#C0392B", color: "#fff", cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.4)" }}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+          ))}
+          {enviandoAnexos && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--mk-text-muted)" }}>
+              <i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite" }} /> Enviando…
+            </div>
+          )}
+        </div>
+      )}
+
       {gravando ? (
         // ===== Modo gravando =====
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 10 }}>
@@ -279,13 +395,14 @@ export function InputBar(p: Props) {
           <textarea
             value={p.text}
             onChange={(e) => p.setText(e.target.value)}
+            onPaste={onPaste}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 enviarComAssinatura();
               }
             }}
-            placeholder={p.canalConectado ? "Digite uma mensagem… (Enter envia, Shift+Enter quebra linha; / para atalho)" : "Canal desconectado"}
+            placeholder={!p.canalConectado ? "Canal desconectado" : anexos.length > 0 ? "Legenda (opcional)… Enter envia" : "Digite uma mensagem… (Enter envia, Shift+Enter quebra linha; / para atalho)"}
             disabled={!p.canalConectado || p.sending}
             rows={Math.min(5, Math.max(1, p.text.split("\n").length))}
             style={{
@@ -306,12 +423,16 @@ export function InputBar(p: Props) {
               <IconBtn icon="ti-paperclip" title="Anexar arquivo" onClick={() => setMenuAnexo((s) => !s)} active={menuAnexo} />
               {menuAnexo && (
                 <div style={menuStyle}>
-                  <MenuItem icon="ti-photo" onClick={() => { fileInputRef.current?.click(); setMenuAnexo(false); }}>Imagem / Vídeo / Documento</MenuItem>
+                  <MenuItem icon="ti-photo" onClick={() => { imgInputRef.current?.click(); setMenuAnexo(false); }}>Imagem</MenuItem>
+                  <MenuItem icon="ti-video" onClick={() => { videoInputRef.current?.click(); setMenuAnexo(false); }}>Vídeo</MenuItem>
+                  <MenuItem icon="ti-file" onClick={() => { docInputRef.current?.click(); setMenuAnexo(false); }}>Documento</MenuItem>
                   <MenuItem icon="ti-microphone" onClick={iniciarGravacao}>Gravar áudio</MenuItem>
                 </div>
               )}
             </div>
-            <input ref={fileInputRef} type="file" hidden onChange={onPickFile} accept="image/*,video/*,audio/*,application/pdf,application/*" />
+            <input ref={imgInputRef} type="file" hidden multiple onChange={onPickFile} accept="image/*" />
+            <input ref={videoInputRef} type="file" hidden multiple onChange={onPickFile} accept="video/*" />
+            <input ref={docInputRef} type="file" hidden multiple onChange={onPickFile} accept="application/pdf,application/*,text/*,.doc,.docx,.xls,.xlsx,.csv,.zip" />
 
             {/* Mensagens rápidas (atalho via texto começa com /) */}
             <IconBtn icon="ti-bolt" title="Mensagens rápidas (digite / para usar)" onClick={() => p.setText("/")} />
@@ -376,7 +497,7 @@ export function InputBar(p: Props) {
             {/* Enviar */}
             <button
               onClick={enviarComAssinatura}
-              disabled={!p.canalConectado || p.sending || !p.text.trim()}
+              disabled={!p.canalConectado || p.sending || enviandoAnexos || (!p.text.trim() && anexos.length === 0)}
               style={{
                 background: "#25D366",
                 border: 0,
@@ -384,8 +505,8 @@ export function InputBar(p: Props) {
                 width: 36,
                 height: 36,
                 color: "#FFFDF8",
-                cursor: p.text.trim() ? "pointer" : "not-allowed",
-                opacity: p.text.trim() ? 1 : 0.4,
+                cursor: (p.text.trim() || anexos.length > 0) ? "pointer" : "not-allowed",
+                opacity: (p.text.trim() || anexos.length > 0) ? 1 : 0.4,
               }}
               title="Enviar"
             >
@@ -394,7 +515,7 @@ export function InputBar(p: Props) {
           </div>
         </>
       )}
-      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }`}</style>
+      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } } @keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }
