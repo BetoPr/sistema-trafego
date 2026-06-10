@@ -322,7 +322,7 @@ export function ListaAtendimentos(p: Props) {
                     >
                       <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-accent)" }}>#{r.numero} · {r.contato_nome}</div>
                       <div style={{ fontSize: 11.5, marginTop: 4, color: "var(--mk-text-secondary)" }}>{r.conteudo.slice(0, 200)}</div>
-                      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 4 }}>{new Date(r.created_at).toLocaleString("pt-BR")}</div>
+                      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 4 }}>{new Date(r.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</div>
                     </Link>
                   ))
                 )}
@@ -416,7 +416,7 @@ export function ListaAtendimentos(p: Props) {
                         </div>
                         <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 1 }}>
                           {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
-                          {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+                          {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`}
                           {f.fechado_por && ` · ${f.fechado_por}`}
                         </div>
                       </div>

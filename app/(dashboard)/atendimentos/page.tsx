@@ -408,7 +408,7 @@ function PendingView({ ticketId, mensagens, contatoNome }: { ticketId: string; m
                   m.conteudo || m.transcricao || `[${m.tipo}]`
                 )}
                 <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", marginTop: 4, textAlign: "right" }}>
-                  {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                 </div>
               </div>
             </div>

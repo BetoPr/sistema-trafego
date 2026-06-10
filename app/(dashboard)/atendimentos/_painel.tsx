@@ -474,7 +474,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
               </div>
               {ticket.resumo_atualizado_em && !streamingActive && (
                 <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "6px 12px", fontSize: 9.5, color: "var(--mk-text-muted)" }}>
-                  Atualizado: {new Date(ticket.resumo_atualizado_em).toLocaleString("pt-BR")}
+                  Atualizado: {new Date(ticket.resumo_atualizado_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </div>
               )}
               <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
@@ -605,7 +605,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                       {labelAcao(l.acao)} {l.entidade && `· ${l.entidade}`}
                     </div>
                     <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 4 }}>
-                      {new Date(l.created_at).toLocaleString("pt-BR")}
+                      {new Date(l.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                     </div>
                   </div>
                 );
@@ -622,7 +622,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--mk-text)" }}>{usr?.nome || "—"}</div>
                     <div style={{ fontSize: 12, color: "var(--mk-text-secondary)", marginTop: 4, whiteSpace: "pre-wrap" }}>{n.conteudo}</div>
                     <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
-                      {new Date(n.created_at).toLocaleString("pt-BR")}
+                      {new Date(n.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                     </div>
                   </div>
                 );
