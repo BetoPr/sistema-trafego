@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
+import { estadoPorDDD } from "@/lib/br/ddd";
 import { criarContato, atualizarContato, deletarContato } from "./_actions";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string; q?: string }>;
 }
 
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
 function fmtWhats(n: string | null): string {
   if (!n) return "—";
   if (n.length === 13) return `+${n.slice(0, 2)} (${n.slice(2, 4)}) ${n.slice(4, 9)}-${n.slice(9)}`;
   if (n.length === 12) return `+${n.slice(0, 2)} (${n.slice(2, 4)}) ${n.slice(4, 8)}-${n.slice(8)}`;
   return n;
+}
+
+interface FechResumo {
+  total: number;
+  quantidade: number;
+  fechamentos: number;
+  servicos: Map<string, { qtd: number; valor: number }>;
+  ultimo: string | null;
 }
 
 export default async function ContatosPage({ searchParams }: PageProps) {
@@ -21,18 +32,49 @@ export default async function ContatosPage({ searchParams }: PageProps) {
 
   let q = sb
     .from("contatos")
-    .select("id, nome, whatsapp, email, empresa, cidade, foto_url, created_at, etiquetas:contato_etiquetas(etiqueta:etiquetas(id, nome, cor))")
+    .select("id, nome, whatsapp, foto_url, created_at, etiquetas:contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))")
     .eq("agencia_id", ctx.agenciaId)
     .is("deleted_at", null);
 
   if (sp.q) {
-    q = q.or(`nome.ilike.%${sp.q}%,whatsapp.ilike.%${sp.q}%,email.ilike.%${sp.q}%,empresa.ilike.%${sp.q}%`);
+    q = q.or(`nome.ilike.%${sp.q}%,whatsapp.ilike.%${sp.q}%`);
   }
 
-  const { data: contatos } = await q.order("nome").limit(200);
+  const [{ data: contatos }, { data: fechRows }] = await Promise.all([
+    q.order("nome").limit(200),
+    sb
+      .from("tickets")
+      .select("contato_id, valor_fechado, fechado_em, metadata")
+      .eq("agencia_id", ctx.agenciaId)
+      .not("valor_fechado", "is", null),
+  ]);
+
+  // Agrega fechamentos por contato
+  const fechPorContato = new Map<string, FechResumo>();
+  for (const t of fechRows || []) {
+    const cid = t.contato_id as string;
+    const valor = Number(t.valor_fechado || 0);
+    const meta = (t.metadata || {}) as { servico?: string; quantidade?: number };
+    const qtd = Number(meta.quantidade || 1);
+    const serv = (meta.servico || "Sem serviço").trim() || "Sem serviço";
+
+    let r = fechPorContato.get(cid);
+    if (!r) {
+      r = { total: 0, quantidade: 0, fechamentos: 0, servicos: new Map(), ultimo: null };
+      fechPorContato.set(cid, r);
+    }
+    r.total += valor;
+    r.quantidade += qtd;
+    r.fechamentos += 1;
+    const s = r.servicos.get(serv);
+    if (s) { s.qtd += qtd; s.valor += valor; }
+    else r.servicos.set(serv, { qtd, valor });
+    if (t.fechado_em && (!r.ultimo || t.fechado_em > r.ultimo)) r.ultimo = t.fechado_em;
+  }
 
   const editando = sp.editar ? contatos?.find((c) => c.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
+  const fechEditando = editando ? fechPorContato.get(editando.id) : undefined;
 
   return (
     <section className="mk-page">
@@ -40,7 +82,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
         <div>
           <div className="mk-eyebrow">Atendimento</div>
           <h1 className="mk-page-title">Contatos</h1>
-          <p className="mk-page-sub">Base de contatos da agência. Importação CSV em breve.</p>
+          <p className="mk-page-sub">Base de contatos da agência com histórico de fechamentos.</p>
         </div>
         {!mostrarForm && <Link href="/contatos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Adicionar contato</Link>}
       </div>
@@ -49,7 +91,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
 
       <form method="get" style={{ marginBottom: 14, display: "flex", gap: 8 }}>
-        <input name="q" defaultValue={sp.q || ""} placeholder="Buscar nome, número, email…" style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }} />
+        <input name="q" defaultValue={sp.q || ""} placeholder="Buscar nome ou número…" style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }} />
         <button type="submit" className="ghost-btn"><i className="ti ti-search" /></button>
       </form>
 
@@ -62,11 +104,42 @@ export default async function ContatosPage({ searchParams }: PageProps) {
               <Field label="Nome" name="nome" defaultValue={editando?.nome ?? ""} required />
               <Field label="WhatsApp" name="whatsapp" defaultValue={editando?.whatsapp ?? ""} placeholder="5511999999999" />
             </div>
-            <div style={grid2}>
-              <Field label="Email" name="email" type="email" defaultValue={editando?.email ?? ""} />
-              <Field label="Empresa" name="empresa" defaultValue={editando?.empresa ?? ""} />
+            <div>
+              <label style={lblMono}>Estado (DDD)</label>
+              <div style={{ padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", color: "var(--mk-text-secondary)", fontSize: 12.5 }}>
+                <i className="ti ti-map-pin" style={{ marginRight: 6, color: "var(--mk-text-muted)" }} />
+                {estadoPorDDD(editando?.whatsapp)} <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>— detectado automaticamente pelo DDD do número</span>
+              </div>
             </div>
-            <Field label="Cidade" name="cidade" defaultValue={editando?.cidade ?? ""} />
+
+            {/* Histórico de fechamentos do contato */}
+            {editando && (
+              <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 12 }}>
+                <label style={lblMono}>Fechamentos</label>
+                {!fechEditando ? (
+                  <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: "6px 0" }}>
+                    <i className="ti ti-receipt-off" style={{ marginRight: 6 }} />Nenhum fechamento com este contato ainda.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 18, flexWrap: "wrap", padding: "8px 12px", background: "rgba(107,142,78,0.10)", border: "0.5px solid rgba(107,142,78,0.4)", borderRadius: 8 }}>
+                      <Stat label="TOTAL" valor={BRL.format(fechEditando.total)} cor="#6B8E4E" />
+                      <Stat label="FECHAMENTOS" valor={String(fechEditando.fechamentos)} />
+                      <Stat label="SERVIÇOS (QTD)" valor={String(fechEditando.quantidade)} />
+                      {fechEditando.ultimo && <Stat label="ÚLTIMO" valor={new Date(fechEditando.ultimo).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} />}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {Array.from(fechEditando.servicos.entries()).map(([nome, s]) => (
+                        <span key={nome} style={{ fontSize: 10.5, padding: "3px 9px", borderRadius: 10, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text-secondary)" }}>
+                          {nome} × {s.qtd} · <strong style={{ color: "#6B8E4E" }}>{BRL.format(s.valor)}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 8 }}>
               <button type="submit" className="cta-btn"><i className="ti ti-device-floppy" /> {editando ? "Salvar" : "Criar"}</button>
               <Link href="/contatos" className="ghost-btn">Cancelar</Link>
@@ -85,8 +158,8 @@ export default async function ContatosPage({ searchParams }: PageProps) {
               <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 11 }}>
                 <th style={thLi}>Nome</th>
                 <th style={thLi}>WhatsApp</th>
-                <th style={thLi}>Email</th>
-                <th style={thLi}>Empresa</th>
+                <th style={thLi}>Estado</th>
+                <th style={thLi}>Fechamentos</th>
                 <th style={thLi}>Tags</th>
                 <th style={thLi}>Ações</th>
               </tr>
@@ -96,6 +169,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                 const tags = ((c.etiquetas as unknown as Array<{ etiqueta: { id: string; nome: string; cor: string } | { id: string; nome: string; cor: string }[] | null }> | null) || [])
                   .map((e) => (Array.isArray(e.etiqueta) ? e.etiqueta[0] : e.etiqueta))
                   .filter((e): e is { id: string; nome: string; cor: string } => !!e);
+                const fech = fechPorContato.get(c.id);
                 return (
                   <tr key={c.id} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
                     <td style={tdLi}>
@@ -107,8 +181,19 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                       </div>
                     </td>
                     <td style={{ ...tdLi, fontFamily: "monospace", fontSize: 11.5 }}>{fmtWhats(c.whatsapp)}</td>
-                    <td style={tdLi}>{c.email || "—"}</td>
-                    <td style={tdLi}>{c.empresa || "—"}</td>
+                    <td style={tdLi}>{estadoPorDDD(c.whatsapp)}</td>
+                    <td style={tdLi}>
+                      {fech ? (
+                        <div title={Array.from(fech.servicos.entries()).map(([n, s]) => `${n} × ${s.qtd} (${BRL.format(s.valor)})`).join("\n")}>
+                          <span style={{ fontWeight: 700, color: "#6B8E4E" }}>{BRL.format(fech.total)}</span>
+                          <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginLeft: 6 }}>
+                            {fech.fechamentos}× · {fech.quantidade} serviço{fech.quantidade === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ color: "var(--mk-text-muted)" }}>—</span>
+                      )}
+                    </td>
                     <td style={tdLi}>
                       {tags.length > 0 ? (
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -136,6 +221,15 @@ export default async function ContatosPage({ searchParams }: PageProps) {
   );
 }
 
+function Stat({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: cor || "var(--mk-text)" }}>{valor}</div>
+    </div>
+  );
+}
+
 function labelOk(k: string) { return ({ criado: "Contato criado.", atualizado: "Atualizado.", deletado: "Removido." } as Record<string, string>)[k] || "OK."; }
 function labelErr(k: string) { return ({ nome_vazio: "Nome obrigatório.", db: "Erro no banco." } as Record<string, string>)[k] || "Erro."; }
 
@@ -147,12 +241,13 @@ function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.React
 function Field({ label, name, defaultValue, placeholder, required, type = "text" }: { label: string; name: string; defaultValue?: string; placeholder?: string; required?: boolean; type?: string }) {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" }}>{label}{required && <span style={{ color: "#C97064" }}> *</span>}</label>
+      <label style={lblMono}>{label}{required && <span style={{ color: "#C97064" }}> *</span>}</label>
       <input type={type} name={name} defaultValue={defaultValue} placeholder={placeholder} required={required} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }} />
     </div>
   );
 }
 
+const lblMono: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
 const grid2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 };
 const iconBtn: React.CSSProperties = { fontSize: 11, padding: "4px 10px" };
 const thLi: React.CSSProperties = { padding: "8px 10px" };

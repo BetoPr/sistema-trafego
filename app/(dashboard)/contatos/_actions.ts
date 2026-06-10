@@ -48,23 +48,24 @@ export async function atualizarContato(formData: FormData) {
   const id = String(formData.get("id") || "");
   const nome = String(formData.get("nome") || "").trim();
   const whatsapp = digits(String(formData.get("whatsapp") || ""));
-  const email = String(formData.get("email") || "").trim() || null;
-  const empresa = String(formData.get("empresa") || "").trim() || null;
-  const cidade = String(formData.get("cidade") || "").trim() || null;
+
+  const patch: Record<string, unknown> = {
+    nome,
+    primeiro_nome: nome.split(" ")[0],
+    whatsapp: whatsapp || null,
+    wa_id: whatsapp ? `${whatsapp}@s.whatsapp.net` : null,
+    updated_at: new Date().toISOString(),
+  };
+  // Email/empresa/cidade saíram do form de edição — só atualiza se o campo
+  // vier no form (preserva valores existentes de outras fontes).
+  if (formData.has("email")) patch.email = String(formData.get("email") || "").trim() || null;
+  if (formData.has("empresa")) patch.empresa = String(formData.get("empresa") || "").trim() || null;
+  if (formData.has("cidade")) patch.cidade = String(formData.get("cidade") || "").trim() || null;
 
   const sb = createServiceClient();
   const { error } = await sb
     .from("contatos")
-    .update({
-      nome,
-      primeiro_nome: nome.split(" ")[0],
-      whatsapp: whatsapp || null,
-      wa_id: whatsapp ? `${whatsapp}@s.whatsapp.net` : null,
-      email,
-      empresa,
-      cidade,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq("id", id)
     .eq("agencia_id", ctx.agenciaId);
   if (error) redirect(`/contatos?erro=db&msg=${encodeURIComponent(error.message)}`);
