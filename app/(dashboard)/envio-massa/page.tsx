@@ -49,8 +49,8 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
                 {canais?.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </div>
-            <Field label="Delay min (seg)" name="min_delay" type="number" defaultValue="1" />
-            <Field label="Delay max (seg)" name="max_delay" type="number" defaultValue="3" />
+            <Field label="Delay min (seg)" name="min_delay" type="number" defaultValue="20" />
+            <Field label="Delay max (seg)" name="max_delay" type="number" defaultValue="45" />
           </div>
 
           <div>
@@ -61,6 +61,17 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
           <div>
             <Label>Números (um por linha, formato 5511999999999)</Label>
             <textarea name="numeros" required rows={6} style={{ ...inp, fontFamily: "monospace", fontSize: 11.5, resize: "vertical" }} placeholder="5511999999999\n5527999999999" />
+          </div>
+
+          <div style={{ background: "rgba(201,112,100,0.12)", borderLeft: "3px solid #C97064", padding: "12px 14px", borderRadius: 6, fontSize: 11.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
+            <div style={{ fontWeight: 700, color: "#C97064", marginBottom: 4 }}>
+              <i className="ti ti-alert-triangle" style={{ marginRight: 6 }} />
+              Risco de bloqueio do número
+            </div>
+            Disparos em excesso ou com intervalo muito curto entre mensagens podem fazer o WhatsApp <strong>banir o número permanentemente</strong>. Quanto menor o delay e maior o volume, maior o risco.
+            <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(107,142,78,0.12)", borderRadius: 6, border: "0.5px solid rgba(107,142,78,0.4)" }}>
+              <strong style={{ color: "#6B8E4E" }}><i className="ti ti-shield-check" style={{ marginRight: 4 }} />Configuração confortável:</strong> delay mín <strong>20s</strong> e máx <strong>45s</strong>, com lotes de até <strong>50 números por vez</strong> e pausa de ~30min entre lotes. Número novo (chip recém-ativado)? Comece com mín <strong>60s</strong> / máx <strong>120s</strong> e no máximo 20 contatos/dia na primeira semana.
+            </div>
           </div>
 
           <div style={{ background: "rgba(201,168,118,0.15)", borderLeft: "3px solid #C9A876", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)" }}>
