@@ -38,11 +38,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (body.servico != null) meta.servico = body.servico;
   if (body.quantidade != null) meta.quantidade = body.quantidade;
 
+  // Fechamento marca ticket como fechado + carimba fechado_em pro Dashboard contabilizar
   const { error } = await sb
     .from("tickets")
     .update({
       valor_fechado: body.valor,
       metadata: meta,
+      status: "fechado",
+      fechado_em: new Date().toISOString(),
+      fechado_por: auth.user.id,
     })
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
