@@ -16,10 +16,10 @@ export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: P
   return (
     <>
       <div className="dash-kpis" style={{ marginBottom: 14 }}>
-        <Kpi label="Faturamento" valor={BRL.format(kpis.faturamento_total)} icon="ti-cash" cor="#6B8E4E" sub={periodoLabel} />
-        <Kpi label="Tickets fechados" valor={String(kpis.tickets_fechados)} icon="ti-checks" cor="#5B8BA6" sub={periodoLabel} />
-        <Kpi label="Serviços vendidos" valor={String(kpis.quantidade_total)} icon="ti-shopping-bag" cor="#9B7DBF" sub="soma das quantidades" />
-        <Kpi label="Ticket médio" valor={BRL.format(kpis.ticket_medio)} icon="ti-trending-up" cor="#C9A876" sub={periodoLabel} />
+        <Kpi label="Faturamento" valor={BRL.format(kpis.faturamento_total)} icon="ti-cash" cor="#10b981" primary sub={periodoLabel} />
+        <Kpi label="Tickets fechados" valor={String(kpis.tickets_fechados)} icon="ti-checks" cor="#94a3b8" sub={periodoLabel} />
+        <Kpi label="Serviços vendidos" valor={String(kpis.quantidade_total)} icon="ti-shopping-bag" cor="#94a3b8" sub="soma das quantidades" />
+        <Kpi label="Ticket médio" valor={BRL.format(kpis.ticket_medio)} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
       </div>
 
       <div className="dash-2col" style={{ marginTop: 14 }}>
@@ -34,7 +34,7 @@ export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: P
                 <XAxis dataKey="data" tick={{ fontSize: 10, fill: "var(--mk-text-muted)" }} tickFormatter={(v) => v.slice(5)} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--mk-text-muted)" }} tickFormatter={(v) => `R$${v}`} />
                 <Tooltip contentStyle={{ background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8, fontSize: 11 }} formatter={(v) => BRL.format(Number(v) || 0)} />
-                <Line type="monotone" dataKey="faturamento" stroke="#6B8E4E" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="faturamento" stroke="#10b981" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -51,7 +51,7 @@ export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: P
                 <XAxis dataKey="data" tick={{ fontSize: 10, fill: "var(--mk-text-muted)" }} tickFormatter={(v) => v.slice(5)} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--mk-text-muted)" }} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8, fontSize: 11 }} />
-                <Bar dataKey="tickets" fill="#5B8BA6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="tickets" fill="#14b8a6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -91,14 +91,14 @@ export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: P
   );
 }
 
-function Kpi({ label, valor, icon, cor, sub }: { label: string; valor: string; icon: string; cor: string; sub?: string }) {
+function Kpi({ label, valor, icon, cor, sub, primary }: { label: string; valor: string; icon: string; cor: string; sub?: string; primary?: boolean }) {
   return (
     <div className="mk-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>{label.toUpperCase()}</div>
         <i className={`ti ${icon}`} style={{ fontSize: 14, color: cor }} />
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: "var(--mk-text)" }}>{valor}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: primary ? cor : "var(--mk-text)" }}>{valor}</div>
       {sub && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
