@@ -10,9 +10,9 @@ import {
   desconectarCanal,
   deletarCanal,
   importarCanalExistente,
-  listarInstanciasDisponiveis,
 } from "./_actions";
 import { CanaisAutoRefresh } from "./_auto-refresh";
+import { InstanciasDisponiveis } from "./_instancias";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; qr?: string }>;
@@ -23,7 +23,8 @@ export default async function CanaisPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const [{ data: canais }, { data: filas }, { data: usuarios }, { data: servidores }, instanciasDisponiveis] = await Promise.all([
+  // SEM chamadas UAZAPI no load — busca de instâncias virou botão on-demand (InstanciasDisponiveis)
+  const [{ data: canais }, { data: filas }, { data: usuarios }, { data: servidores }] = await Promise.all([
     sb
       .from("canais")
       .select("id, numero, nome, tipo, status, instance_id, numero_conectado, nome_perfil, foto_perfil_url, padrao, fila_id, usuario_id, qr_code_atual, qr_atualizado_em, updated_at")
@@ -32,7 +33,6 @@ export default async function CanaisPage({ searchParams }: PageProps) {
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
     sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId).is("deleted_at", null).order("nome"),
     sb.from("super_admin_servidores").select("id, nome").eq("ativo", true),
-    listarInstanciasDisponiveis().catch(() => []),
   ]);
 
   const filaById = new Map((filas || []).map((f) => [f.id, f]));
@@ -189,44 +189,8 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* Importar instância existente — lista do servidor */}
-      {instanciasDisponiveis.length > 0 && (
-        <div className="mk-card mk-card-lg" id="importar" style={{ marginBottom: 14, borderLeft: "3px solid #6B8E4E" }}>
-          <h3 className="card-title" style={{ marginBottom: 6 }}>
-            <i className="ti ti-download" style={{ marginRight: 6, color: "#6B8E4E" }} />
-            Importar instância já existente no servidor
-          </h3>
-          <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>
-            Encontramos {instanciasDisponiveis.length} instância(s) no servidor UAZAPI que ainda não foram importadas pro sistema.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {instanciasDisponiveis.map((i) => {
-              const conectada = i.status === "connected";
-              return (
-                <form key={i.id} action={importarCanalExistente} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)" }}>
-                  <input type="hidden" name="nome" value={i.name} />
-                  <input type="hidden" name="instance_token" value="" />
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: "linear-gradient(135deg, #25D366, #128C7E)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8" }}>
-                    <i className="ti ti-brand-whatsapp" />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{i.name}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
-                      {i.id} · {i.profileName || "—"} · {i.numberConectado || "—"}
-                    </div>
-                  </div>
-                  <span className={`mk-badge ${conectada ? "b-green" : "b-gray"}`} style={{ fontSize: 10 }}>
-                    {i.status.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>
-                    cole o token p/ importar →
-                  </span>
-                </form>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Instâncias no servidor — busca on-demand (botão) */}
+      {!semServidor && <InstanciasDisponiveis />}
 
       {/* Importar via Instance Token manual */}
       <div className="mk-card mk-card-lg" id="importar-token" style={{ marginBottom: 14 }}>
