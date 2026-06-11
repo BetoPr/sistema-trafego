@@ -11,7 +11,13 @@ export interface TicketLista {
   ultima_mensagem_em: string | null;
   ultima_mensagem_preview: string | null;
   sentimento: string | null;
-  contato: { id: string; nome: string; whatsapp: string | null; foto_url: string | null } | null;
+  contato: {
+    id: string;
+    nome: string;
+    whatsapp: string | null;
+    foto_url: string | null;
+    contato_etiquetas?: Array<{ etiqueta: { id: string; nome: string; cor: string; categoria?: string | null } | null } | null> | null;
+  } | null;
   canal: { id: string; nome: string; status: string; instance_id: string | null } | null;
   fila: { id: string; nome: string; cor: string } | null;
 }
@@ -317,7 +323,16 @@ export function ListaAtendimentos(p: Props) {
                 <AvatarContato nome={c?.nome} foto={c?.foto_url} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c?.nome || c?.whatsapp || "—"}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>{c?.nome || c?.whatsapp || "—"}</span>
+                    {/* Ícones das etiquetas aplicadas (só cor, sem texto) */}
+                    {(c?.contato_etiquetas || [])
+                      .map((ce) => ce?.etiqueta)
+                      .filter((e): e is { id: string; nome: string; cor: string; categoria?: string | null } => !!e && (e.categoria || "etiqueta") === "etiqueta")
+                      .slice(0, 4)
+                      .map((e) => (
+                        <i key={e.id} className="ti ti-tag" title={e.nome} style={{ fontSize: 13, color: e.cor, flexShrink: 0 }} />
+                      ))}
+                    <span style={{ flex: 1 }} />
                     {t.status === "pendente" && (
                       <span
                         role="button"

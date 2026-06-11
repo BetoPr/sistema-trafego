@@ -27,7 +27,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   ] = await Promise.all([
     sb
       .from("tickets")
-      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, contato:contatos(id, nome, whatsapp, foto_url), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
+      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
       .eq("agencia_id", ctx.agenciaId)
       .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
       .limit(300),
@@ -47,7 +47,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     ultima_mensagem_em: t.ultima_mensagem_em,
     ultima_mensagem_preview: t.ultima_mensagem_preview,
     sentimento: t.sentimento,
-    contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as TicketLista["contato"],
+    contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as unknown as TicketLista["contato"],
     canal: (Array.isArray(t.canal) ? t.canal[0] : t.canal) as TicketLista["canal"],
     fila: (Array.isArray(t.fila) ? t.fila[0] : t.fila) as TicketLista["fila"],
   }));

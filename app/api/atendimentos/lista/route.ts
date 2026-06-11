@@ -20,7 +20,7 @@ export async function GET() {
 
   const { data: tickets } = await sb
     .from("tickets")
-    .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, contato:contatos(id, nome, whatsapp, foto_url), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
+    .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
     .eq("agencia_id", u.agencia_id)
     .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
     .limit(300);
