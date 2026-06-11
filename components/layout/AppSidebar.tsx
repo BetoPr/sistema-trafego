@@ -90,6 +90,7 @@ function buildSections(role?: string): NavSection[] {
       items: [
         { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
         { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
+        { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag" },
       ],
     },
   ];

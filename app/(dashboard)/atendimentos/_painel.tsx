@@ -359,25 +359,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
               </div>
             </Card>
 
-            {/* CARD Flags */}
-            <Card titulo="Flags">
-              {etiquetas.filter((e) => e.categoria === "flag").length > 0 ? (
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "10px 12px" }}>
-                  {etiquetas.filter((e) => e.categoria === "flag").map((e) => (
-                    <span key={e.id} onClick={() => removeEtiqueta(e.id)} title="Clique pra remover deste contato" style={{ fontSize: 10, padding: "3px 8px", borderRadius: 12, background: `${e.cor}33`, color: e.cor, border: `0.5px solid ${e.cor}`, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <i className="ti ti-flag" style={{ fontSize: 9 }} /> {e.nome} <i className="ti ti-x" style={{ fontSize: 9 }} />
-                    </span>
-                  ))}
-                </div>
-              ) : <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--mk-text-muted)" }}>Sem flags</div>}
-              <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
-                <button onClick={() => setShowEtiquetaPicker("flag")} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
-                  <i className="ti ti-flag-plus" /> Adicionar Flag
-                </button>
-              </div>
-            </Card>
-
-            {/* CARD fechamento — abaixo de Flags */}
+            {/* CARD fechamento */}
             {ticket.valor_fechado != null ? (
               <Card titulo="Fechamento">
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
