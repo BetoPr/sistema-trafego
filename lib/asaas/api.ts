@@ -219,7 +219,7 @@ export interface CreatePaymentLink {
   endDate?: string;
   value: number;
   billingType: "UNDEFINED" | "CREDIT_CARD" | "PIX";
-  chargeType?: "DETACHED" | "RECURRENT";
+  chargeType?: "DETACHED" | "RECURRENT" | "INSTALLMENT";
   maxInstallmentCount?: number;
   notificationEnabled?: boolean;
   externalReference?: string;

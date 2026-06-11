@@ -139,12 +139,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // CARTÃO (paymentLinks, sem CPF obrigatório)
     // =========================
     if (body.tipo === "cartao") {
+      const parcelas = body.parcelas || 1;
+      // Asaas só permite parcelar no link quando chargeType = INSTALLMENT.
+      // DETACHED (avulso) força sempre 1x. À vista mantém DETACHED.
       const link = await createPaymentLink(client, {
         name: body.descricao || "Cobrança",
         value: body.valor,
         billingType: "CREDIT_CARD",
-        maxInstallmentCount: body.parcelas || 1,
-        chargeType: "DETACHED",
+        maxInstallmentCount: parcelas,
+        chargeType: parcelas > 1 ? "INSTALLMENT" : "DETACHED",
         externalReference: `tk:${ticketId}`,
       });
       await sb.from("asaas_cobrancas").insert({
