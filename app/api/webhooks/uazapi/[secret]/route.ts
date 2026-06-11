@@ -26,7 +26,7 @@ import { ingestMensagem } from "@/lib/crm/ingest";
 import { audit, getIp } from "@/lib/crm/audit";
 import { transcreverMensagemAudio } from "@/lib/crm/ia";
 import { downloadAndUpload, uploadMedia } from "@/lib/crm/storage";
-import { instanceDownloadMessage } from "@/lib/uazapi/client";
+import { instanceDownloadMessage, instanceGetNameAndImage } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { uploadImageToImgbb, uploadImageFromUrlToImgbb } from "@/lib/imgbb/upload";
 
@@ -88,6 +88,23 @@ export async function POST(
         },
         parsed,
       );
+
+      // Foto de perfil do contato: busca na 1ª mensagem (URL pps temporária do WhatsApp).
+      if (ingest.novoContato) {
+        void (async () => {
+          try {
+            const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+            const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+            const numero = parsed.waChatId.replace(/@.+$/, "");
+            const ni = await instanceGetNameAndImage({ baseUrl, token }, numero);
+            if (ni.image) {
+              await sb.from("contatos").update({ foto_url: ni.image }).eq("id", ingest.contatoId);
+            }
+          } catch (e) {
+            console.error("[webhook uazapi] foto contato falhou:", e);
+          }
+        })();
+      }
 
       // Mídia: baixa e sobe pro bucket em background.
       const ehMidia = ["audio", "imagem", "video", "documento", "sticker"].includes(parsed.tipo);

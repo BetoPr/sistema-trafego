@@ -512,6 +512,23 @@ export async function instanceRemoveWebhook(
   });
 }
 
+/**
+ * POST /chat/GetNameAndImageURL — nome + foto de perfil de um número.
+ * Retorna `{ image: <url pps.whatsapp.net> }` (URL temporária do WhatsApp).
+ */
+export interface NameAndImage {
+  id?: string;
+  name?: string;
+  image?: string | null;
+}
+export async function instanceGetNameAndImage(inst: UazapiInstance, number: string): Promise<NameAndImage> {
+  return (await call(inst.baseUrl, "/chat/GetNameAndImageURL", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: { number },
+  })) as NameAndImage;
+}
+
 /** GET /webhook — retorna config atual (array de webhooks). */
 export async function instanceGetWebhook(inst: UazapiInstance): Promise<InstanceWebhookConfig[]> {
   const r = (await call(inst.baseUrl, "/webhook", {

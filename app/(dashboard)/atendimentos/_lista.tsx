@@ -307,9 +307,7 @@ export function ListaAtendimentos(p: Props) {
                   fontFamily: "inherit",
                 }}
               >
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
-                  {c?.nome.slice(0, 2).toUpperCase() || "?"}
-                </div>
+                <AvatarContato nome={c?.nome} foto={c?.foto_url} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <span style={{ fontSize: 12.5, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c?.nome || c?.whatsapp || "—"}</span>
@@ -563,4 +561,19 @@ const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", bo
 
 const modalOverlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 14, width: "min(560px, 92vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 16px 48px rgba(0,0,0,0.5)" };
+/** Avatar do contato: foto do WhatsApp com fallback pras iniciais (foto pode expirar). */
+function AvatarContato({ nome, foto }: { nome?: string | null; foto?: string | null }) {
+  const [erro, setErro] = useState(false);
+  const ini = nome?.slice(0, 2).toUpperCase() || "?";
+  if (foto && !erro) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={foto} alt="" onError={() => setErro(true)} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "var(--mk-surface-2)" }} />;
+  }
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
+      {ini}
+    </div>
+  );
+}
+
 const modalCloseBtn: React.CSSProperties = { background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: "50%", width: 28, height: 28, color: "var(--mk-text)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
