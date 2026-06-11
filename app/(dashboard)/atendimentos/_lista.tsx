@@ -40,6 +40,13 @@ const TABS: Array<{ id: "aberto" | "pendente" | "fechado"; label: string }> = [
 
 export function ListaAtendimentos(p: Props) {
   const [tab, setTab] = useState<"aberto" | "pendente" | "fechado">(p.initialTab || "aberto");
+  // "agora" pra calcular tempo relativo (só após montar, evita mismatch de hidratação); atualiza a cada 60s
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    setNow(Date.now());
+    const iv = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(iv);
+  }, []);
   const [canalFiltro, setCanalFiltro] = useState<string | null>(null);
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
@@ -321,6 +328,9 @@ export function ListaAtendimentos(p: Props) {
                         <i className="ti ti-eye" />
                       </span>
                     )}
+                    {now > 0 && t.ultima_mensagem_em && (
+                      <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>{tempoRel(t.ultima_mensagem_em, now)}</span>
+                    )}
                     <span style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>#{t.numero}</span>
                   </div>
                   <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -561,6 +571,19 @@ const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", bo
 
 const modalOverlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 14, width: "min(560px, 92vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 16px 48px rgba(0,0,0,0.5)" };
+/** Tempo desde o último contato, compacto: agora / 1m / 1h / 1d / 1sem. */
+function tempoRel(iso: string, now: number): string {
+  const diff = now - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return `${Math.floor(d / 7)}sem`;
+}
+
 /** Avatar do contato: foto do WhatsApp com fallback pras iniciais (foto pode expirar). */
 function AvatarContato({ nome, foto }: { nome?: string | null; foto?: string | null }) {
   const [erro, setErro] = useState(false);
