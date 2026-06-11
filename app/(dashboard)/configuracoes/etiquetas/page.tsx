@@ -8,13 +8,19 @@ export default async function EtiquetasConfigPage() {
   const sb = createServiceClient();
   const { data } = await sb
     .from("etiquetas")
-    .select("id, nome, cor, categoria")
+    .select("id, nome, cor, categoria, palavra_gatilho, ativo")
     .eq("agencia_id", ctx.agenciaId)
     .order("nome");
 
   const etiquetas = (data || [])
     .filter((e) => (e.categoria || "etiqueta") === "etiqueta")
-    .map((e) => ({ id: e.id as string, nome: e.nome as string, cor: (e.cor as string) || "#10b981" }));
+    .map((e) => ({
+      id: e.id as string,
+      nome: e.nome as string,
+      cor: (e.cor as string) || "#10b981",
+      palavra_gatilho: (e.palavra_gatilho as string | null) ?? null,
+      ativo: (e.ativo as boolean | null) ?? true,
+    }));
 
   return (
     <section className="mk-page">

@@ -35,7 +35,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
     sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).is("deleted_at", null).order("nome"),
     sb.from("mensagens_rapidas").select("id, comando, conteudo").eq("agencia_id", ctx.agenciaId).or(`usuario_id.eq.${ctx.userId},global.eq.true`),
-    sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).order("nome"),
+    sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
     sb.from("servicos").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
     sb.from("agencias").select("servicos_habilitados").eq("id", ctx.agenciaId).single(),
   ]);

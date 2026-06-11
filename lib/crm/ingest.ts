@@ -132,6 +132,29 @@ export async function ingestMensagem(
     .single();
   if (msgErr) throw msgErr;
 
+  // 3b. Etiquetas por palavra-chave gatilho — só em mensagem recebida do cliente.
+  // Se a palavra configurada aparece no texto, aplica a etiqueta no contato.
+  if (autor === "cliente" && m.conteudo) {
+    void (async () => {
+      try {
+        const texto = m.conteudo!.toLowerCase();
+        const { data: gatilhos } = await sb
+          .from("etiquetas")
+          .select("id, palavra_gatilho")
+          .eq("agencia_id", ctx.agenciaId)
+          .eq("ativo", true)
+          .not("palavra_gatilho", "is", null);
+        for (const g of gatilhos || []) {
+          const palavra = (g.palavra_gatilho as string | null)?.trim().toLowerCase();
+          if (palavra && texto.includes(palavra)) {
+            // Unique (contato_id, etiqueta_id) faz o insert duplicado falhar em silêncio.
+            await sb.from("contato_etiquetas").insert({ contato_id: contatoId, etiqueta_id: g.id });
+          }
+        }
+      } catch {}
+    })();
+  }
+
   // 4. Disparos pós (não bloqueia).
   if (autor === "cliente") {
     void dispatchWebhook({

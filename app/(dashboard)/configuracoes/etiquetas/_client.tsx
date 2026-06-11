@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { Balao } from "@/components/ui/Balao";
 import { criarEtiqueta } from "./_actions";
 
 interface Etiqueta {
   id: string;
   nome: string;
   cor: string;
+  palavra_gatilho: string | null;
+  ativo: boolean;
 }
 
 const PALETA = [
@@ -19,7 +22,7 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
   const [nome, setNome] = useState("");
   const [cor, setCor] = useState(PALETA[0]);
   const [criando, setCriando] = useState(false);
-  const [editandoCor, setEditandoCor] = useState<string | null>(null);
+  const [editando, setEditando] = useState<Etiqueta | null>(null);
 
   async function adicionar() {
     const n = nome.trim();
@@ -28,7 +31,7 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
     try {
       const r = await criarEtiqueta(n, cor);
       if (r.ok && r.id) {
-        setLista((l) => [...l, { id: r.id!, nome: n, cor }].sort((a, b) => a.nome.localeCompare(b.nome)));
+        setLista((l) => [...l, { id: r.id!, nome: n, cor, palavra_gatilho: null, ativo: true }].sort((a, b) => a.nome.localeCompare(b.nome)));
         setNome("");
       } else {
         alert(r.msg || "Falha ao criar.");
@@ -38,39 +41,16 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
     }
   }
 
-  async function patch(id: string, body: { nome?: string; cor?: string }) {
-    const r = await fetch(`/api/etiquetas/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) {
-      const j = await r.json().catch(() => ({}));
-      alert(`Falha: ${j.error || r.statusText}`);
-      return false;
-    }
-    return true;
-  }
-
-  async function mudarCor(id: string, novaCor: string) {
-    setLista((l) => l.map((e) => (e.id === id ? { ...e, cor: novaCor } : e)));
-    setEditandoCor(null);
-    await patch(id, { cor: novaCor });
-  }
-
-  async function renomear(e: Etiqueta) {
-    const novo = prompt("Renomear etiqueta:", e.nome);
-    if (!novo || !novo.trim() || novo.trim() === e.nome) return;
-    if (await patch(e.id, { nome: novo.trim() })) {
-      setLista((l) => l.map((x) => (x.id === e.id ? { ...x, nome: novo.trim() } : x)).sort((a, b) => a.nome.localeCompare(b.nome)));
-    }
-  }
-
   async function excluir(e: Etiqueta) {
     if (!confirm(`Excluir a etiqueta "${e.nome}"? Vai remover de todos os contatos.`)) return;
     const r = await fetch(`/api/etiquetas/${e.id}`, { method: "DELETE" });
     if (r.ok) setLista((l) => l.filter((x) => x.id !== e.id));
     else alert("Falha ao excluir.");
+  }
+
+  function aposSalvar(atualizada: Etiqueta) {
+    setLista((l) => l.map((x) => (x.id === atualizada.id ? atualizada : x)).sort((a, b) => a.nome.localeCompare(b.nome)));
+    setEditando(null);
   }
 
   return (
@@ -91,7 +71,6 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
             <i className="ti ti-plus" /> {criando ? "Criando…" : "Criar"}
           </button>
         </div>
-        {/* Preview */}
         <div style={{ marginTop: 8 }}>
           <Badge nome={nome || "Prévia"} cor={cor} />
         </div>
@@ -109,39 +88,101 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {lista.map((e) => (
-              <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderBottom: "0.5px solid var(--mk-border-soft, var(--mk-border))" }}>
-                {/* swatch clicável pra trocar cor */}
-                <div style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setEditandoCor(editandoCor === e.id ? null : e.id)}
-                    title="Mudar cor"
-                    style={{ width: 22, height: 22, borderRadius: 6, background: e.cor, border: "1.5px solid rgba(255,255,255,0.25)", cursor: "pointer", flexShrink: 0 }}
-                  />
-                  {editandoCor === e.id && (
-                    <div style={{ position: "absolute", top: 28, left: 0, zIndex: 20, background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 10, padding: 10, boxShadow: "0 12px 30px rgba(0,0,0,0.4)", width: 184 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6, marginBottom: 8 }}>
-                        {PALETA.map((c) => (
-                          <button key={c} onClick={() => mudarCor(e.id, c)} style={{ width: 26, height: 26, borderRadius: 6, background: c, border: c === e.cor ? "2px solid #fff" : "1px solid rgba(255,255,255,0.2)", cursor: "pointer" }} />
-                        ))}
-                      </div>
-                      <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
-                        Personalizada
-                        <input type="color" value={e.cor} onChange={(ev) => mudarCor(e.id, ev.target.value)} style={{ width: 28, height: 24, padding: 0, border: 0, background: "transparent", cursor: "pointer" }} />
-                      </label>
-                    </div>
-                  )}
-                </div>
-
+              <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderBottom: "0.5px solid var(--mk-border)", opacity: e.ativo ? 1 : 0.5 }}>
                 <Badge nome={e.nome} cor={e.cor} />
+                {e.palavra_gatilho && (
+                  <span title={`Gatilho: ${e.palavra_gatilho}`} style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <i className="ti ti-bolt" /> {e.palavra_gatilho}
+                  </span>
+                )}
+                {!e.ativo && <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "1px 6px" }}>inativo</span>}
                 <div style={{ flex: 1 }} />
-                <button onClick={() => renomear(e)} title="Renomear" style={iconBtn}><i className="ti ti-pencil" /></button>
+                <button onClick={() => setEditando(e)} title="Editar" style={iconBtn}><i className="ti ti-pencil" /></button>
                 <button onClick={() => excluir(e)} title="Excluir" style={{ ...iconBtn, color: "#f43f5e" }}><i className="ti ti-trash" /></button>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {editando && (
+        <EditarBalao etiqueta={editando} onClose={() => setEditando(null)} onSalvo={aposSalvar} />
+      )}
     </div>
+  );
+}
+
+function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClose: () => void; onSalvo: (e: Etiqueta) => void }) {
+  const [nome, setNome] = useState(etiqueta.nome);
+  const [cor, setCor] = useState(etiqueta.cor);
+  const [gatilho, setGatilho] = useState(etiqueta.palavra_gatilho ?? "");
+  const [ativo, setAtivo] = useState(etiqueta.ativo);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar() {
+    if (!nome.trim()) { alert("Nome obrigatório."); return; }
+    setSalvando(true);
+    try {
+      const r = await fetch(`/api/etiquetas/${etiqueta.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ nome: nome.trim(), cor, palavra_gatilho: gatilho.trim() || null, ativo }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        alert(`Falha: ${j.error || r.statusText}`);
+        return;
+      }
+      onSalvo({ ...etiqueta, nome: nome.trim(), cor, palavra_gatilho: gatilho.trim() || null, ativo });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Balao open onClose={onClose} titulo="Editar etiqueta" icone="ti-tag" largura={460}
+      footer={
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} className="ghost-btn" style={{ fontSize: 12 }}>Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="cta-btn" style={{ fontSize: 12 }}>{salvando ? "Salvando…" : "Salvar"}</button>
+        </div>
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <label style={lbl}>Nome</label>
+          <input value={nome} onChange={(e) => setNome(e.target.value)} autoFocus style={inp} />
+        </div>
+
+        <div>
+          <label style={lbl}>Cor</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+            <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} style={{ width: 56, height: 36, padding: 0, border: "0.5px solid var(--mk-border)", borderRadius: 8, background: "transparent", cursor: "pointer" }} />
+            <input value={cor} onChange={(e) => setCor(e.target.value)} style={{ ...inp, flex: 1, fontFamily: "monospace" }} />
+          </div>
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {PALETA.map((c) => (
+              <button key={c} onClick={() => setCor(c)} style={{ width: 22, height: 22, borderRadius: 6, background: c, border: c === cor ? "2px solid var(--mk-text)" : "1px solid rgba(255,255,255,0.2)", cursor: "pointer" }} />
+            ))}
+          </div>
+          <div style={{ marginTop: 10 }}><Badge nome={nome || "Prévia"} cor={cor} /></div>
+        </div>
+
+        <div>
+          <label style={lbl}>Palavra-chave gatilho</label>
+          <input value={gatilho} onChange={(e) => setGatilho(e.target.value)} placeholder="Ex: orçamento, urgente…" style={inp} />
+          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 4, lineHeight: 1.5 }}>
+            Quando essa palavra aparecer numa mensagem recebida, a etiqueta é aplicada automaticamente ao contato.
+          </div>
+        </div>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer" }}>
+          <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} />
+          <span style={{ fontWeight: 600 }}>Ativo</span>
+          <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>(inativa some do menu e não dispara o gatilho)</span>
+        </label>
+      </div>
+    </Balao>
   );
 }
 
@@ -164,4 +205,6 @@ function Swatches({ valor, onChange }: { valor: string; onChange: (c: string) =>
   );
 }
 
+const lbl: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
+const inp: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 };
 const iconBtn: React.CSSProperties = { background: "transparent", border: 0, color: "var(--mk-text-secondary)", cursor: "pointer", padding: "6px 8px", fontSize: 15 };
