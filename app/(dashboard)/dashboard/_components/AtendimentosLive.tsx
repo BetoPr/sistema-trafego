@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DashboardAtendimentos } from "./DashboardAtendimentos";
-import type { KpisAtendimento, ServicoStat, SerieDiaAtend } from "@/lib/crm/dashboard-queries";
+import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat } from "@/lib/crm/dashboard-queries";
 
 interface Dados {
   kpis: KpisAtendimento;
   servicos: ServicoStat[];
   serie: SerieDiaAtend[];
+  satisfacao: SatisfacaoStat;
   label: string;
 }
 
@@ -105,10 +106,18 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
             <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </span>
         )}
+
+        <a
+          href={`/api/relatorios/atendimentos-pdf?${periodo ? `periodo=${periodo}` : `de=${de}&ate=${ate}`}`}
+          style={{ marginLeft: "auto", fontSize: 12, color: "var(--mk-accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}
+          title="Baixa um PDF com os resumos e sentimentos dos atendimentos do período (pra análise no Claude/ChatGPT)"
+        >
+          <i className="ti ti-file-download" /> Baixar análise (PDF)
+        </a>
       </div>
 
       <div style={{ opacity: loading ? 0.6 : 1, transition: "opacity 0.15s ease" }}>
-        <DashboardAtendimentos kpis={dados.kpis} servicos={dados.servicos} serie={dados.serie} periodoLabel={dados.label} />
+        <DashboardAtendimentos kpis={dados.kpis} servicos={dados.servicos} serie={dados.serie} satisfacao={dados.satisfacao} periodoLabel={dados.label} />
       </div>
     </>
   );

@@ -53,6 +53,15 @@ export interface SerieDiaAtend {
   tickets: number;
 }
 
+export interface SatisfacaoStat {
+  muito_bom: number;
+  bom: number;
+  ruim: number;
+  total: number;
+  /** % de satisfeitos (muito_bom + bom) sobre o total analisado. */
+  score: number;
+}
+
 interface TicketRow {
   id: string;
   valor_fechado: number | null;
@@ -64,16 +73,39 @@ export async function carregarDashboardAtendimentos(
   supabase: SupabaseClient,
   agenciaId: string,
   faixa: FaixaDatas,
-): Promise<{ kpis: KpisAtendimento; servicos: ServicoStat[]; serie: SerieDiaAtend[] }> {
+): Promise<{ kpis: KpisAtendimento; servicos: ServicoStat[]; serie: SerieDiaAtend[]; satisfacao: SatisfacaoStat }> {
   // Venda = ticket com valor_fechado registrado (independente do status do ticket —
   // fechamento de pedido não encerra o atendimento).
-  const { data: tickets } = await supabase
-    .from("tickets")
-    .select("id, valor_fechado, fechado_em, metadata")
-    .eq("agencia_id", agenciaId)
-    .not("valor_fechado", "is", null)
-    .gte("fechado_em", faixa.inicio.toISOString())
-    .lte("fechado_em", faixa.fim.toISOString());
+  const [{ data: tickets }, { data: sentRows }] = await Promise.all([
+    supabase
+      .from("tickets")
+      .select("id, valor_fechado, fechado_em, metadata")
+      .eq("agencia_id", agenciaId)
+      .not("valor_fechado", "is", null)
+      .gte("fechado_em", faixa.inicio.toISOString())
+      .lte("fechado_em", faixa.fim.toISOString()),
+    // Satisfação: tickets analisados (sentimento != null) na faixa.
+    supabase
+      .from("tickets")
+      .select("sentimento")
+      .eq("agencia_id", agenciaId)
+      .not("sentimento", "is", null)
+      .gte("created_at", faixa.inicio.toISOString())
+      .lte("created_at", faixa.fim.toISOString()),
+  ]);
+
+  const sat = { muito_bom: 0, bom: 0, ruim: 0 };
+  for (const r of (sentRows || []) as Array<{ sentimento: string | null }>) {
+    if (r.sentimento === "muito_bom") sat.muito_bom++;
+    else if (r.sentimento === "bom") sat.bom++;
+    else if (r.sentimento === "ruim") sat.ruim++;
+  }
+  const satTotal = sat.muito_bom + sat.bom + sat.ruim;
+  const satisfacao: SatisfacaoStat = {
+    ...sat,
+    total: satTotal,
+    score: satTotal > 0 ? Math.round(((sat.muito_bom + sat.bom) / satTotal) * 100) : 0,
+  };
 
   const rows = (tickets || []) as TicketRow[];
 
@@ -131,5 +163,6 @@ export async function carregarDashboardAtendimentos(
     kpis: { faturamento_total, tickets_fechados, quantidade_total, ticket_medio },
     servicos,
     serie,
+    satisfacao,
   };
 }

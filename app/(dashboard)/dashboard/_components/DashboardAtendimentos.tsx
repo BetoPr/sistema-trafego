@@ -1,7 +1,7 @@
 "use client";
 
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
-import type { KpisAtendimento, ServicoStat, SerieDiaAtend } from "@/lib/crm/dashboard-queries";
+import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat } from "@/lib/crm/dashboard-queries";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -9,10 +9,11 @@ interface Props {
   kpis: KpisAtendimento;
   servicos: ServicoStat[];
   serie: SerieDiaAtend[];
+  satisfacao: SatisfacaoStat;
   periodoLabel: string;
 }
 
-export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: Props) {
+export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, periodoLabel }: Props) {
   return (
     <>
       <div className="dash-kpis" style={{ marginBottom: 14 }}>
@@ -20,6 +21,26 @@ export function DashboardAtendimentos({ kpis, servicos, serie, periodoLabel }: P
         <Kpi label="Tickets fechados" valor={String(kpis.tickets_fechados)} icon="ti-checks" cor="#94a3b8" sub={periodoLabel} />
         <Kpi label="Serviços vendidos" valor={String(kpis.quantidade_total)} icon="ti-shopping-bag" cor="#94a3b8" sub="soma das quantidades" />
         <Kpi label="Ticket médio" valor={BRL.format(kpis.ticket_medio)} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
+      </div>
+
+      <div className="mk-card" style={{ padding: 16, marginTop: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 12 }}>SATISFAÇÃO DOS CLIENTES</div>
+        {satisfacao.total === 0 ? (
+          <Empty label="Nenhum atendimento analisado no período" />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+            <div style={{ textAlign: "center", minWidth: 90 }}>
+              <div style={{ fontSize: 32, fontWeight: 700, color: satisfacao.score >= 70 ? "#10b981" : satisfacao.score >= 40 ? "#f59e0b" : "#e24b4a" }}>{satisfacao.score}%</div>
+              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>satisfeitos</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 8 }}>
+              <SatLinha label="Muito bom" valor={satisfacao.muito_bom} total={satisfacao.total} cor="#10b981" icon="ti-mood-happy" />
+              <SatLinha label="Bom" valor={satisfacao.bom} total={satisfacao.total} cor="#5B8BA6" icon="ti-mood-smile" />
+              <SatLinha label="Ruim" valor={satisfacao.ruim} total={satisfacao.total} cor="#e24b4a" icon="ti-mood-sad" />
+              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{satisfacao.total} atendimento(s) analisado(s) · {periodoLabel}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="dash-2col" style={{ marginTop: 14 }}>
@@ -100,6 +121,20 @@ function Kpi({ label, valor, icon, cor, sub, primary }: { label: string; valor: 
       </div>
       <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: primary ? cor : "var(--mk-text)" }}>{valor}</div>
       {sub && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function SatLinha({ label, valor, total, cor, icon }: { label: string; valor: number; total: number; cor: string; icon: string }) {
+  const pct = total > 0 ? Math.round((valor / total) * 100) : 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <i className={`ti ${icon}`} style={{ color: cor, fontSize: 15, width: 18 }} />
+      <span style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", width: 70 }}>{label}</span>
+      <div style={{ flex: 1, height: 7, borderRadius: 4, background: "var(--mk-surface-2)", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: cor, transition: "width 0.3s ease" }} />
+      </div>
+      <span style={{ fontSize: 11, color: "var(--mk-text-muted)", width: 52, textAlign: "right" }}>{valor} · {pct}%</span>
     </div>
   );
 }
