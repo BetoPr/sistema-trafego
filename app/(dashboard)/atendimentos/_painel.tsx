@@ -168,9 +168,20 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
     } catch {}
   }
 
-  async function exportarPDF(ticketId: string, numero: number, contatoNome: string) {
+  // Download automático do PDF real (rota com Content-Disposition: attachment)
+  function baixarPDF(ticketId: string, numero: number) {
+    const a = document.createElement("a");
+    a.href = `/api/atendimentos/${ticketId}/export-pdf-file`;
+    a.download = `conversa-${numero}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // Abre a versão HTML que dispara o diálogo de impressão do navegador
+  function imprimirConversa(ticketId: string) {
     const w = window.open(`/api/atendimentos/${ticketId}/export-pdf`, "_blank");
-    if (!w) alert("Habilita popups pra exportar PDF");
+    if (!w) alert("Habilita popups pra imprimir");
   }
 
   async function sanitizar(contatoId: string) {
@@ -561,9 +572,12 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             </Card>
 
             <Card titulo="Exportar conversa">
-              <div style={{ padding: "10px 14px" }}>
-                <button onClick={() => exportarPDF(ticket.id, ticket.numero, contato.nome)} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
-                  <i className="ti ti-file-export" /> Exportar PDF
+              <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
+                <button onClick={() => baixarPDF(ticket.id, ticket.numero)} className="ghost-btn" style={{ fontSize: 11, flex: 1, justifyContent: "center" }} title="Baixa o PDF da conversa">
+                  <i className="ti ti-download" /> Baixar PDF
+                </button>
+                <button onClick={() => imprimirConversa(ticket.id)} className="ghost-btn" style={{ fontSize: 11, flex: 1, justifyContent: "center" }} title="Abre o diálogo de impressão">
+                  <i className="ti ti-printer" /> Imprimir
                 </button>
               </div>
             </Card>
