@@ -15,6 +15,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
+  // 1x por atendimento: se já tem sentimento, recusa (evita gasto de token repetido
+  // e mantém o registro consistente pra análise de satisfação do dashboard).
+  const { data: t } = await sb
+    .from("tickets")
+    .select("sentimento")
+    .eq("id", id)
+    .eq("agencia_id", u.agencia_id)
+    .maybeSingle();
+  if (t?.sentimento) {
+    return NextResponse.json({ error: "Este atendimento já foi analisado (1x por atendimento)." }, { status: 409 });
+  }
+
   try {
     const r = await analisarSentimentoTicket({ agenciaId: u.agencia_id, ticketId: id });
     return NextResponse.json({ ok: true, ...r });

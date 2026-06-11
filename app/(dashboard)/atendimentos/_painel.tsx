@@ -505,17 +505,17 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
 
         {tab === "atend" && (
           <>
-            {/* CARD sentimento estilo ZPRO */}
+            {/* CARD sentimento — 1x por atendimento */}
             <Card>
               <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", borderBottom: "0.5px solid var(--mk-border)" }}>
                 <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600 }}>
                   <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
                   Análise de sentimento
                 </div>
-                <button onClick={gerarSentimento} disabled={loadingSent} style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: loadingSent ? "wait" : "pointer", fontSize: 14 }} title="Re-analisar">
-                  <i className={`ti ${loadingSent ? "ti-loader-2" : "ti-refresh"}`} style={{ animation: loadingSent ? "spin 1s linear infinite" : undefined }} />
-                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-                </button>
+                {ticket.sentimento && (
+                  <span title="Já analisado" style={{ color: "#10b981", fontSize: 13 }}><i className="ti ti-lock-check" /></span>
+                )}
+                <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               </div>
               <div style={{ padding: "12px 14px" }}>
                 {loadingSent ? (
@@ -534,9 +534,24 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                         &quot;{ticket.sentimento_motivo}&quot;
                       </div>
                     )}
+                    <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                      <i className="ti ti-lock" /> Registrado — análise única por atendimento.
+                    </div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>Ainda não analisado</div>
+                  <>
+                    <button onClick={gerarSentimento} className="cta-btn" style={{ width: "100%", fontSize: 12, justifyContent: "center" }}>
+                      <i className="ti ti-sparkles" /> Analisar sentimento
+                    </button>
+                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 5 }}>
+                      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "flex", alignItems: "flex-start", gap: 5, lineHeight: 1.4 }}>
+                        <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> Só pode ser feita <strong>uma vez por atendimento</strong> — ideal rodar no fim do atendimento.
+                      </div>
+                      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "flex", alignItems: "flex-start", gap: 5, lineHeight: 1.4 }}>
+                        <i className="ti ti-chart-bar" style={{ marginTop: 1 }} /> Fica registrada e entra na <strong>análise de satisfação do Dashboard</strong>.
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </Card>
