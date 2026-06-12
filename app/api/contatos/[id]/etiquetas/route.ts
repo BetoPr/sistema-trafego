@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
+import { inscreverPorEtiqueta } from "@/lib/crm/follow-up";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   void audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "contato_etiqueta", entidadeId: contatoId, payload: { etiquetaId } });
+
+  // 3B — etiqueta-gatilho: inscreve em follow-ups vinculados a essa etiqueta
+  const etqId = etiquetaId!;
+  after(async () => {
+    try { await inscreverPorEtiqueta({ agenciaId: ctx.agenciaId, contatoId, etiquetaId: etqId }); } catch {}
+  });
+
   return NextResponse.json({ ok: true, etiquetaId });
 }
 

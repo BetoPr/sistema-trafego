@@ -8,10 +8,10 @@ export default async function FollowUpPage() {
   const ctx = await requireAdmin();
   const sb = createServiceClient();
 
-  const [{ data: sequencias }, { data: fila }] = await Promise.all([
+  const [{ data: sequencias }, { data: fila }, { data: etiquetas }] = await Promise.all([
     sb
       .from("follow_up_sequencias")
-      .select("id, nome, descricao, ativo, delay_min_seg, delay_max_seg, janela_inicio, janela_fim, teto_dia, etapas:follow_up_etapas(id, ordem, apos_horas, mensagens)")
+      .select("id, nome, descricao, ativo, etiqueta_gatilho_id, delay_min_seg, delay_max_seg, janela_inicio, janela_fim, teto_dia, etapas:follow_up_etapas(id, ordem, apos_horas, mensagens)")
       .eq("agencia_id", ctx.agenciaId)
       .order("created_at", { ascending: false }),
     sb
@@ -21,6 +21,12 @@ export default async function FollowUpPage() {
       .in("status", ["ativo", "pausado"])
       .order("proximo_envio_em", { ascending: true })
       .limit(200),
+    sb
+      .from("etiquetas")
+      .select("id, nome, cor")
+      .eq("agencia_id", ctx.agenciaId)
+      .or("categoria.eq.etiqueta,categoria.is.null")
+      .order("nome"),
   ]);
 
   return (
@@ -34,6 +40,7 @@ export default async function FollowUpPage() {
       <FollowUpClient
         sequencias={(sequencias as never) || []}
         fila={(fila as never) || []}
+        etiquetas={(etiquetas as never) || []}
       />
     </section>
   );

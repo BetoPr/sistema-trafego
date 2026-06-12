@@ -103,6 +103,35 @@ export async function atualizarServidor(formData: FormData) {
   redirect("/super-admin/servidores?ok=atualizado");
 }
 
+/** Define o servidor PADRÃO GLOBAL (usado por todas as agências sem override). */
+export async function definirPadraoGlobal(formData: FormData) {
+  const ctx = await requireSuperAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) redirect("/super-admin/servidores?erro=nao_encontrado");
+
+  const sb = createServiceClient();
+  // Desmarca os outros antes (índice parcial único só permite 1 padrão).
+  await sb.from("super_admin_servidores").update({ padrao: false }).neq("id", id).eq("padrao", true);
+  await sb.from("super_admin_servidores").update({ padrao: true, updated_at: new Date().toISOString() }).eq("id", id);
+
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "config_change", entidade: "servidor_padrao_global", entidadeId: id });
+  revalidatePath("/super-admin/servidores");
+  redirect("/super-admin/servidores?ok=padrao_global");
+}
+
+/** Define o servidor da MINHA agência (override; vazio = volta ao padrão global). */
+export async function definirServidorAgencia(formData: FormData) {
+  const ctx = await requireSuperAdmin();
+  const sid = String(formData.get("servidor_id") || "").trim() || null;
+
+  const sb = createServiceClient();
+  await sb.from("agencias").update({ servidor_padrao_id: sid }).eq("id", ctx.agenciaId);
+
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "config_change", entidade: "servidor_override_agencia", payload: { servidor_id: sid } });
+  revalidatePath("/super-admin/servidores");
+  redirect("/super-admin/servidores?ok=override_agencia");
+}
+
 export async function deletarServidor(formData: FormData) {
   const ctx = await requireSuperAdmin();
   const id = String(formData.get("id") || "");

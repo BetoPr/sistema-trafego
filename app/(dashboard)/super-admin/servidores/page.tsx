@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
-import { criarServidor, atualizarServidor, deletarServidor, testarServidor } from "./_actions";
+import { criarServidor, atualizarServidor, deletarServidor, testarServidor, definirPadraoGlobal, definirServidorAgencia } from "./_actions";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string }>;
@@ -20,18 +20,24 @@ const OKS: Record<string, string> = {
   atualizado: "Servidor atualizado.",
   deletado: "Servidor deletado.",
   teste_ok: "Conectividade OK.",
+  padrao_global: "Padrão global atualizado — novos números conectam neste servidor.",
+  override_agencia: "Servidor da sua agência atualizado.",
 };
 
 export default async function ServidoresPage({ searchParams }: PageProps) {
-  await requireSuperAdmin();
+  const ctx = await requireSuperAdmin();
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const { data: servidores } = await sb
-    .from("super_admin_servidores")
-    .select("id, nome, plataforma, base_url, ativo, observacoes, created_at, updated_at")
-    .order("created_at", { ascending: false });
+  const [{ data: servidores }, { data: ag }] = await Promise.all([
+    sb
+      .from("super_admin_servidores")
+      .select("id, nome, plataforma, base_url, ativo, padrao, observacoes, created_at, updated_at")
+      .order("created_at", { ascending: false }),
+    sb.from("agencias").select("servidor_padrao_id").eq("id", ctx.agenciaId).maybeSingle(),
+  ]);
 
+  const overrideAgencia = ag?.servidor_padrao_id || "";
   const editandoId = sp.editar;
   const editando = editandoId ? servidores?.find((s) => s.id === editandoId) : null;
 
@@ -64,6 +70,23 @@ export default async function ServidoresPage({ searchParams }: PageProps) {
           {sp.msg && <div style={{ marginTop: 4, fontSize: 11, opacity: 0.8 }}>{sp.msg}</div>}
         </div>
       )}
+
+      {/* Servidor da minha agência (override) */}
+      <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
+        <h3 className="card-title" style={{ marginBottom: 6 }}>Servidor da minha agência</h3>
+        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12, lineHeight: 1.5 }}>
+          Override <strong>só pra sua agência</strong>. Vazio = usa o padrão global. Clientes sem override conectam no padrão global.
+        </p>
+        <form action={definirServidorAgencia} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select name="servidor_id" defaultValue={overrideAgencia} style={{ flex: 1, minWidth: 220, padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }}>
+            <option value="">— Usar padrão global —</option>
+            {(servidores || []).filter((s) => s.ativo).map((s) => (
+              <option key={s.id} value={s.id}>{s.nome}</option>
+            ))}
+          </select>
+          <button type="submit" className="cta-btn"><i className="ti ti-device-floppy" style={{ fontSize: 14 }} /> Salvar</button>
+        </form>
+      </div>
 
       {/* Formulário criar/editar */}
       <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
@@ -139,6 +162,18 @@ export default async function ServidoresPage({ searchParams }: PageProps) {
                 <span className={`mk-badge ${s.ativo ? "b-green" : "b-gray"}`}>
                   {s.ativo ? "● Ativo" : "○ Inativo"}
                 </span>
+                {s.padrao ? (
+                  <span className="mk-badge b-green" title="Padrão global — novos números conectam aqui" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <i className="ti ti-star-filled" /> Padrão global
+                  </span>
+                ) : s.ativo ? (
+                  <form action={definirPadraoGlobal} style={{ display: "inline" }}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <button type="submit" className="ghost-btn" style={{ fontSize: 11, padding: "4px 10px" }} title="Tornar padrão global">
+                      <i className="ti ti-star" /> Tornar padrão
+                    </button>
+                  </form>
+                ) : null}
                 <form action={testarServidor} style={{ display: "inline" }}>
                   <input type="hidden" name="id" value={s.id} />
                   <button type="submit" className="ghost-btn" style={{ fontSize: 11, padding: "4px 10px" }}>

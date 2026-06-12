@@ -8,7 +8,8 @@ import { salvarSequencia, toggleSequencia, excluirSequencia, cancelarInscricao, 
 type Tipo = "texto" | "imagem" | "documento" | "audio" | "video";
 interface Msg { tipo: Tipo; conteudo?: string; midia_url?: string; midia_path?: string; midia_mime?: string; midia_filename?: string; variacoes?: string[] }
 interface Etapa { id?: string; ordem: number; apos_horas: number; mensagens: Msg[] }
-interface Sequencia { id: string; nome: string; descricao: string | null; ativo: boolean; delay_min_seg: number; delay_max_seg: number; janela_inicio: string; janela_fim: string; teto_dia: number; etapas: Etapa[] }
+interface Sequencia { id: string; nome: string; descricao: string | null; ativo: boolean; etiqueta_gatilho_id: string | null; delay_min_seg: number; delay_max_seg: number; janela_inicio: string; janela_fim: string; teto_dia: number; etapas: Etapa[] }
+interface Etiqueta { id: string; nome: string; cor: string }
 interface FilaItem { id: string; status: string; etapa_atual: number; proximo_envio_em: string | null; criado_em: string; sequencia: { nome: string } | { nome: string }[] | null; contato: { nome: string | null; whatsapp: string | null } | { nome: string | null; whatsapp: string | null }[] | null }
 
 const TIPOS: { v: Tipo; label: string; icon: string }[] = [
@@ -22,7 +23,7 @@ const TIPOS: { v: Tipo; label: string; icon: string }[] = [
 function uno<T>(v: T | T[] | null): T | null { return Array.isArray(v) ? v[0] ?? null : v; }
 const hhmm = (t: string) => (t || "").slice(0, 5);
 
-export function FollowUpClient({ sequencias, fila }: { sequencias: Sequencia[]; fila: FilaItem[] }) {
+export function FollowUpClient({ sequencias, fila, etiquetas }: { sequencias: Sequencia[]; fila: FilaItem[]; etiquetas: Etiqueta[] }) {
   const [tab, setTab] = useState<"seq" | "fila">("seq");
   const [editando, setEditando] = useState<SequenciaInput | null>(null);
 
@@ -39,7 +40,7 @@ export function FollowUpClient({ sequencias, fila }: { sequencias: Sequencia[]; 
         <Fila itens={fila} />
       )}
 
-      {editando && <Editor inicial={editando} onClose={() => setEditando(null)} />}
+      {editando && <Editor inicial={editando} etiquetas={etiquetas} onClose={() => setEditando(null)} />}
     </>
   );
 }
@@ -128,7 +129,7 @@ function Fila({ itens }: { itens: FilaItem[] }) {
 }
 
 // ===== Editor (Balao) =====
-function Editor({ inicial, onClose }: { inicial: SequenciaInput; onClose: () => void }) {
+function Editor({ inicial, etiquetas, onClose }: { inicial: SequenciaInput; etiquetas: Etiqueta[]; onClose: () => void }) {
   const router = useRouter();
   const [s, setS] = useState<SequenciaInput>(inicial);
   const [erro, setErro] = useState("");
@@ -160,6 +161,13 @@ function Editor({ inicial, onClose }: { inicial: SequenciaInput; onClose: () => 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Campo label="Nome"><input value={s.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex: Cobrança PIX" style={inp} /></Campo>
         <Campo label="Descrição (opcional)"><input value={s.descricao || ""} onChange={(e) => set("descricao", e.target.value)} style={inp} /></Campo>
+
+        <Campo label="Etiqueta gatilho (opcional) — inscreve o contato ao marcar esta etiqueta">
+          <select value={s.etiqueta_gatilho_id || ""} onChange={(e) => set("etiqueta_gatilho_id", e.target.value || null)} style={inp}>
+            <option value="">— Sem gatilho (inscrição manual) —</option>
+            {etiquetas.map((et) => <option key={et.id} value={et.id}>{et.nome}</option>)}
+          </select>
+        </Campo>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Campo label="Janela início"><input type="time" value={s.janela_inicio} onChange={(e) => set("janela_inicio", e.target.value)} style={inp} /></Campo>
@@ -238,11 +246,11 @@ function EtapaEditor({ idx, etapa, onChange, onRemove }: { idx: number; etapa: {
 
 // ===== helpers / UI bits =====
 function seqVazia(): SequenciaInput {
-  return { nome: "", descricao: "", ativo: true, delay_min_seg: 1, delay_max_seg: 2, janela_inicio: "08:00", janela_fim: "20:00", teto_dia: 50, etapas: [{ apos_horas: 1, mensagens: [{ tipo: "texto", conteudo: "" }] }] };
+  return { nome: "", descricao: "", ativo: true, etiqueta_gatilho_id: null, delay_min_seg: 1, delay_max_seg: 2, janela_inicio: "08:00", janela_fim: "20:00", teto_dia: 50, etapas: [{ apos_horas: 1, mensagens: [{ tipo: "texto", conteudo: "" }] }] };
 }
 function paraInput(s: Sequencia): SequenciaInput {
   return {
-    id: s.id, nome: s.nome, descricao: s.descricao || "", ativo: s.ativo,
+    id: s.id, nome: s.nome, descricao: s.descricao || "", ativo: s.ativo, etiqueta_gatilho_id: s.etiqueta_gatilho_id,
     delay_min_seg: s.delay_min_seg, delay_max_seg: s.delay_max_seg,
     janela_inicio: hhmm(s.janela_inicio), janela_fim: hhmm(s.janela_fim), teto_dia: s.teto_dia,
     etapas: (s.etapas || []).sort((a, b) => a.ordem - b.ordem).map((e) => ({ apos_horas: Number(e.apos_horas), mensagens: (e.mensagens as MsgEtapaInput[]) || [] })),

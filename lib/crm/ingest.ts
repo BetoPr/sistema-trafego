@@ -14,6 +14,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import type { ParsedMessage } from "@/lib/uazapi/webhook-parser";
 import { dispatchWebhook } from "./webhook-dispatcher";
+import { inscreverPorEtiqueta } from "./follow-up";
 
 export interface IngestContext {
   agenciaId: string;
@@ -148,7 +149,11 @@ export async function ingestMensagem(
           const palavra = (g.palavra_gatilho as string | null)?.trim().toLowerCase();
           if (palavra && texto.includes(palavra)) {
             // Unique (contato_id, etiqueta_id) faz o insert duplicado falhar em silêncio.
-            await sb.from("contato_etiquetas").insert({ contato_id: contatoId, etiqueta_id: g.id });
+            const { error: insErr } = await sb.from("contato_etiquetas").insert({ contato_id: contatoId, etiqueta_id: g.id });
+            // 3B — etiqueta-gatilho: só inscreve se a etiqueta é NOVA (sem erro de duplicado)
+            if (!insErr) {
+              try { await inscreverPorEtiqueta({ agenciaId: ctx.agenciaId, contatoId, etiquetaId: g.id, ticketId }); } catch {}
+            }
           }
         }
       } catch {}

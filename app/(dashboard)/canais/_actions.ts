@@ -23,21 +23,37 @@ interface ServidorRow {
   admin_token_encrypted: unknown;
 }
 
-async function getServidorAtivo(): Promise<{ id: string; baseUrl: string; adminToken: string }> {
+/**
+ * Resolve o servidor UAZAPI pra conectar números, nesta ordem:
+ *   1) override da agência (agencias.servidor_padrao_id, se ativo)
+ *   2) padrão global (super_admin_servidores.padrao = true, se ativo)
+ *   3) fallback: primeiro servidor ativo
+ */
+async function getServidorAtivo(agenciaId: string): Promise<{ id: string; baseUrl: string; adminToken: string }> {
   const sb = createServiceClient();
-  const { data } = await sb
-    .from("super_admin_servidores")
-    .select("id, base_url, admin_token_encrypted")
-    .eq("ativo", true)
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
-  if (!data) throw new Error("Nenhum servidor UAZAPI ativo. Super Admin precisa cadastrar em /super-admin/servidores.");
-  const s = data as ServidorRow;
+  const sel = "id, base_url, admin_token_encrypted";
+
+  const { data: ag } = await sb.from("agencias").select("servidor_padrao_id").eq("id", agenciaId).maybeSingle();
+
+  let row: ServidorRow | null = null;
+  if (ag?.servidor_padrao_id) {
+    const { data } = await sb.from("super_admin_servidores").select(sel).eq("id", ag.servidor_padrao_id).eq("ativo", true).maybeSingle();
+    row = (data as ServidorRow) || null;
+  }
+  if (!row) {
+    const { data } = await sb.from("super_admin_servidores").select(sel).eq("ativo", true).eq("padrao", true).maybeSingle();
+    row = (data as ServidorRow) || null;
+  }
+  if (!row) {
+    const { data } = await sb.from("super_admin_servidores").select(sel).eq("ativo", true).order("created_at").limit(1).maybeSingle();
+    row = (data as ServidorRow) || null;
+  }
+  if (!row) throw new Error("Nenhum servidor UAZAPI ativo. Super Admin precisa cadastrar em /super-admin/servidores.");
+
   return {
-    id: s.id,
-    baseUrl: s.base_url,
-    adminToken: decryptToken(byteaToBuffer(s.admin_token_encrypted)),
+    id: row.id,
+    baseUrl: row.base_url,
+    adminToken: decryptToken(byteaToBuffer(row.admin_token_encrypted)),
   };
 }
 
@@ -59,7 +75,7 @@ export async function criarCanal(formData: FormData) {
   const sb = createServiceClient();
   let servidor: { id: string; baseUrl: string; adminToken: string };
   try {
-    servidor = await getServidorAtivo();
+    servidor = await getServidorAtivo(ctx.agenciaId);
   } catch (e) {
     redirect(`/canais?erro=sem_servidor&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
   }
@@ -173,7 +189,7 @@ export async function importarCanalExistente(formData: FormData) {
   const sb = createServiceClient();
   let servidor: { id: string; baseUrl: string; adminToken: string };
   try {
-    servidor = await getServidorAtivo();
+    servidor = await getServidorAtivo(ctx.agenciaId);
   } catch (e) {
     redirect(`/canais?erro=sem_servidor&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
   }
@@ -270,7 +286,7 @@ export async function listarInstanciasDisponiveis(): Promise<Array<{ id: string;
   const sb = createServiceClient();
   let servidor: { id: string; baseUrl: string; adminToken: string };
   try {
-    servidor = await getServidorAtivo();
+    servidor = await getServidorAtivo(ctx.agenciaId);
   } catch {
     return [];
   }
@@ -371,7 +387,7 @@ export async function criarCanalJson(input: {
 
   let servidor: { id: string; baseUrl: string; adminToken: string };
   try {
-    servidor = await getServidorAtivo();
+    servidor = await getServidorAtivo(ctx.agenciaId);
   } catch (e) {
     return { ok: false, msg: e instanceof Error ? e.message : String(e) };
   }

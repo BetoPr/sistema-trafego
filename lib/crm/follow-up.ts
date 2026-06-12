@@ -53,6 +53,67 @@ function timeToMin(t: string): number {
   return h * 60 + (m || 0);
 }
 
+/**
+ * 3B — Etiqueta-gatilho: ao aplicar uma etiqueta num contato, inscreve o
+ * ticket nas sequências ativas que têm essa etiqueta como gatilho.
+ * Idempotente (índice único dedupe). Retorna quantas inscrições criou.
+ */
+export async function inscreverPorEtiqueta(params: {
+  agenciaId: string;
+  contatoId: string;
+  etiquetaId: string;
+  ticketId?: string | null;
+}): Promise<number> {
+  const sb = createServiceClient();
+
+  const { data: seqs } = await sb
+    .from("follow_up_sequencias")
+    .select("id")
+    .eq("agencia_id", params.agenciaId)
+    .eq("ativo", true)
+    .eq("etiqueta_gatilho_id", params.etiquetaId);
+  if (!seqs || !seqs.length) return 0;
+
+  // Resolve ticket (o passado, senão o mais recente do contato) + canal
+  let ticketId = params.ticketId || null;
+  let canalId: string | null = null;
+  if (ticketId) {
+    const { data: tk } = await sb.from("tickets").select("id, canal_id").eq("id", ticketId).maybeSingle();
+    canalId = (tk?.canal_id as string | null) || null;
+  } else {
+    const { data: tk } = await sb
+      .from("tickets")
+      .select("id, canal_id")
+      .eq("agencia_id", params.agenciaId)
+      .eq("contato_id", params.contatoId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    ticketId = (tk?.id as string | null) || null;
+    canalId = (tk?.canal_id as string | null) || null;
+  }
+  if (!ticketId) return 0;
+
+  let n = 0;
+  for (const s of seqs) {
+    const { data: e1 } = await sb.from("follow_up_etapas").select("apos_horas").eq("sequencia_id", s.id).eq("ordem", 1).maybeSingle();
+    if (!e1) continue;
+    const proximo = new Date(Date.now() + Number(e1.apos_horas) * 3600000).toISOString();
+    const { error } = await sb.from("follow_up_inscricoes").insert({
+      agencia_id: params.agenciaId,
+      sequencia_id: s.id,
+      contato_id: params.contatoId,
+      ticket_id: ticketId,
+      canal_id: canalId,
+      status: "ativo",
+      etapa_atual: 0,
+      proximo_envio_em: proximo,
+    });
+    if (!error) n++; // erro de unique = já inscrito → ignora
+  }
+  return n;
+}
+
 export interface FollowUpResultado {
   processados: number;
   enviados: number;
