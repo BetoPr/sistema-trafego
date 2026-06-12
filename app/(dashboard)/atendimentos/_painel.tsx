@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { inscreverTicket } from "@/app/(dashboard)/follow-up/_actions";
 
 interface Contato {
   id: string;
@@ -63,6 +64,9 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const [showEtiquetaPicker, setShowEtiquetaPicker] = useState<null | "etiqueta" | "flag">(null);
   const [novaEtiquetaNome, setNovaEtiquetaNome] = useState("");
   const [modalLog, setModalLog] = useState<null | "ticket" | "notas">(null);
+  const [fuSeqs, setFuSeqs] = useState<null | Array<{ id: string; nome: string; etapas: number }>>(null);
+  const [fuMsg, setFuMsg] = useState("");
+  const [fuBusy, setFuBusy] = useState(false);
   const [logsTicket, setLogsTicket] = useState<Array<{ id: string; acao: string; entidade: string | null; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null; payload?: Record<string, unknown> | null }>>([]);
   const [notas, setNotas] = useState<Array<{ id: string; conteudo: string; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null }>>([]);
   const [novaNota, setNovaNota] = useState("");
@@ -157,6 +161,28 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
       const j = await r.json();
       setLogsTicket(j.logs || []);
     } catch {}
+  }
+
+  async function carregarFollowUp() {
+    if (fuSeqs) { setFuSeqs(null); return; } // toggle fecha
+    setFuMsg("");
+    try {
+      const r = await fetch("/api/follow-up/sequencias");
+      const j = await r.json();
+      setFuSeqs(j.sequencias || []);
+    } catch { setFuSeqs([]); }
+  }
+
+  async function inscreverNoFollowUp(seqId: string) {
+    setFuBusy(true);
+    setFuMsg("");
+    try {
+      const r = await inscreverTicket(ticket.id, seqId);
+      setFuMsg(r?.ok ? "✓ Inscrito! Pausa sozinho se o cliente responder." : r?.erro || "Falha");
+      if (r?.ok) setFuSeqs(null);
+    } finally {
+      setFuBusy(false);
+    }
   }
 
   async function abrirLogNotas() {
@@ -567,6 +593,31 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                 <button onClick={abrirLogTicket} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
                   <i className="ti ti-list" /> Log do ticket
                 </button>
+              </div>
+            </Card>
+
+            <Card titulo="Follow-up">
+              <div style={{ padding: "10px 14px" }}>
+                <button onClick={carregarFollowUp} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-clock-bolt" /> {fuSeqs ? "Fechar" : "Inscrever neste follow-up"}
+                </button>
+                {fuSeqs && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {fuSeqs.length === 0 ? (
+                      <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", textAlign: "center", padding: 8 }}>
+                        Nenhuma sequência ativa. Crie em <strong>Follow-up</strong>.
+                      </div>
+                    ) : (
+                      fuSeqs.map((sq) => (
+                        <button key={sq.id} onClick={() => inscreverNoFollowUp(sq.id)} disabled={fuBusy} className="ghost-btn" style={{ fontSize: 11, width: "100%", justifyContent: "space-between" }}>
+                          <span><i className="ti ti-timeline-event" /> {sq.nome}</span>
+                          <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>{sq.etapas} etapa(s)</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                {fuMsg && <div style={{ fontSize: 10.5, marginTop: 8, color: fuMsg.startsWith("✓") ? "#10b981" : "#C97064" }}>{fuMsg}</div>}
               </div>
             </Card>
 

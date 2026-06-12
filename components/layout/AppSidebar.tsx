@@ -40,6 +40,7 @@ function buildSections(role?: string): NavSection[] {
       iconColor: "var(--mk-icon-pink)",
       items: [
         { href: "/atendimentos", label: "Atendimentos", icon: "ti-messages" },
+        { href: "/follow-up", label: "Follow-up", icon: "ti-clock-bolt" },
         { href: "/contatos", label: "Contatos", icon: "ti-address-book" },
       ],
     },
