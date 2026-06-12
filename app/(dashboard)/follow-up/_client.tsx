@@ -45,7 +45,7 @@ export function FollowUpClient({ sequencias, fila, etiquetas }: { sequencias: Se
 }
 
 // ===== Follow-up com IA (3C) =====
-interface Cand { ticketId: string; numero: number; nome: string; whatsapp: string | null; ultima_mensagem_em: string | null; enviar: boolean; motivo: string; resumo: string; mensagem: string; _sent?: boolean; _busy?: boolean }
+interface Cand { ticketId: string; numero: number; nome: string; whatsapp: string | null; ultima_mensagem_em: string | null; enviar: boolean; motivo: string; resumo: string; mensagem: string; _sent?: boolean; _busy?: boolean; _pendente?: boolean }
 
 function FollowUpIA() {
   const [horas, setHoras] = useState(12);
@@ -55,17 +55,38 @@ function FollowUpIA() {
   const [erro, setErro] = useState("");
   const [cands, setCands] = useState<Cand[] | null>(null);
   const [enviandoTodos, setEnviandoTodos] = useState(false);
+  const [analisando, setAnalisando] = useState<{ feitos: number; total: number } | null>(null);
 
   function patch(id: string, p: Partial<Cand>) { setCands((cs) => (cs || []).map((c) => (c.ticketId === id ? { ...c, ...p } : c))); }
   function remover(id: string) { setCands((cs) => (cs || []).filter((c) => c.ticketId !== id)); }
 
   async function verificar() {
-    setLoading(true); setErro(""); setCands(null);
+    setLoading(true); setErro(""); setCands(null); setAnalisando(null);
+    let lista: Cand[] = [];
     try {
       const r = await fetch("/api/follow-up/ia/verificar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horas }) });
       const j = await r.json();
-      if (j.ok) setCands(j.candidatos); else setErro(j.error || "Falha");
-    } catch { setErro("Falha na verificação"); } finally { setLoading(false); }
+      if (!j.ok) { setErro(j.error || "Falha"); return; }
+      lista = (j.candidatos || []).map((c: Cand) => ({ ...c, enviar: false, motivo: "", resumo: "", mensagem: "", _pendente: true }));
+      setCands(lista);
+    } catch { setErro("Falha na verificação"); return; } finally { setLoading(false); }
+
+    // Análise da IA: 1 por vez, com delay — tempo total escala com a quantidade,
+    // sem estourar o TPM do Groq (cada chamada tem retry no servidor).
+    if (!lista.length) return;
+    setAnalisando({ feitos: 0, total: lista.length });
+    for (let i = 0; i < lista.length; i++) {
+      const id = lista[i].ticketId;
+      try {
+        const rr = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id }) });
+        const jj = await rr.json();
+        if (jj.ok) patch(id, { enviar: jj.enviar, motivo: jj.motivo, resumo: jj.resumo, mensagem: jj.mensagem, _pendente: false });
+        else patch(id, { _pendente: false, enviar: false, motivo: jj.error || "Falha na análise", resumo: "" });
+      } catch { patch(id, { _pendente: false, enviar: false, motivo: "Erro de rede" }); }
+      setAnalisando({ feitos: i + 1, total: lista.length });
+      if (i < lista.length - 1) await new Promise((r) => setTimeout(r, 1200));
+    }
+    setAnalisando(null);
   }
 
   async function regenerar(id: string) {
@@ -108,8 +129,8 @@ function FollowUpIA() {
           <Campo label="Conversas paradas há (horas)"><input type="number" min={1} value={horas} onChange={(e) => setHoras(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
           <Campo label="Delay min (s)"><input type="number" min={0} value={delayMin} onChange={(e) => setDelayMin(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
           <Campo label="Delay máx (s)"><input type="number" min={0} value={delayMax} onChange={(e) => setDelayMax(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
-          <button className="cta-btn" onClick={verificar} disabled={loading}>
-            <i className={`ti ${loading ? "ti-loader-2" : "ti-sparkles"}`} /> {loading ? "Analisando…" : "Verificar follow-ups"}
+          <button className="cta-btn" onClick={verificar} disabled={loading || !!analisando}>
+            <i className={`ti ${loading || analisando ? "ti-loader-2" : "ti-sparkles"}`} /> {loading ? "Buscando…" : analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : "Verificar follow-ups"}
           </button>
           {aprovados.length > 0 && (
             <button className="ghost-btn" onClick={enviarTodos} disabled={enviandoTodos} style={{ fontSize: 12 }}>
@@ -132,13 +153,16 @@ function FollowUpIA() {
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <strong style={{ fontSize: 13, color: "var(--mk-text)" }}>{c.nome}</strong>
                 <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>#{c.numero} · {c.whatsapp}</span>
-                {c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}><i className="ti ti-circle-check" /> Vale follow-up</span>
+                {c._pendente ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}><i className="ti ti-loader-2" /> Analisando…</span>
+                  : c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}><i className="ti ti-circle-check" /> Vale follow-up</span>
                   : <span style={{ fontSize: 10, color: "#94a3b8", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}>Não recomendado</span>}
               </div>
               {c.resumo && <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", marginBottom: 4 }}><i className="ti ti-file-text" style={{ color: "var(--mk-text-muted)" }} /> {c.resumo}</div>}
               {c.motivo && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8, fontStyle: "italic" }}>{c.motivo}</div>}
 
-              {c._sent ? (
+              {c._pendente ? (
+                <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}><i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite" }} /> Analisando a conversa…</div>
+              ) : c._sent ? (
                 <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Enviado.</div>
               ) : c.enviar ? (
                 <>

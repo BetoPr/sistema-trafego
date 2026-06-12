@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sugerirFollowUpTicket } from "@/lib/crm/ia";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
 /**
  * POST /api/follow-up/ia/verificar  { horas?: number }
- * Acha conversas PARADAS (não fechadas, última mensagem entre `horas` e 30 dias
- * atrás) e pede pra IA decidir se vale follow-up + sugerir a mensagem.
+ * Devolve só a LISTA de conversas paradas (não fechadas, última mensagem entre
+ * `horas` e 30 dias atrás). A análise da IA roda depois, 1 por vez, no cliente
+ * (chama /regenerar por ticket) — evita estourar o timeout serverless e o TPM
+ * do Groq, e o tempo total escala com a quantidade de contatos.
  */
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -29,28 +29,19 @@ export async function POST(req: Request) {
 
   const { data: tickets } = await sb
     .from("tickets")
-    .select("id, numero, ultima_mensagem_em, ultima_mensagem_preview, contato:contatos(nome, whatsapp)")
+    .select("id, numero, ultima_mensagem_em, contato:contatos(nome, whatsapp)")
     .eq("agencia_id", u.agencia_id)
     .neq("status", "fechado")
     .not("ultima_mensagem_em", "is", null)
     .lte("ultima_mensagem_em", ate)
     .gte("ultima_mensagem_em", desde)
     .order("ultima_mensagem_em", { ascending: false })
-    .limit(15);
+    .limit(40);
 
-  if (!tickets || tickets.length === 0) return NextResponse.json({ ok: true, candidatos: [] });
-
-  const candidatos = await Promise.all(
-    tickets.map(async (t) => {
-      const c = Array.isArray(t.contato) ? t.contato[0] : t.contato;
-      try {
-        const s = await sugerirFollowUpTicket({ agenciaId: u.agencia_id, ticketId: t.id });
-        return { ticketId: t.id, numero: t.numero, nome: c?.nome || "Contato", whatsapp: c?.whatsapp || null, ultima_mensagem_em: t.ultima_mensagem_em, ...s };
-      } catch (e) {
-        return { ticketId: t.id, numero: t.numero, nome: c?.nome || "Contato", whatsapp: c?.whatsapp || null, ultima_mensagem_em: t.ultima_mensagem_em, enviar: false, motivo: e instanceof Error ? e.message : "erro", resumo: "", mensagem: "" };
-      }
-    }),
-  );
+  const candidatos = (tickets || []).map((t) => {
+    const c = Array.isArray(t.contato) ? t.contato[0] : t.contato;
+    return { ticketId: t.id, numero: t.numero, nome: c?.nome || "Contato", whatsapp: c?.whatsapp || null, ultima_mensagem_em: t.ultima_mensagem_em };
+  });
 
   return NextResponse.json({ ok: true, candidatos });
 }

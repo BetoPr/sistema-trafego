@@ -15,6 +15,22 @@ import {
 /**
  * Carrega API key Groq da agência (preferida) ou cai pro env.
  */
+/** chat() com retry no rate limit (429) do Groq, respeitando o "try again in Xms/Xs". */
+async function chatComRetry(p: Parameters<typeof chat>[0], tentativas = 4): Promise<Awaited<ReturnType<typeof chat>>> {
+  for (let i = 0; ; i++) {
+    try {
+      return await chat(p);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (i >= tentativas - 1 || !/429|rate.?limit/i.test(msg)) throw e;
+      const m = msg.match(/try again in ([\d.]+)\s*(ms|s)\b/i);
+      let wait = 2500;
+      if (m) wait = m[2].toLowerCase() === "s" ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
+      await new Promise((res) => setTimeout(res, Math.min(12000, Math.max(600, wait + 400))));
+    }
+  }
+}
+
 export async function getGroqKey(agenciaId: string): Promise<string | null> {
   const sb = createServiceClient();
   const { data } = await sb
@@ -207,10 +223,11 @@ export async function sugerirFollowUpTicket(params: {
   if (!apiKey) throw new Error("Groq API key não configurada");
 
   const sb = createServiceClient();
-  const msgs = await fetchMensagens(params.ticketId);
+  // Só as últimas mensagens — limita os tokens por chamada (evita estourar o TPM do Groq).
+  const msgs = (await fetchMensagens(params.ticketId)).slice(-25);
   const { data: ticket } = await sb.from("tickets").select("contato:contatos(nome)").eq("id", params.ticketId).single();
   const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
-  const conversa = formatConversaParaIA(msgs, contatoNome);
+  const conversa = formatConversaParaIA(msgs, contatoNome).slice(-4000);
 
   const system = `Você é um especialista em vendas e atendimento por WhatsApp. Recebe uma conversa que está PARADA e decide se vale enviar um follow-up para reengajar o cliente.
 
@@ -222,11 +239,11 @@ Responda APENAS um JSON válido:
 - motivo: justificativa curta da decisão.
 - mensagem: se enviar=true, o texto do follow-up PRONTO pra enviar — curto, cordial, em português do Brasil, tom de quem está retomando o papo, NUNCA robótico; use o nome do cliente se houver. Se enviar=false, retorne "".`;
 
-  const r = await chat({
+  const r = await chatComRetry({
     apiKey,
     responseFormat: "json_object",
     temperature: 0.5,
-    maxTokens: 500,
+    maxTokens: 400,
     messages: [
       { role: "system", content: system },
       { role: "user", content: conversa || "(sem mensagens registradas)" },
