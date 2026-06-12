@@ -45,7 +45,7 @@ export function FollowUpClient({ sequencias, fila, etiquetas }: { sequencias: Se
 }
 
 // ===== Follow-up com IA (3C) =====
-interface Cand { ticketId: string; numero: number; nome: string; whatsapp: string | null; ultima_mensagem_em: string | null; enviar: boolean; motivo: string; resumo: string; mensagem: string; _sent?: boolean; _busy?: boolean; _pendente?: boolean }
+interface Cand { ticketId: string; numero: number; nome: string; whatsapp: string | null; ultima_mensagem_em: string | null; enviar: boolean; motivo: string; resumo: string; mensagem: string; _sent?: boolean; _busy?: boolean; _pendente?: boolean; _analisado?: boolean }
 
 function FollowUpIA() {
   const [horas, setHoras] = useState(12);
@@ -60,31 +60,38 @@ function FollowUpIA() {
   function patch(id: string, p: Partial<Cand>) { setCands((cs) => (cs || []).map((c) => (c.ticketId === id ? { ...c, ...p } : c))); }
   function remover(id: string) { setCands((cs) => (cs || []).filter((c) => c.ticketId !== id)); }
 
-  async function verificar() {
+  // Passo 1: só busca a lista de conversas paradas (rápido, sem IA) → mostra a quantidade
+  async function buscar() {
     setLoading(true); setErro(""); setCands(null); setAnalisando(null);
-    let lista: Cand[] = [];
     try {
       const r = await fetch("/api/follow-up/ia/verificar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horas }) });
       const j = await r.json();
       if (!j.ok) { setErro(j.error || "Falha"); return; }
-      lista = (j.candidatos || []).map((c: Cand) => ({ ...c, enviar: false, motivo: "", resumo: "", mensagem: "", _pendente: true }));
+      const lista: Cand[] = (j.candidatos || []).map((c: Cand) => ({ ...c, enviar: false, motivo: "", resumo: "", mensagem: "", _analisado: false }));
       setCands(lista);
-    } catch { setErro("Falha na verificação"); return; } finally { setLoading(false); }
+    } catch { setErro("Falha na busca"); } finally { setLoading(false); }
+  }
 
-    // Análise da IA: 1 por vez, com delay — tempo total escala com a quantidade,
-    // sem estourar o TPM do Groq (cada chamada tem retry no servidor).
-    if (!lista.length) return;
-    setAnalisando({ feitos: 0, total: lista.length });
-    for (let i = 0; i < lista.length; i++) {
-      const id = lista[i].ticketId;
-      try {
-        const rr = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id }) });
-        const jj = await rr.json();
-        if (jj.ok) patch(id, { enviar: jj.enviar, motivo: jj.motivo, resumo: jj.resumo, mensagem: jj.mensagem, _pendente: false });
-        else patch(id, { _pendente: false, enviar: false, motivo: jj.error || "Falha na análise", resumo: "" });
-      } catch { patch(id, { _pendente: false, enviar: false, motivo: "Erro de rede" }); }
-      setAnalisando({ feitos: i + 1, total: lista.length });
-      if (i < lista.length - 1) await new Promise((r) => setTimeout(r, 1200));
+  // Análise da IA de UM ticket (usada no "Analisar" individual e no lote)
+  async function analisarUm(id: string) {
+    patch(id, { _pendente: true });
+    try {
+      const r = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id }) });
+      const j = await r.json();
+      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, _pendente: false, _analisado: true });
+      else patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: j.error || "Falha na análise", resumo: "" });
+    } catch { patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: "Erro de rede" }); }
+  }
+
+  // Passo 2: analisa todos os não-analisados, 1 por vez (escala com a quantidade, sem estourar o TPM)
+  async function analisarTodas() {
+    const pend = (cands || []).filter((c) => !c._analisado);
+    if (!pend.length) return;
+    setAnalisando({ feitos: 0, total: pend.length });
+    for (let i = 0; i < pend.length; i++) {
+      await analisarUm(pend[i].ticketId);
+      setAnalisando({ feitos: i + 1, total: pend.length });
+      if (i < pend.length - 1) await new Promise((r) => setTimeout(r, 1200));
     }
     setAnalisando(null);
   }
@@ -121,6 +128,7 @@ function FollowUpIA() {
   }
 
   const aprovados = (cands || []).filter((c) => c.enviar && !c._sent);
+  const naoAnalisados = (cands || []).filter((c) => !c._analisado).length;
 
   return (
     <>
@@ -129,17 +137,27 @@ function FollowUpIA() {
           <Campo label="Conversas paradas há (horas)"><input type="number" min={1} value={horas} onChange={(e) => setHoras(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
           <Campo label="Delay min (s)"><input type="number" min={0} value={delayMin} onChange={(e) => setDelayMin(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
           <Campo label="Delay máx (s)"><input type="number" min={0} value={delayMax} onChange={(e) => setDelayMax(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
-          <button className="cta-btn" onClick={verificar} disabled={loading || !!analisando}>
-            <i className={`ti ${loading || analisando ? "ti-loader-2" : "ti-sparkles"}`} /> {loading ? "Buscando…" : analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : "Verificar follow-ups"}
+          <button className="cta-btn" onClick={buscar} disabled={loading || !!analisando}>
+            <i className={`ti ${loading ? "ti-loader-2" : "ti-search"}`} /> {loading ? "Buscando…" : "Buscar conversas"}
           </button>
+          {cands && cands.length > 0 && naoAnalisados > 0 && (
+            <button className="cta-btn" onClick={analisarTodas} disabled={!!analisando} style={{ fontSize: 12, background: "#9B7DBF" }}>
+              <i className={`ti ${analisando ? "ti-loader-2" : "ti-sparkles"}`} /> {analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : `Analisar ${naoAnalisados} com IA`}
+            </button>
+          )}
           {aprovados.length > 0 && (
             <button className="ghost-btn" onClick={enviarTodos} disabled={enviandoTodos} style={{ fontSize: 12 }}>
               <i className="ti ti-send" /> {enviandoTodos ? "Enviando…" : `Enviar ${aprovados.length} aprovado(s)`}
             </button>
           )}
         </div>
+        {cands && (
+          <div style={{ fontSize: 12, color: "var(--mk-text)", marginTop: 10, fontWeight: 600 }}>
+            <i className="ti ti-message-2" style={{ color: "#9B7DBF" }} /> {cands.length} conversa(s) em aberto parada(s){naoAnalisados > 0 ? ` · ${naoAnalisados} aguardando análise` : " · todas analisadas"}
+          </div>
+        )}
         <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 8, display: "flex", gap: 6 }}>
-          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> A IA lê cada conversa parada, resume e sugere um follow-up. Você revisa, edita e envia. Usa sua chave Groq.
+          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> 1º <strong>Buscar</strong> mostra quantas conversas paradas existem. 2º <strong>Analisar</strong> a IA resume e sugere (1 por vez, usa sua chave Groq).
         </div>
         {erro && <div style={{ fontSize: 11.5, color: "#C97064", marginTop: 8 }}>{erro}</div>}
       </div>
@@ -154,6 +172,7 @@ function FollowUpIA() {
                 <strong style={{ fontSize: 13, color: "var(--mk-text)" }}>{c.nome}</strong>
                 <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>#{c.numero} · {c.whatsapp}</span>
                 {c._pendente ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}><i className="ti ti-loader-2" /> Analisando…</span>
+                  : !c._analisado ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)", marginLeft: "auto" }}>Não analisado</span>
                   : c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}><i className="ti ti-circle-check" /> Vale follow-up</span>
                   : <span style={{ fontSize: 10, color: "#94a3b8", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}>Não recomendado</span>}
               </div>
@@ -162,6 +181,12 @@ function FollowUpIA() {
 
               {c._pendente ? (
                 <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}><i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite" }} /> Analisando a conversa…</div>
+              ) : !c._analisado ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", flex: 1 }}>Conversa parada — ainda não analisada pela IA.</span>
+                  <button className="ghost-btn" style={{ fontSize: 11.5 }} onClick={() => analisarUm(c.ticketId)}><i className="ti ti-sparkles" /> Analisar</button>
+                  <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} onClick={() => remover(c.ticketId)} title="Remover da lista"><i className="ti ti-x" /></button>
+                </div>
               ) : c._sent ? (
                 <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Enviado.</div>
               ) : c.enviar ? (
