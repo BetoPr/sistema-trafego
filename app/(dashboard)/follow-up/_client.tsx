@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
 import { salvarSequencia, toggleSequencia, excluirSequencia, cancelarInscricao, type SequenciaInput, type MsgEtapaInput } from "./_actions";
 
 type Tipo = "texto" | "imagem" | "documento" | "audio" | "video";
-interface Msg { tipo: Tipo; conteudo?: string; midia_url?: string; midia_mime?: string; midia_filename?: string; variacoes?: string[] }
+interface Msg { tipo: Tipo; conteudo?: string; midia_url?: string; midia_path?: string; midia_mime?: string; midia_filename?: string; variacoes?: string[] }
 interface Etapa { id?: string; ordem: number; apos_horas: number; mensagens: Msg[] }
 interface Sequencia { id: string; nome: string; descricao: string | null; ativo: boolean; delay_min_seg: number; delay_max_seg: number; janela_inicio: string; janela_fim: string; teto_dia: number; etapas: Etapa[] }
 interface FilaItem { id: string; status: string; etapa_atual: number; proximo_envio_em: string | null; criado_em: string; sequencia: { nome: string } | { nome: string }[] | null; contato: { nome: string | null; whatsapp: string | null } | { nome: string | null; whatsapp: string | null }[] | null }
@@ -216,12 +216,18 @@ function EtapaEditor({ idx, etapa, onChange, onRemove }: { idx: number; etapa: {
             {etapa.mensagens.length > 1 && <button className="ghost-btn" style={{ fontSize: 10.5, color: "#C97064", marginLeft: "auto", padding: "2px 6px" }} onClick={() => rmMsg(i)}><i className="ti ti-x" /></button>}
           </div>
           {m.tipo === "texto" ? (
-            <textarea value={m.conteudo || ""} onChange={(e) => setMsg(i, { ...m, conteudo: e.target.value })} placeholder="Mensagem…" rows={2} style={{ ...inp, resize: "vertical" }} />
-          ) : (
             <>
-              <input value={m.midia_url || ""} onChange={(e) => setMsg(i, { ...m, midia_url: e.target.value })} placeholder="URL da mídia (https://…)" style={inp} />
-              <input value={m.conteudo || ""} onChange={(e) => setMsg(i, { ...m, conteudo: e.target.value })} placeholder="Legenda (opcional)" style={inp} />
+              <textarea value={m.conteudo || ""} onChange={(e) => setMsg(i, { ...m, conteudo: e.target.value })} placeholder="Mensagem…" rows={2} style={{ ...inp, resize: "vertical" }} />
+              <textarea
+                value={(m.variacoes || []).join("\n")}
+                onChange={(e) => setMsg(i, { ...m, variacoes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+                placeholder="Variações anti-robô (uma por linha, opcional)"
+                rows={2}
+                style={{ ...inp, resize: "vertical", fontSize: 11, color: "var(--mk-text-secondary)" }}
+              />
             </>
+          ) : (
+            <MediaMsg m={m} onChange={(mm) => setMsg(i, mm)} />
           )}
         </div>
       ))}
@@ -273,6 +279,64 @@ function Th({ children }: { children: React.ReactNode }) { return <th style={{ p
 function Td({ children }: { children: React.ReactNode }) { return <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--mk-text)" }}>{children}</td>; }
 function Empty({ icon, label }: { icon: string; label: string }) {
   return <div className="mk-card" style={{ textAlign: "center", padding: 50, color: "var(--mk-text-muted)" }}><i className={`ti ${icon}`} style={{ display: "block", fontSize: 32, marginBottom: 8, opacity: 0.6 }} />{label}</div>;
+}
+
+const ACCEPT: Record<string, string> = { imagem: "image/*", video: "video/*", audio: "audio/*", documento: ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" };
+
+function fileToBase64(f: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = reject;
+    r.readAsDataURL(f);
+  });
+}
+
+function MediaMsg({ m, onChange }: { m: MsgEtapaInput; onChange: (m: MsgEtapaInput) => void }) {
+  const [up, setUp] = useState(false);
+  const [erro, setErro] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
+  const ref = useRef<HTMLInputElement>(null);
+  const temMidia = !!(m.midia_path || m.midia_url);
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (ref.current) ref.current.value = "";
+    if (!f) return;
+    setErro(""); setUp(true);
+    try {
+      const b64 = await fileToBase64(f);
+      const r = await fetch("/api/follow-up/upload", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileBase64: b64, filename: f.name, mime: f.type }) });
+      const j = await r.json();
+      if (j.ok) { onChange({ ...m, midia_path: j.path, midia_url: undefined, midia_filename: j.filename || f.name, midia_mime: j.mime || f.type }); setPreview(j.previewUrl || null); }
+      else setErro(j.error || "Falha no upload");
+    } catch { setErro("Falha no upload"); }
+    finally { setUp(false); }
+  }
+
+  return (
+    <>
+      {temMidia ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "var(--mk-surface-2)", borderRadius: 6 }}>
+          <i className="ti ti-paperclip" style={{ color: "#10b981" }} />
+          <span style={{ fontSize: 11, color: "var(--mk-text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.midia_filename || m.midia_url || "Mídia anexada"}</span>
+          {preview && m.tipo === "imagem" && <img src={preview} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: "cover" }} />}
+          <button type="button" className="ghost-btn" style={{ fontSize: 10.5, color: "#C97064", padding: "2px 6px" }} onClick={() => { onChange({ ...m, midia_path: undefined, midia_url: undefined, midia_filename: undefined }); setPreview(null); }}><i className="ti ti-x" /></button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button type="button" className="ghost-btn" style={{ fontSize: 11 }} disabled={up} onClick={() => ref.current?.click()}>
+            <i className={`ti ${up ? "ti-loader-2" : "ti-upload"}`} /> {up ? "Enviando…" : "Enviar arquivo"}
+          </button>
+          <input ref={ref} type="file" hidden accept={ACCEPT[m.tipo] || "*"} onChange={onPick} />
+          <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>ou</span>
+          <input value={m.midia_url || ""} onChange={(e) => onChange({ ...m, midia_url: e.target.value })} placeholder="cole uma URL" style={{ ...inp, padding: "5px 8px" }} />
+        </div>
+      )}
+      <input value={m.conteudo || ""} onChange={(e) => onChange({ ...m, conteudo: e.target.value })} placeholder="Legenda (opcional)" style={inp} />
+      {erro && <span style={{ fontSize: 10.5, color: "#C97064" }}>{erro}</span>}
+    </>
+  );
 }
 
 const inp: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, fontFamily: "inherit", boxSizing: "border-box" };

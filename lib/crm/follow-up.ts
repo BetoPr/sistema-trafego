@@ -12,13 +12,15 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
+import { getSignedUrl } from "@/lib/crm/storage";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface MsgEtapa {
   tipo: "texto" | "imagem" | "documento" | "audio" | "video";
   conteudo?: string;
-  midia_url?: string;
+  midia_url?: string;   // URL externa colada
+  midia_path?: string;  // path no bucket crm-media (signed na hora do envio)
   midia_mime?: string;
   midia_filename?: string;
   variacoes?: string[];
@@ -153,14 +155,17 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
         const texto = escolherTexto(m);
         let wamid: string | undefined;
         let tipoTabela = m.tipo;
+        // Resolve URL da mídia: path no bucket → signed URL fresca; senão URL externa
+        const fileUrl = m.tipo === "texto" ? null : (m.midia_path ? await getSignedUrl(m.midia_path, 600) : m.midia_url || null);
+
         if (m.tipo === "texto") {
           const r = await instanceSendText({ baseUrl, token }, { number: waId, text: texto });
           wamid = r.id;
-        } else if (m.midia_url) {
-          const r = await instanceSendMedia({ baseUrl, token }, { number: waId, type: TIPO_UAZAPI[m.tipo] || "document", file: m.midia_url, text: texto || undefined, docName: m.midia_filename });
+        } else if (fileUrl) {
+          const r = await instanceSendMedia({ baseUrl, token }, { number: waId, type: TIPO_UAZAPI[m.tipo] || "document", file: fileUrl, text: texto || undefined, docName: m.midia_filename });
           wamid = r.id;
         } else {
-          continue; // mídia sem url — pula
+          continue; // mídia sem url/path — pula
         }
 
         await sb.from("mensagens").insert({
@@ -169,7 +174,7 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
           autor: "atendente",
           tipo: tipoTabela,
           conteudo: m.tipo === "texto" ? texto : texto || `[${m.tipo}]`,
-          midia_url: m.tipo === "texto" ? null : m.midia_url || null,
+          midia_url: m.tipo === "texto" ? null : (fileUrl || m.midia_url || null),
           midia_mime: m.midia_mime || null,
           midia_filename: m.midia_filename || null,
           wa_message_id: wamid || null,

@@ -9,6 +9,7 @@ export interface MsgEtapaInput {
   tipo: "texto" | "imagem" | "documento" | "audio" | "video";
   conteudo?: string;
   midia_url?: string;
+  midia_path?: string;
   midia_mime?: string;
   midia_filename?: string;
   variacoes?: string[];
@@ -68,7 +69,7 @@ export async function salvarSequencia(data: SequenciaInput) {
     agencia_id: ctx.agenciaId,
     ordem: i + 1,
     apos_horas: Number(e.apos_horas) || 1,
-    mensagens: (e.mensagens || []).filter((m) => m.tipo === "texto" ? (m.conteudo || "").trim() : (m.midia_url || "").trim()),
+    mensagens: (e.mensagens || []).filter((m) => m.tipo === "texto" ? (m.conteudo || "").trim() : ((m.midia_url || "").trim() || (m.midia_path || "").trim())),
   }));
   if (linhas.length) await sb.from("follow_up_etapas").insert(linhas);
 
