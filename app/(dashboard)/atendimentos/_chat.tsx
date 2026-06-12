@@ -34,6 +34,17 @@ interface Mensagem {
   status: string;
   created_at: string;
   usuario_id: string | null;
+  wa_message_id?: string | null;
+  metadata?: { reply_to?: string } | null;
+}
+
+/** Preview curto de uma mensagem (pra citação). */
+function previewMsg(m: Mensagem): string {
+  if (m.tipo === "audio") return "🎤 Áudio";
+  if (m.tipo === "imagem") return "🖼️ Imagem";
+  if (m.tipo === "video") return "🎬 Vídeo";
+  if (m.tipo === "documento") return "📄 Documento";
+  return (m.conteudo || m.transcricao || "Mensagem").slice(0, 90);
 }
 
 interface MensagemRapida {
@@ -71,6 +82,9 @@ export function ChatView(props: Props) {
   const [msgs, setMsgs] = useState<Mensagem[]>(props.mensagensIniciais);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [respondendo, setRespondendo] = useState<Mensagem | null>(null);
+
+  const acharCitada = (wamid?: string | null) => (wamid ? msgs.find((x) => x.wa_message_id === wamid) || null : null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +174,7 @@ export function ChatView(props: Props) {
     if (!text.trim() || !props.canalId) return;
     setSending(true);
     const textoEnviado = text;
+    const replyTo = respondendo?.wa_message_id || undefined;
     // Optimistic insert imediato — UX instantâneo enquanto fetch processa
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const optimistic: Mensagem = {
@@ -173,15 +188,17 @@ export function ChatView(props: Props) {
       status: "pendente",
       created_at: new Date().toISOString(),
       usuario_id: null,
+      metadata: replyTo ? { reply_to: replyTo } : null,
     };
     setMsgs((prev) => [...prev, optimistic]);
     setText("");
+    setRespondendo(null);
 
     try {
       const r = await fetch(`/api/canais/${props.canalId}/send`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId: props.ticketId, text: textoEnviado }),
+        body: JSON.stringify({ ticketId: props.ticketId, text: textoEnviado, replyid: replyTo }),
       });
       const j = await r.json();
       if (!r.ok) {
@@ -289,8 +306,30 @@ export function ChatView(props: Props) {
                   whiteSpace: "pre-wrap",
                   overflowWrap: "anywhere",
                   wordBreak: "break-word",
+                  position: "relative",
                 }}
+                className="msg-bubble"
               >
+                {m.wa_message_id && (
+                  <button
+                    type="button"
+                    onClick={() => setRespondendo(m)}
+                    title="Responder"
+                    className="msg-reply-btn"
+                    style={{ position: "absolute", top: 2, right: 2, width: 22, height: 22, borderRadius: "50%", border: 0, background: "var(--mk-surface-2)", color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, opacity: 0.5 }}
+                  >
+                    <i className="ti ti-arrow-back-up" />
+                  </button>
+                )}
+                {m.metadata?.reply_to && (() => {
+                  const q = acharCitada(m.metadata.reply_to);
+                  return (
+                    <div style={{ borderLeft: "3px solid #9B7DBF", background: "rgba(155,125,191,0.10)", borderRadius: 6, padding: "4px 8px", marginBottom: 6, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+                      <div style={{ fontWeight: 600, color: "#9B7DBF", fontSize: 10 }}>{q ? (q.autor === "cliente" ? props.contatoNomeCurto || "Cliente" : "Você") : "Mensagem"}</div>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q ? previewMsg(q) : "mensagem citada"}</div>
+                    </div>
+                  );
+                })()}
                 {m.autor !== "cliente" && m.usuario_id && (
                   <div style={{ fontSize: 10, fontWeight: 600, color: "#9B7DBF", marginBottom: 2 }}>
                     {props.userNomeMap[m.usuario_id] || "Atendente"}
@@ -373,6 +412,18 @@ export function ChatView(props: Props) {
         </div>
       )}
 
+      {/* Banner de resposta (citação) */}
+      {respondendo && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "var(--mk-surface)", borderTop: "0.5px solid var(--mk-border)", borderLeft: "3px solid #9B7DBF" }}>
+          <i className="ti ti-arrow-back-up" style={{ color: "#9B7DBF" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, color: "#9B7DBF" }}>Respondendo {respondendo.autor === "cliente" ? props.contatoNomeCurto || "Cliente" : "você"}</div>
+            <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{previewMsg(respondendo)}</div>
+          </div>
+          <button type="button" onClick={() => setRespondendo(null)} title="Cancelar" style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 15 }}><i className="ti ti-x" /></button>
+        </div>
+      )}
+
       {/* Input bar nova estilo ZPRO */}
       <InputBar
         ticketId={props.ticketId}
@@ -383,6 +434,8 @@ export function ChatView(props: Props) {
         setText={setText}
         sending={sending}
         onSend={enviar}
+        replyId={respondendo?.wa_message_id || null}
+        onClearReply={() => setRespondendo(null)}
         onOptimisticAudio={(blob: Blob) => {
           // Optimistic add audio msg local
           const tempId = `temp_${Date.now()}`;

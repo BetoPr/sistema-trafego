@@ -33,6 +33,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ticketId?: string;
     text?: string;
     media?: MediaPayload;
+    replyid?: string;
+    viewOnce?: boolean;
   } | null;
   if (!body?.ticketId || (!body.text && !body.media)) {
     return NextResponse.json({ error: "body_invalido" }, { status: 400 });
@@ -86,6 +88,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           file: fileUazapi,
           text: body.media.caption,
           docName: body.media.filename,
+          replyid: body.replyid || undefined,
+          viewOnce: body.viewOnce || undefined,
         },
       );
       wamid = r.id;
@@ -98,7 +102,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         : "texto";
       conteudoMsg = body.media.caption || `[${tipoMsg}]`;
     } else {
-      const r = await instanceSendText({ baseUrl, token }, { number: waId, text: body.text! });
+      const r = await instanceSendText({ baseUrl, token }, { number: waId, text: body.text!, replyid: body.replyid || undefined });
       wamid = r.id;
     }
   } catch (e) {
@@ -119,6 +123,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       midia_url: midiaUrlSalvar,
       midia_mime: midiaMimeSalvar,
       midia_filename: body.media?.filename || null,
+      metadata: body.replyid ? { reply_to: body.replyid } : undefined,
     })
     .select("id")
     .single();

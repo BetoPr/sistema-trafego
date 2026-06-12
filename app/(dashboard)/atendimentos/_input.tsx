@@ -14,6 +14,8 @@ interface Props {
   onOptimisticAudio: (blob: Blob) => string;
   onAudioConfirm: (tempId: string, mensagemId?: string) => void;
   onAudioFail: (tempId: string) => void;
+  replyId?: string | null;
+  onClearReply?: () => void;
 }
 
 type EstiloIA = "profissional" | "simpatico" | "marketing" | "ortografia";
@@ -53,6 +55,7 @@ export function InputBar(p: Props) {
   const [menuAnexo, setMenuAnexo] = useState(false);
   const [menuIA, setMenuIA] = useState(false);
   const [menuEmoji, setMenuEmoji] = useState(false);
+  const [visuUnica, setVisuUnica] = useState(false);
   const [iaLoading, setIaLoading] = useState<EstiloIA | null>(null);
   const [gravando, setGravando] = useState(false);
   const [tempoGrav, setTempoGrav] = useState(0);
@@ -197,6 +200,9 @@ export function InputBar(p: Props) {
               mimetype: a.file.type || undefined,
               caption: i === 0 && caption ? caption : undefined,
             },
+            // citação e visu única só na primeira mídia da fila
+            replyid: i === 0 ? p.replyId || undefined : undefined,
+            viewOnce: visuUnica || undefined,
           }),
         });
         const j = await r.json().catch(() => ({}));
@@ -208,6 +214,8 @@ export function InputBar(p: Props) {
         removerAnexo(a.id);
       }
       p.setText("");
+      setVisuUnica(false);
+      p.onClearReply?.();
     } catch (e) {
       alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -537,6 +545,14 @@ export function InputBar(p: Props) {
               <input type="checkbox" checked={assinado} onChange={(e) => setAssinado(e.target.checked)} />
               Assinado
             </label>
+
+            {/* Visu única — só com mídia na fila */}
+            {anexos.length > 0 && (
+              <label style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 8px", fontSize: 11, color: visuUnica ? "#9B7DBF" : "var(--mk-text-secondary)", cursor: "pointer" }} title="Enviar a mídia como visualização única">
+                <input type="checkbox" checked={visuUnica} onChange={(e) => setVisuUnica(e.target.checked)} />
+                <i className="ti ti-eye" /> Visu única
+              </label>
+            )}
 
             <div style={{ flex: 1 }} />
 
