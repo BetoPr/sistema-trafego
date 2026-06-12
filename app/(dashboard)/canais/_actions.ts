@@ -552,6 +552,59 @@ export async function conectarCanal(formData: FormData) {
   redirect(`/canais?qr=${id}`);
 }
 
+/**
+ * Reconectar: checa o status real no provedor. Se já estiver conectado, só
+ * sincroniza (não derruba a sessão). Se caiu, gera QR novo e manda pro QR view
+ * — sem precisar desconectar manualmente.
+ */
+export async function reconectarCanal(formData: FormData) {
+  const ctx = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const sb = createServiceClient();
+
+  const { data: canal } = await sb
+    .from("canais")
+    .select("id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId)
+    .single();
+  if (!canal) redirect("/canais?erro=nao_encontrado");
+
+  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+
+  let destino = `/canais?qr=${id}`;
+  try {
+    const st = await instanceGetStatus({ baseUrl, token }).catch(() => null);
+    if (st?.status?.connected) {
+      // Sessão saudável — só sincroniza, não mexe.
+      await sb.from("canais").update({
+        status: "connected",
+        numero_conectado: st?.status?.jid?.user || undefined,
+        qr_code_atual: null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", id);
+      destino = "/canais?ok=ja_conectado";
+    } else {
+      // Caiu → gera QR novo na MESMA instância (sem apagar).
+      const r = await instanceConnect({ baseUrl, token });
+      const qr = r.instance?.qrcode || r.instance?.paircode || null;
+      await sb.from("canais").update({
+        qr_code_atual: r.connected ? null : qr,
+        qr_atualizado_em: new Date().toISOString(),
+        status: r.connected ? "connected" : "pending_qr",
+      }).eq("id", id);
+      destino = r.connected ? "/canais?ok=ja_conectado" : `/canais?qr=${id}`;
+    }
+  } catch (e) {
+    redirect(`/canais?erro=conectar&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
+
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "connect", entidade: "canal", entidadeId: id, payload: { reconectar: true } });
+  revalidatePath("/canais");
+  redirect(destino);
+}
+
 export async function atualizarStatusCanal(formData: FormData) {
   const ctx = await requireAdmin();
   const id = String(formData.get("id") || "");

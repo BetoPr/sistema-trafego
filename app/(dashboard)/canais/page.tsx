@@ -7,6 +7,7 @@ import {
   revalidarWebhook,
   desconectarCanal,
   deletarCanal,
+  reconectarCanal,
 } from "./_actions";
 import { CanaisAutoRefresh } from "./_auto-refresh";
 import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
@@ -149,6 +150,12 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                   outros={(canais || []).filter((o) => o.id !== c.id).map((o) => ({ id: o.id, nome: o.nome, status: o.status }))}
                 />
                 {conectado && (
+                  <form action={reconectarCanal} style={{ display: "inline" }}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <SubmitIconBtn icon="ti-refresh" title="Reconectar — checa a sessão e gera QR novo se caiu (não derruba se estiver ativa)" />
+                  </form>
+                )}
+                {conectado && (
                   <form action={desconectarCanal} style={{ display: "inline" }}>
                     <input type="hidden" name="id" value={c.id} />
                     <SubmitIconBtn icon="ti-plug-off" title="Desconectar" confirmMsg={`Desconectar "${c.nome}"?`} />
@@ -171,7 +178,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
 const menuBtn: React.CSSProperties = { fontSize: 11, padding: "4px 8px" };
 
 function labelOk(k: string) {
-  return ({ criado: "Canal criado. Clique em 'Ver QR Code'.", importado: "Instância importada com dados do servidor.", atualizado: "Status atualizado.", padrao_definido: "Canal definido como padrão.", webhook_revalidado: "Webhook revalidado.", desconectado: "Canal desconectado.", deletado: "Canal removido." } as Record<string, string>)[k] || "OK.";
+  return ({ criado: "Canal criado. Clique em 'Ver QR Code'.", importado: "Instância importada com dados do servidor.", atualizado: "Status atualizado.", padrao_definido: "Canal definido como padrão.", webhook_revalidado: "Webhook revalidado.", desconectado: "Canal desconectado.", deletado: "Canal removido.", ja_conectado: "Sessão ativa — já está conectado." } as Record<string, string>)[k] || "OK.";
 }
 function labelErr(k: string) {
   return ({ nome_vazio: "Nome obrigatório.", campos_obrigatorios: "Preencha nome e instance token.", sem_servidor: "Sem servidor de WhatsApp ativo.", uazapi: "Erro chamando o servidor de WhatsApp.", db: "Erro no banco.", conectar: "Falha ao gerar QR.", webhook: "Falha ao configurar webhook.", nao_encontrado: "Canal não encontrado.", token_invalido: "Servidor não reconheceu o token. Cole o Instance Token (UUID) do painel do provedor.", ja_importado: "Essa instância já está no sistema." } as Record<string, string>)[k] || "Erro.";
