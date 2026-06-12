@@ -51,6 +51,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "nota", entidadeId: data.id });
+  void audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "nota", entidadeId: data.id, payload: { ticket_id: id } });
   return NextResponse.json({ ok: true, id: data.id });
 }

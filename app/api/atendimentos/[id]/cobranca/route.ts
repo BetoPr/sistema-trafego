@@ -101,7 +101,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           copia_cola: qr.payload,
           raw: payment as unknown as Record<string, unknown>,
         });
-        await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: payment.id, payload: { tipo: "pix_nominal", valor: body.valor } });
+        await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: payment.id, payload: { ticket_id: ticketId, tipo: "pix_nominal", valor: body.valor } });
         return NextResponse.json({ ok: true, asaasId: payment.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
       }
 
@@ -131,7 +131,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         copia_cola: qr.payload,
         raw: qr as unknown as Record<string, unknown>,
       });
-      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: qr.id, payload: { tipo: "pix_estatico", valor: body.valor } });
+      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: qr.id, payload: { ticket_id: ticketId, tipo: "pix_estatico", valor: body.valor } });
       return NextResponse.json({ ok: true, asaasId: qr.id, qrEncoded: qr.encodedImage, copiaCola: qr.payload });
     }
 
@@ -163,7 +163,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         link_pagamento: link.url,
         raw: link as unknown as Record<string, unknown>,
       });
-      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: link.id, payload: { tipo: "cartao", valor: body.valor, parcelas: body.parcelas } });
+      await audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "create", entidade: "asaas_cobranca", entidadeId: link.id, payload: { ticket_id: ticketId, tipo: "cartao", valor: body.valor, parcelas: body.parcelas } });
       return NextResponse.json({ ok: true, asaasId: link.id, link: link.url });
     }
 

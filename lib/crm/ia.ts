@@ -2,8 +2,9 @@
  * Orquestrador IA — alto nível, lê prompts + key da agência.
  */
 import { createServiceClient } from "@/lib/supabase/service";
+import { audit } from "@/lib/crm/audit";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
-import { transcribeAudio } from "@/lib/groq/transcribe";
+import { transcribeAudio, type WhisperModel } from "@/lib/groq/transcribe";
 import {
   analisarSentimento as _analisar,
   gerarResumo as _resumo,
@@ -178,6 +179,8 @@ export async function gerarResumoTicket(params: {
       duracao_ms: Date.now() - t0,
     });
 
+    void audit({ agenciaId: params.agenciaId, acao: "resumo", entidade: "ticket", entidadeId: params.ticketId, payload: { ticket_id: params.ticketId, automatico: true } });
+
     return result;
   } catch (e) {
     await sb.from("ia_execucoes").insert({
@@ -196,14 +199,32 @@ export async function transcreverMensagemAudio(params: {
   mensagemId: string;
   audioUrl: string;
 }): Promise<{ texto: string; modelo: string }> {
+  const sb = createServiceClient();
+
+  // Config de transcrição (ia.transcricao no jsonb). Desligado = pula (não gasta token).
+  // Só a transcrição respeita esse toggle — resumo/sentimento continuam usando o Groq.
+  const { data: cfgRow } = await sb
+    .from("configuracoes_agencia")
+    .select("ia")
+    .eq("agencia_id", params.agenciaId)
+    .maybeSingle();
+  const tcfg = ((cfgRow?.ia as Record<string, unknown> | null)?.transcricao ?? {}) as { ativa?: boolean; idioma?: string; modelo?: string };
+  if (tcfg.ativa === false) {
+    return { texto: "", modelo: "desativado" };
+  }
+
   const apiKey = await getGroqKey(params.agenciaId);
   if (!apiKey) throw new Error("Groq API key não configurada");
 
-  const sb = createServiceClient();
   const t0 = Date.now();
 
   try {
-    const r = await transcribeAudio({ apiKey, audioUrl: params.audioUrl, language: "pt" });
+    const r = await transcribeAudio({
+      apiKey,
+      audioUrl: params.audioUrl,
+      language: tcfg.idioma || "pt",
+      model: (tcfg.modelo as WhisperModel) || "whisper-large-v3",
+    });
     await sb
       .from("mensagens")
       .update({ transcricao: r.text, transcricao_modelo: r.modelo })

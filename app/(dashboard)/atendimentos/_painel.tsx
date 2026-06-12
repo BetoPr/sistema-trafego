@@ -841,6 +841,8 @@ function labelAcao(a: string): string {
     ticket_transferir_canal: "Transferiu canal",
     ticket_marcar_lido: "Marcou como lido",
     config_change: "Mudou config",
+    sentimento: "Analisou sentimento",
+    resumo: "Gerou resumo (auto)",
   } as Record<string, string>)[a] || a;
 }
 
