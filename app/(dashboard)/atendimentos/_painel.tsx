@@ -543,12 +543,14 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                     <button onClick={gerarSentimento} className="cta-btn" style={{ width: "100%", fontSize: 12, justifyContent: "center" }}>
                       <i className="ti ti-sparkles" /> Analisar sentimento
                     </button>
-                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 5 }}>
-                      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "flex", alignItems: "flex-start", gap: 5, lineHeight: 1.4 }}>
-                        <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> Só pode ser feita <strong>uma vez por atendimento</strong> — ideal rodar no fim do atendimento.
+                    <div style={{ marginTop: 10, padding: "10px 12px", background: "var(--mk-surface-2)", borderRadius: 8, border: "0.5px solid var(--mk-border)", display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "16px 1fr", gap: 8, alignItems: "start", fontSize: 10.5, color: "var(--mk-text-muted)", lineHeight: 1.5 }}>
+                        <i className="ti ti-lock" style={{ fontSize: 13, color: "var(--mk-text-secondary)", marginTop: 1 }} />
+                        <span>Pode rodar <strong>uma única vez</strong>. Faça no fim do atendimento.</span>
                       </div>
-                      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "flex", alignItems: "flex-start", gap: 5, lineHeight: 1.4 }}>
-                        <i className="ti ti-chart-bar" style={{ marginTop: 1 }} /> Fica registrada e entra na <strong>análise de satisfação do Dashboard</strong>.
+                      <div style={{ display: "grid", gridTemplateColumns: "16px 1fr", gap: 8, alignItems: "start", fontSize: 10.5, color: "var(--mk-text-muted)", lineHeight: 1.5 }}>
+                        <i className="ti ti-chart-bar" style={{ fontSize: 13, color: "var(--mk-text-secondary)", marginTop: 1 }} />
+                        <span>Entra na <strong>satisfação do Dashboard</strong>.</span>
                       </div>
                     </div>
                   </>

@@ -62,6 +62,84 @@ export interface SatisfacaoStat {
   score: number;
 }
 
+export interface TemposStat {
+  /** Média (seg) do tempo até a 1ª resposta do atendente. null = sem amostra. */
+  primeira_resposta_seg: number | null;
+  /** Média (seg) do tempo de abertura até o fechamento do ticket. */
+  ate_fechamento_seg: number | null;
+  /** Média (seg) de espera do cliente por resposta, a cada vez que escreve. */
+  resposta_media_seg: number | null;
+  amostras: { primeira: number; fechamento: number; resposta: number };
+}
+
+const diffSeg = (a: string, b: string) => (new Date(a).getTime() - new Date(b).getTime()) / 1000;
+
+/**
+ * Métricas de tempo sobre os tickets ABERTOS na faixa (tudo ancorado em
+ * created_at do ticket). TMR/TMA vêm da tabela tickets; o tempo de resposta
+ * recorrente vem das mensagens (limitado a 500 tickets / 20k msgs).
+ */
+async function calcularTempos(
+  supabase: SupabaseClient,
+  agenciaId: string,
+  faixa: FaixaDatas,
+): Promise<TemposStat> {
+  const { data: tk } = await supabase
+    .from("tickets")
+    .select("id, created_at, primeira_resposta_em, fechado_em")
+    .eq("agencia_id", agenciaId)
+    .gte("created_at", faixa.inicio.toISOString())
+    .lte("created_at", faixa.fim.toISOString())
+    .limit(5000);
+
+  const tickets = (tk || []) as Array<{ id: string; created_at: string; primeira_resposta_em: string | null; fechado_em: string | null }>;
+
+  let somaPrim = 0, nPrim = 0, somaFech = 0, nFech = 0;
+  for (const t of tickets) {
+    if (t.primeira_resposta_em) { const d = diffSeg(t.primeira_resposta_em, t.created_at); if (d >= 0) { somaPrim += d; nPrim++; } }
+    if (t.fechado_em) { const d = diffSeg(t.fechado_em, t.created_at); if (d >= 0) { somaFech += d; nFech++; } }
+  }
+
+  // Tempo de resposta recorrente: a cada bloco do cliente, mede a espera até o atendente responder.
+  const ids = tickets.slice(0, 500).map((t) => t.id);
+  let somaResp = 0, nResp = 0;
+  if (ids.length) {
+    const { data: msgs } = await supabase
+      .from("mensagens")
+      .select("ticket_id, autor, created_at")
+      .in("ticket_id", ids)
+      .in("autor", ["cliente", "atendente"])
+      .order("created_at", { ascending: true })
+      .limit(20000);
+
+    const porTicket = new Map<string, Array<{ autor: string; created_at: string }>>();
+    for (const m of (msgs || []) as Array<{ ticket_id: string; autor: string; created_at: string }>) {
+      const arr = porTicket.get(m.ticket_id) || [];
+      arr.push({ autor: m.autor, created_at: m.created_at });
+      porTicket.set(m.ticket_id, arr);
+    }
+    for (const arr of porTicket.values()) {
+      let esperaDesde: string | null = null; // 1ª msg do cliente ainda sem resposta
+      for (const m of arr) {
+        if (m.autor === "cliente") {
+          if (esperaDesde === null) esperaDesde = m.created_at;
+        } else if (esperaDesde !== null) {
+          const d = diffSeg(m.created_at, esperaDesde);
+          if (d >= 0) { somaResp += d; nResp++; }
+          esperaDesde = null;
+        }
+      }
+    }
+  }
+
+  return {
+    primeira_resposta_seg: nPrim ? Math.round(somaPrim / nPrim) : null,
+    ate_fechamento_seg: nFech ? Math.round(somaFech / nFech) : null,
+    resposta_media_seg: nResp ? Math.round(somaResp / nResp) : null,
+    amostras: { primeira: nPrim, fechamento: nFech, resposta: nResp },
+  };
+}
+
 interface TicketRow {
   id: string;
   valor_fechado: number | null;
@@ -73,7 +151,7 @@ export async function carregarDashboardAtendimentos(
   supabase: SupabaseClient,
   agenciaId: string,
   faixa: FaixaDatas,
-): Promise<{ kpis: KpisAtendimento; servicos: ServicoStat[]; serie: SerieDiaAtend[]; satisfacao: SatisfacaoStat }> {
+): Promise<{ kpis: KpisAtendimento; servicos: ServicoStat[]; serie: SerieDiaAtend[]; satisfacao: SatisfacaoStat; tempos: TemposStat }> {
   // Venda = ticket com valor_fechado registrado (independente do status do ticket —
   // fechamento de pedido não encerra o atendimento).
   const [{ data: tickets }, { data: sentRows }] = await Promise.all([
@@ -106,6 +184,8 @@ export async function carregarDashboardAtendimentos(
     total: satTotal,
     score: satTotal > 0 ? Math.round(((sat.muito_bom + sat.bom) / satTotal) * 100) : 0,
   };
+
+  const tempos = await calcularTempos(supabase, agenciaId, faixa);
 
   const rows = (tickets || []) as TicketRow[];
 
@@ -164,5 +244,6 @@ export async function carregarDashboardAtendimentos(
     servicos,
     serie,
     satisfacao,
+    tempos,
   };
 }

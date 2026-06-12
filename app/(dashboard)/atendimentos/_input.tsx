@@ -32,6 +32,16 @@ interface Anexo {
   previewUrl: string | null;
 }
 
+// Catálogo de emojis (sem lib externa) — os mais usados em atendimento.
+const EMOJIS = [
+  "😀","😁","😂","🤣","😊","😇","🙂","😉","😍","😘","😎","🤩","🥳","🤗","🤔","😅",
+  "😆","😋","😜","🤪","😏","🙄","😬","😴","😢","😭","😤","😡","🥺","😱","🤦","🤷",
+  "👍","👎","👌","🤝","🙏","👏","🙌","💪","🫶","✌️","🤙","👋","☝️","✅","❌","⚠️",
+  "❤️","🧡","💛","💚","💙","💜","🖤","💔","💯","🔥","✨","⭐","🎉","🎊","🥂","🎁",
+  "💰","💵","💳","🧾","📈","📉","📊","📌","📍","📅","⏰","⏳","🔔","📞","📲","💬",
+  "🚀","✔️","➡️","⬆️","⬇️","🆗","🆕","🔝","💡","🎯","🤖","🛒","📦","🏷️","💲","🤑",
+];
+
 function formatBytes(b: number): string {
   if (b >= 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(1)}MB`;
   if (b >= 1024) return `${Math.round(b / 1024)}KB`;
@@ -42,6 +52,7 @@ export function InputBar(p: Props) {
   const [assinado, setAssinado] = useState(false);
   const [menuAnexo, setMenuAnexo] = useState(false);
   const [menuIA, setMenuIA] = useState(false);
+  const [menuEmoji, setMenuEmoji] = useState(false);
   const [iaLoading, setIaLoading] = useState<EstiloIA | null>(null);
   const [gravando, setGravando] = useState(false);
   const [tempoGrav, setTempoGrav] = useState(0);
@@ -57,15 +68,31 @@ export function InputBar(p: Props) {
   const tempIdRef = useRef<string | null>(null);
   const menuAnexoRef = useRef<HTMLDivElement>(null);
   const menuIARef = useRef<HTMLDivElement>(null);
+  const menuEmojiRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (menuAnexoRef.current && !menuAnexoRef.current.contains(e.target as Node)) setMenuAnexo(false);
       if (menuIARef.current && !menuIARef.current.contains(e.target as Node)) setMenuIA(false);
+      if (menuEmojiRef.current && !menuEmojiRef.current.contains(e.target as Node)) setMenuEmoji(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  function inserirEmoji(emo: string) {
+    const ta = taRef.current;
+    if (!ta) { p.setText(p.text + emo); return; }
+    const start = ta.selectionStart ?? p.text.length;
+    const end = ta.selectionEnd ?? p.text.length;
+    p.setText(p.text.slice(0, start) + emo + p.text.slice(end));
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + emo.length;
+      ta.setSelectionRange(pos, pos);
+    });
+  }
 
   function textoFinal(): string {
     if (assinado && p.text.trim()) return `*${p.atendenteNome}*:\n${p.text}`;
@@ -393,6 +420,7 @@ export function InputBar(p: Props) {
         // ===== Modo normal =====
         <>
           <textarea
+            ref={taRef}
             value={p.text}
             onChange={(e) => p.setText(e.target.value)}
             onPaste={onPaste}
@@ -418,6 +446,29 @@ export function InputBar(p: Props) {
             }}
           />
           <div style={{ display: "flex", alignItems: "center", padding: "6px 10px", gap: 4, borderTop: "0.5px solid var(--mk-border)" }}>
+            {/* Emoji */}
+            <div style={{ position: "relative" }} ref={menuEmojiRef}>
+              <IconBtn icon="ti-mood-smile" title="Emojis" onClick={() => setMenuEmoji((s) => !s)} active={menuEmoji} />
+              {menuEmoji && (
+                <div style={{ ...menuStyle, width: 296, maxHeight: 220, overflowY: "auto", padding: 8 }} className="chat-scroll">
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 2 }}>
+                    {EMOJIS.map((emo) => (
+                      <button
+                        key={emo}
+                        type="button"
+                        onClick={() => inserirEmoji(emo)}
+                        title={emo}
+                        style={{ fontSize: 20, lineHeight: 1, padding: "5px 0", background: "transparent", border: 0, borderRadius: 6, cursor: "pointer" }}
+                        onMouseEnter={(ev) => ((ev.currentTarget as HTMLButtonElement).style.background = "var(--mk-surface-2)")}
+                        onMouseLeave={(ev) => ((ev.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                      >
+                        {emo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Anexar */}
             <div style={{ position: "relative" }} ref={menuAnexoRef}>
               <IconBtn icon="ti-paperclip" title="Anexar arquivo" onClick={() => setMenuAnexo((s) => !s)} active={menuAnexo} />

@@ -1,19 +1,31 @@
 "use client";
 
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
-import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat } from "@/lib/crm/dashboard-queries";
+import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat, TemposStat } from "@/lib/crm/dashboard-queries";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Segundos → "—" | "45s" | "12m" | "3h 20m" | "2d 4h" */
+function fmtDur(seg: number | null): string {
+  if (seg === null || seg < 0) return "—";
+  if (seg < 60) return `${Math.round(seg)}s`;
+  const min = seg / 60;
+  if (min < 60) return `${Math.round(min)}m`;
+  const h = min / 60;
+  if (h < 24) { const hh = Math.floor(h); const mm = Math.round(min - hh * 60); return mm ? `${hh}h ${mm}m` : `${hh}h`; }
+  const d = Math.floor(h / 24); const hr = Math.round(h - d * 24); return hr ? `${d}d ${hr}h` : `${d}d`;
+}
 
 interface Props {
   kpis: KpisAtendimento;
   servicos: ServicoStat[];
   serie: SerieDiaAtend[];
   satisfacao: SatisfacaoStat;
+  tempos: TemposStat;
   periodoLabel: string;
 }
 
-export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, periodoLabel }: Props) {
+export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempos, periodoLabel }: Props) {
   return (
     <>
       <div className="dash-kpis" style={{ marginBottom: 14 }}>
@@ -41,6 +53,36 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, perio
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mk-card" style={{ padding: 16, marginTop: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 12 }}>TEMPOS DE ATENDIMENTO</div>
+        <div className="dash-kpis">
+          <TempoBox
+            label="1ª resposta"
+            valor={fmtDur(tempos.primeira_resposta_seg)}
+            icon="ti-clock-bolt"
+            n={tempos.amostras.primeira}
+            dica="Tempo médio entre a abertura do ticket e a primeira resposta do atendente."
+          />
+          <TempoBox
+            label="Resposta ao cliente"
+            valor={fmtDur(tempos.resposta_media_seg)}
+            icon="ti-message-dots"
+            n={tempos.amostras.resposta}
+            dica="Espera média do cliente por uma resposta, cada vez que ele escreve."
+          />
+          <TempoBox
+            label="Até o fechamento"
+            valor={fmtDur(tempos.ate_fechamento_seg)}
+            icon="ti-clock-check"
+            n={tempos.amostras.fechamento}
+            dica="Tempo médio entre abrir e fechar o atendimento."
+          />
+        </div>
+        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 10 }}>
+          Calculado sobre os tickets abertos no período · {periodoLabel}
+        </div>
       </div>
 
       <div className="dash-2col" style={{ marginTop: 14 }}>
@@ -121,6 +163,19 @@ function Kpi({ label, valor, icon, cor, sub, primary }: { label: string; valor: 
       </div>
       <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: primary ? cor : "var(--mk-text)" }}>{valor}</div>
       {sub && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function TempoBox({ label, valor, icon, n, dica }: { label: string; valor: string; icon: string; n: number; dica: string }) {
+  return (
+    <div className="mk-card" style={{ padding: 14 }} title={dica}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>{label.toUpperCase()}</div>
+        <i className={`ti ${icon}`} style={{ fontSize: 14, color: "#10b981" }} />
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: "var(--mk-text)" }}>{valor}</div>
+      <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{n > 0 ? `${n} amostra${n > 1 ? "s" : ""}` : "sem dados"}</div>
     </div>
   );
 }

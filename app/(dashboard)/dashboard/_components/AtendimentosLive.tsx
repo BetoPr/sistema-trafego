@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DashboardAtendimentos } from "./DashboardAtendimentos";
-import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat } from "@/lib/crm/dashboard-queries";
+import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat, TemposStat } from "@/lib/crm/dashboard-queries";
 
 interface Dados {
   kpis: KpisAtendimento;
   servicos: ServicoStat[];
   serie: SerieDiaAtend[];
   satisfacao: SatisfacaoStat;
+  tempos: TemposStat;
   label: string;
 }
 
@@ -17,6 +18,26 @@ const PRESETS = [
   { id: "7d", label: "7 dias" },
   { id: "30d", label: "30 dias" },
 ] as const;
+
+// Prompt fixo que acompanha o PDF "Baixar análise". Copiar → colar na IA → anexar o PDF.
+const PROMPT_ANALISE = `Você é um especialista em atendimento ao cliente e vendas por WhatsApp.
+
+Em anexo está um PDF com o HISTÓRICO COMPLETO das conversas (atendente ↔ cliente) dos atendimentos fechados de um período, incluindo, por ticket: métricas de tempo (1ª resposta e duração), sentimento e valor fechado.
+
+Sua tarefa: gerar um RELATÓRIO DE MELHORIA DO ATENDIMENTO, em português, com esta estrutura:
+
+1. VISÃO GERAL — nº de atendimentos, satisfação, faturamento e tempos médios; o que esses números indicam.
+2. PONTOS FORTES — o que foi bem feito (cite o nº do ticket em cada exemplo).
+3. PONTOS A MELHORAR — demoras, respostas frias/secas, dúvidas mal respondidas e oportunidades de venda perdidas (cite o nº do ticket).
+4. PADRÕES — objeções recorrentes, dúvidas frequentes e gatilhos que travaram a venda.
+5. SCRIPTS SUGERIDOS — modelos de resposta prontos para os cenários mais comuns que você identificou.
+6. AÇÕES PRÁTICAS — lista priorizada do que mudar já para subir conversão, agilidade e satisfação.
+
+Regras:
+- Baseie-se SOMENTE no que está no PDF. Não invente dados nem clientes.
+- Cite o nº do ticket sempre que der um exemplo.
+- Seja direto e prático; o foco é vender mais, responder mais rápido e atender com mais cortesia.
+- Se um atendimento tiver pouco contexto, ignore-o em vez de especular.`;
 
 /**
  * Dashboard de Atendimentos SPA: filtros são estado local + fetch — sem
@@ -29,7 +50,24 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
   const [custom, setCustom] = useState(false);
   const [dados, setDados] = useState<Dados>(inicial);
   const [loading, setLoading] = useState(false);
+  const [copiado, setCopiado] = useState(false);
   const reqRef = useRef(0);
+
+  async function copiarPrompt() {
+    try {
+      await navigator.clipboard.writeText(PROMPT_ANALISE);
+    } catch {
+      // Fallback p/ navegadores sem clipboard API
+      const ta = document.createElement("textarea");
+      ta.value = PROMPT_ANALISE;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
 
   async function buscar(qs: string) {
     const req = ++reqRef.current;
@@ -107,17 +145,25 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
           </span>
         )}
 
+        <button
+          onClick={copiarPrompt}
+          style={{ marginLeft: "auto", fontSize: 12, color: copiado ? "#10b981" : "var(--mk-text-secondary)", background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: `0.5px solid ${copiado ? "#10b981" : "var(--mk-border)"}`, borderRadius: 8 }}
+          title="Copia o prompt de análise. Cole na IA (Claude/ChatGPT) e anexe o PDF abaixo."
+        >
+          <i className={`ti ${copiado ? "ti-check" : "ti-clipboard-text"}`} /> {copiado ? "Copiado!" : "Copiar prompt"}
+        </button>
+
         <a
           href={`/api/relatorios/atendimentos-pdf?${periodo ? `periodo=${periodo}` : `de=${de}&ate=${ate}`}`}
-          style={{ marginLeft: "auto", fontSize: 12, color: "var(--mk-accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}
-          title="Baixa um PDF com os resumos e sentimentos dos atendimentos do período (pra análise no Claude/ChatGPT)"
+          style={{ fontSize: 12, color: "var(--mk-accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}
+          title="Baixa um PDF com o histórico completo das conversas do período (pra análise no Claude/ChatGPT)"
         >
           <i className="ti ti-file-download" /> Baixar análise (PDF)
         </a>
       </div>
 
       <div style={{ opacity: loading ? 0.6 : 1, transition: "opacity 0.15s ease" }}>
-        <DashboardAtendimentos kpis={dados.kpis} servicos={dados.servicos} serie={dados.serie} satisfacao={dados.satisfacao} periodoLabel={dados.label} />
+        <DashboardAtendimentos kpis={dados.kpis} servicos={dados.servicos} serie={dados.serie} satisfacao={dados.satisfacao} tempos={dados.tempos} periodoLabel={dados.label} />
       </div>
     </>
   );
