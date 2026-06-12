@@ -54,6 +54,7 @@ export function ListaAtendimentos(p: Props) {
     return () => clearInterval(iv);
   }, []);
   const [canalFiltro, setCanalFiltro] = useState<string | null>(null);
+  const [etiquetaFiltro, setEtiquetaFiltro] = useState<string | null>(null);
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
   const [fechamentosModal, setFechamentosModal] = useState(false);
@@ -93,27 +94,44 @@ export function ListaAtendimentos(p: Props) {
   }, []);
 
   // Filtragem 100% client-side — instantânea
+  const temEtiqueta = (t: TicketLista, etqId: string) =>
+    (t.contato?.contato_etiquetas || []).some((ce) => ce?.etiqueta?.id === etqId);
+
+  // Etiquetas presentes nos tickets atuais (pra montar o filtro)
+  const etiquetasDisponiveis = useMemo(() => {
+    const m = new Map<string, { id: string; nome: string; cor: string }>();
+    for (const t of p.tickets) {
+      for (const ce of t.contato?.contato_etiquetas || []) {
+        const e = ce?.etiqueta;
+        if (e && (e.categoria || "etiqueta") === "etiqueta" && !m.has(e.id)) m.set(e.id, { id: e.id, nome: e.nome, cor: e.cor });
+      }
+    }
+    return Array.from(m.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [p.tickets]);
+
   const counts = useMemo(() => {
     const c: Record<string, number> = { aberto: 0, pendente: 0, fechado: 0 };
     for (const t of p.tickets) {
       if (canalFiltro && t.canal?.id !== canalFiltro) continue;
+      if (etiquetaFiltro && !temEtiqueta(t, etiquetaFiltro)) continue;
       if (c[t.status] !== undefined) c[t.status]++;
     }
     return c;
-  }, [p.tickets, canalFiltro]);
+  }, [p.tickets, canalFiltro, etiquetaFiltro]);
 
   const ticketsVisiveis = useMemo(() => {
     const q = searchQ.trim().toLowerCase();
     return p.tickets.filter((t) => {
       if (t.status !== tab) return false;
       if (canalFiltro && t.canal?.id !== canalFiltro) return false;
+      if (etiquetaFiltro && !temEtiqueta(t, etiquetaFiltro)) return false;
       if (q) {
         const alvo = `${t.contato?.nome || ""} ${t.contato?.whatsapp || ""} ${t.numero}`.toLowerCase();
         if (!alvo.includes(q)) return false;
       }
       return true;
     });
-  }, [p.tickets, tab, canalFiltro, searchQ]);
+  }, [p.tickets, tab, canalFiltro, etiquetaFiltro, searchQ]);
 
   async function buscarMensagens() {
     if (!searchMsgText.trim()) return;
@@ -243,14 +261,22 @@ export function ListaAtendimentos(p: Props) {
       </div>
 
       {/* Chips filtros aplicados */}
-      {canalFiltro && (
+      {(canalFiltro || etiquetaFiltro) && (
         <div style={sep}>
           <div style={{ display: "flex", gap: 4, padding: "8px 12px", flexWrap: "wrap" }}>
-            <button onClick={() => setCanalFiltro(null)} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Ver todos <i className="ti ti-x" /></button>
-            <span style={chipActive}>
-              {p.canais.find((c) => c.id === canalFiltro)?.nome || "Canal"}
-              <button onClick={() => setCanalFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
-            </span>
+            {canalFiltro && (
+              <span style={chipActive}>
+                {p.canais.find((c) => c.id === canalFiltro)?.nome || "Canal"}
+                <button onClick={() => setCanalFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
+              </span>
+            )}
+            {etiquetaFiltro && (
+              <span style={chipActive}>
+                <i className="ti ti-tag" style={{ color: etiquetasDisponiveis.find((e) => e.id === etiquetaFiltro)?.cor }} /> {etiquetasDisponiveis.find((e) => e.id === etiquetaFiltro)?.nome || "Etiqueta"}
+                <button onClick={() => setEtiquetaFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
+              </span>
+            )}
+            <button onClick={() => { setCanalFiltro(null); setEtiquetaFiltro(null); }} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Limpar <i className="ti ti-x" /></button>
           </div>
         </div>
       )}
@@ -449,6 +475,27 @@ export function ListaAtendimentos(p: Props) {
                   </button>
                 ))}
               </div>
+
+              {etiquetasDisponiveis.length > 0 && (
+                <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 12, paddingTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>ETIQUETAS</div>
+                  <button
+                    onClick={() => { setEtiquetaFiltro(null); setFiltroAberto(false); }}
+                    style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: !etiquetaFiltro ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    {!etiquetaFiltro ? "● " : "○ "}Todas etiquetas
+                  </button>
+                  {etiquetasDisponiveis.map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => { setEtiquetaFiltro(e.id); setFiltroAberto(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: etiquetaFiltro === e.id ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      {etiquetaFiltro === e.id ? "● " : "○ "}<i className="ti ti-tag" style={{ color: e.cor }} /> {e.nome}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
