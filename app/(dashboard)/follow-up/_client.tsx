@@ -24,23 +24,138 @@ function uno<T>(v: T | T[] | null): T | null { return Array.isArray(v) ? v[0] ??
 const hhmm = (t: string) => (t || "").slice(0, 5);
 
 export function FollowUpClient({ sequencias, fila, etiquetas }: { sequencias: Sequencia[]; fila: FilaItem[]; etiquetas: Etiqueta[] }) {
-  const [tab, setTab] = useState<"seq" | "fila">("seq");
+  const [tab, setTab] = useState<"seq" | "fila" | "ia">("seq");
   const [editando, setEditando] = useState<SequenciaInput | null>(null);
 
   return (
     <>
-      <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--mk-surface)", borderRadius: 10, border: "0.5px solid var(--mk-border)", width: "fit-content", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--mk-surface)", borderRadius: 10, border: "0.5px solid var(--mk-border)", width: "fit-content", marginBottom: 16, flexWrap: "wrap" }}>
         <TabBtn on={tab === "seq"} onClick={() => setTab("seq")} icon="ti-timeline-event">Sequências ({sequencias.length})</TabBtn>
         <TabBtn on={tab === "fila"} onClick={() => setTab("fila")} icon="ti-users">Fila ({fila.length})</TabBtn>
+        <TabBtn on={tab === "ia"} onClick={() => setTab("ia")} icon="ti-sparkles">Follow-up IA</TabBtn>
       </div>
 
-      {tab === "seq" ? (
-        <Sequencias lista={sequencias} onNova={() => setEditando(seqVazia())} onEditar={(s) => setEditando(paraInput(s))} />
-      ) : (
-        <Fila itens={fila} />
-      )}
+      {tab === "seq" && <Sequencias lista={sequencias} onNova={() => setEditando(seqVazia())} onEditar={(s) => setEditando(paraInput(s))} />}
+      {tab === "fila" && <Fila itens={fila} />}
+      {tab === "ia" && <FollowUpIA />}
 
       {editando && <Editor inicial={editando} etiquetas={etiquetas} onClose={() => setEditando(null)} />}
+    </>
+  );
+}
+
+// ===== Follow-up com IA (3C) =====
+interface Cand { ticketId: string; numero: number; nome: string; whatsapp: string | null; ultima_mensagem_em: string | null; enviar: boolean; motivo: string; resumo: string; mensagem: string; _sent?: boolean; _busy?: boolean }
+
+function FollowUpIA() {
+  const [horas, setHoras] = useState(12);
+  const [delayMin, setDelayMin] = useState(30);
+  const [delayMax, setDelayMax] = useState(60);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+  const [cands, setCands] = useState<Cand[] | null>(null);
+  const [enviandoTodos, setEnviandoTodos] = useState(false);
+
+  function patch(id: string, p: Partial<Cand>) { setCands((cs) => (cs || []).map((c) => (c.ticketId === id ? { ...c, ...p } : c))); }
+  function remover(id: string) { setCands((cs) => (cs || []).filter((c) => c.ticketId !== id)); }
+
+  async function verificar() {
+    setLoading(true); setErro(""); setCands(null);
+    try {
+      const r = await fetch("/api/follow-up/ia/verificar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horas }) });
+      const j = await r.json();
+      if (j.ok) setCands(j.candidatos); else setErro(j.error || "Falha");
+    } catch { setErro("Falha na verificação"); } finally { setLoading(false); }
+  }
+
+  async function regenerar(id: string) {
+    patch(id, { _busy: true });
+    try {
+      const r = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id }) });
+      const j = await r.json();
+      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem });
+    } finally { patch(id, { _busy: false }); }
+  }
+
+  async function enviar(id: string, mensagem: string): Promise<boolean> {
+    patch(id, { _busy: true });
+    try {
+      const r = await fetch("/api/follow-up/ia/enviar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id, mensagem }) });
+      const j = await r.json();
+      if (j.ok) { patch(id, { _sent: true, _busy: false }); return true; }
+      patch(id, { _busy: false }); return false;
+    } catch { patch(id, { _busy: false }); return false; }
+  }
+
+  async function enviarTodos() {
+    const fila = (cands || []).filter((c) => c.enviar && !c._sent && c.mensagem.trim());
+    if (!fila.length) return;
+    setEnviandoTodos(true);
+    const dmin = Math.max(0, delayMin), dmax = Math.max(dmin, delayMax);
+    for (let i = 0; i < fila.length; i++) {
+      await enviar(fila[i].ticketId, fila[i].mensagem);
+      if (i < fila.length - 1) await new Promise((r) => setTimeout(r, (dmin + Math.random() * (dmax - dmin)) * 1000));
+    }
+    setEnviandoTodos(false);
+  }
+
+  const aprovados = (cands || []).filter((c) => c.enviar && !c._sent);
+
+  return (
+    <>
+      <div className="mk-card" style={{ padding: 14, marginBottom: 14 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
+          <Campo label="Conversas paradas há (horas)"><input type="number" min={1} value={horas} onChange={(e) => setHoras(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
+          <Campo label="Delay min (s)"><input type="number" min={0} value={delayMin} onChange={(e) => setDelayMin(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
+          <Campo label="Delay máx (s)"><input type="number" min={0} value={delayMax} onChange={(e) => setDelayMax(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
+          <button className="cta-btn" onClick={verificar} disabled={loading}>
+            <i className={`ti ${loading ? "ti-loader-2" : "ti-sparkles"}`} /> {loading ? "Analisando…" : "Verificar follow-ups"}
+          </button>
+          {aprovados.length > 0 && (
+            <button className="ghost-btn" onClick={enviarTodos} disabled={enviandoTodos} style={{ fontSize: 12 }}>
+              <i className="ti ti-send" /> {enviandoTodos ? "Enviando…" : `Enviar ${aprovados.length} aprovado(s)`}
+            </button>
+          )}
+        </div>
+        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 8, display: "flex", gap: 6 }}>
+          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> A IA lê cada conversa parada, resume e sugere um follow-up. Você revisa, edita e envia. Usa sua chave Groq.
+        </div>
+        {erro && <div style={{ fontSize: 11.5, color: "#C97064", marginTop: 8 }}>{erro}</div>}
+      </div>
+
+      {cands === null ? null : cands.length === 0 ? (
+        <Empty icon="ti-mood-smile" label="Nenhuma conversa parada no período. Tudo em dia!" />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {cands.map((c) => (
+            <div key={c.ticketId} className="mk-card" style={{ padding: 14, opacity: c._sent ? 0.6 : 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <strong style={{ fontSize: 13, color: "var(--mk-text)" }}>{c.nome}</strong>
+                <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>#{c.numero} · {c.whatsapp}</span>
+                {c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}><i className="ti ti-circle-check" /> Vale follow-up</span>
+                  : <span style={{ fontSize: 10, color: "#94a3b8", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}>Não recomendado</span>}
+              </div>
+              {c.resumo && <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", marginBottom: 4 }}><i className="ti ti-file-text" style={{ color: "var(--mk-text-muted)" }} /> {c.resumo}</div>}
+              {c.motivo && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8, fontStyle: "italic" }}>{c.motivo}</div>}
+
+              {c._sent ? (
+                <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Enviado.</div>
+              ) : c.enviar ? (
+                <>
+                  <textarea value={c.mensagem} onChange={(e) => patch(c.ticketId, { mensagem: e.target.value })} rows={3} style={{ ...inp, resize: "vertical" }} placeholder="Mensagem de follow-up…" />
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button className="cta-btn" style={{ fontSize: 12 }} disabled={c._busy || !c.mensagem.trim()} onClick={() => enviar(c.ticketId, c.mensagem)}><i className="ti ti-send" /> Enviar</button>
+                    <button className="ghost-btn" style={{ fontSize: 12 }} disabled={c._busy} onClick={() => regenerar(c.ticketId)}><i className={`ti ${c._busy ? "ti-loader-2" : "ti-refresh"}`} /> Regenerar</button>
+                    <button className="ghost-btn" style={{ fontSize: 12, color: "#C97064", marginLeft: "auto" }} onClick={() => remover(c.ticketId)}><i className="ti ti-x" /> Descartar</button>
+                  </div>
+                </>
+              ) : (
+                <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} onClick={() => remover(c.ticketId)}><i className="ti ti-trash" /> Remover da lista</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }

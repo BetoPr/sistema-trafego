@@ -9,6 +9,7 @@ import {
   analisarSentimento as _analisar,
   gerarResumo as _resumo,
   formatConversaParaIA,
+  chat,
 } from "@/lib/groq/llm";
 
 /**
@@ -192,6 +193,54 @@ export async function gerarResumoTicket(params: {
     });
     throw e;
   }
+}
+
+/**
+ * 3C — Follow-up com IA: resume a conversa parada e decide se vale reengajar,
+ * sugerindo uma mensagem pronta. Retorna o rascunho pra revisão humana.
+ */
+export async function sugerirFollowUpTicket(params: {
+  agenciaId: string;
+  ticketId: string;
+}): Promise<{ enviar: boolean; motivo: string; resumo: string; mensagem: string }> {
+  const apiKey = await getGroqKey(params.agenciaId);
+  if (!apiKey) throw new Error("Groq API key não configurada");
+
+  const sb = createServiceClient();
+  const msgs = await fetchMensagens(params.ticketId);
+  const { data: ticket } = await sb.from("tickets").select("contato:contatos(nome)").eq("id", params.ticketId).single();
+  const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
+  const conversa = formatConversaParaIA(msgs, contatoNome);
+
+  const system = `Você é um especialista em vendas e atendimento por WhatsApp. Recebe uma conversa que está PARADA e decide se vale enviar um follow-up para reengajar o cliente.
+
+Responda APENAS um JSON válido:
+{"resumo":"...","enviar":true,"motivo":"...","mensagem":"..."}
+
+- resumo: 1-2 frases do contexto e do estágio da conversa.
+- enviar: true se faz sentido um follow-up (cliente demonstrou interesse e sumiu, negociação aberta, dúvida/pagamento pendente); false se NÃO faz sentido (já comprou e foi atendido, recusou claramente, conversa irrelevante/spam, ou cliente pediu pra não receber mensagens).
+- motivo: justificativa curta da decisão.
+- mensagem: se enviar=true, o texto do follow-up PRONTO pra enviar — curto, cordial, em português do Brasil, tom de quem está retomando o papo, NUNCA robótico; use o nome do cliente se houver. Se enviar=false, retorne "".`;
+
+  const r = await chat({
+    apiKey,
+    responseFormat: "json_object",
+    temperature: 0.5,
+    maxTokens: 500,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: conversa || "(sem mensagens registradas)" },
+    ],
+  });
+
+  let p: { enviar?: boolean; motivo?: string; resumo?: string; mensagem?: string } = {};
+  try { p = JSON.parse(r.content); } catch {}
+  return {
+    enviar: !!p.enviar,
+    motivo: String(p.motivo || ""),
+    resumo: String(p.resumo || ""),
+    mensagem: String(p.mensagem || ""),
+  };
 }
 
 export async function transcreverMensagemAudio(params: {
