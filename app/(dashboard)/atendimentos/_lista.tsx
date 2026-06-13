@@ -11,6 +11,9 @@ export interface TicketLista {
   ultima_mensagem_em: string | null;
   ultima_mensagem_preview: string | null;
   sentimento: string | null;
+  created_at?: string | null;
+  usuario_id?: string | null;
+  nao_lido?: boolean;
   contato: {
     id: string;
     nome: string;
@@ -32,6 +35,8 @@ interface Canal {
 interface Props {
   tickets: TicketLista[];
   canais: Canal[];
+  filas?: Array<{ id: string; nome: string; cor?: string | null }>;
+  usuarios?: Array<{ id: string; nome: string }>;
   ticketSel: string | undefined;
   initialTab?: "aberto" | "pendente" | "fechado";
   onSelectTicket: (id: string) => void;
@@ -45,7 +50,12 @@ const TABS: Array<{ id: "aberto" | "pendente" | "fechado"; label: string }> = [
 ];
 
 export function ListaAtendimentos(p: Props) {
-  const [tab, setTab] = useState<"aberto" | "pendente" | "fechado">(p.initialTab || "aberto");
+  const [statusSel, setStatusSel] = useState<string[]>(p.initialTab ? [p.initialTab] : ["aberto", "pendente"]);
+  const toggleStatus = (s: string) => setStatusSel((a) => (a.includes(s) ? a.filter((x) => x !== s) : [...a, s]));
+  const [somenteNaoLidos, setSomenteNaoLidos] = useState(false);
+  const [inverterOrdem, setInverterOrdem] = useState(false);
+  const [de, setDe] = useState("");
+  const [ate, setAte] = useState("");
   // "agora" pra calcular tempo relativo (só após montar, evita mismatch de hidratação); atualiza a cada 60s
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -53,9 +63,15 @@ export function ListaAtendimentos(p: Props) {
     const iv = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(iv);
   }, []);
-  const [canalFiltro, setCanalFiltro] = useState<string | null>(null);
+  const [canalFiltros, setCanalFiltros] = useState<string[]>([]);
+  const toggleCanal = (id: string) => setCanalFiltros((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+  const [filaFiltros, setFilaFiltros] = useState<string[]>([]);
+  const toggleFila = (id: string) => setFilaFiltros((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+  const [usuarioFiltros, setUsuarioFiltros] = useState<string[]>([]);
+  const toggleUsuario = (id: string) => setUsuarioFiltros((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const [etiquetaFiltros, setEtiquetaFiltros] = useState<string[]>([]);
   const toggleEtiquetaFiltro = (id: string) => setEtiquetaFiltros((arr) => (arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]));
+  const limparFiltros = () => { setSomenteNaoLidos(false); setInverterOrdem(false); setDe(""); setAte(""); setCanalFiltros([]); setFilaFiltros([]); setUsuarioFiltros([]); setEtiquetaFiltros([]); setStatusSel(["aberto", "pendente"]); };
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
   const [fechamentosModal, setFechamentosModal] = useState(false);
@@ -110,29 +126,60 @@ export function ListaAtendimentos(p: Props) {
     return Array.from(m.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [p.tickets]);
 
+  // Aplica todos os filtros MENOS o status (pra contar por status no painel)
+  const passaNaoStatus = (t: TicketLista, q: string) => {
+    if (somenteNaoLidos && !t.nao_lido) return false;
+    if (canalFiltros.length && !(t.canal && canalFiltros.includes(t.canal.id))) return false;
+    if (filaFiltros.length && !(t.fila && filaFiltros.includes(t.fila.id))) return false;
+    if (usuarioFiltros.length && !(t.usuario_id && usuarioFiltros.includes(t.usuario_id))) return false;
+    if (etiquetaFiltros.length && !etiquetaFiltros.some((id) => temEtiqueta(t, id))) return false;
+    if (de || ate) {
+      const ref = t.ultima_mensagem_em || t.created_at || null;
+      if (!ref) return false;
+      const d = new Date(ref).getTime();
+      if (de && d < new Date(`${de}T00:00:00`).getTime()) return false;
+      if (ate && d > new Date(`${ate}T23:59:59.999`).getTime()) return false;
+    }
+    if (q) {
+      const alvo = `${t.contato?.nome || ""} ${t.contato?.whatsapp || ""} ${t.numero}`.toLowerCase();
+      if (!alvo.includes(q)) return false;
+    }
+    return true;
+  };
+
   const counts = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
     const c: Record<string, number> = { aberto: 0, pendente: 0, fechado: 0 };
     for (const t of p.tickets) {
-      if (canalFiltro && t.canal?.id !== canalFiltro) continue;
-      if (etiquetaFiltros.length && !etiquetaFiltros.some((id) => temEtiqueta(t, id))) continue;
+      if (!passaNaoStatus(t, q)) continue;
       if (c[t.status] !== undefined) c[t.status]++;
     }
     return c;
-  }, [p.tickets, canalFiltro, etiquetaFiltros]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.tickets, somenteNaoLidos, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, de, ate, searchQ]);
 
   const ticketsVisiveis = useMemo(() => {
     const q = searchQ.trim().toLowerCase();
-    return p.tickets.filter((t) => {
-      if (t.status !== tab) return false;
-      if (canalFiltro && t.canal?.id !== canalFiltro) return false;
-      if (etiquetaFiltros.length && !etiquetaFiltros.some((id) => temEtiqueta(t, id))) return false;
-      if (q) {
-        const alvo = `${t.contato?.nome || ""} ${t.contato?.whatsapp || ""} ${t.numero}`.toLowerCase();
-        if (!alvo.includes(q)) return false;
-      }
-      return true;
+    const out = p.tickets.filter((t) => statusSel.includes(t.status) && passaNaoStatus(t, q));
+    out.sort((a, b) => {
+      const ta = a.ultima_mensagem_em ? new Date(a.ultima_mensagem_em).getTime() : 0;
+      const tb = b.ultima_mensagem_em ? new Date(b.ultima_mensagem_em).getTime() : 0;
+      return inverterOrdem ? ta - tb : tb - ta;
     });
-  }, [p.tickets, tab, canalFiltro, etiquetaFiltros, searchQ]);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.tickets, statusSel, somenteNaoLidos, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, de, ate, inverterOrdem, searchQ]);
+
+  const filtrosAtivos = (statusSel.length !== 2 || !statusSel.includes("aberto") || !statusSel.includes("pendente") ? 1 : 0)
+    + (somenteNaoLidos ? 1 : 0) + (inverterOrdem ? 1 : 0) + (de || ate ? 1 : 0)
+    + canalFiltros.length + filaFiltros.length + usuarioFiltros.length + etiquetaFiltros.length;
+
+  const filasDisponiveis = useMemo(() => {
+    const m = new Map<string, { id: string; nome: string; cor?: string | null }>();
+    for (const f of p.filas || []) m.set(f.id, f);
+    for (const t of p.tickets) if (t.fila && !m.has(t.fila.id)) m.set(t.fila.id, t.fila);
+    return Array.from(m.values());
+  }, [p.filas, p.tickets]);
 
   async function buscarMensagens() {
     if (!searchMsgText.trim()) return;
@@ -200,6 +247,7 @@ export function ListaAtendimentos(p: Props) {
           </button>
           <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros">
             <i className="ti ti-filter" /> Filtros
+            {filtrosAtivos > 0 && <span style={{ fontSize: 9.5, background: "#10b981", color: "#fff", borderRadius: 8, padding: "0 5px", marginLeft: 4 }}>{filtrosAtivos}</span>}
           </button>
         </div>
       </div>
@@ -261,63 +309,19 @@ export function ListaAtendimentos(p: Props) {
         </div>
       </div>
 
-      {/* Chips filtros aplicados */}
-      {(canalFiltro || etiquetaFiltros.length > 0) && (
-        <div style={sep}>
-          <div style={{ display: "flex", gap: 4, padding: "8px 12px", flexWrap: "wrap" }}>
-            {canalFiltro && (
-              <span style={chipActive}>
-                {p.canais.find((c) => c.id === canalFiltro)?.nome || "Canal"}
-                <button onClick={() => setCanalFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
-              </span>
-            )}
-            {etiquetaFiltros.map((id) => {
-              const e = etiquetasDisponiveis.find((x) => x.id === id);
-              return (
-                <span key={id} style={chipActive}>
-                  <i className="ti ti-tag" style={{ color: e?.cor }} /> {e?.nome || "Etiqueta"}
-                  <button onClick={() => toggleEtiquetaFiltro(id)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
-                </span>
-              );
-            })}
-            <button onClick={() => { setCanalFiltro(null); setEtiquetaFiltros([]); }} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Limpar <i className="ti ti-x" /></button>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs status — troca instantânea, sem navegação */}
+      {/* Resumo: status atual + contagem + filtros ativos */}
       <div style={sep}>
-        <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
-          {TABS.map((t) => {
-            const ativo = t.id === tab;
-            const cor = t.id === "aberto" ? "#10b981" : t.id === "pendente" ? "#10b981" : "var(--mk-text-muted)";
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  flex: 1,
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  textAlign: "center",
-                  background: ativo ? "var(--mk-surface)" : "transparent",
-                  border: ativo ? `0.5px solid ${cor}` : "0.5px solid transparent",
-                  color: ativo ? cor : "var(--mk-text-muted)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  cursor: "pointer",
-                }}
-              >
-                <i className={`ti ${t.id === "aberto" ? "ti-message" : t.id === "pendente" ? "ti-clock" : "ti-check"}`} />
-                {t.label}
-                <span style={{ fontSize: 9.5, background: cor, color: "#FFFDF8", borderRadius: 8, padding: "0 5px", marginLeft: 2 }}>{counts[t.id]}</span>
-              </button>
-            );
-          })}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", fontWeight: 600 }}>
+            {statusSel.map((s) => TABS.find((t) => t.id === s)?.label).filter(Boolean).join(" + ") || "Nenhum status"}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>· {ticketsVisiveis.length}</span>
+          {filtrosAtivos > 0 && (
+            <>
+              <span style={chipActive}>{filtrosAtivos} filtro(s)</span>
+              <button onClick={limparFiltros} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Limpar <i className="ti ti-x" /></button>
+            </>
+          )}
         </div>
       </div>
 
@@ -447,62 +451,61 @@ export function ListaAtendimentos(p: Props) {
           <div style={{ ...modalBox, width: "min(380px, 92vw)" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", padding: "14px 18px", borderBottom: "0.5px solid var(--mk-border)" }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, flex: 1 }}><i className="ti ti-filter" style={{ marginRight: 6 }} /> Filtros</h3>
+              {filtrosAtivos > 0 && <button onClick={limparFiltros} style={{ fontSize: 11.5, color: "var(--mk-accent)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit", marginRight: 10 }}>Limpar</button>}
               <button onClick={() => setFiltroAberto(false)} style={modalCloseBtn}><i className="ti ti-x" /></button>
             </div>
             <div className="chat-scroll" style={{ padding: 16, overflowY: "auto", flex: 1, minHeight: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>STATUS</div>
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => { setTab(t.id); setFiltroAberto(false); }}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 0", fontSize: 12.5, color: t.id === tab ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  {t.id === tab ? "● " : "○ "}{t.label} <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>({counts[t.id]})</span>
-                </button>
-              ))}
+              {/* Toggles topo */}
+              <ChkRow on={!somenteNaoLidos && statusSel.length === 3} icon="ti-eye" label="Mostrar todos" onClick={() => { setStatusSel(["aberto", "pendente", "fechado"]); setSomenteNaoLidos(false); }} />
+              <ChkRow on={statusSel.includes("fechado")} icon="ti-mail" label="Incluir tickets fechados" onClick={() => toggleStatus("fechado")} />
+              <ChkRow on={somenteNaoLidos} icon="ti-mail-opened" label="Somente não lidos" onClick={() => setSomenteNaoLidos((v) => !v)} />
+              <ChkRow on={inverterOrdem} icon="ti-arrows-sort" label="Inverter ordem geral" onClick={() => setInverterOrdem((v) => !v)} />
 
-              <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 12, paddingTop: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>CANAIS</div>
-                <button
-                  onClick={() => { setCanalFiltro(null); setFiltroAberto(false); }}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: !canalFiltro ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  {!canalFiltro ? "● " : "○ "}Todos canais
-                </button>
-                {p.canais.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => { setCanalFiltro(c.id); setFiltroAberto(false); }}
-                    style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: canalFiltro === c.id ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    {canalFiltro === c.id ? "● " : "○ "}{c.status === "connected" ? "🟢" : "🔴"} {c.nome}
-                  </button>
+              <Secao titulo="STATUS">
+                {TABS.map((t) => (
+                  <ChkRow key={t.id} on={statusSel.includes(t.id)} label={`${t.label}`} extra={`(${counts[t.id]})`} onClick={() => toggleStatus(t.id)} />
                 ))}
-              </div>
+              </Secao>
+
+              <Secao titulo="PERÍODO">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: "var(--mk-text-muted)", width: 28 }}>De</span>
+                  <input type="date" value={de} onChange={(e) => setDe(e.target.value)} style={dateInp} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "var(--mk-text-muted)", width: 28 }}>Até</span>
+                  <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} style={dateInp} />
+                </div>
+              </Secao>
+
+              <Secao titulo="CONEXÕES">
+                {p.canais.map((c) => (
+                  <ChkRow key={c.id} on={canalFiltros.includes(c.id)} dot={c.status === "connected" ? "#10b981" : "#C97064"} label={c.nome} onClick={() => toggleCanal(c.id)} />
+                ))}
+              </Secao>
+
+              {filasDisponiveis.length > 0 && (
+                <Secao titulo="FILAS">
+                  {filasDisponiveis.map((f) => (
+                    <ChkRow key={f.id} on={filaFiltros.includes(f.id)} dot={f.cor || "#5B8BA6"} label={f.nome} onClick={() => toggleFila(f.id)} />
+                  ))}
+                </Secao>
+              )}
+
+              {(p.usuarios || []).length > 0 && (
+                <Secao titulo="USUÁRIO">
+                  {(p.usuarios || []).map((u) => (
+                    <ChkRow key={u.id} on={usuarioFiltros.includes(u.id)} icon="ti-user" label={u.nome} onClick={() => toggleUsuario(u.id)} />
+                  ))}
+                </Secao>
+              )}
 
               {etiquetasDisponiveis.length > 0 && (
-                <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 12, paddingTop: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>ETIQUETAS</span>
-                    {etiquetaFiltros.length > 0 && (
-                      <button onClick={() => setEtiquetaFiltros([])} style={{ marginLeft: "auto", fontSize: 10.5, color: "var(--mk-accent)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}>Limpar ({etiquetaFiltros.length})</button>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginBottom: 6 }}>Marque uma ou mais (mostra quem tiver qualquer uma).</div>
-                  {etiquetasDisponiveis.map((e) => {
-                    const on = etiquetaFiltros.includes(e.id);
-                    return (
-                      <button
-                        key={e.id}
-                        onClick={() => toggleEtiquetaFiltro(e.id)}
-                        style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "7px 0", fontSize: 12, color: on ? "var(--mk-text)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        <i className={`ti ${on ? "ti-square-check-filled" : "ti-square"}`} style={{ fontSize: 16, color: on ? "var(--mk-accent)" : "var(--mk-text-muted)" }} />
-                        <i className="ti ti-tag" style={{ color: e.cor }} /> {e.nome}
-                      </button>
-                    );
-                  })}
-                </div>
+                <Secao titulo="ETIQUETA">
+                  {etiquetasDisponiveis.map((e) => (
+                    <ChkRow key={e.id} on={etiquetaFiltros.includes(e.id)} tagColor={e.cor} label={e.nome} onClick={() => toggleEtiquetaFiltro(e.id)} />
+                  ))}
+                </Secao>
               )}
             </div>
           </div>
@@ -670,3 +673,27 @@ function AvatarContato({ nome, foto }: { nome?: string | null; foto?: string | n
 }
 
 const modalCloseBtn: React.CSSProperties = { background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: "50%", width: 28, height: 28, color: "var(--mk-text)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
+
+const dateInp: React.CSSProperties = { flex: 1, padding: "7px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, colorScheme: "dark", fontFamily: "inherit" };
+
+function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 12, paddingTop: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>{titulo}</div>
+      {children}
+    </div>
+  );
+}
+
+function ChkRow({ on, onClick, label, icon, dot, tagColor, extra }: { on: boolean; onClick: () => void; label: string; icon?: string; dot?: string; tagColor?: string; extra?: string }) {
+  return (
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "7px 0", fontSize: 12.5, color: on ? "var(--mk-text)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}>
+      <i className={`ti ${on ? "ti-square-check-filled" : "ti-square"}`} style={{ fontSize: 17, color: on ? "var(--mk-accent)" : "var(--mk-text-muted)", flexShrink: 0 }} />
+      {dot && <span style={{ width: 9, height: 9, borderRadius: "50%", background: dot, flexShrink: 0 }} />}
+      {tagColor && <i className="ti ti-tag" style={{ color: tagColor, flexShrink: 0 }} />}
+      {icon && <i className={`ti ${icon}`} style={{ color: "var(--mk-text-muted)", flexShrink: 0 }} />}
+      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {extra && <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{extra}</span>}
+    </button>
+  );
+}

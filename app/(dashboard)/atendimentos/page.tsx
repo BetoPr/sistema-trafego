@@ -24,10 +24,11 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     { data: todasTags },
     { data: servicosRows },
     { data: agRow },
+    { data: naoLidasRows },
   ] = await Promise.all([
     sb
       .from("tickets")
-      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
+      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, created_at, usuario_id, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
       .eq("agencia_id", ctx.agenciaId)
       .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
       .limit(300),
@@ -38,7 +39,11 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
     sb.from("servicos").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
     sb.from("agencias").select("servicos_habilitados").eq("id", ctx.agenciaId).single(),
+    // Tickets com mensagem do cliente ainda não lida (pro filtro "Somente não lidos")
+    sb.from("mensagens").select("ticket_id").eq("agencia_id", ctx.agenciaId).eq("autor", "cliente").neq("status", "lida").limit(5000),
   ]);
+
+  const naoLidoSet = new Set((naoLidasRows || []).map((m) => m.ticket_id as string));
 
   const ticketsFlat: TicketLista[] = (tickets || []).map((t) => ({
     id: t.id,
@@ -47,6 +52,9 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     ultima_mensagem_em: t.ultima_mensagem_em,
     ultima_mensagem_preview: t.ultima_mensagem_preview,
     sentimento: t.sentimento,
+    created_at: t.created_at,
+    usuario_id: t.usuario_id ?? null,
+    nao_lido: naoLidoSet.has(t.id),
     contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as unknown as TicketLista["contato"],
     canal: (Array.isArray(t.canal) ? t.canal[0] : t.canal) as TicketLista["canal"],
     fila: (Array.isArray(t.fila) ? t.fila[0] : t.fila) as TicketLista["fila"],

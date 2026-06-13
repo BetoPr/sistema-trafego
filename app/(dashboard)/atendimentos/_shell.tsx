@@ -147,6 +147,8 @@ export function AtendimentosShell(p: Props) {
         <ListaAtendimentos
           tickets={tickets}
           canais={p.canais}
+          filas={p.filas}
+          usuarios={p.usuarios}
           ticketSel={sel?.ticket.id}
           initialTab={p.initialTab}
           onSelectTicket={(id) => carregarTicket(id)}
