@@ -54,7 +54,8 @@ export function ListaAtendimentos(p: Props) {
     return () => clearInterval(iv);
   }, []);
   const [canalFiltro, setCanalFiltro] = useState<string | null>(null);
-  const [etiquetaFiltro, setEtiquetaFiltro] = useState<string | null>(null);
+  const [etiquetaFiltros, setEtiquetaFiltros] = useState<string[]>([]);
+  const toggleEtiquetaFiltro = (id: string) => setEtiquetaFiltros((arr) => (arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]));
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
   const [fechamentosModal, setFechamentosModal] = useState(false);
@@ -113,25 +114,25 @@ export function ListaAtendimentos(p: Props) {
     const c: Record<string, number> = { aberto: 0, pendente: 0, fechado: 0 };
     for (const t of p.tickets) {
       if (canalFiltro && t.canal?.id !== canalFiltro) continue;
-      if (etiquetaFiltro && !temEtiqueta(t, etiquetaFiltro)) continue;
+      if (etiquetaFiltros.length && !etiquetaFiltros.some((id) => temEtiqueta(t, id))) continue;
       if (c[t.status] !== undefined) c[t.status]++;
     }
     return c;
-  }, [p.tickets, canalFiltro, etiquetaFiltro]);
+  }, [p.tickets, canalFiltro, etiquetaFiltros]);
 
   const ticketsVisiveis = useMemo(() => {
     const q = searchQ.trim().toLowerCase();
     return p.tickets.filter((t) => {
       if (t.status !== tab) return false;
       if (canalFiltro && t.canal?.id !== canalFiltro) return false;
-      if (etiquetaFiltro && !temEtiqueta(t, etiquetaFiltro)) return false;
+      if (etiquetaFiltros.length && !etiquetaFiltros.some((id) => temEtiqueta(t, id))) return false;
       if (q) {
         const alvo = `${t.contato?.nome || ""} ${t.contato?.whatsapp || ""} ${t.numero}`.toLowerCase();
         if (!alvo.includes(q)) return false;
       }
       return true;
     });
-  }, [p.tickets, tab, canalFiltro, etiquetaFiltro, searchQ]);
+  }, [p.tickets, tab, canalFiltro, etiquetaFiltros, searchQ]);
 
   async function buscarMensagens() {
     if (!searchMsgText.trim()) return;
@@ -261,7 +262,7 @@ export function ListaAtendimentos(p: Props) {
       </div>
 
       {/* Chips filtros aplicados */}
-      {(canalFiltro || etiquetaFiltro) && (
+      {(canalFiltro || etiquetaFiltros.length > 0) && (
         <div style={sep}>
           <div style={{ display: "flex", gap: 4, padding: "8px 12px", flexWrap: "wrap" }}>
             {canalFiltro && (
@@ -270,13 +271,16 @@ export function ListaAtendimentos(p: Props) {
                 <button onClick={() => setCanalFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
               </span>
             )}
-            {etiquetaFiltro && (
-              <span style={chipActive}>
-                <i className="ti ti-tag" style={{ color: etiquetasDisponiveis.find((e) => e.id === etiquetaFiltro)?.cor }} /> {etiquetasDisponiveis.find((e) => e.id === etiquetaFiltro)?.nome || "Etiqueta"}
-                <button onClick={() => setEtiquetaFiltro(null)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
-              </span>
-            )}
-            <button onClick={() => { setCanalFiltro(null); setEtiquetaFiltro(null); }} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Limpar <i className="ti ti-x" /></button>
+            {etiquetaFiltros.map((id) => {
+              const e = etiquetasDisponiveis.find((x) => x.id === id);
+              return (
+                <span key={id} style={chipActive}>
+                  <i className="ti ti-tag" style={{ color: e?.cor }} /> {e?.nome || "Etiqueta"}
+                  <button onClick={() => toggleEtiquetaFiltro(id)} style={{ marginLeft: 4, background: "transparent", border: 0, color: "inherit", cursor: "pointer" }}>×</button>
+                </span>
+              );
+            })}
+            <button onClick={() => { setCanalFiltro(null); setEtiquetaFiltros([]); }} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Limpar <i className="ti ti-x" /></button>
           </div>
         </div>
       )}
@@ -445,7 +449,7 @@ export function ListaAtendimentos(p: Props) {
               <h3 style={{ fontSize: 14, fontWeight: 600, flex: 1 }}><i className="ti ti-filter" style={{ marginRight: 6 }} /> Filtros</h3>
               <button onClick={() => setFiltroAberto(false)} style={modalCloseBtn}><i className="ti ti-x" /></button>
             </div>
-            <div style={{ padding: 16 }}>
+            <div className="chat-scroll" style={{ padding: 16, overflowY: "auto", flex: 1, minHeight: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>STATUS</div>
               {TABS.map((t) => (
                 <button
@@ -478,22 +482,26 @@ export function ListaAtendimentos(p: Props) {
 
               {etiquetasDisponiveis.length > 0 && (
                 <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 12, paddingTop: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.4 }}>ETIQUETAS</div>
-                  <button
-                    onClick={() => { setEtiquetaFiltro(null); setFiltroAberto(false); }}
-                    style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: !etiquetaFiltro ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    {!etiquetaFiltro ? "● " : "○ "}Todas etiquetas
-                  </button>
-                  {etiquetasDisponiveis.map((e) => (
-                    <button
-                      key={e.id}
-                      onClick={() => { setEtiquetaFiltro(e.id); setFiltroAberto(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "6px 0", fontSize: 12, color: etiquetaFiltro === e.id ? "var(--mk-accent)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
-                    >
-                      {etiquetaFiltro === e.id ? "● " : "○ "}<i className="ti ti-tag" style={{ color: e.cor }} /> {e.nome}
-                    </button>
-                  ))}
+                  <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>ETIQUETAS</span>
+                    {etiquetaFiltros.length > 0 && (
+                      <button onClick={() => setEtiquetaFiltros([])} style={{ marginLeft: "auto", fontSize: 10.5, color: "var(--mk-accent)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}>Limpar ({etiquetaFiltros.length})</button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginBottom: 6 }}>Marque uma ou mais (mostra quem tiver qualquer uma).</div>
+                  {etiquetasDisponiveis.map((e) => {
+                    const on = etiquetaFiltros.includes(e.id);
+                    return (
+                      <button
+                        key={e.id}
+                        onClick={() => toggleEtiquetaFiltro(e.id)}
+                        style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "7px 0", fontSize: 12, color: on ? "var(--mk-text)" : "var(--mk-text-secondary)", background: "transparent", border: 0, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        <i className={`ti ${on ? "ti-square-check-filled" : "ti-square"}`} style={{ fontSize: 16, color: on ? "var(--mk-accent)" : "var(--mk-text-muted)" }} />
+                        <i className="ti ti-tag" style={{ color: e.cor }} /> {e.nome}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
