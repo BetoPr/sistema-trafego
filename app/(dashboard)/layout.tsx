@@ -1,6 +1,7 @@
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { NotificacaoMensagens } from "@/components/layout/NotificacaoMensagens";
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
@@ -41,6 +42,7 @@ export default async function DashboardLayout({
               agencia={agencia?.nome ?? "—"}
             />
             <CommandPalette role={usuario.role} />
+            <NotificacaoMensagens agenciaId={usuario.agencia_id} />
             {children}
           </main>
         </AppShell>

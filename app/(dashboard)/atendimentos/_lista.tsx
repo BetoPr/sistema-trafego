@@ -338,6 +338,7 @@ export function ListaAtendimentos(p: Props) {
               <button
                 key={t.id}
                 onClick={() => p.onSelectTicket(t.id)}
+                className="ticket-card"
                 style={{
                   display: "flex",
                   gap: 10,
@@ -378,7 +379,7 @@ export function ListaAtendimentos(p: Props) {
                       </span>
                     )}
                     {now > 0 && t.ultima_mensagem_em && (
-                      <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>{tempoRel(t.ultima_mensagem_em, now)}</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: corTempo(t.ultima_mensagem_em, now) }}>{tempoRel(t.ultima_mensagem_em, now)}</span>
                     )}
                     <span style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>#{t.numero}</span>
                   </div>
@@ -655,6 +656,15 @@ function tempoRel(iso: string, now: number): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
   return `${Math.floor(d / 7)}sem`;
+}
+
+/** Cor do último contato por recência: agora=verde claro, minutos=verde, horas=amarelo, dias+=vermelho. */
+function corTempo(iso: string, now: number): string {
+  const min = Math.floor((now - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "#4ade80";   // agora — verde claro
+  if (min < 60) return "#10b981";  // minutos — verde escuro
+  if (min < 1440) return "#f59e0b"; // horas — amarelo
+  return "#e24b4a";                 // dias+ — vermelho
 }
 
 /** Avatar do contato: foto do WhatsApp com fallback pras iniciais (foto pode expirar). */

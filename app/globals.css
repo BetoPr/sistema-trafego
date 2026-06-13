@@ -403,6 +403,10 @@ select option { background: #ffffff; color: #111111; }
   transition: opacity 0.2s ease;
   flex: 1; overflow: hidden; text-overflow: ellipsis;
 }
+/* Card de atendimento — animação no hover */
+.ticket-card { transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease; }
+.ticket-card:hover { background: var(--mk-surface-2) !important; transform: translateX(3px); box-shadow: inset 2px 0 0 var(--mk-accent); }
+
 /* Botão Responder ao lado do balão — aparece no hover, não cobre o texto */
 .msg-reply-btn { opacity: 0; transition: opacity 0.15s ease; }
 .msg-row:hover .msg-reply-btn { opacity: 0.6; }
