@@ -12,6 +12,7 @@ import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { audit, getIp } from "@/lib/crm/audit";
 import { dispatchWebhook } from "@/lib/crm/webhook-dispatcher";
 import { uploadImageToImgbb } from "@/lib/imgbb/upload";
+import { uploadMedia } from "@/lib/crm/storage";
 
 export const runtime = "nodejs";
 
@@ -141,6 +142,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         await sb.from("mensagens").update({ midia_url: ib.url, midia_mime: body.media?.mimetype || "image/jpeg" }).eq("id", mensagemId);
       } catch (e) {
         console.error("[send] imgbb background falhou:", e);
+      }
+    });
+  }
+
+  // Áudio enviado → sobe pro bucket em background pra tocar no chat (sem ficar "baixando").
+  if (body.media && (body.media.type === "ptt" || body.media.type === "audio")) {
+    const rawB64 = body.media.fileBase64.includes(",") ? body.media.fileBase64.split(",")[1] : body.media.fileBase64;
+    const buf = Buffer.from(rawB64, "base64");
+    const mime = body.media.mimetype || "audio/ogg";
+    const fname = body.media.filename || "audio.ogg";
+    const mensagemId = msgRow.id;
+    after(async () => {
+      try {
+        const up = await uploadMedia({ agenciaId: u.agencia_id, ticketId: ticket.id, data: buf, filename: fname, contentType: mime });
+        if (up?.path) await sb.from("mensagens").update({ midia_url: up.path, midia_mime: mime }).eq("id", mensagemId);
+      } catch (e) {
+        console.error("[send] upload áudio background falhou:", e);
       }
     });
   }

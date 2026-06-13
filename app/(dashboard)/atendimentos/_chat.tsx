@@ -23,6 +23,21 @@ const scrollBtnStyle: React.CSSProperties = {
   boxShadow: "0 2px 6px rgba(0,0,0,0.18)",
 };
 
+const replyBtnStyle: React.CSSProperties = {
+  flexShrink: 0,
+  width: 26,
+  height: 26,
+  borderRadius: "50%",
+  border: "0.5px solid var(--mk-border)",
+  background: "var(--mk-surface)",
+  color: "var(--mk-text-muted)",
+  cursor: "pointer",
+  fontSize: 13,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
 interface Mensagem {
   id: string;
   autor: "cliente" | "atendente" | "sistema" | "bot";
@@ -291,7 +306,10 @@ export function ChatView(props: Props) {
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens neste ticket.</div>
         ) : (
           msgs.map((m) => (
-            <div key={m.id} style={{ display: "flex", justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
+            <div key={m.id} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
+              {m.wa_message_id && m.autor !== "cliente" && (
+                <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+              )}
               <div
                 style={{
                   maxWidth: "72%",
@@ -306,21 +324,9 @@ export function ChatView(props: Props) {
                   whiteSpace: "pre-wrap",
                   overflowWrap: "anywhere",
                   wordBreak: "break-word",
-                  position: "relative",
                 }}
                 className="msg-bubble"
               >
-                {m.wa_message_id && (
-                  <button
-                    type="button"
-                    onClick={() => setRespondendo(m)}
-                    title="Responder"
-                    className="msg-reply-btn"
-                    style={{ position: "absolute", top: 2, right: 2, width: 22, height: 22, borderRadius: "50%", border: 0, background: "var(--mk-surface-2)", color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, opacity: 0.5 }}
-                  >
-                    <i className="ti ti-arrow-back-up" />
-                  </button>
-                )}
                 {m.metadata?.reply_to && (() => {
                   const q = acharCitada(m.metadata.reply_to);
                   return (
@@ -377,6 +383,9 @@ export function ChatView(props: Props) {
                   })()}
                 </div>
               </div>
+              {m.wa_message_id && m.autor === "cliente" && (
+                <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+              )}
             </div>
           ))
         )}

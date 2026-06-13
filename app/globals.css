@@ -403,6 +403,12 @@ select option { background: #ffffff; color: #111111; }
   transition: opacity 0.2s ease;
   flex: 1; overflow: hidden; text-overflow: ellipsis;
 }
+/* Botão Responder ao lado do balão — aparece no hover, não cobre o texto */
+.msg-reply-btn { opacity: 0; transition: opacity 0.15s ease; }
+.msg-row:hover .msg-reply-btn { opacity: 0.6; }
+.msg-reply-btn:hover { opacity: 1; background: var(--mk-surface-2); }
+@media (hover: none) { .msg-reply-btn { opacity: 0.4; } }
+
 .nav-badge {
   background: rgba(16,185,129,0.15);
   color: var(--mk-accent); font-size: 9px; padding: 2px 7px;

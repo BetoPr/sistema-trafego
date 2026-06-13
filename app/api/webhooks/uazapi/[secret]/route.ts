@@ -163,7 +163,8 @@ export async function POST(
                     midia_filename: filename || null,
                   }).eq("id", ingest.mensagemId);
                 }
-                if (parsed.tipo === "audio" && up?.signedUrl) {
+                // Transcreve só áudio RECEBIDO (do cliente). Áudio que nós enviamos não precisa.
+                if (parsed.tipo === "audio" && up?.signedUrl && !parsed.fromMe) {
                   await transcreverMensagemAudio({
                     agenciaId: canal.agencia_id,
                     mensagemId: ingest.mensagemId,
@@ -208,8 +209,8 @@ export async function POST(
                 midia_filename: filename || null,
               }).eq("id", ingest.mensagemId);
             }
-            // Áudio → transcreve via Groq
-            if (parsed.tipo === "audio" && up?.signedUrl) {
+            // Áudio → transcreve via Groq (só recebido do cliente)
+            if (parsed.tipo === "audio" && up?.signedUrl && !parsed.fromMe) {
               await transcreverMensagemAudio({
                 agenciaId: canal.agencia_id,
                 mensagemId: ingest.mensagemId,
