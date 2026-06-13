@@ -56,6 +56,9 @@ export function ListaAtendimentos(p: Props) {
   const [inverterOrdem, setInverterOrdem] = useState(false);
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
+  const [somOn, setSomOn] = useState(true);
+  useEffect(() => { setSomOn(localStorage.getItem("notif_som") !== "off"); }, []);
+  const toggleSom = () => setSomOn((v) => { const nv = !v; localStorage.setItem("notif_som", nv ? "on" : "off"); return nv; });
   // "agora" pra calcular tempo relativo (só após montar, evita mismatch de hidratação); atualiza a cada 60s
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -242,6 +245,9 @@ export function ListaAtendimentos(p: Props) {
       <div style={sep}>
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 6 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", flex: 1 }}>Atendimentos</h2>
+          <button onClick={toggleSom} className="ghost-btn" style={btnHdr} title={somOn ? "Som de notificação ligado" : "Som mutado"}>
+            <i className={`ti ${somOn ? "ti-bell" : "ti-bell-off"}`} style={{ color: somOn ? "#10b981" : "var(--mk-text-muted)" }} />
+          </button>
           <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos">
             <i className="ti ti-receipt-2" />
           </button>
