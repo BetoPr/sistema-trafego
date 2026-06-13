@@ -115,25 +115,33 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
 function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClose: () => void; onSalvo: (e: Etiqueta) => void }) {
   const [nome, setNome] = useState(etiqueta.nome);
   const [cor, setCor] = useState(etiqueta.cor);
-  const [gatilho, setGatilho] = useState(etiqueta.palavra_gatilho ?? "");
+  const [gatilhos, setGatilhos] = useState<string[]>(() => {
+    const arr = (etiqueta.palavra_gatilho ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    return arr.length ? arr : [""];
+  });
   const [ativo, setAtivo] = useState(etiqueta.ativo);
   const [salvando, setSalvando] = useState(false);
 
+  const setGatilho = (i: number, v: string) => setGatilhos((g) => g.map((x, j) => (j === i ? v : x)));
+  const addGatilho = () => setGatilhos((g) => [...g, ""]);
+  const rmGatilho = (i: number) => setGatilhos((g) => (g.length <= 1 ? [""] : g.filter((_, j) => j !== i)));
+
   async function salvar() {
     if (!nome.trim()) { alert("Nome obrigatório."); return; }
+    const gatilhoStr = gatilhos.map((x) => x.trim()).filter(Boolean).join(", ") || null;
     setSalvando(true);
     try {
       const r = await fetch(`/api/etiquetas/${etiqueta.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ nome: nome.trim(), cor, palavra_gatilho: gatilho.trim() || null, ativo }),
+        body: JSON.stringify({ nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, ativo }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         alert(`Falha: ${j.error || r.statusText}`);
         return;
       }
-      onSalvo({ ...etiqueta, nome: nome.trim(), cor, palavra_gatilho: gatilho.trim() || null, ativo });
+      onSalvo({ ...etiqueta, nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, ativo });
     } finally {
       setSalvando(false);
     }
@@ -169,10 +177,24 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
         </div>
 
         <div>
-          <label style={lbl}>Palavra-chave gatilho</label>
-          <input value={gatilho} onChange={(e) => setGatilho(e.target.value)} placeholder="Ex: orçamento, urgente…" style={inp} />
-          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 4, lineHeight: 1.5 }}>
-            Quando essa palavra aparecer numa mensagem recebida, a etiqueta é aplicada automaticamente ao contato.
+          <label style={lbl}>Palavras-chave gatilho</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {gatilhos.map((g, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <input value={g} onChange={(e) => setGatilho(i, e.target.value)} placeholder="Ex: orçamento, urgente…" style={{ ...inp, flex: 1 }} />
+                {(gatilhos.length > 1 || g.trim()) && (
+                  <button type="button" onClick={() => rmGatilho(i)} title="Remover" style={{ background: "transparent", border: "0.5px solid var(--mk-border)", borderRadius: 8, width: 34, height: 34, color: "#C97064", cursor: "pointer", flexShrink: 0 }}>
+                    <i className="ti ti-x" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={addGatilho} className="ghost-btn" style={{ fontSize: 11.5, marginTop: 6 }}>
+            <i className="ti ti-plus" /> Adicionar mais
+          </button>
+          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6, lineHeight: 1.5 }}>
+            Quando QUALQUER uma dessas palavras aparecer numa mensagem recebida, a etiqueta é aplicada automaticamente ao contato.
           </div>
         </div>
 

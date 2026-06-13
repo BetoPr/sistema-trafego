@@ -146,8 +146,9 @@ export async function ingestMensagem(
           .eq("ativo", true)
           .not("palavra_gatilho", "is", null);
         for (const g of gatilhos || []) {
-          const palavra = (g.palavra_gatilho as string | null)?.trim().toLowerCase();
-          if (palavra && texto.includes(palavra)) {
+          // palavra_gatilho pode ter várias palavras separadas por vírgula — qualquer uma dispara
+          const palavras = ((g.palavra_gatilho as string | null) || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+          if (palavras.some((p) => texto.includes(p))) {
             // Unique (contato_id, etiqueta_id) faz o insert duplicado falhar em silêncio.
             const { error: insErr } = await sb.from("contato_etiquetas").insert({ contato_id: contatoId, etiqueta_id: g.id });
             // 3B — etiqueta-gatilho: só inscreve se a etiqueta é NOVA (sem erro de duplicado)
