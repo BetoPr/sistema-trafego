@@ -309,19 +309,41 @@ export function ListaAtendimentos(p: Props) {
         </div>
       </div>
 
-      {/* Resumo: status atual + contagem + filtros ativos */}
+      {/* Abas de status — fixas, mas funcionam como toggle (clica = inclui/remove o status do filtro) */}
       <div style={sep}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", fontWeight: 600 }}>
-            {statusSel.map((s) => TABS.find((t) => t.id === s)?.label).filter(Boolean).join(" + ") || "Nenhum status"}
-          </span>
-          <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>· {ticketsVisiveis.length}</span>
-          {filtrosAtivos > 0 && (
-            <>
-              <span style={chipActive}>{filtrosAtivos} filtro(s)</span>
-              <button onClick={limparFiltros} style={{ ...chipBtn, cursor: "pointer", border: 0 }}>Limpar <i className="ti ti-x" /></button>
-            </>
-          )}
+        <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
+          {TABS.map((t) => {
+            const ativo = statusSel.includes(t.id);
+            const cor = t.id === "fechado" ? "var(--mk-text-muted)" : "#10b981";
+            return (
+              <button
+                key={t.id}
+                onClick={() => toggleStatus(t.id)}
+                title={ativo ? "Clique pra ocultar" : "Clique pra mostrar"}
+                style={{
+                  flex: 1,
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  textAlign: "center",
+                  background: ativo ? "var(--mk-surface)" : "transparent",
+                  border: ativo ? `0.5px solid ${cor}` : "0.5px solid transparent",
+                  color: ativo ? cor : "var(--mk-text-muted)",
+                  opacity: ativo ? 1 : 0.55,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                }}
+              >
+                <i className={`ti ${ativo ? (t.id === "aberto" ? "ti-message" : t.id === "pendente" ? "ti-clock" : "ti-check") : "ti-eye-off"}`} />
+                {t.label}
+                <span style={{ fontSize: 9.5, background: ativo ? cor : "var(--mk-text-muted)", color: "#FFFDF8", borderRadius: 8, padding: "0 5px", marginLeft: 2 }}>{counts[t.id]}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
