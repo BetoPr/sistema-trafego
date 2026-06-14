@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-14
 
+- **19:50** — Branding: **favicon + ícone PWA** trocados pelo S verde do login (logo serpentino #10b981 com fundo dark `#0f1410`). `app/icon.svg` e `app/apple-icon.svg` pra navegador/iOS; PNGs 192/512px gerados via sharp pra Android PWA. Manifest atualizado com cores certas (`theme_color #10b981`). `commit 3642216`
+
 - **18:00** — Atendimentos: **bolinha verde com contagem** de mensagens não lidas no card do ticket (estilo WhatsApp). Auto-some quando você entra na conversa (600ms após mount → marca todas como lidas + reload da lista). `commit de1636e`
 
 - **17:30** — Contatos: **Importar do WhatsApp** — botão ao lado do "Adicionar contato" abre um balão que puxa todos os contatos da linha conectada + etiquetas marcadas no WhatsApp Business (direct mapping UAZAPI `/labels` + `/chat/find` paginado). Idempotente: não duplica contatos nem etiquetas. Resumo final com KPIs (novos, existentes, etiquetas criadas, aplicações). `commit 51dd7f3`
