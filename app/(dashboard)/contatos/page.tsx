@@ -5,6 +5,7 @@ import { estadoPorDDD } from "@/lib/br/ddd";
 import { criarContato, atualizarContato } from "./_actions";
 
 import { ContatosTabela, type LinhaContato } from "./_tabela";
+import { ImportarWhatsAppBtn } from "./_importar";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
@@ -43,6 +44,14 @@ export default async function ContatosPage({ searchParams }: PageProps) {
     sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
   ]);
   const etiquetasDisponiveis = (etiquetasRows || []) as Array<{ id: string; nome: string; cor: string; categoria: string | null }>;
+
+  // Canais conectados pra ImportarWhatsAppBtn
+  const { data: canaisConectados } = await sb
+    .from("canais")
+    .select("id, nome, numero_conectado")
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("status", "connected")
+    .order("nome");
   const servicos = (servicosRows || []) as Array<{ id: string; nome: string }>;
   const servicosHabilitados = !!(agRow as { servicos_habilitados?: boolean } | null)?.servicos_habilitados;
 
@@ -90,7 +99,12 @@ export default async function ContatosPage({ searchParams }: PageProps) {
           <h1 className="mk-page-title">Contatos</h1>
           <p className="mk-page-sub">Base de contatos da agência com histórico de fechamentos.</p>
         </div>
-        {!mostrarForm && <Link href="/contatos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Adicionar contato</Link>}
+        {!mostrarForm && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <ImportarWhatsAppBtn canais={(canaisConectados || []) as Array<{ id: string; nome: string; numero_conectado: string | null }>} />
+            <Link href="/contatos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Adicionar contato</Link>
+          </div>
+        )}
       </div>
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}

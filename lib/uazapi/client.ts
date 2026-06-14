@@ -539,4 +539,67 @@ export async function instanceGetWebhook(inst: UazapiInstance): Promise<Instance
   return [r];
 }
 
+// =========================================
+// LABELS + CONTATOS (import do WhatsApp Business)
+// =========================================
+
+export interface UazapiLabel {
+  id: string;         // ex: "558191652897:7"
+  name: string;       // ex: "COMPRA FUTURA"
+  color: number;      // índice nativo do WhatsApp
+  colorHex: string;   // ex: "#ffae04"
+  labelid: string;    // ex: "7"
+  owner: string;      // numero da conta
+}
+
+export interface UazapiChat {
+  id: string;
+  wa_chatid: string;
+  wa_isGroup: boolean;
+  wa_name?: string;
+  name?: string;
+  wa_contactName?: string;
+  lead_fullName?: string;
+  lead_name?: string;
+  image?: string;
+  imagePreview?: string;
+  wa_label: string[];          // IDs das etiquetas aplicadas
+  wa_lastMsgTimestamp: number;
+  wa_unreadCount: number;
+  lead_email?: string;
+  lead_notes?: string;
+}
+
+/**
+ * GET /labels — lista todas as etiquetas configuradas na conta WhatsApp Business.
+ */
+export async function instanceListLabels(inst: UazapiInstance): Promise<UazapiLabel[]> {
+  const r = (await call(inst.baseUrl, "/labels", {
+    method: "GET",
+    headers: { token: inst.token },
+  })) as UazapiLabel[] | { labels?: UazapiLabel[] };
+  if (Array.isArray(r)) return r;
+  return r.labels ?? [];
+}
+
+/**
+ * POST /chat/find — busca chats paginados (limit max 2000 pela API).
+ * Body opcional: { limit, offset, wa_chatid, operator, searchParams }
+ */
+export async function instanceFindChats(
+  inst: UazapiInstance,
+  params: { limit?: number; offset?: number; wa_chatid?: string; operator?: "AND" | "OR"; searchParams?: Array<{ field: string; value: string; operator?: string }> } = {},
+): Promise<{ chats: UazapiChat[]; totalRecords: number }> {
+  const r = (await call(inst.baseUrl, "/chat/find", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+    timeoutMs: 45_000,
+  })) as { chats: UazapiChat[]; pagination?: { totalRecords?: number } };
+  return {
+    chats: r.chats || [],
+    totalRecords: r.pagination?.totalRecords ?? r.chats?.length ?? 0,
+  };
+}
+
 export { UazapiError };

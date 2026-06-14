@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-14
 
+- **17:30** — Contatos: **Importar do WhatsApp** — botão ao lado do "Adicionar contato" abre um balão que puxa todos os contatos da linha conectada + etiquetas marcadas no WhatsApp Business (direct mapping UAZAPI `/labels` + `/chat/find` paginado). Idempotente: não duplica contatos nem etiquetas. Resumo final com KPIs (novos, existentes, etiquetas criadas, aplicações). `commit 51dd7f3`
+
 - **16:10** — Chat: **imagem corrompida no ImgBB** (ERR_HTTP2_PROTOCOL_ERROR / 206 Partial) agora mostra balão "Imagem corrompida no servidor" com botão **Re-baixar do WhatsApp**. Click → zera midia_url + força tentativa nova via UAZAPI (parâmetro `forcar:true` no /api/atendimentos/midia-retry). `commit 0572a4d`
 
 - **15:50** — Dashboard: **filtro por Serviços** ao lado dos presets de período. Dropdown com checkbox por serviço (vem da tabela `servicos` + nomes ad-hoc dos tickets dos últimos 6 meses). Aplica em todos os KPIs, série, satisfação e tempos, e também no PDF "Baixar análise". `commit 60654a6`
