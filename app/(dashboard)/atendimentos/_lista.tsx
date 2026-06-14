@@ -14,6 +14,7 @@ export interface TicketLista {
   created_at?: string | null;
   usuario_id?: string | null;
   nao_lido?: boolean;
+  nao_lidas?: number;
   contato: {
     id: string;
     nome: string;
@@ -410,6 +411,28 @@ export function ListaAtendimentos(p: Props) {
                       <span style={{ fontSize: 10, fontWeight: 600, color: corTempo(t.ultima_mensagem_em, now) }}>{tempoRel(t.ultima_mensagem_em, now)}</span>
                     )}
                     <span style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>#{t.numero}</span>
+                    {(t.nao_lidas ?? 0) > 0 && (
+                      <span
+                        title={`${t.nao_lidas} mensagem${t.nao_lidas! > 1 ? "s" : ""} não lida${t.nao_lidas! > 1 ? "s" : ""}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minWidth: 18,
+                          height: 18,
+                          padding: "0 6px",
+                          borderRadius: 999,
+                          background: "#10b981",
+                          color: "#FFFDF8",
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          boxShadow: "0 0 0 2px rgba(16,185,129,0.18)",
+                        }}
+                      >
+                        {t.nao_lidas! > 99 ? "99+" : t.nao_lidas}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {t.ultima_mensagem_preview || "—"}

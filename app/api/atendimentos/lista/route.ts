@@ -28,7 +28,10 @@ export async function GET() {
     sb.from("mensagens").select("ticket_id").eq("agencia_id", u.agencia_id).eq("autor", "cliente").neq("status", "lida").limit(5000),
   ]);
 
-  const naoLidoSet = new Set((naoLidasRows || []).map((m) => m.ticket_id as string));
+  const naoLidasCount = new Map<string, number>();
+  for (const m of (naoLidasRows || []) as Array<{ ticket_id: string }>) {
+    naoLidasCount.set(m.ticket_id, (naoLidasCount.get(m.ticket_id) || 0) + 1);
+  }
 
   type AnyObj = Record<string, unknown>;
   const flat = (tickets || []).map((t) => ({
@@ -40,7 +43,8 @@ export async function GET() {
     sentimento: t.sentimento,
     created_at: t.created_at,
     usuario_id: t.usuario_id ?? null,
-    nao_lido: naoLidoSet.has(t.id as string),
+    nao_lido: (naoLidasCount.get(t.id as string) || 0) > 0,
+    nao_lidas: naoLidasCount.get(t.id as string) || 0,
     contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as AnyObj | null,
     canal: (Array.isArray(t.canal) ? t.canal[0] : t.canal) as AnyObj | null,
     fila: (Array.isArray(t.fila) ? t.fila[0] : t.fila) as AnyObj | null,

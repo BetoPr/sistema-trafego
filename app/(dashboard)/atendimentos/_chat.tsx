@@ -276,6 +276,22 @@ export function ChatView(props: Props) {
     });
   }, [props.mensagensIniciais]);
 
+  // Auto marcar mensagens como lidas ao abrir a conversa.
+  // Roda uma vez quando muda de ticket. onRefresh atualiza a lista
+  // pra remover a bolinha verde sem precisar de F5.
+  useEffect(() => {
+    let cancelado = false;
+    const tid = setTimeout(() => {
+      if (cancelado) return;
+      fetch(`/api/atendimentos/${props.ticketId}/marcar-lido`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ lido: true }),
+      }).then(() => { if (!cancelado) props.onRefresh?.(); }).catch(() => {});
+    }, 600);
+    return () => { cancelado = true; clearTimeout(tid); };
+  }, [props.ticketId]);
+
   // Realtime subscription
   useEffect(() => {
     const sb = createClient();

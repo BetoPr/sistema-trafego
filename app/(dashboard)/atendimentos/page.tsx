@@ -43,7 +43,10 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sb.from("mensagens").select("ticket_id").eq("agencia_id", ctx.agenciaId).eq("autor", "cliente").neq("status", "lida").limit(5000),
   ]);
 
-  const naoLidoSet = new Set((naoLidasRows || []).map((m) => m.ticket_id as string));
+  const naoLidasCount = new Map<string, number>();
+  for (const m of (naoLidasRows || []) as Array<{ ticket_id: string }>) {
+    naoLidasCount.set(m.ticket_id, (naoLidasCount.get(m.ticket_id) || 0) + 1);
+  }
 
   const ticketsFlat: TicketLista[] = (tickets || []).map((t) => ({
     id: t.id,
@@ -54,7 +57,8 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sentimento: t.sentimento,
     created_at: t.created_at,
     usuario_id: t.usuario_id ?? null,
-    nao_lido: naoLidoSet.has(t.id),
+    nao_lido: (naoLidasCount.get(t.id) || 0) > 0,
+    nao_lidas: naoLidasCount.get(t.id) || 0,
     contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as unknown as TicketLista["contato"],
     canal: (Array.isArray(t.canal) ? t.canal[0] : t.canal) as TicketLista["canal"],
     fila: (Array.isArray(t.fila) ? t.fila[0] : t.fila) as TicketLista["fila"],
