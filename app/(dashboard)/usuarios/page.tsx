@@ -261,15 +261,32 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
                     })()}
                   </td>
                   <td style={tdLi}><span className={`mk-badge ${u.ativo ? "b-green" : "b-gray"}`}>{u.ativo ? "Ativo" : "Inativo"}</span></td>
-                  <td style={tdLi}>{u.online ? <i className="ti ti-circle-filled" style={{ color: "#10b981", fontSize: 11 }} /> : <i className="ti ti-circle" style={{ color: "var(--mk-text-muted)", fontSize: 11 }} />}</td>
                   <td style={tdLi}>
-                    <div style={{ display: "flex", gap: 4 }}>
+                    {u.online ? (
+                      <span title="Online agora" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#10b981", fontWeight: 600 }}>
+                        <span className="online-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 0 0 rgba(16,185,129,0.7)" }} />
+                        Online
+                      </span>
+                    ) : (
+                      <span title="Offline" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--mk-text-muted)" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--mk-border)" }} />
+                        Offline
+                      </span>
+                    )}
+                  </td>
+                  <td style={tdLi}>
+                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                       <Link href={`/usuarios?editar=${u.id}`} className="ghost-btn" style={iconBtn}><i className="ti ti-edit" /></Link>
                       <form action={alternarAtivo} style={{ display: "inline" }}>
                         <input type="hidden" name="id" value={u.id} />
                         <input type="hidden" name="ativo" value={String(u.ativo)} />
-                        <button type="submit" className="ghost-btn" style={iconBtn} title={u.ativo ? "Desativar" : "Ativar"}>
-                          <i className={`ti ${u.ativo ? "ti-toggle-right" : "ti-toggle-left"}`} />
+                        <button
+                          type="submit"
+                          className={`toggle-switch ${u.ativo ? "is-on" : ""}`}
+                          aria-pressed={u.ativo}
+                          title={u.ativo ? "Desativar usuário" : "Ativar usuário"}
+                        >
+                          <span className="toggle-knob" />
                         </button>
                       </form>
                       <form action={softDeleteUsuario} style={{ display: "inline" }}>

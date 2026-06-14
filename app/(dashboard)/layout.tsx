@@ -2,6 +2,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NotificacaoMensagens } from "@/components/layout/NotificacaoMensagens";
+import { HeartbeatOnline } from "@/components/layout/HeartbeatOnline";
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
             />
             <CommandPalette role={usuario.role} />
             <NotificacaoMensagens agenciaId={usuario.agencia_id} />
+            <HeartbeatOnline />
             {children}
           </main>
         </AppShell>

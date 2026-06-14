@@ -31,7 +31,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
     .eq("agencia_id", ctx.agenciaId)
     .is("deleted_at", null);
 
-  const [{ data: contatos }, { data: fechRows }, { data: servicosRows }, { data: agRow }] = await Promise.all([
+  const [{ data: contatos }, { data: fechRows }, { data: servicosRows }, { data: agRow }, { data: etiquetasRows }] = await Promise.all([
     q.order("nome").limit(500),
     sb
       .from("tickets")
@@ -40,7 +40,9 @@ export default async function ContatosPage({ searchParams }: PageProps) {
       .not("valor_fechado", "is", null),
     sb.from("servicos").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
     sb.from("agencias").select("servicos_habilitados").eq("id", ctx.agenciaId).single(),
+    sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
   ]);
+  const etiquetasDisponiveis = (etiquetasRows || []) as Array<{ id: string; nome: string; cor: string; categoria: string | null }>;
   const servicos = (servicosRows || []) as Array<{ id: string; nome: string }>;
   const servicosHabilitados = !!(agRow as { servicos_habilitados?: boolean } | null)?.servicos_habilitados;
 
@@ -70,6 +72,15 @@ export default async function ContatosPage({ searchParams }: PageProps) {
   const editando = sp.editar ? contatos?.find((c) => c.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
   const fechEditando = editando ? fechPorContato.get(editando.id) : undefined;
+  // Etiquetas já aplicadas no contato sendo editado (pra marcar checkbox)
+  const etiquetasDoContato = new Set<string>();
+  if (editando) {
+    type ETag = { etiqueta: { id: string } | { id: string }[] | null };
+    for (const e of (editando.etiquetas as unknown as ETag[] | null) || []) {
+      const et = Array.isArray(e.etiqueta) ? e.etiqueta[0] : e.etiqueta;
+      if (et) etiquetasDoContato.add(et.id);
+    }
+  }
 
   return (
     <section className="mk-page">
@@ -123,6 +134,49 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                 </div>
                 <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
                   Preencheu o valor? Entra no Dashboard e no log de fechamentos. Deixou vazio? Cria só o contato.
+                </div>
+              </div>
+            )}
+
+            {/* Etiquetas — só em edição */}
+            {editando && etiquetasDisponiveis.length > 0 && (
+              <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 12 }}>
+                <label style={lblMono}>Etiquetas</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {etiquetasDisponiveis.map((et) => {
+                    const marcada = etiquetasDoContato.has(et.id);
+                    return (
+                      <label
+                        key={et.id}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "5px 10px",
+                          borderRadius: 999,
+                          border: `0.5px solid ${marcada ? et.cor : "var(--mk-border)"}`,
+                          background: marcada ? `${et.cor}22` : "var(--mk-surface)",
+                          cursor: "pointer",
+                          fontSize: 11.5,
+                          color: marcada ? et.cor : "var(--mk-text-secondary)",
+                          fontWeight: marcada ? 600 : 400,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          name="etiqueta_id"
+                          value={et.id}
+                          defaultChecked={marcada}
+                          style={{ accentColor: et.cor, width: 13, height: 13 }}
+                        />
+                        <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: et.cor }} />
+                        {et.nome}
+                      </label>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
+                  Marca/desmarca pra aplicar. Pra criar etiquetas novas, vai em <a href="/etiquetas" style={{ color: "var(--mk-accent)" }}>Etiquetas</a>.
                 </div>
               </div>
             )}

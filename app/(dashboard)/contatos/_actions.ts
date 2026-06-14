@@ -104,7 +104,32 @@ export async function atualizarContato(formData: FormData) {
     .eq("id", id)
     .eq("agencia_id", ctx.agenciaId);
   if (error) redirect(`/contatos?erro=db&msg=${encodeURIComponent(error.message)}`);
-  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "contato", entidadeId: id });
+
+  // Sincroniza etiquetas: form manda etiqueta_id[] = marcadas.
+  // Atual = no banco. Diff: remove desmarcadas, insere novas.
+  // Se o form NÃO tiver nenhum campo etiqueta_id, ainda assim queremos
+  // reconhecer "todas desmarcadas". Detectamos pela presença do form
+  // de edição via hidden marker.
+  const formEtiquetas = formData.getAll("etiqueta_id").map(String).filter(Boolean);
+  // Pega etiquetas atuais
+  const { data: atual } = await sb
+    .from("contato_etiquetas")
+    .select("etiqueta_id")
+    .eq("contato_id", id);
+  const setAtual = new Set((atual || []).map((r) => r.etiqueta_id as string));
+  const setNova = new Set(formEtiquetas);
+
+  const adicionar = [...setNova].filter((eid) => !setAtual.has(eid));
+  const remover = [...setAtual].filter((eid) => !setNova.has(eid));
+
+  if (adicionar.length > 0) {
+    await sb.from("contato_etiquetas").insert(adicionar.map((eid) => ({ contato_id: id, etiqueta_id: eid })));
+  }
+  if (remover.length > 0) {
+    await sb.from("contato_etiquetas").delete().eq("contato_id", id).in("etiqueta_id", remover);
+  }
+
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "contato", entidadeId: id, payload: { etiquetas_adicionadas: adicionar.length, etiquetas_removidas: remover.length } });
   revalidatePath("/contatos");
   redirect("/contatos?ok=atualizado");
 }
