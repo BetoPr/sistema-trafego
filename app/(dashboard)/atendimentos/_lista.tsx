@@ -88,10 +88,47 @@ export function ListaAtendimentos(p: Props) {
   const [searchMsgText, setSearchMsgText] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; numero: number; contato_nome: string; conteudo: string; created_at: string; ticketId: string }>>([]);
   const [aba, setAba] = useState<"privados" | "grupos">("privados");
+  const PAGE_SIZE = 20;
+  const [limite, setLimite] = useState(PAGE_SIZE);
+  const sentinelaRef = useRef<HTMLDivElement>(null);
   const [espiar, setEspiar] = useState<null | { ticketId: string; numero: number; contatoNome: string }>(null);
   const [espiarMsgs, setEspiarMsgs] = useState<Array<{ id: string; autor: string; tipo: string; conteudo: string | null; transcricao: string | null; created_at: string }>>([]);
   const [espiarLoading, setEspiarLoading] = useState(false);
   const canaisRef = useRef<HTMLDivElement>(null);
+
+  // Reset paginação quando muda qualquer filtro/aba
+  useEffect(() => {
+    setLimite(PAGE_SIZE);
+  }, [statusSel, searchQ, somenteNaoLidos, inverterOrdem, de, ate, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, aba]);
+
+  // Infinite scroll: observer no sentinel — quando aparece, +20
+  useEffect(() => {
+    const el = sentinelaRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setLimite((l) => l + PAGE_SIZE);
+      }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [limite]);
+
+  async function atenderDireto(ticketId: string) {
+    try {
+      const r = await fetch(`/api/atendimentos/${ticketId}/atender`, { method: "POST" });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        alert(`Falha: ${j.error || r.statusText}`);
+        return;
+      }
+      // Seleciona o ticket e recarrega lista (já abre direto na conversa)
+      p.onSelectTicket(ticketId);
+      p.onRefresh();
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   async function abrirEspiar(t: TicketLista) {
     setEspiar({ ticketId: t.id, numero: t.numero, contatoNome: t.contato?.nome || "—" });
@@ -359,7 +396,7 @@ export function ListaAtendimentos(p: Props) {
         {ticketsVisiveis.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12 }}>Sem tickets.</div>
         ) : (
-          ticketsVisiveis.map((t) => {
+          ticketsVisiveis.slice(0, limite).map((t) => {
             const c = t.contato;
             const f = t.fila;
             const isOpen = t.id === p.ticketSel;
@@ -384,7 +421,11 @@ export function ListaAtendimentos(p: Props) {
                   fontFamily: "inherit",
                 }}
               >
-                <AvatarContato nome={c?.nome} foto={c?.foto_url} />
+                <AvatarContato
+                  nome={c?.nome}
+                  foto={c?.foto_url}
+                  onAtender={t.status === "pendente" ? (e) => { e.stopPropagation(); atenderDireto(t.id); } : undefined}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <span style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>{c?.nome || c?.whatsapp || "—"}</span>
@@ -446,6 +487,12 @@ export function ListaAtendimentos(p: Props) {
               </button>
             );
           })
+        )}
+        {/* Sentinela do infinite scroll — quando entra no viewport carrega +20 */}
+        {ticketsVisiveis.length > limite && (
+          <div ref={sentinelaRef} style={{ padding: "12px 14px", fontSize: 11, color: "var(--mk-text-muted)", textAlign: "center" }}>
+            Mostrando {limite} de {ticketsVisiveis.length} — role pra carregar mais
+          </div>
         )}
       </div>
 
@@ -718,16 +765,49 @@ function corTempo(iso: string, now: number): string {
 }
 
 /** Avatar do contato: foto do WhatsApp com fallback pras iniciais (foto pode expirar). */
-function AvatarContato({ nome, foto }: { nome?: string | null; foto?: string | null }) {
+function AvatarContato({ nome, foto, onAtender }: { nome?: string | null; foto?: string | null; onAtender?: (e: React.MouseEvent) => void }) {
   const [erro, setErro] = useState(false);
   const ini = nome?.slice(0, 2).toUpperCase() || "?";
-  if (foto && !erro) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={foto} alt="" onError={() => setErro(true)} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "var(--mk-surface-2)" }} />;
-  }
+  const hasAtender = !!onAtender;
+
   return (
-    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
-      {ini}
+    <div
+      className={hasAtender ? "avatar-atender" : undefined}
+      style={{ position: "relative", width: 36, height: 36, flexShrink: 0 }}
+    >
+      {foto && !erro ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={foto} alt="" onError={() => setErro(true)} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", background: "var(--mk-surface-2)" }} />
+      ) : (
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 600 }}>
+          {ini}
+        </div>
+      )}
+      {hasAtender && (
+        <button
+          type="button"
+          onClick={onAtender}
+          title="Atender — move o ticket de Pendentes pra Abertos e abre direto"
+          className="avatar-atender-btn"
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            background: "rgba(16,185,129,0.92)",
+            color: "#FFFFFF",
+            border: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            opacity: 0,
+            transition: "opacity 0.18s ease",
+            fontSize: 18,
+          }}
+        >
+          <i className="ti ti-arrow-left" />
+        </button>
+      )}
     </div>
   );
 }
