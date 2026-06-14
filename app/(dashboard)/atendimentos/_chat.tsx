@@ -62,7 +62,86 @@ interface Mensagem {
   created_at: string;
   usuario_id: string | null;
   wa_message_id?: string | null;
-  metadata?: { reply_to?: string; ad_referral?: AdReferral } | null;
+  metadata?: {
+    reply_to?: string;
+    ad_referral?: AdReferral;
+    midia_tentativas?: number;
+    midia_erro?: string;
+    midia_perdida?: boolean;
+  } | null;
+}
+
+/**
+ * Balão pra mídia que ainda não baixou — mostra estado, contador e botão
+ * de re-baixar. Limite auto = 3 (depois disso vira "indisponível" mas botão
+ * manual continua funcionando).
+ */
+function MidiaPendente({ mensagem, label, icone }: { mensagem: Mensagem; label: string; icone: string }) {
+  const [rodando, setRodando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const tentativas = mensagem.metadata?.midia_tentativas || 0;
+  const perdida = mensagem.metadata?.midia_perdida === true;
+
+  async function tentar() {
+    if (rodando) return;
+    setRodando(true);
+    setErro(null);
+    try {
+      const r = await fetch("/api/atendimentos/midia-retry", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mensagemId: mensagem.id }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) setErro(j.error || "Falhou — UAZAPI sem dado pra essa mensagem");
+      // Sucesso → realtime/refresh atualiza a URL automático
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRodando(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, color: perdida ? "var(--mk-text-muted)" : "var(--mk-text-secondary)" }}>
+        <i className={`ti ${icone}`} />
+        {label}
+        <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>
+          {perdida ? "(indisponível)" : rodando ? "(baixando…)" : tentativas > 0 ? `(${tentativas}/3 tentativas)` : "(aguardando)"}
+        </span>
+      </div>
+      {mensagem.transcricao && (
+        <div style={{ fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-border)", paddingLeft: 6 }}>
+          {mensagem.transcricao}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={tentar}
+        disabled={rodando}
+        style={{
+          marginTop: 2,
+          fontSize: 10.5,
+          padding: "3px 8px",
+          background: "transparent",
+          border: "0.5px solid var(--mk-border)",
+          borderRadius: 6,
+          color: "var(--mk-text)",
+          cursor: "pointer",
+          alignSelf: "flex-start",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+        title={perdida ? "UAZAPI já não tem mais essa mídia, mas pode tentar mesmo assim" : "Tentar baixar de novo"}
+      >
+        <i className={`ti ${rodando ? "ti-loader" : "ti-refresh"}`} />
+        {rodando ? "Baixando…" : perdida ? "Forçar tentativa" : "Tentar agora"}
+      </button>
+      {erro && <div style={{ fontSize: 10, color: "#C97064" }}>{erro}</div>}
+    </div>
+  );
 }
 
 /** Detecta plataforma de origem do anúncio pra mostrar ícone + label certos. */
@@ -405,26 +484,25 @@ export function ChatView(props: Props) {
                   m.midia_url ? (
                     <AudioPlayer midiaPath={m.midia_url} transcricao={m.transcricao} />
                   ) : (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
-                        <i className="ti ti-microphone" /> Áudio <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>(baixando...)</span>
-                      </div>
-                      {m.transcricao && (
-                        <div style={{ marginTop: 6, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-border)", paddingLeft: 6 }}>
-                          {m.transcricao}
-                        </div>
-                      )}
-                    </>
+                    <MidiaPendente mensagem={m} label="Áudio" icone="ti-microphone" />
                   )
                 ) : m.tipo === "imagem" || m.tipo === "video" ? (
-                  <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo && !/^\[(imagem|video)\]$/.test(m.conteudo) ? m.conteudo : null} />
+                  m.midia_url ? (
+                    <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo && !/^\[(imagem|video)\]$/.test(m.conteudo) ? m.conteudo : null} />
+                  ) : (
+                    <MidiaPendente mensagem={m} label={m.tipo === "imagem" ? "Imagem" : "Vídeo"} icone={m.tipo === "imagem" ? "ti-photo" : "ti-video"} />
+                  )
                 ) : m.tipo === "documento" ? (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
-                      <i className="ti ti-file" /> [documento]
-                    </div>
-                    {m.conteudo && <div style={{ marginTop: 4 }}>{m.conteudo}</div>}
-                  </>
+                  m.midia_url ? (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
+                        <i className="ti ti-file" /> [documento]
+                      </div>
+                      {m.conteudo && <div style={{ marginTop: 4 }}>{m.conteudo}</div>}
+                    </>
+                  ) : (
+                    <MidiaPendente mensagem={m} label="Documento" icone="ti-file" />
+                  )
                 ) : (
                   m.conteudo || m.transcricao || `[${m.tipo}]`
                 )}

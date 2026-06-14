@@ -24,11 +24,9 @@ import {
 } from "@/lib/uazapi/webhook-parser";
 import { ingestMensagem } from "@/lib/crm/ingest";
 import { audit, getIp } from "@/lib/crm/audit";
-import { transcreverMensagemAudio } from "@/lib/crm/ia";
-import { downloadAndUpload, uploadMedia } from "@/lib/crm/storage";
-import { instanceDownloadMessage, instanceGetNameAndImage } from "@/lib/uazapi/client";
+import { instanceGetNameAndImage } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
-import { uploadImageToImgbb, uploadImageFromUrlToImgbb } from "@/lib/imgbb/upload";
+import { baixarEUploadMidia } from "@/lib/crm/midia-download";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,119 +104,29 @@ export async function POST(
         })();
       }
 
-      // Mídia: baixa e sobe pro bucket em background.
+      // Mídia: 1ª tentativa de download em background. Falhas ficam pra
+      // /api/cron/midia-retry tentar de novo (5min, 30min) e/ou retry manual no chat.
       const ehMidia = ["audio", "imagem", "video", "documento", "sticker"].includes(parsed.tipo);
       if (ehMidia) {
         void (async () => {
           try {
-            let sourceUrl = parsed.midia?.url;
-            let mimeType = parsed.midia?.mimeType;
-            let filename = parsed.midia?.filename;
-
-            // Se URL ausente, baixa via /message/download da UAZAPI
-            if (!sourceUrl) {
-              const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
-              const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
-              const typeMap: Record<string, "image" | "audio" | "video" | "document" | "sticker"> = {
-                audio: "audio", imagem: "image", video: "video", documento: "document", sticker: "sticker",
-              };
-              const dl = await instanceDownloadMessage(
-                { baseUrl, token },
-                { id: parsed.waMessageId, type: typeMap[parsed.tipo] },
-              );
-              sourceUrl = dl.fileURL || undefined;
-              mimeType = dl.mimetype || mimeType;
-              filename = dl.filename || filename;
-
-              // Se veio base64 em vez de URL
-              if (!sourceUrl && dl.base64) {
-                // IMAGEM → ImgBB (não polui banco/bucket)
-                if (parsed.tipo === "imagem") {
-                  try {
-                    const ib = await uploadImageToImgbb({ base64: dl.base64, filename });
-                    await sb.from("mensagens").update({
-                      midia_url: ib.url,
-                      midia_mime: mimeType || "image/jpeg",
-                      midia_filename: filename || null,
-                    }).eq("id", ingest.mensagemId);
-                  } catch (e) {
-                    console.error("[webhook uazapi] imgbb base64 falhou:", e);
-                  }
-                  return;
-                }
-
-                // Áudio/video/documento → bucket
-                const buf = Buffer.from(dl.base64.includes(",") ? dl.base64.split(",")[1] : dl.base64, "base64");
-                const up = await uploadMedia({
-                  agenciaId: canal.agencia_id,
-                  ticketId: ingest.ticketId,
-                  data: buf,
-                  filename: filename || `${parsed.tipo}.bin`,
-                  contentType: mimeType || "application/octet-stream",
-                });
-                if (up?.path) {
-                  await sb.from("mensagens").update({
-                    midia_url: up.path,
-                    midia_mime: mimeType || null,
-                    midia_filename: filename || null,
-                  }).eq("id", ingest.mensagemId);
-                }
-                // Transcreve só áudio RECEBIDO (do cliente). Áudio que nós enviamos não precisa.
-                if (parsed.tipo === "audio" && up?.signedUrl && !parsed.fromMe) {
-                  await transcreverMensagemAudio({
-                    agenciaId: canal.agencia_id,
-                    mensagemId: ingest.mensagemId,
-                    audioUrl: up.signedUrl,
-                  });
-                }
-                return;
-              }
-            }
-
-            if (!sourceUrl) {
-              console.warn("[webhook uazapi] mídia sem URL nem base64 — pulando", parsed.waMessageId);
-              return;
-            }
-
-            // IMAGEM com URL → ImgBB direto (download interno + upload)
-            if (parsed.tipo === "imagem") {
-              try {
-                const ib = await uploadImageFromUrlToImgbb({ sourceUrl, filename });
-                await sb.from("mensagens").update({
-                  midia_url: ib.url,
-                  midia_mime: mimeType || "image/jpeg",
-                  midia_filename: filename || null,
-                }).eq("id", ingest.mensagemId);
-              } catch (e) {
-                console.error("[webhook uazapi] imgbb url falhou:", e);
-              }
-              return;
-            }
-
-            const up = await downloadAndUpload({
-              agenciaId: canal.agencia_id,
-              ticketId: ingest.ticketId,
-              sourceUrl,
-              filename: filename,
-              contentType: mimeType,
-            });
-            if (up?.path) {
-              await sb.from("mensagens").update({
-                midia_url: up.path,
-                midia_mime: mimeType || null,
-                midia_filename: filename || null,
-              }).eq("id", ingest.mensagemId);
-            }
-            // Áudio → transcreve via Groq (só recebido do cliente)
-            if (parsed.tipo === "audio" && up?.signedUrl && !parsed.fromMe) {
-              await transcreverMensagemAudio({
-                agenciaId: canal.agencia_id,
+            const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+            const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+            await baixarEUploadMidia(
+              {
+                sb,
                 mensagemId: ingest.mensagemId,
-                audioUrl: up.signedUrl,
-              });
-            }
+                agenciaId: canal.agencia_id,
+                ticketId: ingest.ticketId,
+                tipo: parsed.tipo,
+                waMessageId: parsed.waMessageId,
+                canalId: canal.id,
+                transcreverSeCliente: !parsed.fromMe,
+              },
+              { baseUrl, token },
+            );
           } catch (e) {
-            console.error("[webhook uazapi] mídia/transcrição:", e);
+            console.error("[webhook uazapi] baixar mídia:", e);
           }
         })();
       }
