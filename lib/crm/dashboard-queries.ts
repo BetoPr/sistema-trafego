@@ -151,7 +151,12 @@ export async function carregarDashboardAtendimentos(
   supabase: SupabaseClient,
   agenciaId: string,
   faixa: FaixaDatas,
+  servicosFiltro?: string[],
 ): Promise<{ kpis: KpisAtendimento; servicos: ServicoStat[]; serie: SerieDiaAtend[]; satisfacao: SatisfacaoStat; tempos: TemposStat }> {
+  // Filtro de serviços: array vazio/undefined = todos. "Sem serviço" inclui
+  // tickets sem metadata.servico preenchido.
+  const filtroAtivo = !!(servicosFiltro && servicosFiltro.length > 0);
+  const setFiltro = new Set((servicosFiltro || []).map((s) => s.trim()).filter(Boolean));
   // Venda = ticket com valor_fechado registrado (independente do status do ticket —
   // fechamento de pedido não encerra o atendimento).
   const [{ data: tickets }, { data: sentRows }] = await Promise.all([
@@ -187,7 +192,13 @@ export async function carregarDashboardAtendimentos(
 
   const tempos = await calcularTempos(supabase, agenciaId, faixa);
 
-  const rows = (tickets || []) as TicketRow[];
+  const rowsAll = (tickets || []) as TicketRow[];
+  const rows = filtroAtivo
+    ? rowsAll.filter((t) => {
+        const serv = (t.metadata?.servico || "Sem serviço").trim() || "Sem serviço";
+        return setFiltro.has(serv);
+      })
+    : rowsAll;
 
   let faturamento_total = 0;
   let quantidade_total = 0;

@@ -71,7 +71,7 @@ Gere um RELATÓRIO VISUAL EM HTML, em português, dentro de UM ÚNICO bloco de c
  * Dashboard de Atendimentos SPA: filtros são estado local + fetch — sem
  * navegação, URL parada em /dashboard. Dados iniciais vêm do server.
  */
-export function AtendimentosLive({ inicial }: { inicial: Dados }) {
+export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicial: Dados; servicosDisponiveis?: string[] }) {
   const [periodo, setPeriodo] = useState<string>("30d");
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
@@ -79,7 +79,21 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
   const [dados, setDados] = useState<Dados>(inicial);
   const [loading, setLoading] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [servicosSel, setServicosSel] = useState<Set<string>>(new Set());
+  const [menuServ, setMenuServ] = useState(false);
   const reqRef = useRef(0);
+
+  function qsParaBuscar(extra?: Partial<{ periodo: string; de: string; ate: string; servicos: Set<string> }>): string {
+    const p = new URLSearchParams();
+    const per = extra?.periodo ?? periodo;
+    const dde = extra?.de ?? de;
+    const aate = extra?.ate ?? ate;
+    const serv = extra?.servicos ?? servicosSel;
+    if (per) p.set("periodo", per);
+    else if (dde && aate) { p.set("de", dde); p.set("ate", aate); }
+    if (serv.size > 0) p.set("servicos", Array.from(serv).map(encodeURIComponent).join(","));
+    return p.toString();
+  }
 
   async function copiarPrompt() {
     try {
@@ -112,24 +126,38 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
   function preset(id: string) {
     setPeriodo(id);
     setCustom(false);
-    buscar(`periodo=${id}`);
+    buscar(qsParaBuscar({ periodo: id }));
   }
 
   function aplicarCustom() {
     if (!de || !ate) return;
     setPeriodo("");
-    buscar(`de=${de}&ate=${ate}`);
+    buscar(qsParaBuscar({ periodo: "" }));
+  }
+
+  function toggleServico(nome: string) {
+    setServicosSel((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(nome)) novo.delete(nome);
+      else novo.add(nome);
+      buscar(qsParaBuscar({ servicos: novo }));
+      return novo;
+    });
+  }
+
+  function limparServicos() {
+    setServicosSel(new Set());
+    buscar(qsParaBuscar({ servicos: new Set() }));
   }
 
   // Auto-refresh leve a cada 60s no período ativo
   useEffect(() => {
     const iv = setInterval(() => {
-      if (periodo) buscar(`periodo=${periodo}`);
-      else if (de && ate) buscar(`de=${de}&ate=${ate}`);
+      buscar(qsParaBuscar());
     }, 60000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo, de, ate]);
+  }, [periodo, de, ate, servicosSel]);
 
   return (
     <>
@@ -166,6 +194,42 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
           </div>
         )}
 
+        {/* Filtro de serviços */}
+        {servicosDisponiveis.length > 0 && (
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setMenuServ((s) => !s)}
+              style={{ padding: "5px 12px", fontSize: 12, borderRadius: 8, border: `0.5px solid ${servicosSel.size > 0 ? "var(--mk-accent)" : "var(--mk-border)"}`, background: "var(--mk-surface)", color: servicosSel.size > 0 ? "var(--mk-accent)" : "var(--mk-text-secondary)", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}
+            >
+              <i className="ti ti-tag" />
+              {servicosSel.size === 0 ? "Todos os serviços" : `${servicosSel.size} serviço${servicosSel.size > 1 ? "s" : ""}`}
+              <i className={`ti ti-chevron-${menuServ ? "up" : "down"}`} />
+            </button>
+            {menuServ && (
+              <>
+                <div onClick={() => setMenuServ(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 220, maxHeight: 320, overflowY: "auto", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 10, padding: 6, zIndex: 11, boxShadow: "0 6px 18px rgba(0,0,0,0.35)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px", borderBottom: "0.5px solid var(--mk-border)", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Serviços</span>
+                    {servicosSel.size > 0 && (
+                      <button onClick={limparServicos} style={{ background: "transparent", border: 0, color: "var(--mk-accent)", fontSize: 10.5, cursor: "pointer", padding: 0 }}>limpar</button>
+                    )}
+                  </div>
+                  {servicosDisponiveis.map((nome) => {
+                    const marcado = servicosSel.has(nome);
+                    return (
+                      <label key={nome} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, cursor: "pointer", background: marcado ? "rgba(155,125,191,0.12)" : "transparent", fontSize: 12, color: "var(--mk-text)" }}>
+                        <input type="checkbox" checked={marcado} onChange={() => toggleServico(nome)} style={{ accentColor: "var(--mk-accent)" }} />
+                        {nome}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {loading && (
           <span style={{ fontSize: 11, color: "var(--mk-text-muted)", display: "inline-flex", alignItems: "center", gap: 5 }}>
             <i className="ti ti-loader-2" style={{ animation: "spin 0.8s linear infinite", display: "inline-block" }} /> atualizando…
@@ -182,7 +246,7 @@ export function AtendimentosLive({ inicial }: { inicial: Dados }) {
         </button>
 
         <a
-          href={`/api/relatorios/atendimentos-pdf?${periodo ? `periodo=${periodo}` : `de=${de}&ate=${ate}`}`}
+          href={`/api/relatorios/atendimentos-pdf?${qsParaBuscar()}`}
           style={{ fontSize: 12, color: "var(--mk-accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}
           title="Baixa um PDF com o histórico completo das conversas do período (pra análise no Claude/ChatGPT)"
         >

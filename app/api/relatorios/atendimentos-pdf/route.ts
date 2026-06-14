@@ -90,9 +90,14 @@ export async function GET(req: Request) {
 
   const faixa = resolverFaixa(url.searchParams.get("periodo") || undefined, url.searchParams.get("de") || undefined, url.searchParams.get("ate") || undefined);
 
+  const servicosParam = url.searchParams.get("servicos");
+  const servicosFiltro = servicosParam
+    ? new Set(servicosParam.split(",").map((s) => decodeURIComponent(s).trim()).filter(Boolean))
+    : null;
+
   const { data: tk } = await sb
     .from("tickets")
-    .select("id, numero, created_at, primeira_resposta_em, fechado_em, valor_fechado, sentimento, sentimento_motivo, contato:contatos(nome, whatsapp)")
+    .select("id, numero, created_at, primeira_resposta_em, fechado_em, valor_fechado, sentimento, sentimento_motivo, metadata, contato:contatos(nome, whatsapp)")
     .eq("agencia_id", u.agencia_id)
     .not("fechado_em", "is", null)
     .gte("fechado_em", faixa.inicio.toISOString())
@@ -100,7 +105,13 @@ export async function GET(req: Request) {
     .order("fechado_em", { ascending: true })
     .limit(MAX_TICKETS + 1);
 
-  const tickets = (tk || []) as TicketRow[];
+  const ticketsTodos = (tk || []) as Array<TicketRow & { metadata?: { servico?: string } | null }>;
+  const tickets = (servicosFiltro
+    ? ticketsTodos.filter((t) => {
+        const serv = (t.metadata?.servico || "Sem serviço").trim() || "Sem serviço";
+        return servicosFiltro.has(serv);
+      })
+    : ticketsTodos) as TicketRow[];
   const truncadoTickets = tickets.length > MAX_TICKETS;
   if (truncadoTickets) tickets.length = MAX_TICKETS;
 

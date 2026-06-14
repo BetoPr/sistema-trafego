@@ -106,8 +106,27 @@ async function ViewAtendimentosLive({
 }) {
   // Carga inicial (30 dias) server-side; filtros viram fetch client sem navegação
   const faixa = resolverFaixa("30d");
-  const dados = await carregarDashboardAtendimentos(supabase, agenciaId, faixa);
-  return <AtendimentosLive inicial={{ ...dados, label: faixa.label }} />;
+  const [dados, { data: servRows }, { data: ticketServRows }] = await Promise.all([
+    carregarDashboardAtendimentos(supabase, agenciaId, faixa),
+    supabase.from("servicos").select("nome").eq("agencia_id", agenciaId).eq("ativo", true).order("nome"),
+    // Inclui nomes ad-hoc usados em fechamentos manuais (últimos 6 meses)
+    supabase
+      .from("tickets")
+      .select("metadata")
+      .eq("agencia_id", agenciaId)
+      .not("valor_fechado", "is", null)
+      .gte("fechado_em", new Date(Date.now() - 180 * 24 * 3600 * 1000).toISOString()),
+  ]);
+  const nomes = new Set<string>();
+  for (const s of (servRows as Array<{ nome: string }> | null) || []) {
+    if (s?.nome) nomes.add(s.nome.trim());
+  }
+  for (const t of (ticketServRows as Array<{ metadata: { servico?: string } | null }> | null) || []) {
+    const n = (t.metadata?.servico || "").trim();
+    if (n) nomes.add(n);
+  }
+  const servicosDisponiveis = Array.from(nomes).sort();
+  return <AtendimentosLive inicial={{ ...dados, label: faixa.label }} servicosDisponiveis={servicosDisponiveis} />;
 }
 
 async function ViewCampanhas({

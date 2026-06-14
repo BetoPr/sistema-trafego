@@ -25,6 +25,10 @@ export async function GET(req: Request) {
     url.searchParams.get("de") || undefined,
     url.searchParams.get("ate") || undefined,
   );
-  const dados = await carregarDashboardAtendimentos(sb, u.agencia_id, faixa);
+  const servicosParam = url.searchParams.get("servicos");
+  const servicosFiltro = servicosParam
+    ? servicosParam.split(",").map((s) => decodeURIComponent(s).trim()).filter(Boolean)
+    : undefined;
+  const dados = await carregarDashboardAtendimentos(sb, u.agencia_id, faixa, servicosFiltro);
   return NextResponse.json({ ...dados, label: faixa.label });
 }

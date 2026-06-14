@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-14
 
+- **15:50** — Dashboard: **filtro por Serviços** ao lado dos presets de período. Dropdown com checkbox por serviço (vem da tabela `servicos` + nomes ad-hoc dos tickets dos últimos 6 meses). Aplica em todos os KPIs, série, satisfação e tempos, e também no PDF "Baixar análise". `commit 60654a6`
+
 - **15:30** — Contatos: editar contato agora mostra **bloco de etiquetas** (chips clicáveis com cor de cada uma). Marca/desmarca pra aplicar. Action faz diff: insere as novas, remove as desmarcadas. `commit caf715a`
 - **15:30** — Usuários: **toggle switch animado** (deslizante verde quando ligado) no lugar dos ícones estáticos. Coluna **Online** ganhou indicador pulsante "Online"/"Offline" claro. Heartbeat client a cada 30s + cron 1min marca offline quem some por > 90s. `commit caf715a`
 
