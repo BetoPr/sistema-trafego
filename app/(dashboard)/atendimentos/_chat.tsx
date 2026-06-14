@@ -490,7 +490,7 @@ export function ChatView(props: Props) {
                   )
                 ) : m.tipo === "imagem" || m.tipo === "video" ? (
                   m.midia_url ? (
-                    <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo && !/^\[(imagem|video)\]$/.test(m.conteudo) ? m.conteudo : null} />
+                    <MediaPreview midiaPath={m.midia_url} tipo={m.tipo} legenda={m.conteudo && !/^\[(imagem|video)\]$/.test(m.conteudo) ? m.conteudo : null} mensagemId={m.id} />
                   ) : (
                     <MidiaPendente mensagem={m} label={m.tipo === "imagem" ? "Imagem" : "Vídeo"} icone={m.tipo === "imagem" ? "ti-photo" : "ti-video"} />
                   )

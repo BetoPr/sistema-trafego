@@ -6,18 +6,25 @@ interface Props {
   midiaPath: string | null;
   tipo: "imagem" | "video";
   legenda?: string | null;
+  mensagemId?: string;
 }
 
 /**
  * Preview de imagem/vídeo com signed URL do bucket crm-media.
  * Clique na imagem abre lightbox fullscreen.
+ * onError no <img>: oferece botão pra forçar re-download (caso o ImgBB
+ * tenha salvo arquivo corrompido — ERR_HTTP2_PROTOCOL_ERROR / 206 partial).
  */
-export function MediaPreview({ midiaPath, tipo, legenda }: Props) {
+export function MediaPreview({ midiaPath, tipo, legenda, mensagemId }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState(false);
+  const [imgFalhou, setImgFalhou] = useState(false);
+  const [rebaixando, setRebaixando] = useState(false);
 
   useEffect(() => {
+    setImgFalhou(false);
+    setErro(null);
     if (!midiaPath) return;
     let cancel = false;
     if (midiaPath.startsWith("http://") || midiaPath.startsWith("https://") || midiaPath.startsWith("data:")) {
@@ -50,18 +57,60 @@ export function MediaPreview({ midiaPath, tipo, legenda }: Props) {
     return <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>Carregando {tipo}…</div>;
   }
 
+  async function forcarRebaixar() {
+    if (!mensagemId || rebaixando) return;
+    setRebaixando(true);
+    try {
+      const r = await fetch("/api/atendimentos/midia-retry", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mensagemId, forcar: true }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        setErro(j.error || "Falhou ao re-baixar (UAZAPI sem dado)");
+      }
+      // Sucesso → realtime atualiza midia_url e prop muda; o useEffect refaz
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRebaixando(false);
+    }
+  }
+
   return (
     <>
       {tipo === "imagem" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url}
-          alt={legenda || "imagem"}
-          onClick={() => setLightbox(true)}
-          style={{ width: "100%", maxWidth: 260, maxHeight: 300, height: "auto", objectFit: "contain", borderRadius: 8, cursor: "zoom-in", display: "block", border: "0.5px solid var(--mk-border)" }}
-        />
+        imgFalhou ? (
+          <div style={{ width: "100%", maxWidth: 260, padding: 14, borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", display: "flex", alignItems: "center", gap: 5 }}>
+              <i className="ti ti-photo-x" /> Imagem corrompida no servidor
+            </div>
+            {mensagemId && (
+              <button
+                type="button"
+                onClick={forcarRebaixar}
+                disabled={rebaixando}
+                style={{ fontSize: 10.5, padding: "4px 10px", border: "0.5px solid var(--mk-accent)", borderRadius: 6, background: "transparent", color: "var(--mk-accent)", cursor: "pointer", alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                <i className={`ti ${rebaixando ? "ti-loader" : "ti-refresh"}`} />
+                {rebaixando ? "Re-baixando…" : "Re-baixar do WhatsApp"}
+              </button>
+            )}
+            {erro && <div style={{ fontSize: 10, color: "#C97064" }}>{erro}</div>}
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={legenda || "imagem"}
+            onClick={() => setLightbox(true)}
+            onError={() => setImgFalhou(true)}
+            style={{ width: "100%", maxWidth: 260, maxHeight: 300, height: "auto", objectFit: "contain", borderRadius: 8, cursor: "zoom-in", display: "block", border: "0.5px solid var(--mk-border)" }}
+          />
+        )
       ) : (
-        <video src={url} controls preload="metadata" style={{ width: "100%", maxWidth: 260, maxHeight: 300, borderRadius: 8, display: "block", border: "0.5px solid var(--mk-border)" }} />
+        <video src={url} controls preload="metadata" onError={() => setImgFalhou(true)} style={{ width: "100%", maxWidth: 260, maxHeight: 300, borderRadius: 8, display: "block", border: "0.5px solid var(--mk-border)" }} />
       )}
       {legenda && <div style={{ marginTop: 4, fontSize: 12 }}>{legenda}</div>}
 

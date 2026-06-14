@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "auth" }, { status: 401 });
 
-  const body = (await req.json().catch(() => null)) as { mensagemId?: string } | null;
+  const body = (await req.json().catch(() => null)) as { mensagemId?: string; forcar?: boolean } | null;
   if (!body?.mensagemId) return NextResponse.json({ error: "body_invalido" }, { status: 400 });
 
   const sb = createServiceClient();
@@ -31,6 +31,12 @@ export async function POST(req: Request) {
     .eq("id", body.mensagemId)
     .maybeSingle();
   if (!m || m.agencia_id !== u.agencia_id) return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
+
+  // forcar=true → zera a URL atual antes de re-baixar (usado quando imagem
+  // tá corrompida no ImgBB e precisa puxar de novo da UAZAPI)
+  if (body.forcar) {
+    await sb.from("mensagens").update({ midia_url: null, midia_mime: null, midia_filename: null }).eq("id", m.id);
+  }
   const ticket = Array.isArray(m.ticket) ? m.ticket[0] : m.ticket;
   const canalId = (ticket as { canal_id?: string })?.canal_id;
   if (!canalId) return NextResponse.json({ error: "ticket_sem_canal" }, { status: 400 });
