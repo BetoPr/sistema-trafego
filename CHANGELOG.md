@@ -5,9 +5,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-14
+
+- **11:35** — Atendimentos: **card do anúncio** (Instagram/Facebook Ads) acima da 1ª mensagem do lead — capa, título, copy e badge com a plataforma de origem (igual o card que aparece no WhatsApp do cliente). Webhook agora captura `contextInfo.externalAdReply` da UAZAPI. `commit eb3dcad`
+- **11:30** — Canais: botão **N mídias pendentes · re-baixar** — re-tenta o `/message/download` em lotes pra todas as mídias que ficaram sem download (imagem vai pro ImgBB, áudio/vídeo/doc pro bucket); mostra progresso live. `commit eb3dcad`
+
 ## 2026-06-13
 
-- **18:40** — Atendimentos: **som de notificação** ao chegar mensagem do cliente (toca mesmo com a aba aberta; beep sintetizado, destrava no 1º clique) + botão **sino** pra mutar/ligar (lembra a escolha). `commit pendente`
+- **18:40** — Atendimentos: **som de notificação** ao chegar mensagem do cliente (toca mesmo com a aba aberta; beep sintetizado, destrava no 1º clique) + botão **sino** pra mutar/ligar (lembra a escolha). `commit fee18e6`
 - **17:29** — Atendimentos: abas Abertos/Pendentes/Fechados voltaram FIXAS, mas agora funcionam como **toggle** do filtro (clica = inclui/remove aquele status; desmarcado some da lista). `commit 72d0f3d`
 - **17:20** — Atendimentos: **animação de hover** no card + **cor do tempo** do último contato (agora=verde claro, minutos=verde, horas=amarelo, dias=vermelho) + **notificação do navegador** (estilo WhatsApp Web) ao chegar mensagem com a aba fora de foco. `commit f8066ec`
 - **17:09** — Atendimentos: **painel de filtros completo** — status vira checkbox multi; novas seções Período, Conexões, Filas, Usuário, Etiqueta + toggles (mostrar todos, incluir fechados, somente não lidos, inverter ordem); badge de filtros ativos. `commit 0fdb254`

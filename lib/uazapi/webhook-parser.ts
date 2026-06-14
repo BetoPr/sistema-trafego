@@ -58,6 +58,22 @@ export interface ParsedMessage {
     caption?: string;
     durationSeconds?: number;
   } | null;
+  /**
+   * Referral de anúncio (Click-to-WhatsApp).
+   * Vem em contextInfo.externalAdReply quando o lead clicou num anúncio
+   * do Instagram/Facebook e abriu a conversa.
+   */
+  adReferral: {
+    sourceType?: string; // "ad", "post" etc.
+    sourceUrl?: string;
+    sourceId?: string;
+    title?: string;
+    body?: string;
+    mediaType?: string;
+    mediaUrl?: string;
+    thumbnailUrl?: string;
+    ctwaClid?: string;
+  } | null;
   raw: Record<string, unknown>;
 }
 
@@ -206,6 +222,40 @@ export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
     conteudo = pickString(msg, "text", "body", "content", "conversation", "extendedTextMessage");
   }
 
+  // Referral de anúncio (Click-to-WhatsApp). UAZAPI manda em vários nomes
+  // dependendo da versão; tentamos os principais.
+  const ctxRaw =
+    (msg?.contextInfo as Record<string, unknown> | undefined) ||
+    (msg?.context as Record<string, unknown> | undefined) ||
+    undefined;
+  const adRaw =
+    (ctxRaw?.externalAdReply as Record<string, unknown> | undefined) ||
+    (msg?.externalAdReply as Record<string, unknown> | undefined) ||
+    (msg?.ctwaContext as Record<string, unknown> | undefined) ||
+    (msg?.advertisingContext as Record<string, unknown> | undefined) ||
+    (msg?.ad as Record<string, unknown> | undefined) ||
+    undefined;
+
+  let adReferral: ParsedMessage["adReferral"] = null;
+  if (adRaw) {
+    adReferral = {
+      sourceType: pickString(adRaw, "sourceType", "source_type") || undefined,
+      sourceUrl: pickString(adRaw, "sourceUrl", "source_url", "url") || undefined,
+      sourceId: pickString(adRaw, "sourceId", "source_id", "ad_id") || undefined,
+      title: pickString(adRaw, "title", "headline") || undefined,
+      body: pickString(adRaw, "body", "description", "text") || undefined,
+      mediaType: pickString(adRaw, "mediaType", "media_type") || undefined,
+      mediaUrl: pickString(adRaw, "mediaUrl", "media_url") || undefined,
+      thumbnailUrl: pickString(adRaw, "thumbnailUrl", "thumbnail_url", "thumbnail") || undefined,
+      ctwaClid:
+        pickString(adRaw, "ctwaClid", "ctwa_clid", "clickId") ||
+        pickString(msg, "ctwaClid", "ctwa_clid") ||
+        undefined,
+    };
+    // Se todos os campos estiverem vazios, descarta.
+    if (!Object.values(adReferral).some((v) => v)) adReferral = null;
+  }
+
   return {
     waMessageId,
     waChatId,
@@ -216,6 +266,7 @@ export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
     tipo,
     conteudo,
     midia,
+    adReferral,
     raw: { message: msg, chat },
   };
 }

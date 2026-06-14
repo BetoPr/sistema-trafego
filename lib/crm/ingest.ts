@@ -127,7 +127,11 @@ export async function ingestMensagem(
       midia_filename: m.midia?.filename ?? null,
       wa_message_id: m.waMessageId,
       status: "entregue",
-      metadata: { source: "uazapi", raw_keys: Object.keys(m.raw) },
+      metadata: {
+        source: "uazapi",
+        raw_keys: Object.keys(m.raw),
+        ...(m.adReferral ? { ad_referral: m.adReferral } : {}),
+      },
     })
     .select("id")
     .single();

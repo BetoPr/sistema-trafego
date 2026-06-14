@@ -38,6 +38,18 @@ const replyBtnStyle: React.CSSProperties = {
   justifyContent: "center",
 };
 
+interface AdReferral {
+  sourceType?: string;
+  sourceUrl?: string;
+  sourceId?: string;
+  title?: string;
+  body?: string;
+  mediaType?: string;
+  mediaUrl?: string;
+  thumbnailUrl?: string;
+  ctwaClid?: string;
+}
+
 interface Mensagem {
   id: string;
   autor: "cliente" | "atendente" | "sistema" | "bot";
@@ -50,7 +62,54 @@ interface Mensagem {
   created_at: string;
   usuario_id: string | null;
   wa_message_id?: string | null;
-  metadata?: { reply_to?: string } | null;
+  metadata?: { reply_to?: string; ad_referral?: AdReferral } | null;
+}
+
+/** Detecta plataforma de origem do anúncio pra mostrar ícone + label certos. */
+function origemAnuncio(ad: AdReferral): { icone: string; label: string; cor: string } {
+  const url = (ad.sourceUrl || "").toLowerCase();
+  if (url.includes("instagram.com") || ad.sourceType?.toLowerCase().includes("instagram")) {
+    return { icone: "ti-brand-instagram", label: "Instagram", cor: "#E1306C" };
+  }
+  if (url.includes("facebook.com") || url.includes("fb.com") || ad.sourceType?.toLowerCase().includes("facebook")) {
+    return { icone: "ti-brand-facebook", label: "Facebook", cor: "#1877F2" };
+  }
+  return { icone: "ti-ad", label: "Anúncio", cor: "#9B7DBF" };
+}
+
+function CardAnuncio({ ad }: { ad: AdReferral }) {
+  const origem = origemAnuncio(ad);
+  return (
+    <a
+      href={ad.sourceUrl || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: "block",
+        background: "var(--mk-surface)",
+        border: "0.5px solid var(--mk-border)",
+        borderRadius: 10,
+        overflow: "hidden",
+        marginBottom: 4,
+        textDecoration: "none",
+        color: "var(--mk-text)",
+        maxWidth: 340,
+      }}
+      title={ad.sourceUrl || ""}
+    >
+      {ad.thumbnailUrl && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={ad.thumbnailUrl} alt="" style={{ width: "100%", maxHeight: 180, objectFit: "cover", display: "block" }} />
+      )}
+      <div style={{ padding: "8px 10px" }}>
+        {ad.title && <div style={{ fontWeight: 600, fontSize: 12.5, lineHeight: 1.3, marginBottom: 3 }}>{ad.title}</div>}
+        {ad.body && <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", lineHeight: 1.35, marginBottom: 4 }}>{ad.body}</div>}
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: origem.cor, fontWeight: 500 }}>
+          <i className={`ti ${origem.icone}`} /> Veio de um anúncio do {origem.label}
+        </div>
+      </div>
+    </a>
+  );
 }
 
 /** Preview curto de uma mensagem (pra citação). */
@@ -327,6 +386,7 @@ export function ChatView(props: Props) {
                 }}
                 className="msg-bubble"
               >
+                {m.metadata?.ad_referral && <CardAnuncio ad={m.metadata.ad_referral} />}
                 {m.metadata?.reply_to && (() => {
                   const q = acharCitada(m.metadata.reply_to);
                   return (

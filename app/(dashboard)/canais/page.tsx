@@ -13,6 +13,7 @@ import { CanaisAutoRefresh } from "./_auto-refresh";
 import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
 import { SubmitIconBtn } from "./_submit-btn";
 import { TransferirCanalBtn } from "./_transferir";
+import { BackfillMidiaBtn } from "./_backfill-midia";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; qr?: string }>;
@@ -49,11 +50,14 @@ export default async function CanaisPage({ searchParams }: PageProps) {
           <h1 className="mk-page-title">Canais</h1>
           <p className="mk-page-sub">Sessões WhatsApp. Conecte uma conta por canal.</p>
         </div>
-        <NovoCanalBalao
-          filas={(filas || []).map((f) => ({ id: f.id, nome: f.nome }))}
-          usuarios={(usuarios || []).map((u) => ({ id: u.id, nome: u.nome }))}
-          disabled={semServidor}
-        />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+          <NovoCanalBalao
+            filas={(filas || []).map((f) => ({ id: f.id, nome: f.nome }))}
+            usuarios={(usuarios || []).map((u) => ({ id: u.id, nome: u.nome }))}
+            disabled={semServidor}
+          />
+          <BackfillMidiaBtn />
+        </div>
       </div>
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
