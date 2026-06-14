@@ -127,9 +127,64 @@ export function InputBar(p: Props) {
     return "document";
   }
 
-  function addAnexos(files: FileList | File[]) {
+  /**
+   * Converte AVIF/HEIC/HEIF → JPEG via canvas (WhatsApp não aceita esses).
+   * Browser decodifica AVIF nativamente em <img>. HEIC só roda em Safari/iOS;
+   * fora disso retornamos null e o usuário vê aviso.
+   */
+  async function converterImagemSeNecessario(f: File): Promise<File | null> {
+    const ext = f.name.toLowerCase().split(".").pop() || "";
+    const mime = (f.type || "").toLowerCase();
+    const incompativel =
+      ["avif", "heic", "heif"].includes(ext) ||
+      mime.includes("avif") ||
+      mime.includes("heic") ||
+      mime.includes("heif");
+    if (!incompativel) return f;
+
+    try {
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      const ok: boolean = await new Promise((res) => {
+        img.onload = () => res(true);
+        img.onerror = () => res(false);
+        img.src = url;
+      });
+      if (!ok || !img.naturalWidth) {
+        URL.revokeObjectURL(url);
+        return null;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { URL.revokeObjectURL(url); return null; }
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.92));
+      if (!blob) return null;
+      const nome = f.name.replace(/\.(avif|heic|heif)$/i, ".jpg");
+      return new File([blob], nome, { type: "image/jpeg" });
+    } catch {
+      return null;
+    }
+  }
+
+  async function addAnexos(files: FileList | File[]) {
     const novos: Anexo[] = [];
-    for (const f of Array.from(files)) {
+    for (const original of Array.from(files)) {
+      let f = original;
+      const tipoOriginal = detectarTipo(f);
+      // só tenta converter quando é imagem
+      if (tipoOriginal === "image") {
+        const convertido = await converterImagemSeNecessario(f);
+        if (!convertido) {
+          alert(`"${f.name}" tem formato (AVIF/HEIC) que o WhatsApp não aceita e não consegui converter. Salve como JPG/PNG e tente de novo.`);
+          continue;
+        }
+        f = convertido;
+      }
       if (f.size > 30 * 1024 * 1024) {
         alert(`"${f.name}" passa de 30MB — não dá pra enviar pelo WhatsApp.`);
         continue;
@@ -167,7 +222,7 @@ export function InputBar(p: Props) {
   }
 
   function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files?.length) addAnexos(e.target.files);
+    if (e.target.files?.length) void addAnexos(e.target.files);
     e.target.value = "";
   }
 
@@ -175,7 +230,7 @@ export function InputBar(p: Props) {
     const files = Array.from(e.clipboardData?.files || []);
     if (files.length) {
       e.preventDefault();
-      addAnexos(files);
+      void addAnexos(files);
     }
   }
 
@@ -369,7 +424,7 @@ export function InputBar(p: Props) {
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        if (e.dataTransfer?.files?.length) addAnexos(e.dataTransfer.files);
+        if (e.dataTransfer?.files?.length) void addAnexos(e.dataTransfer.files);
       }}
     >
       {/* Fila de anexos (preview antes de enviar) */}
