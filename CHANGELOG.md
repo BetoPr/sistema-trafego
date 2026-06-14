@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-14
 
+- **14:50** — Chat: **fix 413 Content Too Large** ao enviar foto grande (PNG/JPG). Cliente agora redimensiona imagens pro lado maior ≤ 2000px e re-comprime JPEG até ≤ 3MB (qualidade adaptativa 0.88 → 0.75 → 0.6). Antes só convertia AVIF/HEIC; agora aplica a TODA imagem. Vercel serverless tem limite de 4.5MB no body — base64 cresce ~33% → PNGs originais de 4MB+ estouravam. `commit 0b6e8cf`
+
 - **14:25** — Chat: **AVIF/HEIC convertem automático pra JPG** ao anexar (WhatsApp rejeita esses formatos). Pipeline: pick/drop/paste → detecta formato → desenha no canvas → toBlob JPEG 92% → renomeia `.jpg` → entra na fila normalmente. HEIC fora de Safari avisa "salve como JPG e tente de novo". `commit 983056a`
 
 - **12:35** — Dashboard: **prompt "Copiar prompt" reescrito** — IA agora retorna um **relatório HTML standalone** (dark theme, KPIs, gráficos em CSS puro, badges, scripts prontos, checklist priorizado) em vez de só texto corrido. Cola na IA, anexa o PDF, recebe HTML completo, salva como `relatorio.html` e abre no navegador. `commit 03c3eea`

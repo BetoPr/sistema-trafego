@@ -128,11 +128,14 @@ export function InputBar(p: Props) {
   }
 
   /**
-   * Converte AVIF/HEIC/HEIF → JPEG via canvas (WhatsApp não aceita esses).
-   * Browser decodifica AVIF nativamente em <img>. HEIC só roda em Safari/iOS;
-   * fora disso retornamos null e o usuário vê aviso.
+   * Prepara imagem pra envio:
+   *  - Converte AVIF/HEIC → JPG (WhatsApp não aceita)
+   *  - Redimensiona pro lado maior ≤ 2000px
+   *  - Re-comprime pra ficar abaixo de ~3MB (Vercel serverless = 4.5MB body, base64 cresce ~33%)
+   *
+   * HEIC só decodifica em Safari/iOS. Fora disso retorna null e o usuário vê aviso.
    */
-  async function converterImagemSeNecessario(f: File): Promise<File | null> {
+  async function prepararImagem(f: File): Promise<File | null> {
     const ext = f.name.toLowerCase().split(".").pop() || "";
     const mime = (f.type || "").toLowerCase();
     const incompativel =
@@ -140,7 +143,16 @@ export function InputBar(p: Props) {
       mime.includes("avif") ||
       mime.includes("heic") ||
       mime.includes("heif");
-    if (!incompativel) return f;
+
+    const LIMITE_BYTES = 3 * 1024 * 1024;
+    const MAX_DIM = 2000;
+
+    // Já tá pequena e em formato compatível → passa direto
+    if (!incompativel && f.size <= LIMITE_BYTES) {
+      // Mesmo assim, se for muito grande dimensionalmente, redimensiona
+      // (pular check de dim agora — só se tamanho passou)
+      return f;
+    }
 
     try {
       const url = URL.createObjectURL(f);
@@ -154,18 +166,34 @@ export function InputBar(p: Props) {
         URL.revokeObjectURL(url);
         return null;
       }
+
+      // Calcula novo tamanho preservando proporção
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      const maior = Math.max(w, h);
+      if (maior > MAX_DIM) {
+        const escala = MAX_DIM / maior;
+        w = Math.round(w * escala);
+        h = Math.round(h * escala);
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d");
       if (!ctx) { URL.revokeObjectURL(url); return null; }
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
 
-      const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.92));
+      // Tenta qualidade 0.88; se ainda passar do limite, baixa pra 0.75 e depois 0.6
+      let blob: Blob | null = null;
+      for (const q of [0.88, 0.75, 0.6]) {
+        blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", q));
+        if (blob && blob.size <= LIMITE_BYTES) break;
+      }
       if (!blob) return null;
-      const nome = f.name.replace(/\.(avif|heic|heif)$/i, ".jpg");
-      return new File([blob], nome, { type: "image/jpeg" });
+      const nome = f.name.replace(/\.(avif|heic|heif|png|webp|jpeg|jpg)$/i, ".jpg");
+      return new File([blob], nome.endsWith(".jpg") ? nome : `${nome}.jpg`, { type: "image/jpeg" });
     } catch {
       return null;
     }
@@ -176,14 +204,14 @@ export function InputBar(p: Props) {
     for (const original of Array.from(files)) {
       let f = original;
       const tipoOriginal = detectarTipo(f);
-      // só tenta converter quando é imagem
+      // Imagem: converte formato incompatível + redimensiona/recomprime se grande
       if (tipoOriginal === "image") {
-        const convertido = await converterImagemSeNecessario(f);
-        if (!convertido) {
-          alert(`"${f.name}" tem formato (AVIF/HEIC) que o WhatsApp não aceita e não consegui converter. Salve como JPG/PNG e tente de novo.`);
+        const preparada = await prepararImagem(f);
+        if (!preparada) {
+          alert(`"${f.name}" não consegui preparar pra enviar. Pode ser HEIC fora do Safari ou arquivo corrompido. Salve como JPG/PNG e tente de novo.`);
           continue;
         }
-        f = convertido;
+        f = preparada;
       }
       if (f.size > 30 * 1024 * 1024) {
         alert(`"${f.name}" passa de 30MB — não dá pra enviar pelo WhatsApp.`);
