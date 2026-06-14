@@ -213,6 +213,7 @@ interface Props {
   canalConectado: boolean;
   contatoNome: string;
   contatoNomeCurto: string;
+  contatoFotoUrl?: string | null;
   contatoTelefone?: string | null;
   filaAtualNome?: string | null;
   usuarioAtualNome?: string | null;
@@ -400,6 +401,7 @@ export function ChatView(props: Props) {
         canalConectado={props.canalConectado}
         contatoNome={props.contatoNome}
         contatoIniciais={props.contatoNomeCurto}
+        contatoFotoUrl={props.contatoFotoUrl}
         contatoTelefone={props.contatoTelefone}
         filaAtualNome={props.filaAtualNome}
         usuarioAtualNome={props.usuarioAtualNome}

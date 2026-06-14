@@ -26,6 +26,7 @@ interface Props {
   canalConectado: boolean;
   contatoNome: string;
   contatoIniciais: string;
+  contatoFotoUrl?: string | null;
   contatoTelefone?: string | null;
   ticketNumero: number;
   filaAtualNome?: string | null;
@@ -117,9 +118,20 @@ export function ChatHeader(props: Props) {
             <i className="ti ti-arrow-left" />
           </button>
         )}
-        <div title={`${props.contatoNome} · #${props.ticketNumero}`} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
-          {props.contatoIniciais}
-        </div>
+        {props.contatoFotoUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={props.contatoFotoUrl}
+            alt={props.contatoNome}
+            title={`${props.contatoNome} · #${props.ticketNumero}`}
+            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "0.5px solid var(--mk-border)" }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div title={`${props.contatoNome} · #${props.ticketNumero}`} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+            {props.contatoIniciais}
+          </div>
+        )}
         {/* Info do contato — some quando header aperta (tela pequena + painel aberto), sobram só os ícones */}
         <div className="chat-header-info" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{props.contatoNome}</div>

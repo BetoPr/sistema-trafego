@@ -9,6 +9,7 @@ interface Contato {
   id: string;
   nome: string;
   whatsapp: string | null;
+  foto_url?: string | null;
   ia_habilitada: boolean;
   email?: string | null;
   empresa?: string | null;
@@ -353,9 +354,19 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             {/* CARD info do cliente com separadores */}
             <Card>
               <div style={{ textAlign: "center", padding: "14px 12px 8px" }}>
-                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(155,125,191,0.25)", color: "#9B7DBF", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 22 }}>
-                  {contato.nome.slice(0, 2).toUpperCase()}
-                </div>
+                {contato.foto_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={contato.foto_url}
+                    alt={contato.nome}
+                    style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "0.5px solid var(--mk-border)" }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(155,125,191,0.25)", color: "#9B7DBF", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 22 }}>
+                    {contato.nome.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
               </div>
               <InfoLinha icon="ti-user" label="Nome" value={contato.nome} copy={contato.nome} />
               <InfoLinha icon="ti-phone" label="Telefone" value={formatarTel(contato.whatsapp)} mono copy={contato.whatsapp} />

@@ -195,6 +195,7 @@ export function AtendimentosShell(p: Props) {
             canalConectado={sel.ticket.canal?.status === "connected"}
             contatoNome={sel.ticket.contato.nome}
             contatoNomeCurto={(sel.ticket.contato.nome.slice(0, 2) || "?").toUpperCase()}
+            contatoFotoUrl={(sel.ticket.contato as { foto_url?: string | null }).foto_url ?? null}
             contatoTelefone={sel.ticket.contato.whatsapp}
             filaAtualNome={filaNome}
             usuarioAtualNome={userNome}
