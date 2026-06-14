@@ -20,24 +20,52 @@ const PRESETS = [
 ] as const;
 
 // Prompt fixo que acompanha o PDF "Baixar análise". Copiar → colar na IA → anexar o PDF.
+// IA devolve um HTML standalone (CSS inline, dark theme) que o Roberto salva como
+// relatorio.html e abre no navegador — visual + analítico no mesmo arquivo.
 const PROMPT_ANALISE = `Você é um especialista em atendimento ao cliente e vendas por WhatsApp.
 
-Em anexo está um PDF com o HISTÓRICO COMPLETO das conversas (atendente ↔ cliente) dos atendimentos fechados de um período, incluindo, por ticket: métricas de tempo (1ª resposta e duração), sentimento e valor fechado.
+Em anexo está um PDF com o HISTÓRICO COMPLETO das conversas (atendente ↔ cliente) dos atendimentos fechados de um período, incluindo por ticket: métricas de tempo (1ª resposta e duração), sentimento e valor fechado.
 
-Sua tarefa: gerar um RELATÓRIO DE MELHORIA DO ATENDIMENTO, em português, com esta estrutura:
+## SUA TAREFA
 
-1. VISÃO GERAL — nº de atendimentos, satisfação, faturamento e tempos médios; o que esses números indicam.
-2. PONTOS FORTES — o que foi bem feito (cite o nº do ticket em cada exemplo).
-3. PONTOS A MELHORAR — demoras, respostas frias/secas, dúvidas mal respondidas e oportunidades de venda perdidas (cite o nº do ticket).
-4. PADRÕES — objeções recorrentes, dúvidas frequentes e gatilhos que travaram a venda.
-5. SCRIPTS SUGERIDOS — modelos de resposta prontos para os cenários mais comuns que você identificou.
-6. AÇÕES PRÁTICAS — lista priorizada do que mudar já para subir conversão, agilidade e satisfação.
+Gere um RELATÓRIO VISUAL EM HTML, em português, dentro de UM ÚNICO bloco de código \`\`\`html ... \`\`\`. Eu vou salvar como \`relatorio.html\` e abrir no navegador. Por isso o HTML precisa ser **completamente standalone** (CSS inline ou no <style>; SEM Tailwind, SEM CDN, SEM JS externo). Pode usar emojis e SVG inline pra ícones.
 
-Regras:
-- Baseie-se SOMENTE no que está no PDF. Não invente dados nem clientes.
-- Cite o nº do ticket sempre que der um exemplo.
-- Seja direto e prático; o foco é vender mais, responder mais rápido e atender com mais cortesia.
-- Se um atendimento tiver pouco contexto, ignore-o em vez de especular.`;
+## ESTRUTURA OBRIGATÓRIA DO HTML
+
+1. **Header** — título do relatório, período coberto, data de geração.
+2. **Visão geral (cards/KPIs)** — nº atendimentos, satisfação %, faturamento R$, tempo médio 1ª resposta, duração média. Cada um num "card" colorido.
+3. **Gráficos** — pelo menos 2, feitos com **divs CSS puro** (barras horizontais ou verticais, donut com conic-gradient). Sugestões: distribuição de sentimento (positivo/neutro/negativo), faturamento por dia ou por ticket, tempo de resposta por ticket.
+4. **Pontos fortes** — lista com badges verdes. Cite o nº do ticket em cada exemplo.
+5. **Pontos a melhorar** — lista com badges vermelhos/amarelos. Cite o nº do ticket. Foque em: demoras, respostas frias, dúvidas mal respondidas, oportunidades de venda perdidas.
+6. **Padrões identificados** — tabela ou cards com objeções recorrentes, dúvidas frequentes e gatilhos que travaram a venda.
+7. **Scripts sugeridos** — blocos de texto prontos pra copiar (use \`<pre>\` com botão visual de "copiar"; o botão pode ser só decorativo já que não vou ligar JS).
+8. **Ações práticas priorizadas** — checklist numerada (1 = mais urgente).
+
+## REGRAS DE ESTILO
+
+- Tema **escuro** elegante: fundo \`#0f0f12\` ou similar, texto claro \`#FFFDF8\`, accent roxo \`#9B7DBF\`.
+- Cards com \`border-radius: 12px\`, padding generoso, \`border: 1px solid #2a2a30\`.
+- Cores semânticas: verde \`#10b981\` (positivo), amarelo \`#f59e0b\` (atenção), vermelho \`#C97064\` (problema), azul \`#5B8BA6\` (info).
+- Tipografia: \`system-ui, -apple-system, sans-serif\`. Títulos com \`font-weight: 600-700\`.
+- Layout responsivo com \`display: grid\` ou \`flex\`. Container \`max-width: 1100px\` centrado.
+- Use moeda BR (R$ 1.234,56) e datas pt-BR.
+
+## REGRAS DE CONTEÚDO
+
+- Baseie-se SOMENTE no PDF. NÃO invente números, clientes ou tickets.
+- Sempre cite o nº do ticket ao dar um exemplo (ex: "Ticket #42 — cliente perguntou X às 14h e só foi respondido às 16h").
+- Seja direto e prático. Foco: vender mais, responder mais rápido, atender com mais cortesia.
+- Se um atendimento tiver pouco contexto, ignore. Não especule.
+- Antes do bloco HTML pode colocar uma frase curta tipo "Pronto, segue:". Depois do bloco, pode listar 2-3 destaques do relatório em texto puro.
+
+## OUTPUT FINAL
+
+\`\`\`html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>...
+</html>
+\`\`\``;
 
 /**
  * Dashboard de Atendimentos SPA: filtros são estado local + fetch — sem

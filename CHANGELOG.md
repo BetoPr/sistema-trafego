@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-14
 
+- **12:35** — Dashboard: **prompt "Copiar prompt" reescrito** — IA agora retorna um **relatório HTML standalone** (dark theme, KPIs, gráficos em CSS puro, badges, scripts prontos, checklist priorizado) em vez de só texto corrido. Cola na IA, anexa o PDF, recebe HTML completo, salva como `relatorio.html` e abre no navegador. `commit 03c3eea`
+
 - **12:10** — Mídia: **auto-retry** + **botão re-baixar por mensagem**. (1) Webhook tenta 1x; se falhar, cron `midia-retry` re-tenta em +5min e +30min (até 3 tentativas auto). (2) Balão da mensagem mostra "X/3 tentativas" + botão **Tentar agora** — força tentativa imediata sem limite. (3) Após 3 falhas vira **"indisponível"** mas botão **Forçar tentativa** continua. Lib unificada `lib/crm/midia-download.ts`. `commit 4d996b2`
 
 - **11:35** — Atendimentos: **card do anúncio** (Instagram/Facebook Ads) acima da 1ª mensagem do lead — capa, título, copy e badge com a plataforma de origem (igual o card que aparece no WhatsApp do cliente). Webhook agora captura `contextInfo.externalAdReply` da UAZAPI. `commit eb3dcad`
