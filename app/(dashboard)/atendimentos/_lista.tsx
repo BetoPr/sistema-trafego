@@ -418,16 +418,15 @@ export function ListaAtendimentos(p: Props) {
                           display: "inline-flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          minWidth: 18,
-                          height: 18,
-                          padding: "0 6px",
+                          minWidth: 14,
+                          height: 14,
+                          padding: "0 4px",
                           borderRadius: 999,
                           background: "#10b981",
-                          color: "#FFFDF8",
-                          fontSize: 10.5,
-                          fontWeight: 700,
+                          color: "#FFFFFF",
+                          fontSize: 9,
+                          fontWeight: 600,
                           lineHeight: 1,
-                          boxShadow: "0 0 0 2px rgba(16,185,129,0.18)",
                         }}
                       >
                         {t.nao_lidas! > 99 ? "99+" : t.nao_lidas}
