@@ -39,6 +39,8 @@ interface Props {
   canais: Canal[];
   filas?: Array<{ id: string; nome: string; cor?: string | null }>;
   usuarios?: Array<{ id: string; nome: string }>;
+  /** Todas as etiquetas ativas da agência — usado pra montar o filtro completo. */
+  todasEtiquetas?: Array<{ id: string; nome: string; cor: string; categoria: string }>;
   ticketSel: string | undefined;
   initialTab?: "aberto" | "pendente" | "fechado";
   onSelectTicket: (id: string) => void;
@@ -156,8 +158,17 @@ export function ListaAtendimentos(p: Props) {
   const temEtiqueta = (t: TicketLista, etqId: string) =>
     (t.contato?.contato_etiquetas || []).some((ce) => ce?.etiqueta?.id === etqId);
 
-  // Etiquetas presentes nos tickets atuais (pra montar o filtro)
+  // Etiquetas disponíveis pro filtro:
+  // - Se a página passou `todasEtiquetas`, usa o catálogo completo da agência
+  //   (mesmo as ainda não aplicadas, pra Roberto poder filtrar antecipado)
+  // - Senão, infere das tags presentes nos tickets atuais
   const etiquetasDisponiveis = useMemo(() => {
+    if (p.todasEtiquetas && p.todasEtiquetas.length > 0) {
+      return p.todasEtiquetas
+        .filter((e) => (e.categoria || "etiqueta") === "etiqueta")
+        .map((e) => ({ id: e.id, nome: e.nome, cor: e.cor }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+    }
     const m = new Map<string, { id: string; nome: string; cor: string }>();
     for (const t of p.tickets) {
       for (const ce of t.contato?.contato_etiquetas || []) {
@@ -166,7 +177,7 @@ export function ListaAtendimentos(p: Props) {
       }
     }
     return Array.from(m.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [p.tickets]);
+  }, [p.tickets, p.todasEtiquetas]);
 
   // Aplica todos os filtros MENOS o status (pra contar por status no painel)
   const passaNaoStatus = (t: TicketLista, q: string) => {
