@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Balao } from "@/components/ui/Balao";
 import { alternarAtivoAcesso, deletarAcesso, restaurarAcesso } from "./_actions";
+import { CobrancaIconBtn } from "./_abrir-cobrancas";
 
 type Role = "atendente" | "admin" | "super_admin";
 
@@ -170,6 +171,7 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
                     ) : (
                       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                         <Link href={`/super-admin/acessos?editar=${u.id}`} className="ghost-btn acesso-icon-btn" style={iconBtn}><i className="ti ti-pencil" /></Link>
+                        <CobrancaIconBtn agenciaId={u.agencia_id} />
                         <form action={alternarAtivoAcesso} style={{ display: "inline" }}>
                           <input type="hidden" name="id" value={u.id} />
                           <input type="hidden" name="ativo" value={String(u.ativo)} />

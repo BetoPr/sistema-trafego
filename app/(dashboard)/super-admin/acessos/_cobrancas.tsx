@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Balao } from "@/components/ui/Balao";
 import {
   cobrarAgencia,
@@ -41,6 +41,14 @@ interface Props {
   canais: CanalOpcao[];
 }
 
+/**
+ * Controller global de abrir balão. Componente externo aciona via window.dispatchEvent.
+ * 'all' = lista completa; agenciaId = filtra só essa agência.
+ */
+export function abrirBalaoCobrancas(filter: "all" | { agenciaId: string }) {
+  window.dispatchEvent(new CustomEvent("cobrancas:open", { detail: filter }));
+}
+
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function diasParaVencer(venc: string | null) {
@@ -69,26 +77,54 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
   const [confirmPago, setConfirmPago] = useState<AgenciaCobranca | null>(null);
   const [configAberto, setConfigAberto] = useState(false);
   const [meses, setMeses] = useState(1);
+  const [aberto, setAberto] = useState(false);
+  const [filtroAgenciaId, setFiltroAgenciaId] = useState<string | null>(null);
 
   const canalAtivo = canais.find((c) => c.id === config.canal_id);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as "all" | { agenciaId: string };
+      setFiltroAgenciaId(detail === "all" ? null : detail.agenciaId);
+      setAberto(true);
+    };
+    window.addEventListener("cobrancas:open", handler as EventListener);
+    return () => window.removeEventListener("cobrancas:open", handler as EventListener);
+  }, []);
+
+  const agenciasFiltradas = useMemo(() => {
+    if (!filtroAgenciaId) return agencias;
+    return agencias.filter((a) => a.id === filtroAgenciaId);
+  }, [agencias, filtroAgenciaId]);
+
+  const tituloBalao = filtroAgenciaId
+    ? `Cobrança — ${agencias.find((a) => a.id === filtroAgenciaId)?.nome || ""}`
+    : "Cobranças das agências";
+
   return (
-    <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
+    <Balao
+      open={aberto}
+      onClose={() => { setAberto(false); setFiltroAgenciaId(null); }}
+      titulo={tituloBalao}
+      icone="ti-coin"
+      largura={980}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <div>
-          <h3 className="card-title" style={{ marginBottom: 4 }}>
-            <i className="ti ti-coin" style={{ color: "#10b981", marginRight: 6 }} />
-            Cobranças das agências
-          </h3>
-          <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>
-            Controle de mensalidades. Cobrança automática 1 dia antes do vencimento via WhatsApp.
-            {canalAtivo ? (
-              <> Canal de envio: <strong style={{ color: "#10b981" }}>{canalAtivo.nome}</strong> ({canalAtivo.numero_conectado || "—"}).</>
-            ) : (
-              <> <strong style={{ color: "#C97064" }}>⚠ Canal de envio não configurado.</strong></>
-            )}
-          </p>
-        </div>
+        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", margin: 0, flex: 1 }}>
+          Controle de mensalidades. Cobrança automática 1 dia antes do vencimento via WhatsApp.
+          {canalAtivo ? (
+            <> Canal: <strong style={{ color: "#10b981" }}>{canalAtivo.nome}</strong> ({canalAtivo.numero_conectado || "—"}).</>
+          ) : (
+            <> <strong style={{ color: "#C97064" }}>⚠ Canal de envio não configurado.</strong></>
+          )}
+          {filtroAgenciaId && (
+            <> · <button
+              type="button"
+              onClick={() => setFiltroAgenciaId(null)}
+              style={{ background: "transparent", border: 0, color: "#10b981", textDecoration: "underline", cursor: "pointer", fontSize: 11.5, padding: 0 }}
+            >ver todas</button></>
+          )}
+        </p>
         <button type="button" onClick={() => setConfigAberto(true)} className="ghost-btn" style={{ fontSize: 12 }}>
           <i className="ti ti-settings" /> Config de envio
         </button>
@@ -108,7 +144,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
             </tr>
           </thead>
           <tbody>
-            {agencias.map((a) => {
+            {agenciasFiltradas.map((a) => {
               const st = statusBadge(a);
               return (
                 <tr key={a.id} className="acesso-row" style={{ borderTop: "0.5px solid var(--mk-border)" }}>
@@ -180,9 +216,9 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
             })}
           </tbody>
         </table>
-        {agencias.length === 0 && (
+        {agenciasFiltradas.length === 0 && (
           <div style={{ padding: "32px 14px", textAlign: "center", color: "var(--mk-text-muted)", fontSize: 13 }}>
-            Sem agências cadastradas.
+            {filtroAgenciaId ? "Agência não encontrada." : "Sem agências cadastradas."}
           </div>
         )}
       </div>
@@ -352,7 +388,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
           </div>
         </form>
       </Balao>
-    </div>
+    </Balao>
   );
 }
 

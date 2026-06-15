@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { criarAcesso, atualizarAcesso } from "./_actions";
 import { TabelaAcessos } from "./_tabela";
 import { CobrancasBloco, type AgenciaCobranca, type CanalOpcao } from "./_cobrancas";
+import { AbrirCobrancasBtn } from "./_abrir-cobrancas";
 
 // Apenas funções que existem no CRM hoje.
 const PERMS_LABEL: Record<string, string> = {
@@ -104,7 +105,12 @@ export default async function AcessosPage({ searchParams }: PageProps) {
           <h1 className="mk-page-title">Acessos</h1>
           <p className="mk-page-sub">Gerencia usuários de TODAS as agências. Crie novos acessos, edite permissões, ative/desative.</p>
         </div>
-        {!mostrarForm && <Link href="/super-admin/acessos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Novo acesso</Link>}
+        {!mostrarForm && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <AbrirCobrancasBtn pendentes={agenciasCobranca.filter((a) => a.acesso_bloqueado || (a.vencimento_em && new Date(a.vencimento_em + "T00:00:00") < new Date(Date.now() + 3 * 86400000))).length} />
+            <Link href="/super-admin/acessos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Novo acesso</Link>
+          </div>
+        )}
       </div>
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
