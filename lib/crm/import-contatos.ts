@@ -24,6 +24,7 @@ export interface ImportResumo {
   etiquetas_existentes: number;
   etiquetas_aplicadas: number;
   etiquetas_puladas: number;
+  etiquetas_duplicadas_mescladas: number;
   pulados_grupos: number;
   duracao_ms: number;
   etiquetas_criadas_nomes: string[];
@@ -46,6 +47,7 @@ export async function importarContatosUazapi(params: {
     etiquetas_existentes: 0,
     etiquetas_aplicadas: 0,
     etiquetas_puladas: 0,
+    etiquetas_duplicadas_mescladas: 0,
     pulados_grupos: 0,
     duracao_ms: 0,
     etiquetas_criadas_nomes: [],
@@ -53,6 +55,43 @@ export async function importarContatosUazapi(params: {
   };
 
   const pularNativas = params.pularLabelsNativas !== false;
+
+  // 0. Dedup etiquetas existentes na agência (mesmo nome case-insensitive)
+  // Mantém a mais antiga, migra links de contato_etiquetas, apaga duplicadas.
+  try {
+    const { data: todas } = await params.sb
+      .from("etiquetas")
+      .select("id, nome, created_at")
+      .eq("agencia_id", params.agenciaId)
+      .order("created_at", { ascending: true });
+    const porChave = new Map<string, { canonId: string; dups: string[] }>();
+    for (const e of (todas || []) as Array<{ id: string; nome: string; created_at: string }>) {
+      const k = e.nome.trim().toLowerCase();
+      const cur = porChave.get(k);
+      if (!cur) porChave.set(k, { canonId: e.id, dups: [] });
+      else cur.dups.push(e.id);
+    }
+    for (const { canonId, dups } of porChave.values()) {
+      if (!dups.length) continue;
+      // Migra contato_etiquetas dos dups → canon (ignora duplicate via onConflict)
+      const { data: links } = await params.sb
+        .from("contato_etiquetas")
+        .select("contato_id")
+        .in("etiqueta_id", dups);
+      const novosLinks = (links || []).map((l) => ({ contato_id: (l as { contato_id: string }).contato_id, etiqueta_id: canonId }));
+      if (novosLinks.length) {
+        await params.sb
+          .from("contato_etiquetas")
+          .upsert(novosLinks, { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true });
+      }
+      // Remove links das duplicadas + apaga as duplicadas
+      await params.sb.from("contato_etiquetas").delete().in("etiqueta_id", dups);
+      await params.sb.from("etiquetas").delete().in("id", dups);
+      resumo.etiquetas_duplicadas_mescladas += dups.length;
+    }
+  } catch (e) {
+    resumo.erros.push(`dedup: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   // 1. Labels da UAZAPI
   let labelsUazapi: UazapiLabel[] = [];
@@ -91,7 +130,7 @@ export async function importarContatosUazapi(params: {
         nome: lbl.name,
         cor: lbl.colorHex || "#9B7DBF",
         ativo: true,
-        categoria: "wa_import",
+        categoria: "etiqueta",
       })
       .select("id")
       .single();

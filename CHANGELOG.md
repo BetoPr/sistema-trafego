@@ -5,6 +5,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-15
+
+- **09:51** — Import contatos: **fix check constraint + dedup automático**. (1) Etiquetas novas vinham com `categoria: "wa_import"` e o schema só aceita `"etiqueta"`/`"flag"` → 6 etiquetas bloqueadas (Lead, COMPRA FUTURA, Não Qualificado, RESTAURAÇÃO, FAZER FOLLOW UP) e 26 aplicações puladas. Agora cria como `"etiqueta"`. (2) Antes de importar, passo extra dedupa etiquetas existentes com mesmo nome (case-insensitive) na agência: mantém a mais antiga, migra `contato_etiquetas` da duplicada (onConflict ignora), apaga as duplicadas. Resumo agora mostra `Duplicadas mescladas`. Re-rodar import vai criar as 6 que faltaram + aplicar nos contatos que estavam puladas.
+
+---
+
 ## 2026-06-14
 
 - **19:50** — Branding: **favicon + ícone PWA** trocados pelo S verde do login (logo serpentino #10b981 com fundo dark `#0f1410`). `app/icon.svg` e `app/apple-icon.svg` pra navegador/iOS; PNGs 192/512px gerados via sharp pra Android PWA. Manifest atualizado com cores certas (`theme_color #10b981`). `commit 3642216`

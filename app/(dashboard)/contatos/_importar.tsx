@@ -18,6 +18,7 @@ interface ImportResumo {
   etiquetas_existentes: number;
   etiquetas_aplicadas: number;
   etiquetas_puladas: number;
+  etiquetas_duplicadas_mescladas: number;
   pulados_grupos: number;
   duracao_ms: number;
   etiquetas_criadas_nomes: string[];
@@ -156,6 +157,7 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
               <Stat label="Etiquetas reaproveitadas" valor={resumo.etiquetas_existentes} cor="var(--mk-text-muted)" />
               <Stat label="Aplicações de etiqueta" valor={resumo.etiquetas_aplicadas} cor="#10b981" />
               {resumo.etiquetas_puladas > 0 && <Stat label="Etiquetas puladas" valor={resumo.etiquetas_puladas} cor="#f59e0b" />}
+              {resumo.etiquetas_duplicadas_mescladas > 0 && <Stat label="Duplicadas mescladas" valor={resumo.etiquetas_duplicadas_mescladas} cor="#9B7DBF" />}
             </div>
 
             {resumo.etiquetas_criadas_nomes.length > 0 && (
