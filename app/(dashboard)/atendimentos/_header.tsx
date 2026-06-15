@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { BotaoCobranca } from "./_cobranca";
+import { LightboxFoto } from "@/components/ui/LightboxFoto";
 
 interface FilaOption {
   id: string;
@@ -45,6 +46,7 @@ interface Props {
 export function ChatHeader(props: Props) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
+  const [lightboxFoto, setLightboxFoto] = useState(false);
   const [modal, setModal] = useState<null | "transferir" | "transferir-canal">(null);
   const [loading, setLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -124,7 +126,8 @@ export function ChatHeader(props: Props) {
             src={props.contatoFotoUrl}
             alt={props.contatoNome}
             title={`${props.contatoNome} · #${props.ticketNumero}`}
-            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "0.5px solid var(--mk-border)" }}
+            onClick={() => setLightboxFoto(true)}
+            style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "0.5px solid var(--mk-border)", cursor: "zoom-in" }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
         ) : (
@@ -192,6 +195,7 @@ export function ChatHeader(props: Props) {
           onSubmit={transferirCanal}
         />
       )}
+      <LightboxFoto src={props.contatoFotoUrl} alt={props.contatoNome} open={lightboxFoto} onClose={() => setLightboxFoto(false)} />
     </>
   );
 }

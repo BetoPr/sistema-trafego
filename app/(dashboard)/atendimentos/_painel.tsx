@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { inscreverTicket } from "@/app/(dashboard)/follow-up/_actions";
+import { LightboxFoto } from "@/components/ui/LightboxFoto";
 
 interface Contato {
   id: string;
@@ -58,6 +59,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   // SPA mode: onRefresh refaz fetch do bundle; fallback router.refresh pro modo server
   const refresh = () => (onRefresh ? onRefresh() : router.refresh());
   const [tab, setTab] = useState<"perfil" | "atend" | "util">("perfil");
+  const [lightboxFoto, setLightboxFoto] = useState(false);
   const [loadingResumo, setLoadingResumo] = useState(false);
   const [loadingSent, setLoadingSent] = useState(false);
   const [streamingResumo, setStreamingResumo] = useState<string>("");
@@ -359,7 +361,8 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                   <img
                     src={contato.foto_url}
                     alt={contato.nome}
-                    style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "0.5px solid var(--mk-border)" }}
+                    onClick={() => setLightboxFoto(true)}
+                    style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "0.5px solid var(--mk-border)", cursor: "zoom-in" }}
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                   />
                 ) : (
@@ -779,6 +782,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         })(),
         document.body
       )}
+      <LightboxFoto src={contato.foto_url} alt={contato.nome} open={lightboxFoto} onClose={() => setLightboxFoto(false)} />
     </div>
   );
 }

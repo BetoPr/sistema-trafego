@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Balao } from "@/components/ui/Balao";
+import { LightboxFoto } from "@/components/ui/LightboxFoto";
 import { AtenderBotao } from "./_atender-btn";
 
 export interface TicketLista {
@@ -767,8 +768,10 @@ function corTempo(iso: string, now: number): string {
 /** Avatar do contato: foto do WhatsApp com fallback pras iniciais (foto pode expirar). */
 function AvatarContato({ nome, foto, onAtender }: { nome?: string | null; foto?: string | null; onAtender?: (e: React.MouseEvent) => void }) {
   const [erro, setErro] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
   const ini = nome?.slice(0, 2).toUpperCase() || "?";
   const hasAtender = !!onAtender;
+  const podeAmpliar = !!(foto && !erro);
 
   return (
     <div
@@ -777,7 +780,13 @@ function AvatarContato({ nome, foto, onAtender }: { nome?: string | null; foto?:
     >
       {foto && !erro ? (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={foto} alt="" onError={() => setErro(true)} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", background: "var(--mk-surface-2)" }} />
+        <img
+          src={foto}
+          alt=""
+          onError={() => setErro(true)}
+          onClick={podeAmpliar ? (e) => { e.stopPropagation(); setLightbox(true); } : undefined}
+          style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", background: "var(--mk-surface-2)", cursor: podeAmpliar ? "zoom-in" : "default" }}
+        />
       ) : (
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 600 }}>
           {ini}
@@ -808,6 +817,7 @@ function AvatarContato({ nome, foto, onAtender }: { nome?: string | null; foto?:
           <i className="ti ti-arrow-left" />
         </button>
       )}
+      <LightboxFoto src={foto} alt={nome || ""} open={lightbox} onClose={() => setLightbox(false)} />
     </div>
   );
 }

@@ -65,6 +65,7 @@ interface Mensagem {
   metadata?: {
     reply_to?: string;
     ad_referral?: AdReferral;
+    reacoes?: Record<string, string>;
     midia_tentativas?: number;
     midia_erro?: string;
     midia_perdida?: boolean;
@@ -237,6 +238,38 @@ export function ChatView(props: Props) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [respondendo, setRespondendo] = useState<Mensagem | null>(null);
+  const [reactPicker, setReactPicker] = useState<string | null>(null); // id da msg com picker aberto
+
+  const EMOJIS_RAPIDOS = ["👍", "❤️", "😂", "😯", "😢", "🙏"];
+
+  async function reagir(m: Mensagem, emoji: string) {
+    if (!props.canalId || !m.wa_message_id) return;
+    setReactPicker(null);
+    // Otimista: atualiza UI imediato
+    setMsgs((prev) => prev.map((x) => {
+      if (x.id !== m.id) return x;
+      const reacoes = { ...(x.metadata?.reacoes || {}) };
+      const chave = props.usuarioAtualNome || "Você";
+      if (reacoes[chave] === emoji) delete reacoes[chave]; // toggle off
+      else reacoes[chave] = emoji;
+      return { ...x, metadata: { ...x.metadata, reacoes } };
+    }));
+    try {
+      const reacAtual = m.metadata?.reacoes?.[props.usuarioAtualNome || "Você"];
+      const emojiEnviar = reacAtual === emoji ? "" : emoji;
+      const r = await fetch(`/api/canais/${props.canalId}/reagir`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mensagemId: m.id, emoji: emojiEnviar }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        alert(`Falha ao reagir: ${j.error || r.statusText}`);
+      }
+    } catch (e) {
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   const acharCitada = (wamid?: string | null) => (wamid ? msgs.find((x) => x.wa_message_id === wamid) || null : null);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -464,7 +497,10 @@ export function ChatView(props: Props) {
           msgs.map((m) => (
             <div key={m.id} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
               {m.wa_message_id && m.autor !== "cliente" && (
-                <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                <>
+                  <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
+                  <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                </>
               )}
               <div
                 style={{
@@ -524,6 +560,31 @@ export function ChatView(props: Props) {
                 ) : (
                   m.conteudo || m.transcricao || `[${m.tipo}]`
                 )}
+                {(() => {
+                  const reacoes = Object.values(m.metadata?.reacoes || {});
+                  if (reacoes.length === 0) return null;
+                  // Conta por emoji
+                  const contagem = new Map<string, number>();
+                  for (const e of reacoes) contagem.set(e, (contagem.get(e) || 0) + 1);
+                  return (
+                    <div style={{ display: "flex", gap: 3, marginTop: 4, flexWrap: "wrap" }}>
+                      {[...contagem.entries()].map(([e, n]) => (
+                        <span key={e} style={{ fontSize: 11, padding: "1px 6px", borderRadius: 999, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          {e}{n > 1 && <span style={{ fontSize: 9, color: "var(--mk-text-muted)" }}>{n}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {reactPicker === m.id && (
+                  <div style={{ position: "relative", marginTop: 4 }}>
+                    <div style={{ position: "absolute", top: 0, [m.autor === "cliente" ? "left" : "right"]: 0, display: "flex", gap: 2, padding: "4px 6px", background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", zIndex: 5 }}>
+                      {EMOJIS_RAPIDOS.map((e) => (
+                        <button key={e} type="button" onClick={() => reagir(m, e)} style={{ background: "transparent", border: 0, fontSize: 16, cursor: "pointer", padding: "2px 4px", borderRadius: 999, transition: "transform 0.12s ease" }} onMouseEnter={(ev) => (ev.currentTarget as HTMLButtonElement).style.transform = "scale(1.25)"} onMouseLeave={(ev) => (ev.currentTarget as HTMLButtonElement).style.transform = "scale(1)"}>{e}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", marginTop: 4, textAlign: "right" }}>
                   {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                   {m.autor === "atendente" && (() => {
@@ -540,7 +601,10 @@ export function ChatView(props: Props) {
                 </div>
               </div>
               {m.wa_message_id && m.autor === "cliente" && (
-                <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                <>
+                  <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                  <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
+                </>
               )}
             </div>
           ))

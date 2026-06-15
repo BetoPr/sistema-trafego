@@ -602,4 +602,24 @@ export async function instanceFindChats(
   };
 }
 
+// =========================================
+// REACTIONS (emoji em mensagem específica)
+// =========================================
+
+/**
+ * POST /message/react — reage com emoji a uma mensagem.
+ * - text vazio "" remove a reação
+ * - id é o wa_message_id da mensagem reagida
+ */
+export async function instanceReactMessage(
+  inst: UazapiInstance,
+  params: { number: string; id: string; text: string },
+): Promise<{ status?: string; id?: string }> {
+  return (await call(inst.baseUrl, "/message/react", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: params,
+  })) as { status?: string; id?: string };
+}
+
 export { UazapiError };
