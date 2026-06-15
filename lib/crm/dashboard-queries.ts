@@ -10,27 +10,41 @@ export interface FaixaDatas {
   label: string;
 }
 
+// Faixas de data SEMPRE em horário de Brasília (UTC-3, sem horário de verão).
+// Vercel server roda em UTC — sem o offset explícito, "hoje" começava às 21h
+// do dia anterior em BRT e fechamentos do fim do dia caíam fora da janela.
+const BR_OFFSET = "-03:00";
+
+/** Hoje em BRT (no formato YYYY-MM-DD). */
+function diaBR(d: Date): string {
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
 export function resolverFaixa(periodo: string | undefined, de?: string, ate?: string): FaixaDatas {
   if (de && ate) {
-    const inicio = new Date(`${de}T00:00:00`);
-    const fim = new Date(`${ate}T23:59:59.999`);
+    const inicio = new Date(`${de}T00:00:00${BR_OFFSET}`);
+    const fim = new Date(`${ate}T23:59:59.999${BR_OFFSET}`);
     if (!isNaN(inicio.getTime()) && !isNaN(fim.getTime())) {
       return { inicio, fim, label: `${de} → ${ate}` };
     }
   }
   const agora = new Date();
+  const hojeBR = diaBR(agora);
   if (periodo === "hoje") {
-    const inicio = new Date(agora); inicio.setHours(0, 0, 0, 0);
-    const fim = new Date(agora); fim.setHours(23, 59, 59, 999);
+    const inicio = new Date(`${hojeBR}T00:00:00${BR_OFFSET}`);
+    const fim = new Date(`${hojeBR}T23:59:59.999${BR_OFFSET}`);
     return { inicio, fim, label: "Hoje" };
   }
   if (periodo === "7d") {
-    const inicio = new Date(agora); inicio.setDate(inicio.getDate() - 6); inicio.setHours(0, 0, 0, 0);
-    return { inicio, fim: agora, label: "7 dias" };
+    // 7 dias = hoje + 6 dias atrás (BRT)
+    const inicioRef = new Date(`${hojeBR}T00:00:00${BR_OFFSET}`);
+    inicioRef.setDate(inicioRef.getDate() - 6);
+    return { inicio: inicioRef, fim: agora, label: "7 dias" };
   }
   // default 30d
-  const inicio = new Date(agora); inicio.setDate(inicio.getDate() - 29); inicio.setHours(0, 0, 0, 0);
-  return { inicio, fim: agora, label: "30 dias" };
+  const inicioRef = new Date(`${hojeBR}T00:00:00${BR_OFFSET}`);
+  inicioRef.setDate(inicioRef.getDate() - 29);
+  return { inicio: inicioRef, fim: agora, label: "30 dias" };
 }
 
 export interface KpisAtendimento {
