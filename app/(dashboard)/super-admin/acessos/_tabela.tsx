@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Balao } from "@/components/ui/Balao";
-import { alternarAtivoAcesso, deletarAcesso } from "./_actions";
+import { alternarAtivoAcesso, deletarAcesso, restaurarAcesso } from "./_actions";
 
 type Role = "atendente" | "admin" | "super_admin";
 
@@ -15,6 +15,7 @@ interface UsuarioLinha {
   ativo: boolean;
   agencia_id: string;
   ultimo_login: string | null;
+  deleted_at: string | null;
 }
 
 interface Props {
@@ -36,6 +37,7 @@ const ROLE_COR: Record<Role, string> = {
 
 export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
   const [rolesAtivos, setRolesAtivos] = useState<Set<Role>>(new Set(["atendente", "admin", "super_admin"]));
+  const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
   const [confirmando, setConfirmando] = useState<UsuarioLinha | null>(null);
 
   function toggleRole(r: Role) {
@@ -49,13 +51,23 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
     });
   }
 
-  const filtrados = useMemo(() => usuarios.filter((u) => rolesAtivos.has(u.role)), [usuarios, rolesAtivos]);
+  const filtrados = useMemo(() =>
+    usuarios.filter((u) => {
+      const ehExcluido = !!u.deleted_at;
+      if (mostrarExcluidos) return ehExcluido;
+      if (ehExcluido) return false;
+      return rolesAtivos.has(u.role);
+    }), [usuarios, rolesAtivos, mostrarExcluidos]);
 
   // Contagem por role pra mostrar nos pills
   const contagem = useMemo(() => {
     const c: Record<Role, number> = { atendente: 0, admin: 0, super_admin: 0 };
-    for (const u of usuarios) c[u.role]++;
-    return c;
+    let excluidos = 0;
+    for (const u of usuarios) {
+      if (u.deleted_at) { excluidos++; continue; }
+      c[u.role]++;
+    }
+    return { ...c, excluidos };
   }, [usuarios]);
 
   return (
@@ -63,12 +75,12 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
       {/* Filtros */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
         {(Object.keys(ROLE_LABEL) as Role[]).map((r) => {
-          const ativo = rolesAtivos.has(r);
+          const ativo = !mostrarExcluidos && rolesAtivos.has(r);
           return (
             <button
               key={r}
               type="button"
-              onClick={() => toggleRole(r)}
+              onClick={() => { setMostrarExcluidos(false); toggleRole(r); }}
               className="acesso-pill"
               style={{
                 display: "inline-flex",
@@ -82,6 +94,7 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: "pointer",
+                opacity: mostrarExcluidos ? 0.5 : 1,
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: ROLE_COR[r] }} />
@@ -90,6 +103,29 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setMostrarExcluidos((v) => !v)}
+          className="acesso-pill"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 12px",
+            borderRadius: 999,
+            border: `0.5px solid ${mostrarExcluidos ? "#C97064" : "var(--mk-border)"}`,
+            background: mostrarExcluidos ? "rgba(201,112,100,0.14)" : "var(--mk-surface)",
+            color: mostrarExcluidos ? "#C97064" : "var(--mk-text-muted)",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+          title="Mostra usuários excluídos (soft delete) — restaurar se quiser"
+        >
+          <i className="ti ti-trash" style={{ fontSize: 12 }} />
+          Excluídos
+          <span style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.7 }}>{contagem.excluidos}</span>
+        </button>
         <div style={{ flex: 1 }} />
         <div style={{ fontSize: 11, color: "var(--mk-text-muted)", alignSelf: "center" }}>
           Mostrando {filtrados.length} de {usuarios.length}
@@ -124,25 +160,34 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
                   <td style={tdLi}><span className={`mk-badge ${u.ativo ? "b-green" : "b-gray"}`}>{u.ativo ? "Ativo" : "Inativo"}</span></td>
                   <td style={tdLi}>{u.ultimo_login ? new Date(u.ultimo_login).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</td>
                   <td style={tdLi}>
-                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                      <Link href={`/super-admin/acessos?editar=${u.id}`} className="ghost-btn acesso-icon-btn" style={iconBtn}><i className="ti ti-pencil" /></Link>
-                      <form action={alternarAtivoAcesso} style={{ display: "inline" }}>
+                    {u.deleted_at ? (
+                      <form action={restaurarAcesso} style={{ display: "inline" }}>
                         <input type="hidden" name="id" value={u.id} />
-                        <input type="hidden" name="ativo" value={String(u.ativo)} />
-                        <button type="submit" className={`toggle-switch ${u.ativo ? "is-on" : ""}`} aria-pressed={u.ativo} title={u.ativo ? "Desativar" : "Ativar"}>
-                          <span className="toggle-knob" />
+                        <button type="submit" className="ghost-btn acesso-icon-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, color: "#10b981", border: "0.5px solid #10b981", borderRadius: 8 }} title="Restaurar usuário">
+                          <i className="ti ti-arrow-back-up" /> Restaurar
                         </button>
                       </form>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmando(u)}
-                        className="ghost-btn acesso-icon-btn"
-                        style={{ ...iconBtn, color: "#C97064" }}
-                        title="Excluir"
-                      >
-                        <i className="ti ti-trash" />
-                      </button>
-                    </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                        <Link href={`/super-admin/acessos?editar=${u.id}`} className="ghost-btn acesso-icon-btn" style={iconBtn}><i className="ti ti-pencil" /></Link>
+                        <form action={alternarAtivoAcesso} style={{ display: "inline" }}>
+                          <input type="hidden" name="id" value={u.id} />
+                          <input type="hidden" name="ativo" value={String(u.ativo)} />
+                          <button type="submit" className={`toggle-switch ${u.ativo ? "is-on" : ""}`} aria-pressed={u.ativo} title={u.ativo ? "Desativar" : "Ativar"}>
+                            <span className="toggle-knob" />
+                          </button>
+                        </form>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmando(u)}
+                          className="ghost-btn acesso-icon-btn"
+                          style={{ ...iconBtn, color: "#C97064" }}
+                          title="Excluir"
+                        >
+                          <i className="ti ti-trash" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

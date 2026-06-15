@@ -116,3 +116,12 @@ export async function deletarAcesso(formData: FormData) {
   revalidatePath("/super-admin/acessos");
   redirect("/super-admin/acessos?ok=deletado");
 }
+
+export async function restaurarAcesso(formData: FormData) {
+  await requireRole("super_admin");
+  const id = String(formData.get("id") || "");
+  const sb = createServiceClient();
+  await sb.from("usuarios").update({ deleted_at: null, ativo: true }).eq("id", id);
+  revalidatePath("/super-admin/acessos");
+  redirect("/super-admin/acessos?ok=restaurado");
+}

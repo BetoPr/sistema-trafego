@@ -31,7 +31,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
   const sb = createServiceClient();
 
   const [{ data: usuarios }, { data: agencias }] = await Promise.all([
-    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, created_at, deleted_at").is("deleted_at", null).order("nome"),
+    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, created_at, deleted_at").order("nome"),
     sb.from("agencias").select("id, nome").order("nome"),
   ]);
 
@@ -165,7 +165,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
       )}
 
       <TabelaAcessos
-        usuarios={((usuarios || []) as Array<{ id: string; nome: string; email: string; role: "atendente" | "admin" | "super_admin"; ativo: boolean; agencia_id: string; ultimo_login: string | null }>)}
+        usuarios={((usuarios || []) as Array<{ id: string; nome: string; email: string; role: "atendente" | "admin" | "super_admin"; ativo: boolean; agencia_id: string; ultimo_login: string | null; deleted_at: string | null }>)}
         agenciaPorId={Object.fromEntries(agenciaPorId.entries())}
       />
     </section>
@@ -181,7 +181,7 @@ function Stat({ label, valor, cor }: { label: string; valor: string; cor?: strin
   );
 }
 
-function labelOk(k: string) { return ({ criado: "Acesso criado.", atualizado: "Atualizado.", alterado: "Status alterado.", deletado: "Excluído." } as Record<string, string>)[k] || "OK."; }
+function labelOk(k: string) { return ({ criado: "Acesso criado.", atualizado: "Atualizado.", alterado: "Status alterado.", deletado: "Excluído.", restaurado: "Restaurado." } as Record<string, string>)[k] || "OK."; }
 function labelErr(k: string) { return ({ campos: "Campos obrigatórios.", senha_curta: "Senha precisa ter 6+ caracteres.", auth: "Erro de autenticação.", db: "Erro no banco.", id: "ID inválido." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
