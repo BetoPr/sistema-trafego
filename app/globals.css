@@ -979,3 +979,30 @@ select option { background: #ffffff; color: #111111; }
 
 /* Hover do avatar em ticket pendente: revela seta "atender" */
 .avatar-atender:hover .avatar-atender-btn { opacity: 1 !important; }
+
+/* Animações da página Acessos */
+.acesso-pill {
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.acesso-pill:hover { transform: translateY(-1px); }
+.acesso-pill:active { transform: translateY(0) scale(0.96); }
+
+.acesso-icon-btn {
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.16s ease;
+}
+.acesso-icon-btn:hover { transform: scale(1.12); background: var(--mk-surface-2); }
+.acesso-icon-btn:active { transform: scale(0.95); }
+
+.acesso-row {
+  transition: background-color 0.18s ease;
+}
+.acesso-row:hover { background: var(--mk-surface); }
+
+.mk-card.acesso-edit-card {
+  animation: acesso-slide-in 0.22s cubic-bezier(0.34, 1.2, 0.64, 1);
+  transform-origin: top center;
+}
+@keyframes acesso-slide-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
