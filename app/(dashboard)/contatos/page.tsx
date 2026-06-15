@@ -128,7 +128,28 @@ export default async function ContatosPage({ searchParams }: PageProps) {
         </div>
         {!mostrarForm && (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <ImportarWhatsAppBtn canais={((canaisConectados || []) as Array<{ id: string; nome: string; numero_conectado: string | null }>).map((c) => ({ id: c.id, nome: c.nome, numero_conectado: c.numero_conectado }))} />
+            {canaisSemImport.length > 0 ? (
+              <ImportarWhatsAppBtn canais={canaisSemImport.map((c) => ({ id: c.id, nome: c.nome, numero_conectado: c.numero_conectado }))} />
+            ) : ((canaisConectados || []).length > 0 && (
+              <span
+                title="Todos os canais conectados já tiveram contatos e etiquetas importados"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  background: "rgba(16,185,129,0.12)",
+                  border: "0.5px solid rgba(16,185,129,0.4)",
+                  color: "#10b981",
+                  fontWeight: 500,
+                }}
+              >
+                <i className="ti ti-circle-check-filled" />
+                Contatos Importados
+              </span>
+            ))}
             <Link href="/contatos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Adicionar contato</Link>
           </div>
         )}
