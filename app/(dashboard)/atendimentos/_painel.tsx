@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { inscreverTicket } from "@/app/(dashboard)/follow-up/_actions";
 import { LightboxFoto } from "@/components/ui/LightboxFoto";
+import { Balao } from "@/components/ui/Balao";
 
 interface Contato {
   id: string;
@@ -70,6 +71,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const [fuSeqs, setFuSeqs] = useState<null | Array<{ id: string; nome: string; etapas: number }>>(null);
   const [fuMsg, setFuMsg] = useState("");
   const [fuBusy, setFuBusy] = useState(false);
+  const [fuAvulsoAberto, setFuAvulsoAberto] = useState(false);
   const [logsTicket, setLogsTicket] = useState<Array<{ id: string; acao: string; entidade: string | null; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null; payload?: Record<string, unknown> | null }>>([]);
   const [notas, setNotas] = useState<Array<{ id: string; conteudo: string; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null }>>([]);
   const [novaNota, setNovaNota] = useState("");
@@ -611,9 +613,17 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             </Card>
 
             <Card titulo="Follow-up">
-              <div style={{ padding: "10px 14px" }}>
+              <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                <button
+                  onClick={() => setFuAvulsoAberto(true)}
+                  className="cta-btn"
+                  style={{ fontSize: 11, width: "100%", justifyContent: "center" }}
+                  title="Agenda 1-3 mensagens pra disparar em data/hora específica nessa conversa"
+                >
+                  <i className="ti ti-calendar-plus" /> Criar follow-up nesta conversa
+                </button>
                 <button onClick={carregarFollowUp} className="ghost-btn" style={{ fontSize: 11, width: "100%" }}>
-                  <i className="ti ti-clock-bolt" /> {fuSeqs ? "Fechar" : "Inscrever neste follow-up"}
+                  <i className="ti ti-clock-bolt" /> {fuSeqs ? "Fechar" : "Inscrever em sequência ativa"}
                 </button>
                 {fuSeqs && (
                   <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -783,9 +793,117 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         document.body
       )}
       <LightboxFoto src={contato.foto_url} alt={contato.nome} open={lightboxFoto} onClose={() => setLightboxFoto(false)} />
+      <BalaoFollowUpAvulso
+        open={fuAvulsoAberto}
+        onClose={() => setFuAvulsoAberto(false)}
+        contatoId={contato.id}
+        contatoNome={contato.nome}
+      />
     </div>
   );
 }
+
+function BalaoFollowUpAvulso({ open, onClose, contatoId, contatoNome }: { open: boolean; onClose: () => void; contatoId: string; contatoNome: string }) {
+  const [qtd, setQtd] = useState<1 | 2 | 3>(1);
+  const [textos, setTextos] = useState<string[]>(["", "", ""]);
+  const [gaps, setGaps] = useState<number[]>([2, 2]);
+  const [agenda, setAgenda] = useState<string>(() => {
+    const d = new Date(Date.now() + 15 * 60_000);
+    const off = d.getTimezoneOffset() * 60_000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  });
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  function setTexto(i: number, v: string) {
+    setTextos((t) => { const c = [...t]; c[i] = v; return c; });
+  }
+  function setGap(i: number, v: number) {
+    setGaps((g) => { const c = [...g]; c[i] = Math.max(2, Math.floor(v) || 2); return c; });
+  }
+
+  async function agendar() {
+    setErro(null);
+    const msgs = textos.slice(0, qtd).map((t) => ({ texto: t.trim() })).filter((m) => m.texto);
+    if (msgs.length !== qtd) { setErro("Preencha todas as mensagens."); return; }
+    if (!agenda) { setErro("Escolha data e hora."); return; }
+    setSalvando(true);
+    try {
+      const r = await fetch(`/api/contatos/${contatoId}/follow-up-avulso`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          agendaEm: new Date(agenda).toISOString(),
+          mensagens: msgs,
+          intervalosSeg: gaps.slice(0, qtd - 1),
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        setErro(j.motivo || j.error || "Falha ao agendar.");
+        setSalvando(false);
+        return;
+      }
+      onClose();
+      setTextos(["", "", ""]);
+      setQtd(1);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    }
+    setSalvando(false);
+  }
+
+  return (
+    <Balao open={open} onClose={onClose} titulo={`Criar follow-up — ${contatoNome}`} icone="ti-calendar-plus" largura={520}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={lblFU}>Quando disparar</label>
+            <input type="datetime-local" value={agenda} onChange={(e) => setAgenda(e.target.value)} style={inpFU} />
+          </div>
+          <div>
+            <label style={lblFU}>Quantas mensagens</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[1, 2, 3].map((n) => (
+                <button key={n} type="button" onClick={() => setQtd(n as 1 | 2 | 3)} className={qtd === n ? "cta-btn" : "ghost-btn"} style={{ flex: 1, fontSize: 12 }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        {Array.from({ length: qtd }).map((_, i) => (
+          <div key={i}>
+            <label style={lblFU}>Mensagem {i + 1}</label>
+            <textarea rows={2} value={textos[i]} onChange={(e) => setTexto(i, e.target.value)} placeholder={`Texto da mensagem ${i + 1}`} style={{ ...inpFU, resize: "vertical", minHeight: 50 }} />
+            {i < qtd - 1 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", color: "var(--mk-text-muted)", fontSize: 11.5 }}>
+                <i className="ti ti-arrow-down" />
+                <span>Aguardar</span>
+                <input type="number" min={2} value={gaps[i]} onChange={(e) => setGap(i, Number(e.target.value))} style={{ width: 70, padding: "4px 8px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }} />
+                <span>segundos antes da próxima (mín 2s)</span>
+              </div>
+            )}
+          </div>
+        ))}
+        <div style={{ fontSize: 11, color: "var(--mk-text-muted)", background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.3)", borderRadius: 6, padding: "8px 12px" }}>
+          <i className="ti ti-info-circle" style={{ marginRight: 4 }} />
+          Cancela automaticamente se o cliente enviar qualquer mensagem antes do disparo.
+        </div>
+        {erro && <div style={{ background: "rgba(201,112,100,0.20)", borderLeft: "3px solid #C97064", padding: "8px 12px", borderRadius: 6, fontSize: 12 }}>{erro}</div>}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+          <button type="button" onClick={onClose} className="ghost-btn" style={{ fontSize: 12 }}>Cancelar</button>
+          <button type="button" onClick={agendar} disabled={salvando} className="cta-btn" style={{ fontSize: 12 }}>
+            <i className="ti ti-calendar-plus" /> {salvando ? "Agendando…" : "Agendar follow-up"}
+          </button>
+        </div>
+      </div>
+    </Balao>
+  );
+}
+
+const lblFU: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
+const inpFU: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 };
 
 function ModalLog({ titulo, onClose, children }: { titulo: string; onClose: () => void; children: React.ReactNode }) {
   return (
