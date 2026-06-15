@@ -12,7 +12,7 @@ const FAQS: FAQ[] = [
   {
     pergunta: "Quantos canais WhatsApp posso conectar?",
     resposta:
-      "Ilimitados. Cada conexão de número (Business ou comum) cobra R$ 29/mês. Os canais aparecem no atendimento e envio em massa — tudo no mesmo painel.",
+      "Por padrão, 1 canal por agência. Se quiser conectar mais de um número (cada número adicional cobra R$ 29/mês), fale comigo no WhatsApp: https://wa.me/5581991594716 que eu libero pra você.",
   },
   {
     pergunta: "O sistema importa meus contatos e etiquetas do WhatsApp Business?",
