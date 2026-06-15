@@ -12,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Tráfego — Gestão de Campanhas",
-  description: "MVP de gestão de tráfego pago multi-cliente — projeto de estudo.",
+  title: "Sonar — CRM + Ads — Sistema de Tráfego — Gestão de Leads e Campanhas",
+  description: "Sonar — CRM de atendimento WhatsApp com IA + gestão de tráfego pago (Meta Ads/Google Ads) + funil de leads.",
   manifest: "/manifest.json",
 };
 
