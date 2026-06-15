@@ -98,6 +98,32 @@ export async function POST(
         return NextResponse.json({ ok: true, reaction: true, targetEncontrado: !!alvo });
       }
 
+      // Cliente apagou ou editou uma mensagem — atualiza alvo, não cria nova
+      if (parsed.protocol) {
+        const { data: alvo } = await sb
+          .from("mensagens")
+          .select("id, conteudo")
+          .eq("agencia_id", canal.agencia_id)
+          .eq("wa_message_id", parsed.protocol.targetWaMessageId)
+          .maybeSingle();
+        if (alvo) {
+          if (parsed.protocol.kind === "delete") {
+            await sb.from("mensagens").update({
+              deleted_em: new Date().toISOString(),
+              deleted_pra_todos: true,
+            }).eq("id", alvo.id);
+          } else {
+            // edit: guarda conteúdo anterior + atualiza pro novo
+            await sb.from("mensagens").update({
+              edited_em: new Date().toISOString(),
+              edited_de_conteudo: alvo.conteudo,
+              conteudo: parsed.protocol.novoConteudo ?? alvo.conteudo,
+            }).eq("id", alvo.id);
+          }
+        }
+        return NextResponse.json({ ok: true, protocol: parsed.protocol.kind, targetEncontrado: !!alvo });
+      }
+
       const ingest = await ingestMensagem(
         {
           agenciaId: canal.agencia_id,

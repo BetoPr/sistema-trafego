@@ -82,6 +82,15 @@ export interface ParsedMessage {
     targetWaMessageId: string;
     emoji: string;
   } | null;
+  /**
+   * Evento de protocolMessage: cliente apagou ou editou uma mensagem.
+   * Quando preenchido, webhook NÃO cria nova mensagem — atualiza mensagem alvo.
+   */
+  protocol: {
+    kind: "delete" | "edit";
+    targetWaMessageId: string;
+    novoConteudo?: string; // só se kind=edit
+  } | null;
   raw: Record<string, unknown>;
 }
 
@@ -183,6 +192,33 @@ export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
       pickString(msg, "reactedMessageId", "quoteid", "messageReactedId") ||
       "";
     if (targetId) reaction = { targetWaMessageId: targetId, emoji };
+  }
+
+  // ProtocolMessage: cliente apagou (revoke) ou editou mensagem.
+  // UAZAPI envia messageType com "protocol" / "revoke" / "edit".
+  let protocol: ParsedMessage["protocol"] = null;
+  if (
+    messageType.includes("protocol") ||
+    messageType.includes("revoke") ||
+    messageType.includes("edit")
+  ) {
+    const protoObj = (msg?.protocolMessage as Record<string, unknown> | undefined) || msg;
+    const protoType = pickString(protoObj, "type", "protocolMessageType")?.toUpperCase() || "";
+    const keyObj =
+      ((protoObj?.key || protoObj?.editedMessageKey || protoObj?.targetMessageKey) as Record<string, unknown> | undefined) || undefined;
+    const targetId =
+      pickString(protoObj, "targetMessageId", "messageId", "id") ||
+      pickString(keyObj, "id") ||
+      "";
+    const isRevoke = messageType.includes("revoke") || protoType.includes("REVOKE");
+    const isEdit = messageType.includes("edit") || protoType.includes("EDIT");
+    if (targetId && (isRevoke || isEdit)) {
+      const novoConteudo = isEdit
+        ? (pickString(protoObj, "editedMessage", "newMessage", "newContent") ||
+           pickString(msg, "newConteudo", "edited") || undefined)
+        : undefined;
+      protocol = { kind: isRevoke ? "delete" : "edit", targetWaMessageId: targetId, novoConteudo };
+    }
   }
 
   let tipo: ParsedMessage["tipo"] = "texto";
@@ -291,6 +327,7 @@ export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
     conteudo,
     midia,
     adReferral,
+    protocol,
     reaction,
     raw: { message: msg, chat },
   };

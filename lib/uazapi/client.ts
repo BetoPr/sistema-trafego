@@ -622,4 +622,15 @@ export async function instanceReactMessage(
   })) as { status?: string; id?: string };
 }
 
+export async function instanceDeleteMessage(
+  inst: UazapiInstance,
+  params: { number: string; id: string; forEveryone?: boolean },
+): Promise<{ status?: string }> {
+  return (await call(inst.baseUrl, "/message/delete", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: { number: params.number, id: params.id, forEveryone: !!params.forEveryone },
+  })) as { status?: string };
+}
+
 export { UazapiError };

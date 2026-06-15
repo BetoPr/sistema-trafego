@@ -38,6 +38,65 @@ const replyBtnStyle: React.CSSProperties = {
   justifyContent: "center",
 };
 
+function ExcluirBtn({ open, podeApagarTodos, onToggle, onEscolher }: { open: boolean; podeApagarTodos: boolean; onToggle: () => void; onEscolher: (paraTodos: boolean) => void }) {
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        title="Excluir mensagem"
+        className="msg-reply-btn"
+        style={{ ...replyBtnStyle, color: "#C97064" }}
+      >
+        <i className="ti ti-trash" />
+      </button>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: 30,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "var(--mk-surface)",
+            border: "0.5px solid var(--mk-border)",
+            borderRadius: 8,
+            padding: 4,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            minWidth: 160,
+            boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+            zIndex: 10,
+            whiteSpace: "nowrap",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => onEscolher(false)}
+            style={{ background: "transparent", border: 0, color: "var(--mk-text)", fontSize: 12, padding: "6px 10px", textAlign: "left", cursor: "pointer", borderRadius: 6 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--mk-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <i className="ti ti-eye-off" style={{ marginRight: 6 }} /> Apagar só pra mim
+          </button>
+          {podeApagarTodos && (
+            <button
+              type="button"
+              onClick={() => onEscolher(true)}
+              style={{ background: "transparent", border: 0, color: "#C97064", fontSize: 12, padding: "6px 10px", textAlign: "left", cursor: "pointer", borderRadius: 6 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--mk-surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <i className="ti ti-trash" style={{ marginRight: 6 }} /> Apagar pra todos
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface AdReferral {
   sourceType?: string;
   sourceUrl?: string;
@@ -62,6 +121,10 @@ interface Mensagem {
   created_at: string;
   usuario_id: string | null;
   wa_message_id?: string | null;
+  deleted_em?: string | null;
+  deleted_pra_todos?: boolean | null;
+  edited_em?: string | null;
+  edited_de_conteudo?: string | null;
   metadata?: {
     reply_to?: string;
     ad_referral?: AdReferral;
@@ -239,8 +302,34 @@ export function ChatView(props: Props) {
   const [sending, setSending] = useState(false);
   const [respondendo, setRespondendo] = useState<Mensagem | null>(null);
   const [reactPicker, setReactPicker] = useState<string | null>(null); // id da msg com picker aberto
+  const [excluirPicker, setExcluirPicker] = useState<string | null>(null);
 
   const EMOJIS_RAPIDOS = ["👍", "❤️", "😂", "😯", "😢", "🙏"];
+
+  async function excluirMensagem(m: Mensagem, paraTodos: boolean) {
+    setExcluirPicker(null);
+    if (!confirm(paraTodos ? "Apagar essa mensagem pra TODOS (você e o cliente)?" : "Apagar essa mensagem só pra você (no CRM)?")) return;
+    // Otimista
+    setMsgs((prev) => prev.map((x) => x.id === m.id ? { ...x, deleted_em: new Date().toISOString(), deleted_pra_todos: paraTodos } : x));
+    try {
+      const r = await fetch(`/api/atendimentos/${props.ticketId}/excluir-mensagem`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mensagemId: m.id, paraTodos }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        // Reverte otimista
+        setMsgs((prev) => prev.map((x) => x.id === m.id ? { ...x, deleted_em: null, deleted_pra_todos: null } : x));
+        alert(`Falha: ${j.error || r.statusText}`);
+      } else if (j.warning) {
+        alert(j.warning);
+      }
+    } catch (e) {
+      setMsgs((prev) => prev.map((x) => x.id === m.id ? { ...x, deleted_em: null, deleted_pra_todos: null } : x));
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   async function reagir(m: Mensagem, emoji: string) {
     if (!props.canalId || !m.wa_message_id) return;
@@ -496,10 +585,15 @@ export function ChatView(props: Props) {
         ) : (
           msgs.map((m) => (
             <div key={m.id} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
-              {m.wa_message_id && m.autor !== "cliente" && (
+              {m.autor !== "cliente" && !m.deleted_em && (
                 <>
-                  <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
-                  <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                  <ExcluirBtn open={excluirPicker === m.id} podeApagarTodos={!!m.wa_message_id} onToggle={() => setExcluirPicker((p) => p === m.id ? null : m.id)} onEscolher={(t) => excluirMensagem(m, t)} />
+                  {m.wa_message_id && (
+                    <>
+                      <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
+                      <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                    </>
+                  )}
                 </>
               )}
               <div
@@ -519,6 +613,14 @@ export function ChatView(props: Props) {
                 }}
                 className="msg-bubble"
               >
+                {m.deleted_em ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontStyle: "italic", color: "var(--mk-text-muted)", fontSize: 12 }}>
+                    <i className="ti ti-trash" />
+                    {m.autor === "cliente"
+                      ? (m.deleted_pra_todos ? "Mensagem apagada pelo cliente" : "Mensagem ocultada")
+                      : (m.deleted_pra_todos ? "Mensagem apagada (para todos)" : "Mensagem ocultada do seu CRM")}
+                  </div>
+                ) : <>
                 {m.metadata?.ad_referral && <CardAnuncio ad={m.metadata.ad_referral} />}
                 {m.metadata?.reply_to && (() => {
                   const q = acharCitada(m.metadata.reply_to);
@@ -560,9 +662,15 @@ export function ChatView(props: Props) {
                 ) : (
                   m.conteudo || m.transcricao || `[${m.tipo}]`
                 )}
+                {m.edited_em && (
+                  <div style={{ fontSize: 10, fontStyle: "italic", color: "var(--mk-text-muted)", marginTop: 2 }} title={`Conteúdo anterior: ${m.edited_de_conteudo || "—"}`}>
+                    <i className="ti ti-pencil" style={{ marginRight: 2 }} /> editada pelo cliente
+                  </div>
+                )}
+                </>}
                 {(() => {
                   const reacoes = Object.values(m.metadata?.reacoes || {});
-                  if (reacoes.length === 0) return null;
+                  if (reacoes.length === 0 || m.deleted_em) return null;
                   // Conta por emoji
                   const contagem = new Map<string, number>();
                   for (const e of reacoes) contagem.set(e, (contagem.get(e) || 0) + 1);
@@ -600,10 +708,15 @@ export function ChatView(props: Props) {
                   })()}
                 </div>
               </div>
-              {m.wa_message_id && m.autor === "cliente" && (
+              {m.autor === "cliente" && !m.deleted_em && (
                 <>
-                  <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
-                  <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
+                  {m.wa_message_id && (
+                    <>
+                      <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
+                      <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
+                    </>
+                  )}
+                  <ExcluirBtn open={excluirPicker === m.id} podeApagarTodos={false} onToggle={() => setExcluirPicker((p) => p === m.id ? null : m.id)} onEscolher={(t) => excluirMensagem(m, t)} />
                 </>
               )}
             </div>

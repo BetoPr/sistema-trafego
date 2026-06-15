@@ -35,7 +35,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const [{ data: msgs }, { data: tags }] = await Promise.all([
     sb
       .from("mensagens")
-      .select("id, autor, tipo, conteudo, transcricao, midia_url, midia_mime, status, created_at, usuario_id, wa_message_id, metadata")
+      .select("id, autor, tipo, conteudo, transcricao, midia_url, midia_mime, status, created_at, usuario_id, wa_message_id, metadata, deleted_em, deleted_pra_todos, edited_em, edited_de_conteudo")
       .eq("ticket_id", id)
       .order("created_at", { ascending: true })
       .limit(500),
