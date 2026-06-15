@@ -3,6 +3,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NotificacaoMensagens } from "@/components/layout/NotificacaoMensagens";
 import { HeartbeatOnline } from "@/components/layout/HeartbeatOnline";
+import { AudioGlobalProvider } from "@/components/providers/AudioGlobalProvider";
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
   return (
     <CollapseProvider>
       <PlatformProvider initialConectadas={conectadas}>
+        <AudioGlobalProvider>
         <AppShell>
           <AppSidebar role={usuario.role} />
           <main className="mk-main">
@@ -48,6 +50,7 @@ export default async function DashboardLayout({
             {children}
           </main>
         </AppShell>
+        </AudioGlobalProvider>
       </PlatformProvider>
     </CollapseProvider>
   );

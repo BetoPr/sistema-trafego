@@ -536,7 +536,7 @@ export function ChatView(props: Props) {
                 )}
                 {m.tipo === "audio" ? (
                   m.midia_url ? (
-                    <AudioPlayer midiaPath={m.midia_url} transcricao={m.transcricao} />
+                    <AudioPlayer midiaPath={m.midia_url} transcricao={m.transcricao} rotulo={`${m.autor === "cliente" ? props.contatoNome : "Você"} · áudio`} />
                   ) : (
                     <MidiaPendente mensagem={m} label="Áudio" icone="ti-microphone" />
                   )

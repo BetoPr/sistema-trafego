@@ -77,6 +77,27 @@ export async function POST(
       if (!parsed) return NextResponse.json({ ok: true, skipped: "sem_mensagem" });
       if (parsed.isGroup) return NextResponse.json({ ok: true, skipped: "grupo" });
 
+      // Reaction: NÃO cria nova mensagem — atualiza metadata.reacoes da mensagem alvo
+      if (parsed.reaction) {
+        const { data: alvo } = await sb
+          .from("mensagens")
+          .select("id, metadata")
+          .eq("agencia_id", canal.agencia_id)
+          .eq("wa_message_id", parsed.reaction.targetWaMessageId)
+          .maybeSingle();
+        if (alvo) {
+          const meta = ((alvo.metadata as Record<string, unknown> | null) || {}) as Record<string, unknown>;
+          const reacoes = (meta.reacoes as Record<string, string> | undefined) || {};
+          const chave = parsed.pushName || "Cliente";
+          const emoji = parsed.reaction.emoji;
+          if (emoji) reacoes[chave] = emoji;
+          else delete reacoes[chave];
+          meta.reacoes = reacoes;
+          await sb.from("mensagens").update({ metadata: meta }).eq("id", alvo.id);
+        }
+        return NextResponse.json({ ok: true, reaction: true, targetEncontrado: !!alvo });
+      }
+
       const ingest = await ingestMensagem(
         {
           agenciaId: canal.agencia_id,

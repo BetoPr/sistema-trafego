@@ -74,6 +74,14 @@ export interface ParsedMessage {
     thumbnailUrl?: string;
     ctwaClid?: string;
   } | null;
+  /**
+   * Reação a outra mensagem. Quando preenchida, o webhook NÃO cria nova
+   * mensagem — atualiza metadata.reacoes da mensagem alvo.
+   */
+  reaction: {
+    targetWaMessageId: string;
+    emoji: string;
+  } | null;
   raw: Record<string, unknown>;
 }
 
@@ -160,6 +168,22 @@ export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
 
   // Detecta tipo + conteúdo
   const messageType = pickString(msg, "messageType", "type", "msgtype")?.toLowerCase() || "";
+
+  // Reaction: UAZAPI manda como "reactionMessage" / "reaction". Tem campos
+  // reactionMessage.text (emoji) + reactionMessage.key.id (msg alvo).
+  // Em alguns shapes vem flat: text + reactedMessageId / quoteid.
+  let reaction: ParsedMessage["reaction"] = null;
+  if (messageType.includes("reaction")) {
+    const reactObj = (msg?.reactionMessage as Record<string, unknown> | undefined) || msg;
+    const emoji = pickString(reactObj, "text", "reaction", "emoji") || pickString(msg, "text", "reaction") || "";
+    const keyObj = (reactObj?.key as Record<string, unknown> | undefined) || undefined;
+    const targetId =
+      pickString(reactObj, "reactedMessageId", "quoteid", "targetId", "messageReactedId") ||
+      pickString(keyObj, "id") ||
+      pickString(msg, "reactedMessageId", "quoteid", "messageReactedId") ||
+      "";
+    if (targetId) reaction = { targetWaMessageId: targetId, emoji };
+  }
 
   let tipo: ParsedMessage["tipo"] = "texto";
   let conteudo: string | null = null;
@@ -267,6 +291,7 @@ export function parseMessage(p: UazapiWebhookPayload): ParsedMessage | null {
     conteudo,
     midia,
     adReferral,
+    reaction,
     raw: { message: msg, chat },
   };
 }
