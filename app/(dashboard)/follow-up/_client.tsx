@@ -49,6 +49,7 @@ interface Cand { ticketId: string; numero: number; nome: string; whatsapp: strin
 
 function FollowUpIA() {
   const [horas, setHoras] = useState(12);
+  const [limite, setLimite] = useState(40);
   const [delayMin, setDelayMin] = useState(30);
   const [delayMax, setDelayMax] = useState(60);
   const [loading, setLoading] = useState(false);
@@ -64,7 +65,7 @@ function FollowUpIA() {
   async function buscar() {
     setLoading(true); setErro(""); setCands(null); setAnalisando(null);
     try {
-      const r = await fetch("/api/follow-up/ia/verificar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horas }) });
+      const r = await fetch("/api/follow-up/ia/verificar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horas, limite }) });
       const j = await r.json();
       if (!j.ok) { setErro(j.error || "Falha"); return; }
       const lista: Cand[] = (j.candidatos || []).map((c: Cand) => ({ ...c, enviar: false, motivo: "", resumo: "", mensagem: "", _analisado: false }));
@@ -135,6 +136,7 @@ function FollowUpIA() {
       <div className="mk-card" style={{ padding: 14, marginBottom: 14 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
           <Campo label="Conversas paradas há (horas)"><input type="number" min={1} value={horas} onChange={(e) => setHoras(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
+          <Campo label="Limite (quantas trazer)"><input type="number" min={1} max={200} value={limite} onChange={(e) => setLimite(Math.max(1, Math.min(200, +e.target.value)))} style={{ ...inp, width: 110 }} /></Campo>
           <Campo label="Delay min (s)"><input type="number" min={0} value={delayMin} onChange={(e) => setDelayMin(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
           <Campo label="Delay máx (s)"><input type="number" min={0} value={delayMax} onChange={(e) => setDelayMax(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
           <button className="cta-btn" onClick={buscar} disabled={loading || !!analisando}>

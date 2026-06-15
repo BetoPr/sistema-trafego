@@ -20,8 +20,9 @@ export async function POST(req: Request) {
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
-  const body = (await req.json().catch(() => ({}))) as { horas?: number };
+  const body = (await req.json().catch(() => ({}))) as { horas?: number; limite?: number };
   const horas = Math.max(1, Math.min(720, Number(body.horas) || 12));
+  const limite = Math.max(1, Math.min(200, Number(body.limite) || 40));
 
   const agora = Date.now();
   const ate = new Date(agora - horas * 3600000).toISOString();
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     .lte("ultima_mensagem_em", ate)
     .gte("ultima_mensagem_em", desde)
     .order("ultima_mensagem_em", { ascending: false })
-    .limit(40);
+    .limit(limite);
 
   const candidatos = (tickets || []).map((t) => {
     const c = Array.isArray(t.contato) ? t.contato[0] : t.contato;
