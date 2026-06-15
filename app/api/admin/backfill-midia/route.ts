@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     .eq("agencia_id", u.agencia_id)
     .is("midia_url", null)
     .in("tipo", ["audio", "imagem", "video", "documento", "sticker"])
+    .or("metadata->midia_perdida.is.null,metadata->>midia_perdida.eq.false")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (body?.ticketId) q = q.eq("ticket_id", body.ticketId);
@@ -112,6 +113,7 @@ export async function GET(req: Request) {
     .select("id", { count: "exact", head: true })
     .eq("agencia_id", u.agencia_id)
     .is("midia_url", null)
-    .in("tipo", ["audio", "imagem", "video", "documento", "sticker"]);
+    .in("tipo", ["audio", "imagem", "video", "documento", "sticker"])
+    .or("metadata->midia_perdida.is.null,metadata->>midia_perdida.eq.false");
   return NextResponse.json({ pendentes: count || 0 });
 }

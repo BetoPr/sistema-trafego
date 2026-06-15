@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
     .select("id, agencia_id, ticket_id, tipo, wa_message_id, created_at, metadata, ticket:tickets(canal_id)")
     .is("midia_url", null)
     .in("tipo", ["audio", "imagem", "video", "documento", "sticker"])
+    .or("metadata->midia_perdida.is.null,metadata->>midia_perdida.eq.false")
     .order("created_at", { ascending: false })
     .limit(60);
 
