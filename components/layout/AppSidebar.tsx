@@ -105,6 +105,7 @@ function buildSections(role?: string): NavSection[] {
       items: [
         { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
         { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
+        { href: "/super-admin/acessos", label: "Acessos", icon: "ti-shield-lock" },
       ],
     });
   }

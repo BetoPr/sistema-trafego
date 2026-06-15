@@ -18,29 +18,21 @@ const DIAS = [
   { id: "sab", nome: "Sábado" },
 ];
 
+// Apenas funções que existem no CRM hoje. Adicionar aqui quando criar nova função.
 const PERMS_LABEL: Record<string, string> = {
-  envio_massa: "Envio em Massa",
-  grupos: "Grupos",
-  chat_privado: "Chat Privado",
-  kanban: "Kanban",
-  tarefas: "Tarefas",
-  sessoes: "Sessões",
-  relatorios: "Relatórios",
+  atendimentos: "Atendimentos",
+  contatos: "Contatos",
+  etiquetas: "Etiquetas",
+  mensagens_rapidas: "Mensagens Rápidas",
+  canais: "Canais (WhatsApp)",
   filas: "Filas",
   equipes: "Equipes",
-  mensagens_rapidas: "Mensagens Rápidas",
-  chatbot: "Chatbot",
-  agendamentos: "Agendamentos",
-  aniversarios: "Aniversários",
-  fechamento: "Fechamento",
-  etiquetas: "Etiquetas",
-  notas: "Notas",
-  protocolos: "Protocolos",
-  avaliacoes: "Avaliações",
-  horario_atendimento: "Horário Atendimento",
-  campanhas: "Campanhas",
-  contatos: "Contatos",
-  google_calendar: "Google Calendar",
+  follow_up: "Follow-up",
+  cobrancas: "Cobranças",
+  relatorios: "Relatórios",
+  ia: "IA & Prompts",
+  webhooks: "Webhooks",
+  configuracoes: "Configurações",
 };
 
 export default async function UsuariosPage({ searchParams }: PageProps) {
