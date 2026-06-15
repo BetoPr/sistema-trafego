@@ -125,3 +125,84 @@ export async function restaurarAcesso(formData: FormData) {
   revalidatePath("/super-admin/acessos");
   redirect("/super-admin/acessos?ok=restaurado");
 }
+
+// --- COBRANÇAS ---
+
+import { dispararCobranca, marcarPago as mp, estenderVencimento as ev } from "@/lib/super-admin/cobrancas";
+
+export async function cobrarAgencia(formData: FormData) {
+  const ctx = await requireRole("super_admin");
+  const agenciaId = String(formData.get("agencia_id") || "");
+  if (!agenciaId) redirect("/super-admin/acessos?erro=id");
+  const r = await dispararCobranca({ agenciaId, motivo: "manual" });
+  await audit({ agenciaId, usuarioId: ctx.userId, acao: "cobrar", entidade: "agencia", entidadeId: agenciaId, payload: r as unknown as Record<string, unknown> });
+  revalidatePath("/super-admin/acessos");
+  if (r.ok) redirect("/super-admin/acessos?ok=cobranca_enviada");
+  redirect(`/super-admin/acessos?erro=cobranca&msg=${encodeURIComponent(r.motivo || r.erro || "Falha")}`);
+}
+
+export async function marcarPagoAgencia(formData: FormData) {
+  const ctx = await requireRole("super_admin");
+  const agenciaId = String(formData.get("agencia_id") || "");
+  const meses = Math.max(1, parseInt(String(formData.get("meses") || "1"), 10));
+  if (!agenciaId) redirect("/super-admin/acessos?erro=id");
+  const r = await mp(agenciaId, meses);
+  await audit({ agenciaId, usuarioId: ctx.userId, acao: "marcar_pago", entidade: "agencia", entidadeId: agenciaId, payload: { meses, vencimento_em: r.vencimento_em } });
+  revalidatePath("/super-admin/acessos");
+  redirect("/super-admin/acessos?ok=pago_marcado");
+}
+
+export async function estenderVencimentoAgencia(formData: FormData) {
+  const ctx = await requireRole("super_admin");
+  const agenciaId = String(formData.get("agencia_id") || "");
+  const meses = Math.max(1, parseInt(String(formData.get("meses") || "1"), 10));
+  if (!agenciaId) redirect("/super-admin/acessos?erro=id");
+  const r = await ev(agenciaId, meses);
+  await audit({ agenciaId, usuarioId: ctx.userId, acao: "estender_vencimento", entidade: "agencia", entidadeId: agenciaId, payload: { meses, vencimento_em: r.vencimento_em } });
+  revalidatePath("/super-admin/acessos");
+  redirect("/super-admin/acessos?ok=vencimento_estendido");
+}
+
+export async function atualizarCobrancaAgencia(formData: FormData) {
+  const ctx = await requireRole("super_admin");
+  const agenciaId = String(formData.get("agencia_id") || "");
+  if (!agenciaId) redirect("/super-admin/acessos?erro=id");
+  const sb = createServiceClient();
+  const valorRaw = String(formData.get("valor_mensal") || "").replace(",", ".").trim();
+  const valor = valorRaw ? Number(valorRaw) : null;
+  const whats = String(formData.get("whatsapp_cobranca") || "").trim() || null;
+  const venc = String(formData.get("vencimento_em") || "").trim() || null;
+  const cobrancaAtiva = formData.get("cobranca_ativa") === "on";
+  const acessoBloqueado = formData.get("acesso_bloqueado") === "on";
+
+  const patch: Record<string, unknown> = {
+    cobranca_ativa: cobrancaAtiva,
+    acesso_bloqueado: acessoBloqueado,
+  };
+  if (valor !== null && !isNaN(valor)) patch.valor_mensal = valor;
+  if (whats !== null) patch.whatsapp_cobranca = whats;
+  if (venc !== null) patch.vencimento_em = venc;
+
+  const { error } = await sb.from("agencias").update(patch).eq("id", agenciaId);
+  if (error) redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(error.message)}`);
+  await audit({ agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "agencia_cobranca", entidadeId: agenciaId, payload: patch });
+  revalidatePath("/super-admin/acessos");
+  redirect("/super-admin/acessos?ok=cobranca_atualizada");
+}
+
+export async function atualizarConfigCobranca(formData: FormData) {
+  const ctx = await requireRole("super_admin");
+  const sb = createServiceClient();
+  const canalId = String(formData.get("canal_id") || "").trim() || null;
+  const template = String(formData.get("template_texto") || "").trim();
+  const horario = String(formData.get("horario") || "09:00:00").trim();
+  const patch: Record<string, unknown> = { atualizado_em: new Date().toISOString() };
+  if (canalId) patch.canal_id = canalId;
+  if (template) patch.template_texto = template;
+  if (horario) patch.horario = horario;
+  const { error } = await sb.from("super_admin_cobranca_config").update(patch).eq("id", 1);
+  if (error) redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(error.message)}`);
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "super_admin_cobranca_config", entidadeId: "1", payload: patch });
+  revalidatePath("/super-admin/acessos");
+  redirect("/super-admin/acessos?ok=config_atualizada");
+}

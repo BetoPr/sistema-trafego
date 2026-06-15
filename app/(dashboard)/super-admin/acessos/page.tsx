@@ -3,6 +3,7 @@ import { requireSuperAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { criarAcesso, atualizarAcesso } from "./_actions";
 import { TabelaAcessos } from "./_tabela";
+import { CobrancasBloco, type AgenciaCobranca, type CanalOpcao } from "./_cobrancas";
 
 // Apenas funções que existem no CRM hoje.
 const PERMS_LABEL: Record<string, string> = {
@@ -30,12 +31,56 @@ export default async function AcessosPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const [{ data: usuarios }, { data: agencias }] = await Promise.all([
+  const [{ data: usuarios }, { data: agencias }, { data: cobrancaConfig }, { data: canaisRaw }, { data: ultimasCobrancas }] = await Promise.all([
     sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, created_at, deleted_at").order("nome"),
-    sb.from("agencias").select("id, nome").order("nome"),
+    sb.from("agencias").select("id, nome, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado").order("nome"),
+    sb.from("super_admin_cobranca_config").select("canal_id, horario, template_texto, ativo").eq("id", 1).maybeSingle(),
+    sb.from("canais").select("id, nome, numero_conectado, status, agencia_id").order("nome"),
+    sb
+      .from("super_admin_cobrancas_log")
+      .select("agencia_id, status, enviada_em")
+      .order("enviada_em", { ascending: false })
+      .limit(500),
   ]);
 
   const agenciaPorId = new Map((agencias || []).map((a) => [a.id, a.nome] as const));
+
+  // Última cobrança por agência (dedup)
+  const ultimaPorAgencia = new Map<string, { status: string; enviada_em: string }>();
+  for (const c of (ultimasCobrancas || []) as Array<{ agencia_id: string; status: string; enviada_em: string }>) {
+    if (!ultimaPorAgencia.has(c.agencia_id)) {
+      ultimaPorAgencia.set(c.agencia_id, { status: c.status, enviada_em: c.enviada_em });
+    }
+  }
+
+  const agenciasCobranca: AgenciaCobranca[] = (agencias || []).map((a) => {
+    const u = ultimaPorAgencia.get(a.id);
+    return {
+      id: a.id as string,
+      nome: a.nome as string,
+      valor_mensal: a.valor_mensal as number | null,
+      vencimento_em: a.vencimento_em as string | null,
+      ultimo_pagamento_em: a.ultimo_pagamento_em as string | null,
+      whatsapp_cobranca: a.whatsapp_cobranca as string | null,
+      cobranca_ativa: !!a.cobranca_ativa,
+      acesso_bloqueado: !!a.acesso_bloqueado,
+      ultima_cobranca_status: (u?.status as AgenciaCobranca["ultima_cobranca_status"]) || null,
+      ultima_cobranca_em: u?.enviada_em || null,
+    };
+  });
+
+  // Canais filtrados ao super_admin (canais do Roberto = canais da agência do super_admin atual)
+  // Como Roberto pode ter mais de um, mostra todos os canais conectados ou da sua agência
+  const canais: CanalOpcao[] = ((canaisRaw || []) as Array<{ id: string; nome: string; numero_conectado: string | null; status: string }>).map((c) => ({
+    id: c.id, nome: c.nome, numero_conectado: c.numero_conectado, status: c.status,
+  }));
+
+  const config = (cobrancaConfig || { canal_id: null, horario: "09:00:00", template_texto: "", ativo: true }) as {
+    canal_id: string | null;
+    horario: string;
+    template_texto: string;
+    ativo: boolean;
+  };
   const editando = sp.editar ? usuarios?.find((u) => u.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
 
@@ -164,6 +209,10 @@ export default async function AcessosPage({ searchParams }: PageProps) {
         </div>
       )}
 
+      {!mostrarForm && (
+        <CobrancasBloco agencias={agenciasCobranca} config={config} canais={canais} />
+      )}
+
       <TabelaAcessos
         usuarios={((usuarios || []) as Array<{ id: string; nome: string; email: string; role: "atendente" | "admin" | "super_admin"; ativo: boolean; agencia_id: string; ultimo_login: string | null; deleted_at: string | null }>)}
         agenciaPorId={Object.fromEntries(agenciaPorId.entries())}
@@ -181,8 +230,8 @@ function Stat({ label, valor, cor }: { label: string; valor: string; cor?: strin
   );
 }
 
-function labelOk(k: string) { return ({ criado: "Acesso criado.", atualizado: "Atualizado.", alterado: "Status alterado.", deletado: "Excluído.", restaurado: "Restaurado." } as Record<string, string>)[k] || "OK."; }
-function labelErr(k: string) { return ({ campos: "Campos obrigatórios.", senha_curta: "Senha precisa ter 6+ caracteres.", auth: "Erro de autenticação.", db: "Erro no banco.", id: "ID inválido." } as Record<string, string>)[k] || "Erro."; }
+function labelOk(k: string) { return ({ criado: "Acesso criado.", atualizado: "Atualizado.", alterado: "Status alterado.", deletado: "Excluído.", restaurado: "Restaurado.", cobranca_enviada: "Cobrança enviada.", pago_marcado: "Pagamento registrado. Vencimento atualizado.", vencimento_estendido: "Vencimento estendido.", cobranca_atualizada: "Cobrança da agência atualizada.", config_atualizada: "Config de envio salva." } as Record<string, string>)[k] || "OK."; }
+function labelErr(k: string) { return ({ campos: "Campos obrigatórios.", senha_curta: "Senha precisa ter 6+ caracteres.", auth: "Erro de autenticação.", db: "Erro no banco.", id: "ID inválido.", cobranca: "Falha no envio da cobrança." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
   const cor = tipo === "ok" ? "#10b981" : "#C97064";

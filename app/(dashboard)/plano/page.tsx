@@ -12,62 +12,67 @@ const FAQS: FAQ[] = [
   {
     pergunta: "Quantos canais WhatsApp posso conectar?",
     resposta:
-      "Ilimitados. Cada conexão de número (Business ou comum) cobra R$ 29/mês. Os canais aparecem no atendimento, envio em massa e cobrança — todos no mesmo painel.",
+      "Ilimitados. Cada conexão de número (Business ou comum) cobra R$ 29/mês. Os canais aparecem no atendimento e envio em massa — tudo no mesmo painel.",
   },
   {
     pergunta: "O sistema importa meus contatos e etiquetas do WhatsApp Business?",
     resposta:
-      "Sim. Em Contatos → Importar do WhatsApp, o sistema puxa todos os contatos que já trocaram mensagem com o número conectado + todas as etiquetas (com a cor original do Business). Idempotente: rodar de novo não duplica.",
+      "Sim. Em Contatos → Importar do WhatsApp, o sistema puxa todos os contatos que já trocaram mensagem com o número conectado + todas as etiquetas com a cor original do Business. Idempotente: rodar de novo não duplica.",
   },
   {
     pergunta: "Como funciona a IA no atendimento?",
     resposta:
-      "Análise de sentimento por conversa (bom/neutro/ruim) com whisper para áudios. No Dashboard, o botão Copiar Prompt gera um relatório HTML pronto pra ChatGPT/Claude com KPIs, conversas críticas e recomendações — você cola e tem análise estratégica em segundos.",
+      "Análise de sentimento por conversa (bom/neutro/ruim) e transcrição de áudio via Whisper. No Dashboard, o botão Copiar Prompt gera um prompt pronto com KPIs, conversas críticas e recomendações pra você colar no ChatGPT/Claude e ter análise estratégica em segundos.",
   },
   {
     pergunta: "Tem follow-up automático?",
     resposta:
-      "Sim, em dois sabores: (1) sequências por etiqueta — assim que uma etiqueta é aplicada, dispara uma cadência de mensagens com delay anti-ban e quiet hours; (2) follow-up avulso por contato — agenda 1 a 3 mensagens em rajada (intervalo mínimo de 2s) pra disparar em data/hora específica. Os dois cancelam sozinhos se o cliente responder antes.",
-  },
-  {
-    pergunta: "Cliente entrou pelo anúncio do Instagram/Facebook, o sistema sabe?",
-    resposta:
-      "Sim. O parser captura referral de CTWA (Click-to-WhatsApp) e mostra no topo do chat o card com nome da campanha, criativo, plataforma. Permite atribuir vendas a anúncios específicos.",
+      "Sim, em dois modos: (1) sequências por etiqueta — assim que uma etiqueta é aplicada num contato, dispara uma cadência de mensagens com delay anti-ban e janela horária; (2) follow-up avulso por contato — agenda 1 a 3 mensagens em rajada (intervalo mínimo de 2s entre cada) pra disparar em data/hora específica. Os dois cancelam sozinhos se o cliente responder antes do disparo.",
   },
   {
     pergunta: "Posso enviar em massa sem ser banido?",
     resposta:
-      "Sim. Envio em Massa tem janela horária, delay aleatório entre mensagens, teto diário e variações de texto. Combinado com o número Business em boa reputação, fica bem mais seguro que ferramentas de disparo cru.",
+      "Sim. Envio em Massa tem janela horária configurável, delay aleatório entre mensagens, teto diário e variações de texto pra reduzir padrão. Combinado com número Business em boa reputação, fica bem mais seguro que ferramentas de disparo cru.",
   },
   {
     pergunta: "Quantos atendentes posso ter?",
     resposta:
-      "Ilimitados. Cria em Usuários, divide em Filas/Equipes, controla permissões. Cada um vê só os tickets atribuídos ou da fila dele.",
+      "Ilimitados. Cria em Usuários, divide em Filas/Equipes, controla permissões por menu. Cada atendente vê só os tickets atribuídos ou da fila dele.",
   },
   {
     pergunta: "Reações do WhatsApp aparecem certinho?",
     resposta:
-      "Sim. Quando você ou o cliente reage a uma mensagem pelo WhatsApp Business, a reação anexa na mensagem original em vez de criar uma nova. No CRM, dá pra reagir com qualquer emoji clicando direto na mensagem.",
+      "Sim. Quando você ou o cliente reage a uma mensagem pelo WhatsApp Business, a reação anexa direto na mensagem original — não vira mensagem nova. No CRM, dá pra reagir com qualquer emoji clicando direto na mensagem.",
   },
   {
-    pergunta: "Tem dashboard com métricas reais?",
+    pergunta: "Tenho controle financeiro das vendas?",
     resposta:
-      "Sim. Vendas fechadas, ticket médio, conversões por etiqueta, sentimento agregado, ROI de campanhas Meta Ads (sync nativo) — tudo filtrável por período e serviço. Exporta PDF/Excel.",
+      "Sim. Cada fechamento vira um ticket fechado com valor, serviço e quantidade. Dashboard agrega total, ticket médio, conversões e ranking de serviços — tudo filtrável por período. Exporta CSV pra contabilidade.",
   },
   {
     pergunta: "O sistema funciona como app no celular?",
     resposta:
-      "Sim. É PWA instalável: abre no Chrome do Android ou Safari do iPhone → Adicionar à Tela Inicial → vira app standalone com ícone e splash screen.",
+      "Sim. É PWA instalável: abre no Chrome do Android ou Safari do iPhone → Adicionar à Tela Inicial → vira app standalone com ícone e splash screen, sem precisar de Play Store.",
   },
   {
-    pergunta: "Posso recuperar um cliente excluído?",
+    pergunta: "Posso recuperar um usuário excluído?",
     resposta:
-      "Sim. Exclusão é soft delete — fica no filtro Excluídos com botão Restaurar. Mesmo um usuário deletado pode voltar sem perder histórico.",
+      "Sim. Toda exclusão é soft delete — fica no filtro Excluídos com botão Restaurar. Mesmo um usuário deletado pode voltar sem perder histórico de ações.",
+  },
+  {
+    pergunta: "Mensagens rápidas pra respostas frequentes?",
+    resposta:
+      "Sim. Cadastra atalhos em Mensagens Rápidas com texto + mídia anexada. Durante o atendimento, digita o atalho e a resposta vai inteira (com a mídia). Salva minutos por dia.",
+  },
+  {
+    pergunta: "E se a mídia do WhatsApp não baixar?",
+    resposta:
+      "O sistema tem 3 camadas de retry: tentativa no webhook + cron de backoff (5min, 30min) + botão manual ilimitado por mensagem. Após muitas falhas marca como 'perdida' e ainda permite re-tentativa quando o cliente reenviar.",
   },
   {
     pergunta: "Como funciona a cobrança da assinatura?",
     resposta:
-      "R$ 29 por mês por número conectado. Cobrança mensal no dia que combinarmos (você escolhe). Notificação de vencimento direto no seu WhatsApp.",
+      "R$ 29 por mês por número conectado. Cobrança mensal no dia que combinarmos (você escolhe). Notificação de vencimento direto no seu WhatsApp 1 dia antes do vencimento. Pagamento via PIX manual por enquanto.",
   },
 ];
 
@@ -121,7 +126,17 @@ export default async function PlanoPage() {
               {proxima ? `Próxima cobrança em ${proxima}` : "Dia de cobrança ainda não definido — fale com o super admin"}
             </div>
           </div>
-          <a href="https://wa.me/5511999999999?text=Quero%20mudar%20meu%20plano" target="_blank" rel="noopener noreferrer" className="ghost-btn" style={{ color: "#F5EFE4", borderColor: "rgba(245,239,228,0.3)" }}>Mudar plano</a>
+          <a
+            href={`https://wa.me/5581991594716?text=${encodeURIComponent("Olá! Quero pagar minha mensalidade do Sonar CRM.")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cta-btn"
+            style={{ fontSize: 13, padding: "10px 18px" }}
+            title="Abre WhatsApp do administrador para pagamento"
+          >
+            <i className="ti ti-brand-whatsapp" style={{ marginRight: 6, color: "#25D366" }} />
+            Pagar plano
+          </a>
         </div>
       </div>
 
