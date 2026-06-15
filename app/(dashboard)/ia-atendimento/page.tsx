@@ -19,14 +19,23 @@ const MODELOS: Record<string, Array<{ id: string; nome: string }>> = {
     { id: "claude-haiku-4-5-20251001", nome: "Claude Haiku 4.5 (rápido, barato)" },
     { id: "claude-sonnet-4-6", nome: "Claude Sonnet 4.6 (equilibrado)" },
     { id: "claude-opus-4-8", nome: "Claude Opus 4.8 (mais inteligente)" },
+    { id: "claude-fable-5", nome: "Claude Fable 5 (criativo)" },
   ],
   openai: [
     { id: "gpt-4o-mini", nome: "GPT-4o mini (rápido, barato)" },
-    { id: "gpt-4o", nome: "GPT-4o (mais inteligente)" },
+    { id: "gpt-4o", nome: "GPT-4o (padrão)" },
+    { id: "gpt-4.1", nome: "GPT-4.1 (avançado)" },
+    { id: "gpt-4.1-mini", nome: "GPT-4.1 mini" },
+    { id: "gpt-4.1-nano", nome: "GPT-4.1 nano (ultra rápido)" },
+    { id: "o1", nome: "o1 (raciocínio)" },
+    { id: "o1-mini", nome: "o1 mini" },
+    { id: "o3-mini", nome: "o3 mini (reasoning rápido)" },
   ],
   groq: [
     { id: "llama-3.3-70b-versatile", nome: "Llama 3.3 70B (gratuito*)" },
     { id: "llama-3.1-8b-instant", nome: "Llama 3.1 8B (mais rápido)" },
+    { id: "qwen-2.5-32b", nome: "Qwen 2.5 32B" },
+    { id: "deepseek-r1-distill-llama-70b", nome: "DeepSeek R1 Distill (raciocínio)" },
   ],
 };
 
@@ -45,11 +54,12 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const [{ data: perfis }, { data: canais }, { data: filas }, { data: etiquetas }] = await Promise.all([
-    sb.from("ia_atendimento_perfis").select("id, nome, descricao, ativo, modelo, provider, created_at").eq("agencia_id", ctx.agenciaId).order("nome"),
+  const [{ data: perfis }, { data: canais }, { data: filas }, { data: etiquetas }, { data: templates }] = await Promise.all([
+    sb.from("ia_atendimento_perfis").select("id, nome, descricao, ativo, modelo, provider, created_at").eq("agencia_id", ctx.agenciaId).eq("eh_template", false).order("nome"),
     sb.from("canais").select("id, nome, status, numero_conectado").eq("agencia_id", ctx.agenciaId).order("nome"),
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
     sb.from("etiquetas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
+    sb.from("ia_atendimento_perfis").select("id, nome, descricao, template_tipo, modelo, provider").is("agencia_id", null).eq("eh_template", true).order("nome"),
   ]);
 
   const editando = sp.editar ? perfis?.find((p) => p.id === sp.editar) : null;
@@ -58,13 +68,16 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   // Detalhes do perfil editando
   let perfilDetalhe: Record<string, unknown> | null = null;
   let ferramentas: Array<{ id: string; nome: string; descricao: string; acao: string; parametros: Record<string, unknown>; ativo: boolean }> = [];
+  let logs: Array<{ id: string; evento: string; modelo: string | null; tokens_in: number | null; tokens_out: number | null; payload: Record<string, unknown> | null; erro: string | null; created_at: string }> = [];
   if (editando) {
-    const [{ data: p }, { data: fs }] = await Promise.all([
+    const [{ data: p }, { data: fs }, { data: lgs }] = await Promise.all([
       sb.from("ia_atendimento_perfis").select("*").eq("id", editando.id).single(),
       sb.from("ia_atendimento_ferramentas").select("id, nome, descricao, acao, parametros, ativo").eq("perfil_id", editando.id).order("nome"),
+      sb.from("ia_atendimento_log").select("id, evento, modelo, tokens_in, tokens_out, payload, erro, created_at").eq("perfil_id", editando.id).order("created_at", { ascending: false }).limit(50),
     ]);
     perfilDetalhe = p as Record<string, unknown>;
     ferramentas = (fs || []) as typeof ferramentas;
+    logs = (lgs || []) as typeof logs;
   }
 
   return (
@@ -103,6 +116,8 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           filas={(filas || []) as Array<{ id: string; nome: string; cor: string }>}
           etiquetas={(etiquetas || []) as Array<{ id: string; nome: string; cor: string }>}
           ferramentas={ferramentas}
+          templates={(templates || []) as Array<{ id: string; nome: string; descricao: string | null; template_tipo: string | null }>}
+          logs={logs}
         />
       )}
 
@@ -170,13 +185,15 @@ interface PerfilDetalhe {
 }
 
 function PerfilForm({
-  editando, canais, filas, etiquetas, ferramentas,
+  editando, canais, filas, etiquetas, ferramentas, templates, logs,
 }: {
   editando: PerfilDetalhe | null;
   canais: Array<{ id: string; nome: string; status: string; numero_conectado: string | null }>;
   filas: Array<{ id: string; nome: string; cor: string }>;
   etiquetas: Array<{ id: string; nome: string; cor: string }>;
   ferramentas: Array<{ id: string; nome: string; descricao: string; acao: string; parametros: Record<string, unknown>; ativo: boolean }>;
+  templates: Array<{ id: string; nome: string; descricao: string | null; template_tipo: string | null }>;
+  logs: Array<{ id: string; evento: string; modelo: string | null; tokens_in: number | null; tokens_out: number | null; payload: Record<string, unknown> | null; erro: string | null; created_at: string }>;
 }) {
   const provider = (editando?.provider as string) || "anthropic";
   const canaisAtivos = new Set(editando?.canais_ativos || []);
@@ -188,6 +205,32 @@ function PerfilForm({
       <h3 className="card-title" style={{ marginBottom: 14 }}>{editando ? `Editar — ${editando.nome}` : "Novo perfil de IA"}</h3>
       <form action={editando ? atualizarPerfilIA : criarPerfilIA} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {editando && <input type="hidden" name="id" value={editando.id} />}
+
+        {!editando && templates.length > 0 && (
+          <fieldset style={{ ...fs, background: "rgba(155,125,191,0.08)", border: "0.5px solid rgba(155,125,191,0.3)" }}>
+            <legend style={{ ...legend, color: "#9B7DBF" }}>🎨 Aplicar template (opcional)</legend>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
+              <label style={{ ...templateCard, borderColor: "var(--mk-border)" }}>
+                <input type="radio" name="template_id" value="" defaultChecked style={{ display: "none" }} />
+                <i className="ti ti-pencil" style={{ color: "var(--mk-text-muted)" }} />
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>Em branco</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>Configurar do zero</div>
+                </div>
+              </label>
+              {templates.map((t) => (
+                <label key={t.id} style={templateCard}>
+                  <input type="radio" name="template_id" value={t.id} style={{ display: "none" }} />
+                  <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.nome}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{t.descricao}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <div style={grid2}>
           <Field label="Nome do perfil" name="nome" defaultValue={editando?.nome ?? ""} required placeholder="Ex: Atendente Vendas" />
@@ -278,6 +321,23 @@ function PerfilForm({
           </div>
         </fieldset>
 
+        <fieldset style={{ ...fs, background: "rgba(245,158,11,0.06)", border: "0.5px solid rgba(245,158,11,0.3)" }}>
+          <legend style={{ ...legend, color: "#f59e0b" }}>🧪 Modo teste — Whitelist de números</legend>
+          <div>
+            <label style={lbl}>WhatsApp autorizados (1 por linha)</label>
+            <textarea
+              name="whatsapp_teste_lista"
+              rows={3}
+              defaultValue={(((editando as unknown as { whatsapp_teste_lista?: string[] })?.whatsapp_teste_lista) || []).join("\n")}
+              style={{ ...inp, resize: "vertical", fontFamily: "monospace", fontSize: 12 }}
+              placeholder="5581991594716"
+            />
+            <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 4 }}>
+              <strong style={{ color: "#f59e0b" }}>Vazio = todos os contatos (modo produção).</strong> Coloque seu número aqui pra testar sem afetar clientes reais.
+            </div>
+          </div>
+        </fieldset>
+
         <fieldset style={fs}>
           <legend style={legend}>Onde a IA atua</legend>
           <div>
@@ -326,6 +386,61 @@ function PerfilForm({
 
       {editando && (
         <FerramentasBloco perfilId={editando.id} ferramentas={ferramentas} etiquetas={etiquetas} filas={filas} />
+      )}
+
+      {editando && (
+        <LogsBloco logs={logs} />
+      )}
+    </div>
+  );
+}
+
+function LogsBloco({ logs }: { logs: Array<{ id: string; evento: string; modelo: string | null; tokens_in: number | null; tokens_out: number | null; payload: Record<string, unknown> | null; erro: string | null; created_at: string }> }) {
+  const corPorEvento: Record<string, string> = {
+    resposta: "#10b981",
+    tool_call: "#9B7DBF",
+    erro: "#C97064",
+    pausa_humano: "#f59e0b",
+    encerrado: "#94a3b8",
+  };
+  return (
+    <div style={{ marginTop: 24, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
+      <h3 className="card-title" style={{ marginBottom: 14 }}>
+        <i className="ti ti-history" style={{ color: "#9B7DBF", marginRight: 6 }} /> Histórico da IA (últimas 50 ações)
+      </h3>
+      {logs.length === 0 ? (
+        <div style={{ padding: 14, color: "var(--mk-text-muted)", fontSize: 12, textAlign: "center", border: "0.5px dashed var(--mk-border)", borderRadius: 8 }}>
+          IA ainda não foi acionada. Quando receber uma msg de um número da whitelist (ou qualquer um se whitelist vazia), o log aparece aqui.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 400, overflowY: "auto" }}>
+          {logs.map((l) => {
+            const cor = corPorEvento[l.evento] || "#94a3b8";
+            const payload = (l.payload || {}) as Record<string, unknown>;
+            return (
+              <div key={l.id} style={{ padding: "8px 12px", borderLeft: `3px solid ${cor}`, background: "var(--mk-surface)", borderRadius: 6, fontSize: 11.5 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 999, background: `${cor}22`, color: cor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>{l.evento}</span>
+                  <span style={{ color: "var(--mk-text-muted)" }}>{new Date(l.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
+                  {l.modelo && <span style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>· {l.modelo}</span>}
+                  {(l.tokens_in || l.tokens_out) ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>· {l.tokens_in}↓ / {l.tokens_out}↑ tokens</span> : null}
+                </div>
+                {l.evento === "resposta" && payload.texto ? (
+                  <div style={{ marginTop: 4, padding: "6px 10px", background: "var(--mk-surface-2)", borderRadius: 4, color: "var(--mk-text)", fontSize: 11.5 }}>
+                    {String(payload.texto).slice(0, 280)}{String(payload.texto).length > 280 ? "…" : ""}
+                  </div>
+                ) : null}
+                {l.evento === "tool_call" ? (
+                  <div style={{ marginTop: 4, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+                    <strong style={{ color: "#9B7DBF" }}>{String(payload.tool || "?")}</strong>
+                    {payload.resultado ? <span> → {String(payload.resultado)}</span> : null}
+                  </div>
+                ) : null}
+                {l.erro && <div style={{ marginTop: 4, color: "#C97064", fontSize: 11 }}>⚠ {l.erro}</div>}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -461,3 +576,4 @@ const grid2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 
 const grid3: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 };
 const fs: React.CSSProperties = { border: "0.5px solid var(--mk-border)", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 10 };
 const legend: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, padding: "0 6px", color: "var(--mk-text-secondary)" };
+const templateCard: React.CSSProperties = { display: "flex", gap: 8, padding: "10px 12px", borderRadius: 8, border: "0.5px solid rgba(155,125,191,0.4)", background: "var(--mk-surface)", cursor: "pointer", alignItems: "flex-start" };

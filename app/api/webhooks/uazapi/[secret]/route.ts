@@ -178,6 +178,25 @@ export async function POST(
         })();
       }
 
+      // Hook IA Atendimento: se msg veio do cliente (não fromMe), adiciona ao buffer
+      if (!parsed.fromMe && !parsed.isGroup) {
+        void (async () => {
+          try {
+            const { adicionarAoBuffer } = await import("@/lib/ia-atendimento/executor");
+            await adicionarAoBuffer({
+              ticketId: ingest.ticketId,
+              agenciaId: canal.agencia_id,
+              canalId: canal.id,
+              contatoId: ingest.contatoId,
+              conteudo: parsed.conteudo || parsed.midia?.caption || `[${parsed.tipo}]`,
+              tipo: parsed.tipo,
+            });
+          } catch (e) {
+            console.error("[webhook uazapi] IA buffer falhou:", e);
+          }
+        })();
+      }
+
       return NextResponse.json({
         ok: true,
         ticket: ingest.ticketNumero,

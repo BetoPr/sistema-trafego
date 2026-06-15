@@ -28,9 +28,32 @@ export async function criarPerfilIA(formData: FormData) {
   const nome = String(formData.get("nome") || "").trim();
   if (!nome) redirect(`${ROUTE}?erro=nome`);
 
+  // Aplicar template? Carrega prompt/modelo do template
+  const templateId = String(formData.get("template_id") || "").trim();
+  let templatePrompt = "";
+  let templateModelo = "";
+  let templateProvider = "";
+  if (templateId) {
+    const { data: tpl } = await sb
+      .from("ia_atendimento_perfis")
+      .select("prompt_sistema, modelo, provider, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg")
+      .eq("id", templateId)
+      .eq("eh_template", true)
+      .maybeSingle();
+    if (tpl) {
+      templatePrompt = tpl.prompt_sistema || "";
+      templateModelo = tpl.modelo || "";
+      templateProvider = tpl.provider || "";
+    }
+  }
+
   const apiKey = String(formData.get("api_key") || "").trim();
-  const provider = String(formData.get("provider") || "anthropic");
-  const modelo = String(formData.get("modelo") || "claude-haiku-4-5-20251001");
+  const provider = String(formData.get("provider") || templateProvider || "anthropic");
+  const modelo = String(formData.get("modelo") || templateModelo || "claude-haiku-4-5-20251001");
+
+  const promptFinal = (String(formData.get("prompt_sistema") || "").trim()) || templatePrompt;
+  const whitelistRaw = String(formData.get("whatsapp_teste_lista") || "");
+  const whitelist = whitelistRaw.split(/[\n,;]/).map((s) => s.trim()).filter(Boolean);
 
   const patch: Record<string, unknown> = {
     agencia_id: ctx.agenciaId,
@@ -38,7 +61,8 @@ export async function criarPerfilIA(formData: FormData) {
     descricao: String(formData.get("descricao") || "").trim() || null,
     provider,
     modelo,
-    prompt_sistema: String(formData.get("prompt_sistema") || "").trim(),
+    prompt_sistema: promptFinal,
+    whatsapp_teste_lista: whitelist,
     delay_debounce_seg: Math.max(0, Math.min(600, parseInt(String(formData.get("delay_debounce_seg") || "20"), 10))),
     delay_min_resposta_seg: Math.max(0, parseInt(String(formData.get("delay_min_resposta_seg") || "3"), 10)),
     delay_max_resposta_seg: Math.max(0, parseInt(String(formData.get("delay_max_resposta_seg") || "8"), 10)),
@@ -68,6 +92,11 @@ export async function atualizarPerfilIA(formData: FormData) {
 
   const sb = createServiceClient();
   const apiKey = String(formData.get("api_key") || "").trim();
+  const whitelistRaw = String(formData.get("whatsapp_teste_lista") || "");
+  const whitelist = whitelistRaw
+    .split(/[\n,;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const patch: Record<string, unknown> = {
     nome: String(formData.get("nome") || "").trim(),
@@ -83,6 +112,7 @@ export async function atualizarPerfilIA(formData: FormData) {
     pausa_se_humano_responder: formData.get("pausa_se_humano_responder") === "on",
     ativo: formData.get("ativo") === "on",
     formato_resposta: parseFormatoResposta(formData),
+    whatsapp_teste_lista: whitelist,
   };
   // Canais ativos: multiple inputs name="canal_id"
   const canais = formData.getAll("canal_id").map((v) => String(v)).filter(Boolean);
