@@ -168,7 +168,7 @@ export function AppSidebar({ role }: { role?: string } = {}) {
         <div className="mk-logo">
           <div className="logo-wrap">
             <span className="logo-text">
-              TRÁFEGO<em>&amp;</em>CO
+              SISTEMA TRÁFEGO<em>&amp;</em>CA
             </span>
           </div>
           <button
