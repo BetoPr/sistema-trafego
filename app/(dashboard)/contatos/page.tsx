@@ -6,6 +6,7 @@ import { criarContato, atualizarContato } from "./_actions";
 
 import { ContatosTabela, type LinhaContato } from "./_tabela";
 import { ImportarWhatsAppBtn } from "./_importar";
+import { FollowUpAvulsoBloco, type FollowUpAvulsoRow } from "./_followup";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
@@ -45,13 +46,14 @@ export default async function ContatosPage({ searchParams }: PageProps) {
   ]);
   const etiquetasDisponiveis = (etiquetasRows || []) as Array<{ id: string; nome: string; cor: string; categoria: string | null }>;
 
-  // Canais conectados pra ImportarWhatsAppBtn
+  // Canais conectados pra ImportarWhatsAppBtn (+ flag de onboarding)
   const { data: canaisConectados } = await sb
     .from("canais")
-    .select("id, nome, numero_conectado")
+    .select("id, nome, numero_conectado, contatos_importados_em")
     .eq("agencia_id", ctx.agenciaId)
     .eq("status", "connected")
     .order("nome");
+  const canaisSemImport = (canaisConectados || []).filter((c) => !(c as { contatos_importados_em: string | null }).contatos_importados_em);
   const servicos = (servicosRows || []) as Array<{ id: string; nome: string }>;
   const servicosHabilitados = !!(agRow as { servicos_habilitados?: boolean } | null)?.servicos_habilitados;
 
@@ -81,6 +83,31 @@ export default async function ContatosPage({ searchParams }: PageProps) {
   const editando = sp.editar ? contatos?.find((c) => c.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
   const fechEditando = editando ? fechPorContato.get(editando.id) : undefined;
+
+  // Follow-ups avulsos + ticket existence pro contato editado
+  let fuaAgendados: FollowUpAvulsoRow[] = [];
+  let fuaHistorico: FollowUpAvulsoRow[] = [];
+  let temConversaContato = false;
+  if (editando) {
+    const [{ data: fuaRows }, { count: ticketCount }] = await Promise.all([
+      sb
+        .from("follow_up_avulsos")
+        .select("id, agenda_em, mensagens, intervalos_seg, status, motivo, enviado_em")
+        .eq("agencia_id", ctx.agenciaId)
+        .eq("contato_id", editando.id)
+        .order("agenda_em", { ascending: false })
+        .limit(50),
+      sb
+        .from("tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("agencia_id", ctx.agenciaId)
+        .eq("contato_id", editando.id),
+    ]);
+    const rows = (fuaRows || []) as FollowUpAvulsoRow[];
+    fuaAgendados = rows.filter((r) => r.status === "agendado");
+    fuaHistorico = rows.filter((r) => r.status !== "agendado");
+    temConversaContato = (ticketCount || 0) > 0;
+  }
   // Etiquetas já aplicadas no contato sendo editado (pra marcar checkbox)
   const etiquetasDoContato = new Set<string>();
   if (editando) {
@@ -101,7 +128,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
         </div>
         {!mostrarForm && (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <ImportarWhatsAppBtn canais={(canaisConectados || []) as Array<{ id: string; nome: string; numero_conectado: string | null }>} />
+            <ImportarWhatsAppBtn canais={((canaisConectados || []) as Array<{ id: string; nome: string; numero_conectado: string | null }>).map((c) => ({ id: c.id, nome: c.nome, numero_conectado: c.numero_conectado }))} />
             <Link href="/contatos?novo=1" className="cta-btn"><i className="ti ti-plus" /> Adicionar contato</Link>
           </div>
         )}
@@ -109,6 +136,21 @@ export default async function ContatosPage({ searchParams }: PageProps) {
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
+
+      {canaisSemImport.length > 0 && !mostrarForm && (
+        <div style={{ background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 10, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+          <i className="ti ti-brand-whatsapp" style={{ fontSize: 22, color: "#25D366", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--mk-text)" }}>
+              {canaisSemImport.length === 1 ? "Canal conectado:" : `${canaisSemImport.length} canais conectados:`} importe seus contatos e etiquetas
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginTop: 2 }}>
+              Puxa direto do WhatsApp Business: contatos com quem você já conversou + todas etiquetas que você criou. Idempotente — pode rodar quantas vezes quiser.
+            </div>
+          </div>
+          <ImportarWhatsAppBtn canais={canaisSemImport.map((c) => ({ id: c.id, nome: c.nome, numero_conectado: c.numero_conectado }))} />
+        </div>
+      )}
 
       {mostrarForm && (
         <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
@@ -228,6 +270,15 @@ export default async function ContatosPage({ searchParams }: PageProps) {
               <Link href="/contatos" className="ghost-btn">Cancelar</Link>
             </div>
           </form>
+
+          {editando && (
+            <FollowUpAvulsoBloco
+              contatoId={editando.id}
+              agendados={fuaAgendados}
+              historico={fuaHistorico}
+              temConversa={temConversaContato}
+            />
+          )}
         </div>
       )}
 

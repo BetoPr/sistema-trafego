@@ -28,7 +28,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
   const [{ data: canais }, { data: filas }, { data: usuarios }, { data: servidores }] = await Promise.all([
     sb
       .from("canais")
-      .select("id, numero, nome, tipo, status, instance_id, numero_conectado, nome_perfil, foto_perfil_url, padrao, fila_id, usuario_id, qr_code_atual, qr_atualizado_em, updated_at")
+      .select("id, numero, nome, tipo, status, instance_id, numero_conectado, nome_perfil, foto_perfil_url, padrao, fila_id, usuario_id, qr_code_atual, qr_atualizado_em, updated_at, contatos_importados_em")
       .eq("agencia_id", ctx.agenciaId)
       .order("numero"),
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
@@ -108,16 +108,29 @@ export default async function CanaisPage({ searchParams }: PageProps) {
               </div>
 
               {conectado ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "0.5px solid var(--mk-border)" }}>
-                  {c.foto_perfil_url && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={c.foto_perfil_url} alt={c.nome_perfil || ""} style={{ width: 32, height: 32, borderRadius: "50%" }} />
-                  )}
-                  <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
-                    <div style={{ fontWeight: 500 }}>{c.nome_perfil || "—"}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{c.numero_conectado || c.instance_id}</div>
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "0.5px solid var(--mk-border)" }}>
+                    {c.foto_perfil_url && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={c.foto_perfil_url} alt={c.nome_perfil || ""} style={{ width: 32, height: 32, borderRadius: "50%" }} />
+                    )}
+                    <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
+                      <div style={{ fontWeight: 500 }}>{c.nome_perfil || "—"}</div>
+                      <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{c.numero_conectado || c.instance_id}</div>
+                    </div>
                   </div>
-                </div>
+                  {!c.contatos_importados_em && (
+                    <Link
+                      href="/contatos"
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", marginTop: 4, background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 6, fontSize: 11, color: "#10b981", textDecoration: "none", fontWeight: 500 }}
+                      title="Puxe contatos + etiquetas do WhatsApp Business pra plataforma"
+                    >
+                      <i className="ti ti-download" />
+                      Importe seus contatos e etiquetas
+                      <i className="ti ti-arrow-right" style={{ marginLeft: "auto" }} />
+                    </Link>
+                  )}
+                </>
               ) : (
                 <div style={{ padding: "8px 0", borderTop: "0.5px solid var(--mk-border)", display: "flex", gap: 8 }}>
                   <VerQrButton canalId={c.id} nome={c.nome} />

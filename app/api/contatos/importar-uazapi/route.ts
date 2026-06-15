@@ -60,6 +60,9 @@ export async function POST(req: Request) {
     pularLabelsNativas: body.pularLabelsNativas !== false,
   });
 
+  // Marca primeiro import no canal — onboarding banner some
+  await sb.from("canais").update({ contatos_importados_em: new Date().toISOString() }).eq("id", canal.id);
+
   void audit({
     agenciaId: u.agencia_id,
     usuarioId: auth.user.id,
