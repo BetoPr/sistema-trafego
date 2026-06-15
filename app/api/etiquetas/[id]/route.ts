@@ -25,11 +25,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getCtx();
   if (!ctx) return NextResponse.json({ error: "auth" }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { nome?: string; cor?: string; palavra_gatilho?: string | null; ativo?: boolean };
+  const body = (await req.json().catch(() => ({}))) as { nome?: string; cor?: string; palavra_gatilho?: string | null; mensagem_resposta?: string | null; ativo?: boolean };
   const patch: Record<string, unknown> = {};
   if (body.nome && body.nome.trim()) patch.nome = body.nome.trim();
   if (body.cor) patch.cor = body.cor;
   if (body.palavra_gatilho !== undefined) patch.palavra_gatilho = body.palavra_gatilho?.trim() || null;
+  if (body.mensagem_resposta !== undefined) patch.mensagem_resposta = body.mensagem_resposta?.trim() || null;
   if (typeof body.ativo === "boolean") patch.ativo = body.ativo;
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: "nada_a_atualizar" }, { status: 400 });
 

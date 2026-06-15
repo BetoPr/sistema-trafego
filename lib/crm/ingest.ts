@@ -12,9 +12,44 @@
  * Service role apenas. RLS bypassed.
  */
 import { createServiceClient } from "@/lib/supabase/service";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ParsedMessage } from "@/lib/uazapi/webhook-parser";
 import { dispatchWebhook } from "./webhook-dispatcher";
 import { inscreverPorEtiqueta } from "./follow-up";
+import { instanceSendText } from "@/lib/uazapi/client";
+import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+
+async function enviarRespostaEtiqueta(params: { sb: SupabaseClient; canalId: string; ticketId: string; agenciaId: string; texto: string }): Promise<void> {
+  const { sb, canalId, ticketId, agenciaId, texto } = params;
+  const { data: canal } = await sb
+    .from("canais")
+    .select("instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .eq("id", canalId)
+    .maybeSingle();
+  if (!canal?.instance_token_encrypted) return;
+  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor?.base_url;
+  if (!baseUrl) return;
+  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+
+  const { data: ticket } = await sb.from("tickets").select("contato:contatos(whatsapp)").eq("id", ticketId).maybeSingle();
+  const contato = (ticket?.contato as { whatsapp?: string } | { whatsapp?: string }[] | null);
+  const contatoObj = Array.isArray(contato) ? contato[0] : contato;
+  const numero = contatoObj?.whatsapp;
+  if (!numero) return;
+
+  const r = await instanceSendText({ baseUrl, token }, { number: numero, text: texto });
+  // Insere mensagem no histórico (como sistema/automação)
+  await sb.from("mensagens").insert({
+    ticket_id: ticketId,
+    agencia_id: agenciaId,
+    autor: "bot",
+    tipo: "texto",
+    conteudo: texto,
+    wa_message_id: (r as { id?: string })?.id || null,
+    status: "enviada",
+    metadata: { source: "etiqueta_resposta_auto" },
+  });
+}
 
 export interface IngestContext {
   agenciaId: string;
@@ -139,13 +174,15 @@ export async function ingestMensagem(
 
   // 3b. Etiquetas por palavra-chave gatilho — só em mensagem recebida do cliente.
   // Se a palavra configurada aparece no texto, aplica a etiqueta no contato.
+  // Quando aplica pela 1ª vez E a etiqueta tem mensagem_resposta, dispara
+  // a resposta automática via UAZAPI.
   if (autor === "cliente" && m.conteudo) {
     void (async () => {
       try {
         const texto = m.conteudo!.toLowerCase();
         const { data: gatilhos } = await sb
           .from("etiquetas")
-          .select("id, palavra_gatilho")
+          .select("id, palavra_gatilho, mensagem_resposta")
           .eq("agencia_id", ctx.agenciaId)
           .eq("ativo", true)
           .not("palavra_gatilho", "is", null);
@@ -158,6 +195,12 @@ export async function ingestMensagem(
             // 3B — etiqueta-gatilho: só inscreve se a etiqueta é NOVA (sem erro de duplicado)
             if (!insErr) {
               try { await inscreverPorEtiqueta({ agenciaId: ctx.agenciaId, contatoId, etiquetaId: g.id, ticketId }); } catch {}
+
+              // Resposta automática (se configurada) — só na 1ª aplicação
+              const resp = (g.mensagem_resposta as string | null)?.trim();
+              if (resp) {
+                try { await enviarRespostaEtiqueta({ sb, canalId: ctx.canalId, ticketId, agenciaId: ctx.agenciaId, texto: resp }); } catch (e) { console.error("[ingest] resposta etiqueta falhou:", e); }
+              }
             }
           }
         }

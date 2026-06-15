@@ -9,6 +9,7 @@ interface Etiqueta {
   nome: string;
   cor: string;
   palavra_gatilho: string | null;
+  mensagem_resposta?: string | null;
   ativo: boolean;
 }
 
@@ -31,7 +32,7 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
     try {
       const r = await criarEtiqueta(n, cor);
       if (r.ok && r.id) {
-        setLista((l) => [...l, { id: r.id!, nome: n, cor, palavra_gatilho: null, ativo: true }].sort((a, b) => a.nome.localeCompare(b.nome)));
+        setLista((l) => [...l, { id: r.id!, nome: n, cor, palavra_gatilho: null, mensagem_resposta: null, ativo: true }].sort((a, b) => a.nome.localeCompare(b.nome)));
         setNome("");
       } else {
         alert(r.msg || "Falha ao criar.");
@@ -120,6 +121,7 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
     return arr.length ? arr : [""];
   });
   const [ativo, setAtivo] = useState(etiqueta.ativo);
+  const [mensagemResposta, setMensagemResposta] = useState(etiqueta.mensagem_resposta ?? "");
   const [salvando, setSalvando] = useState(false);
 
   const setGatilho = (i: number, v: string) => setGatilhos((g) => g.map((x, j) => (j === i ? v : x)));
@@ -131,17 +133,18 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
     const gatilhoStr = gatilhos.map((x) => x.trim()).filter(Boolean).join(", ") || null;
     setSalvando(true);
     try {
+      const respostaTrim = mensagemResposta.trim() || null;
       const r = await fetch(`/api/etiquetas/${etiqueta.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, ativo }),
+        body: JSON.stringify({ nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, mensagem_resposta: respostaTrim, ativo }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         alert(`Falha: ${j.error || r.statusText}`);
         return;
       }
-      onSalvo({ ...etiqueta, nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, ativo });
+      onSalvo({ ...etiqueta, nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, mensagem_resposta: respostaTrim, ativo });
     } finally {
       setSalvando(false);
     }
@@ -195,6 +198,20 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
           </button>
           <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6, lineHeight: 1.5 }}>
             Quando QUALQUER uma dessas palavras aparecer numa mensagem recebida, a etiqueta é aplicada automaticamente ao contato.
+          </div>
+        </div>
+
+        <div>
+          <label style={lbl}>Mensagem automática <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>(opcional)</span></label>
+          <textarea
+            value={mensagemResposta}
+            onChange={(e) => setMensagemResposta(e.target.value)}
+            placeholder="Quando a etiqueta for aplicada pelo gatilho, envia essa mensagem automática pro cliente. Deixe vazio pra não enviar nada."
+            rows={4}
+            style={{ ...inp, fontFamily: "inherit", resize: "vertical", minHeight: 80 }}
+          />
+          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6, lineHeight: 1.5 }}>
+            Dispara <strong>uma única vez</strong> por contato — só quando a etiqueta é aplicada pela 1ª vez via gatilho. Não é enviada se você marcar a etiqueta manualmente.
           </div>
         </div>
 
