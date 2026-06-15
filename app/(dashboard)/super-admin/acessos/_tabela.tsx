@@ -168,7 +168,7 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
             <button type="button" onClick={() => setConfirmando(null)} className="ghost-btn" style={{ fontSize: 12 }}>Cancelar</button>
             <form action={deletarAcesso} style={{ display: "inline" }}>
               <input type="hidden" name="id" value={confirmando?.id || ""} />
-              <button type="submit" onClick={() => setConfirmando(null)} className="cta-btn" style={{ fontSize: 12, background: "#C97064", color: "#FFFDF8" }}>
+              <button type="submit" className="cta-btn" style={{ fontSize: 12, background: "#C97064", color: "#FFFDF8" }}>
                 <i className="ti ti-trash" /> Excluir
               </button>
             </form>
