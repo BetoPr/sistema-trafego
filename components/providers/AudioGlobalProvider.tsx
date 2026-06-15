@@ -28,10 +28,18 @@ export function useAudioGlobal() {
  * Não para quando muda de conversa. Mini-player flutuante mostra controles
  * quando o áudio está tocando e o usuário não está mais vendo o balão original.
  */
+const VELOCIDADES = [1, 1.2, 1.5, 2] as const;
+
 export function AudioGlobalProvider({ children }: { children: React.ReactNode }) {
   const [estado, setEstado] = useState<AudioState | null>(null);
   const [tocandoUI, setTocandoUI] = useState(false);
+  const [velocidade, setVelocidade] = useState<number>(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Aplica taxa de reprodução quando muda áudio ou velocidade
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = velocidade;
+  }, [velocidade, estado]);
 
   const tocar = useCallback((p: { midiaPath: string; url: string; label: string }) => {
     setEstado({ midiaPath: p.midiaPath, url: p.url, label: p.label });
@@ -89,13 +97,39 @@ export function AudioGlobalProvider({ children }: { children: React.ReactNode })
         >
           <i className="ti ti-microphone" style={{ color: "#10b981", fontSize: 18 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{estado.label}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{estado.label}</div>
+              <div style={{ display: "flex", gap: 2 }}>
+                {VELOCIDADES.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setVelocidade(v)}
+                    title={`Velocidade ${v}x`}
+                    style={{
+                      background: velocidade === v ? "#10b981" : "transparent",
+                      color: velocidade === v ? "#FFFFFF" : "var(--mk-text-muted)",
+                      border: "0.5px solid var(--mk-border)",
+                      borderRadius: 6,
+                      fontSize: 9.5,
+                      fontWeight: 600,
+                      padding: "1px 5px",
+                      cursor: "pointer",
+                      minWidth: 26,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {v}x
+                  </button>
+                ))}
+              </div>
+            </div>
             <audio
               ref={audioRef}
               src={estado.url}
               controls
               autoPlay
-              style={{ width: "100%", height: 28, marginTop: 2 }}
+              style={{ width: "100%", height: 28, marginTop: 4 }}
               key={estado.midiaPath}
             />
           </div>

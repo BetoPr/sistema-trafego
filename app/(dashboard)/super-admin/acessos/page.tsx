@@ -30,13 +30,25 @@ export default async function AcessosPage({ searchParams }: PageProps) {
   const sb = createServiceClient();
 
   const [{ data: usuarios }, { data: agencias }] = await Promise.all([
-    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, deleted_at").is("deleted_at", null).order("nome"),
+    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, created_at, deleted_at").is("deleted_at", null).order("nome"),
     sb.from("agencias").select("id, nome").order("nome"),
   ]);
 
   const agenciaPorId = new Map((agencias || []).map((a) => [a.id, a.nome] as const));
   const editando = sp.editar ? usuarios?.find((u) => u.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
+
+  // Histórico de ações do usuário sendo editado (audit_logs)
+  let historicoUsuario: Array<{ id: string; acao: string; entidade: string; caminho: string | null; status: number | null; created_at: string }> = [];
+  if (editando) {
+    const { data: logs } = await sb
+      .from("audit_logs")
+      .select("id, acao, entidade, caminho, status, created_at")
+      .eq("usuario_id", editando.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    historicoUsuario = (logs || []) as typeof historicoUsuario;
+  }
 
   return (
     <section className="mk-page">
@@ -55,6 +67,13 @@ export default async function AcessosPage({ searchParams }: PageProps) {
       {mostrarForm && (
         <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
           <h3 className="card-title" style={{ marginBottom: 14 }}>{editando ? `Editar — ${editando.nome}` : "Novo acesso"}</h3>
+          {editando && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14, padding: "10px 12px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}>
+              <Stat label="Criado em" valor={new Date(editando.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} />
+              <Stat label="Última entrada no CRM" valor={editando.ultimo_login ? new Date(editando.ultimo_login).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "Nunca"} cor={editando.ultimo_login ? "#10b981" : "var(--mk-text-muted)"} />
+              <Stat label="Status" valor={editando.ativo ? "Ativo" : "Inativo"} cor={editando.ativo ? "#10b981" : "#C97064"} />
+            </div>
+          )}
           <form action={editando ? atualizarAcesso : criarAcesso} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {editando && <input type="hidden" name="id" value={editando.id} />}
             <div style={grid2}>
@@ -103,6 +122,44 @@ export default async function AcessosPage({ searchParams }: PageProps) {
               <Link href="/super-admin/acessos" className="ghost-btn">Cancelar</Link>
             </div>
           </form>
+
+          {editando && (
+            <div style={{ borderTop: "0.5px solid var(--mk-border)", marginTop: 16, paddingTop: 14 }}>
+              <label style={lblMono}>Histórico de ações no CRM (últimas 50)</label>
+              {historicoUsuario.length === 0 ? (
+                <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: "10px 0" }}>
+                  <i className="ti ti-history" style={{ marginRight: 6 }} /> Sem registro de ações ainda.
+                </div>
+              ) : (
+                <div style={{ maxHeight: 320, overflowY: "auto", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}>
+                  <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 11.5 }}>
+                    <thead style={{ position: "sticky", top: 0, background: "var(--mk-surface-2)" }}>
+                      <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 10.5 }}>
+                        <th style={{ padding: "6px 10px" }}>Quando</th>
+                        <th style={{ padding: "6px 10px" }}>Ação</th>
+                        <th style={{ padding: "6px 10px" }}>Entidade</th>
+                        <th style={{ padding: "6px 10px" }}>Caminho</th>
+                        <th style={{ padding: "6px 10px" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historicoUsuario.map((l) => (
+                        <tr key={l.id} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
+                          <td style={{ padding: "6px 10px", color: "var(--mk-text-muted)", whiteSpace: "nowrap" }}>{new Date(l.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td>
+                          <td style={{ padding: "6px 10px" }}>{l.acao}</td>
+                          <td style={{ padding: "6px 10px", color: "var(--mk-text-secondary)" }}>{l.entidade}</td>
+                          <td style={{ padding: "6px 10px", fontFamily: "monospace", fontSize: 10.5, color: "var(--mk-text-muted)" }}>{l.caminho || "—"}</td>
+                          <td style={{ padding: "6px 10px" }}>
+                            {l.status ? <span style={{ color: l.status >= 400 ? "#C97064" : "#10b981" }}>{l.status}</span> : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -159,6 +216,15 @@ export default async function AcessosPage({ searchParams }: PageProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+function Stat({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: "var(--mk-text-muted)", letterSpacing: 0.4, fontFamily: "monospace", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: cor || "var(--mk-text)", marginTop: 2 }}>{valor}</div>
+    </div>
   );
 }
 
