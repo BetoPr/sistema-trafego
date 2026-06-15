@@ -71,7 +71,10 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let logs: Array<{ id: string; evento: string; modelo: string | null; tokens_in: number | null; tokens_out: number | null; payload: Record<string, unknown> | null; erro: string | null; created_at: string }> = [];
   if (editando) {
     const [{ data: p }, { data: fs }, { data: lgs }] = await Promise.all([
-      sb.from("ia_atendimento_perfis").select("*").eq("id", editando.id).single(),
+      sb.from("ia_atendimento_perfis")
+        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista")
+        .eq("id", editando.id)
+        .single(),
       sb.from("ia_atendimento_ferramentas").select("id, nome, descricao, acao, parametros, ativo").eq("perfil_id", editando.id).order("nome"),
       sb.from("ia_atendimento_log").select("id, evento, modelo, tokens_in, tokens_out, payload, erro, created_at").eq("perfil_id", editando.id).order("created_at", { ascending: false }).limit(50),
     ]);
