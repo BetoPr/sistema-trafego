@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
-import { criarAcesso, atualizarAcesso, alternarAtivoAcesso, deletarAcesso } from "./_actions";
+import { criarAcesso, atualizarAcesso } from "./_actions";
+import { TabelaAcessos } from "./_tabela";
 
 // Apenas funções que existem no CRM hoje.
 const PERMS_LABEL: Record<string, string> = {
@@ -65,7 +66,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
 
       {mostrarForm && (
-        <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
+        <div className="mk-card mk-card-lg acesso-edit-card" style={{ marginBottom: 14 }}>
           <h3 className="card-title" style={{ marginBottom: 14 }}>{editando ? `Editar — ${editando.nome}` : "Novo acesso"}</h3>
           {editando && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14, padding: "10px 12px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}>
@@ -163,58 +164,10 @@ export default async function AcessosPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <div className="mk-card mk-card-lg">
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12.5 }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 11 }}>
-                <th style={thLi}>Nome</th>
-                <th style={thLi}>Email</th>
-                <th style={thLi}>Agência</th>
-                <th style={thLi}>Perfil</th>
-                <th style={thLi}>Status</th>
-                <th style={thLi}>Último login</th>
-                <th style={thLi}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(usuarios || []).map((u) => (
-                <tr key={u.id} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
-                  <td style={tdLi}>{u.nome}</td>
-                  <td style={tdLi}><span style={{ fontFamily: "monospace", fontSize: 11.5 }}>{u.email}</span></td>
-                  <td style={tdLi}>{agenciaPorId.get(u.agencia_id as string) || <span style={{ color: "var(--mk-text-muted)" }}>—</span>}</td>
-                  <td style={tdLi}>
-                    <span className={`mk-badge ${u.role === "super_admin" ? "b-red" : u.role === "admin" ? "b-purple" : "b-gray"}`}>
-                      {u.role === "super_admin" ? "Super" : u.role === "admin" ? "Admin" : "Atendente"}
-                    </span>
-                  </td>
-                  <td style={tdLi}><span className={`mk-badge ${u.ativo ? "b-green" : "b-gray"}`}>{u.ativo ? "Ativo" : "Inativo"}</span></td>
-                  <td style={tdLi}>{u.ultimo_login ? new Date(u.ultimo_login).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</td>
-                  <td style={tdLi}>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Link href={`/super-admin/acessos?editar=${u.id}`} className="ghost-btn" style={iconBtn}><i className="ti ti-pencil" /></Link>
-                      <form action={alternarAtivoAcesso} style={{ display: "inline" }}>
-                        <input type="hidden" name="id" value={u.id} />
-                        <input type="hidden" name="ativo" value={String(u.ativo)} />
-                        <button type="submit" className={`toggle-switch ${u.ativo ? "is-on" : ""}`} aria-pressed={u.ativo ?? false} title={u.ativo ? "Desativar" : "Ativar"}>
-                          <span className="toggle-knob" />
-                        </button>
-                      </form>
-                      <form action={deletarAcesso} style={{ display: "inline" }}>
-                        <input type="hidden" name="id" value={u.id} />
-                        <button type="submit" className="ghost-btn" style={{ ...iconBtn, color: "#C97064" }} title="Excluir"><i className="ti ti-trash" /></button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(!usuarios || usuarios.length === 0) && (
-            <div style={{ padding: "32px 14px", textAlign: "center", color: "var(--mk-text-muted)", fontSize: 13 }}>Sem usuários.</div>
-          )}
-        </div>
-      </div>
+      <TabelaAcessos
+        usuarios={((usuarios || []) as Array<{ id: string; nome: string; email: string; role: "atendente" | "admin" | "super_admin"; ativo: boolean; agencia_id: string; ultimo_login: string | null }>)}
+        agenciaPorId={Object.fromEntries(agenciaPorId.entries())}
+      />
     </section>
   );
 }
