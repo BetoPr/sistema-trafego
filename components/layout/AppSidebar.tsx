@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useCollapse } from "@/components/providers/CollapseProvider";
+import SonarLogo from "@/components/layout/SonarLogo";
 
 interface NavItem {
   href: string;
@@ -170,25 +171,7 @@ export function AppSidebar({ role }: { role?: string } = {}) {
         <div className="mk-logo">
           <div className="logo-wrap">
             <span className="logo-text">
-              <svg className="logo-radar" viewBox="0 0 100 100" aria-hidden="true">
-                <defs>
-                  <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.55" />
-                    <stop offset="70%" stopColor="#10b981" stopOpacity="0.08" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                  </radialGradient>
-                </defs>
-                <circle cx="50" cy="50" r="46" fill="url(#radarGlow)" />
-                <circle cx="50" cy="50" r="44" fill="none" stroke="#10b981" strokeOpacity="0.35" strokeWidth="0.8" />
-                <circle cx="50" cy="50" r="30" fill="none" stroke="#10b981" strokeOpacity="0.3" strokeWidth="0.7" />
-                <circle cx="50" cy="50" r="16" fill="none" stroke="#10b981" strokeOpacity="0.25" strokeWidth="0.6" />
-                <line x1="50" y1="6" x2="50" y2="94" stroke="#10b981" strokeOpacity="0.18" strokeWidth="0.4" />
-                <line x1="6" y1="50" x2="94" y2="50" stroke="#10b981" strokeOpacity="0.18" strokeWidth="0.4" />
-                <g className="logo-radar-sweep">
-                  <path d="M50 50 L50 6 A44 44 0 0 1 84.5 28 Z" fill="url(#radarGlow)" opacity="0.55" />
-                </g>
-              </svg>
-              <span className="logo-radar-text">SONAR</span>
+              <SonarLogo frameHeight={64} fontSize={18} bgRadarOpacity={0.85} />
             </span>
           </div>
           <button
