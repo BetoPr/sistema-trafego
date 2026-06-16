@@ -22,15 +22,18 @@ export interface ConfigResumo {
   prompt_resumo: string;
 }
 
-const HISTORICO_FAKE = [
-  "Cliente: Oi, vi o anuncio de fotografia",
-  "IA: Oi! Tudo bem? Sou a Ana, assistente do estudio. Posso te ajudar! Voce quer um ensaio ou restauracao de foto?",
-  "Cliente: Quero saber sobre restauracao mesmo, tenho uma foto antiga do meu avo",
-  "IA: Que legal! Restauramos fotos antigas com IA, fica linda. Voce poderia me enviar a foto pra darmos uma olhada?",
-  "Cliente: claro, vou mandar agora",
-  "IA: Otimo! Enquanto isso, posso te conectar com nosso responsavel para passar valores e prazos, tudo bem?",
-  "Cliente: pode sim",
-].join("\n");
+const HISTORICO_FAKE = `DADOS DO CLIENTE:
+- Nome: Roberto
+- Telefone: 5581991594716
+
+HISTÓRICO DA CONVERSA:
+Cliente: Oi, vi o anuncio de fotografia
+IA: Oi! Tudo bem? Sou a Ana, assistente do estudio. Posso te ajudar! Voce quer um ensaio ou restauracao de foto?
+Cliente: Quero saber sobre restauracao mesmo, tenho uma foto antiga do meu avo
+IA: Que legal! Restauramos fotos antigas com IA, fica linda. Voce poderia me enviar a foto pra darmos uma olhada?
+Cliente: claro, vou mandar agora
+IA: Otimo! Enquanto isso, posso te conectar com nosso responsavel para passar valores e prazos, tudo bem?
+Cliente: pode sim`;
 
 /**
  * Executa geracao + envio de resumo com config explicita.
@@ -124,12 +127,35 @@ export async function gerarEEnviarResumo(args: {
     .order("created_at", { ascending: true })
     .limit(50);
 
-  const historico = (msgs || []).map((m) => {
+  // Busca dados do contato pra IA usar nome + telefone no resumo
+  const { data: ticket } = await sb
+    .from("tickets")
+    .select("contato_id")
+    .eq("id", args.ticketId)
+    .maybeSingle<{ contato_id: string }>();
+  let contatoNome = "não informado";
+  let contatoTelefone = "não informado";
+  if (ticket?.contato_id) {
+    const { data: contato } = await sb
+      .from("contatos")
+      .select("nome, whatsapp, wa_id")
+      .eq("id", ticket.contato_id)
+      .maybeSingle<{ nome: string | null; whatsapp: string | null; wa_id: string | null }>();
+    if (contato) {
+      contatoNome = contato.nome || "não informado";
+      const num = (contato.wa_id || contato.whatsapp || "").replace(/\D/g, "");
+      if (num) contatoTelefone = num;
+    }
+  }
+
+  const cabecalho = `DADOS DO CLIENTE:\n- Nome: ${contatoNome}\n- Telefone: ${contatoTelefone}\n\nHISTÓRICO DA CONVERSA:`;
+  const corpo = (msgs || []).map((m) => {
     const tag = m.autor === "cliente" ? "Cliente" : m.autor === "atendente" ? "Atendente" : "IA";
     return `${tag}: ${(m.conteudo || m.transcricao || "").slice(0, 500)}`;
   }).join("\n");
+  const historico = `${cabecalho}\n${corpo}`;
 
-  if (!historico.trim()) return { ok: false, motivo: "sem historico" };
+  if (!corpo.trim()) return { ok: false, motivo: "sem historico" };
 
   let groqKey: string;
   try {
@@ -174,12 +200,13 @@ export async function buscarHistoricoSample(agenciaId: string, perfilId: string)
 
   const { data: tickets } = await sb
     .from("tickets")
-    .select("id")
+    .select("id, contato_id")
     .eq("agencia_id", agenciaId)
     .order("updated_at", { ascending: false })
     .limit(20);
 
   let ticketId: string | undefined;
+  let contatoId: string | undefined;
   for (const t of tickets || []) {
     const { count } = await sb
       .from("mensagens")
@@ -187,11 +214,27 @@ export async function buscarHistoricoSample(agenciaId: string, perfilId: string)
       .eq("ticket_id", t.id);
     if ((count || 0) >= 3) {
       ticketId = t.id as string;
+      contatoId = t.contato_id as string | undefined;
       break;
     }
   }
 
   if (ticketId) {
+    let contatoNome = "não informado";
+    let contatoTelefone = "não informado";
+    if (contatoId) {
+      const { data: contato } = await sb
+        .from("contatos")
+        .select("nome, whatsapp, wa_id")
+        .eq("id", contatoId)
+        .maybeSingle<{ nome: string | null; whatsapp: string | null; wa_id: string | null }>();
+      if (contato) {
+        contatoNome = contato.nome || "não informado";
+        const num = (contato.wa_id || contato.whatsapp || "").replace(/\D/g, "");
+        if (num) contatoTelefone = num;
+      }
+    }
+
     const { data: msgs } = await sb
       .from("mensagens")
       .select("autor, conteudo, transcricao")
@@ -199,11 +242,14 @@ export async function buscarHistoricoSample(agenciaId: string, perfilId: string)
       .is("deleted_em", null)
       .order("created_at", { ascending: true })
       .limit(50);
-    const historico = (msgs || []).map((m) => {
+    const corpo = (msgs || []).map((m) => {
       const tag = m.autor === "cliente" ? "Cliente" : m.autor === "atendente" ? "Atendente" : "IA";
       return `${tag}: ${(m.conteudo || m.transcricao || "").slice(0, 500)}`;
     }).join("\n");
-    if (historico.trim()) return { historico, origem: "ticket_real", ticketId };
+    if (corpo.trim()) {
+      const historico = `DADOS DO CLIENTE:\n- Nome: ${contatoNome}\n- Telefone: ${contatoTelefone}\n\nHISTÓRICO DA CONVERSA:\n${corpo}`;
+      return { historico, origem: "ticket_real", ticketId };
+    }
   }
 
   void perfilId;

@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **16:45** — **Resumo Groq recebe nome+telefone do contato via cabecalho**.
+  - `resumo-groq.ts > gerarEEnviarResumo`: busca contato do ticket (nome, wa_id, whatsapp) e prepend bloco "DADOS DO CLIENTE: Nome=..., Telefone=..." antes do historico. IA pode citar diretamente no resumo (ex: `https://wa.me/{telefone}`).
+  - `buscarHistoricoSample` faz o mesmo pro modo TESTE (busca contato real do ticket sample).
+  - `HISTORICO_FAKE` ganhou cabecalho fake pra previa.
+  - Default prompt no balao reescrito com formato pedido pelo Roberto: regras WhatsApp (1 asterisco), bloco "Dados do cliente", "Observacoes", "Interesse direto", link wa.me com placeholder do telefone.
+
 - **16:30** — **Animacoes globais fluidas + top progress bar de navegacao**.
   - `globals.css`: regras universais de transicao pra `button, a, .ghost-btn, .cta-btn, .mk-icon-btn, .pill-tab, .nav-item, .footer-item, .acesso-pill, [role="button"]`. transform/bg/border/color/box-shadow/opacity em 120-180ms easing spring.
   - `:active scale(0.96)` global como feedback de clique (bouncy cubic-bezier).

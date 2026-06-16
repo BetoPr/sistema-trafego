@@ -46,7 +46,24 @@ export default function ResumoConfigBalao({
   const [canalId, setCanalId] = useState(config?.canal_id || "");
   const [grupoJid, setGrupoJid] = useState(config?.grupo_jid || "");
   const [telefone, setTelefone] = useState(config?.telefone || "");
-  const [promptResumo, setPromptResumo] = useState(config?.prompt_resumo || "Resuma a conversa abaixo em 3-5 bullets curtos (cliente, interesse, gatilho de transferencia, observacoes). Seja direto.");
+  const [promptResumo, setPromptResumo] = useState(config?.prompt_resumo || `REGRA DE FORMATACAO (WhatsApp): use *negrito* com UM asterisco (nunca **). Italico = _texto_. Tachado = ~texto~. Antes de finalizar, substitua qualquer ** por *.
+
+Resuma a conversa abaixo no formato OBRIGATORIO:
+
+🧪 *Resumo da IA*
+
+Segue os dados coletados com o cliente, abaixo:
+
+Dados do cliente:
+* *Cliente*: {nome do cabecalho DADOS DO CLIENTE}
+* *Telefone*: https://wa.me/{telefone do cabecalho DADOS DO CLIENTE}
+
+*Observacoes*:
+{ate 300 caracteres sobre comportamento, duvidas, urgencia}
+
+*Interesse direto*: {interesse principal do cliente em uma linha}
+
+Seja direto, sem inventar dados. Se telefone = "nao informado", escreva "nao informado".`);
   const [dispararEm, setDispararEm] = useState(config?.disparar_em || "transferir_humano");
   const [groqApiKey, setGroqApiKey] = useState("");
 
