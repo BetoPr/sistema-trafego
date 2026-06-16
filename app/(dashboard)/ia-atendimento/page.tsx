@@ -538,6 +538,17 @@ function LogsBloco({ logs }: { logs: LogRow[] }) {
                   {payload.resultado ? <span> → {String(payload.resultado)}</span> : null}
                 </div>
               ) : null}
+              {l.evento === "pausa_humano" && payload.motivo ? (
+                <div style={{ marginTop: 4, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+                  <strong style={{ color: "#f59e0b" }}>{String(payload.motivo)}</strong>
+                  {payload.numero ? <span> · número: <code style={{ fontFamily: "monospace" }}>{String(payload.numero)}</code></span> : null}
+                  {payload.whitelist ? (
+                    <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2, fontFamily: "monospace" }}>
+                      whitelist: {JSON.stringify(payload.whitelist)}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               {l.erro && <div style={{ marginTop: 4, color: "#C97064", fontSize: 11 }}>⚠ {l.erro}</div>}
             </div>
           );

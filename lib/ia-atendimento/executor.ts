@@ -13,6 +13,33 @@ import { dividirEmBlocos, gapAleatorio, type FormatoResposta } from "./split";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Gera variantes BR pra um número (com e sem o "9" inicial de celular).
+ * Tem números antigos no WhatsApp salvos sem o 9, então a comparação
+ * precisa cobrir ambos.
+ */
+function variantesNumeroBr(n: string): string[] {
+  const limpo = (n || "").replace(/\D/g, "");
+  if (!limpo) return [];
+  const set = new Set<string>([limpo]);
+  if (limpo.length === 13 && limpo.startsWith("55")) {
+    // 55 + DDD(2) + 9XXXXXXXX → adiciona variante sem o 9
+    const ddd = limpo.slice(2, 4);
+    const resto = limpo.slice(4);
+    if (resto.startsWith("9") && resto.length === 9) {
+      set.add(`55${ddd}${resto.slice(1)}`);
+    }
+  } else if (limpo.length === 12 && limpo.startsWith("55")) {
+    // 55 + DDD(2) + XXXXXXXX (mobile sem o 9) → adiciona variante com 9
+    const ddd = limpo.slice(2, 4);
+    const resto = limpo.slice(4);
+    if (resto.length === 8 && /^[6-9]/.test(resto)) {
+      set.add(`55${ddd}9${resto}`);
+    }
+  }
+  return Array.from(set);
+}
+
 export interface IAResultado {
   processados: number;
   respondidos: number;
@@ -106,11 +133,15 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   if (!contato || !canal) throw new Error("contato ou canal não encontrado");
   if (canal.status !== "connected") throw new Error("canal desconectado");
 
-  // Whitelist (modo teste)
+  // Whitelist (modo teste) — normaliza variantes BR (com/sem 9 inicial)
   const whitelist = (perfil.whatsapp_teste_lista || []) as string[];
   const numeroLimpo = (contato.wa_id || contato.whatsapp || "").replace(/@.+$/, "").replace(/\D/g, "");
   if (whitelist.length > 0) {
-    const autorizado = whitelist.some((w) => w.replace(/\D/g, "") === numeroLimpo);
+    const variantesContato = new Set(variantesNumeroBr(numeroLimpo));
+    const autorizado = whitelist.some((w) => {
+      const vw = variantesNumeroBr(w);
+      return vw.some((v) => variantesContato.has(v));
+    });
     if (!autorizado) {
       await sb.from("ia_atendimento_log").insert({
         agencia_id: b.agencia_id,
@@ -118,7 +149,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
         ticket_id: b.ticket_id,
         contato_id: contato.id,
         evento: "pausa_humano",
-        payload: { motivo: "fora_whitelist", numero: numeroLimpo },
+        payload: { motivo: "fora_whitelist", numero: numeroLimpo, whitelist },
       });
       return; // não responde, mas não erra
     }
