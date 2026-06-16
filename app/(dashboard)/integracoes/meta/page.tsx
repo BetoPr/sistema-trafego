@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUserWithAgencia } from "@/lib/auth";
 import { DesconectarBotao } from "./_desconectar";
 import { SincronizarBotao } from "./_sync-btn";
+import { SincronizarPagesBtn } from "./_pages-btn";
 
 interface PageProps {
   searchParams: Promise<{
@@ -253,6 +254,7 @@ export default async function MetaIntegracaoPage({ searchParams }: PageProps) {
                         )}
                       </div>
                       <SincronizarBotao integracaoId={integ!.id} />
+                      <SincronizarPagesBtn integracaoId={integ!.id} />
                       <DesconectarBotao integracaoId={integ!.id} />
                     </>
                   ) : (
