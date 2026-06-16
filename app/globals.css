@@ -920,8 +920,9 @@ select option { background: #ffffff; color: #111111; }
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
+    animation: none !important;
   }
-  .app-root.nav-open .mk-sidebar { transform: translateX(0); }
+  .app-root.nav-open .mk-sidebar { transform: translateX(0) !important; }
 
   /* Drawer sempre expandido — anula o estado "collapsed" herdado do desktop */
   .app-root.collapsed .logo-text { display: inline; }
