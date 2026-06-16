@@ -128,7 +128,11 @@ function buildSections(role?: string): NavSection[] {
 
 export function AppSidebar({ role }: { role?: string } = {}) {
   const pathname = usePathname();
-  const { collapsed, toggle, closeMobile } = useCollapse();
+  const { collapsed, toggle, mobileOpen, closeMobile } = useCollapse();
+  const handleCollapseBtn = () => {
+    if (typeof window !== "undefined" && window.innerWidth <= 768) closeMobile();
+    else toggle();
+  };
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<{ prompt: () => Promise<void> } | null>(null);
@@ -176,9 +180,9 @@ export function AppSidebar({ role }: { role?: string } = {}) {
           </div>
           <button
             className="collapse-inline"
-            onClick={toggle}
-            title="Recolher menu"
-            aria-label="Recolher menu"
+            onClick={handleCollapseBtn}
+            title={mobileOpen ? "Fechar menu" : "Recolher menu"}
+            aria-label={mobileOpen ? "Fechar menu" : "Recolher menu"}
           >
             <span className="collapse-inline-icon">
               <i className="ti ti-layout-sidebar-left-collapse" style={{ fontSize: 16 }} />
