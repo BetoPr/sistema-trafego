@@ -7,6 +7,7 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **04:35** — **Radar bg na tela de login + bgRadarSize 520 no header**. Novo componente `SonarRadarBg.tsx` (radar girando standalone pra fundo). Aplicado no `app/(auth)/layout.tsx` atrás do balão de login com size 900 opacity 0.5 spinSeconds 14. Sidebar bgRadarSize 260→520 pra preencher edge-to-edge (mask radial fade cortava cantos antes).
 - **04:20** — **Header sidebar mais compacto**. Logo estava cortando radar bg pra baixo + ocupando muita altura. Ajustes: `.mk-logo` padding 18→6 bottom + margin-bottom 14→8; `.logo-text` height 64→52; `bgRadarSize` 162→130. Header total fica ~22px mais curto, radar bg proporcional pra ficar contido no frame.
 - **04:10** — **Fix PlaceholderPicker dropdown + template Fotografia IA**.
   - Dropdown não renderizava sólido (transparente sobre textarea). Fix: background sólido `#1a1d1c`, border roxa `#9B7DBF40`, z-index 1000 + overlay backdrop pra fechar ao clicar fora.
