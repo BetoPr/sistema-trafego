@@ -63,6 +63,7 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-speakerphone",
       iconColor: "var(--mk-icon-purple)",
       items: [
+        { href: "/leads-meta", label: "Leads Meta", icon: "ti-target-arrow" },
         { href: "/campanhas", label: "Campanhas", icon: "ti-speakerphone", badge: { text: "BREVE", variant: "amber" } },
         { href: "/funil", label: "Funil", icon: "ti-filter", badge: { text: "BREVE", variant: "amber" } },
         { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded", badge: { text: "BREVE", variant: "amber" } },

@@ -7,6 +7,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **18:00** — **Meta Leads: webhook leadgen + conciliacao automatica com tickets WA**.
+  - Migration `meta_leads`: lead_id, agencia_id, form_id, page_id, campaign_id, adset_id, ad_id, ctwa_clid, telefone, telefone_norm, email, nome, campos_jsonb, raw_jsonb, status enum (novo/conciliado/orfao/erro), motivo_orfao, contato_id, ticket_id, tentativas_conciliacao, proxima_tentativa_em, conciliado_em. RLS + index tel_norm/ctwa/ad/campaign. UNIQUE (lead_id, agencia_id).
+  - `lib/meta-ads/leadgen.ts`: `fetchLeadDetails` Graph API, `extrairLeadgenChanges` parser webhook, `parseFieldData` extrai email/telefone/nome, `normalizarTelefoneBR` gera variants com/sem 9 mobile pra match, `resolverPageAccessToken` decripta page token de `integracoes.metadata.pages`.
+  - `app/api/webhooks/meta/leadgen/route.ts`: GET verify (hub.challenge + META_WEBHOOK_VERIFY_TOKEN) + POST recebe payload, acks 200 imediato e processa em `after()` (fetch Graph + upsert meta_leads + chama conciliacao).
+  - `lib/meta-ads/conciliar.ts`: `conciliarLead(id)` busca contato por telefone_norm variants OU ctwa_clid (cruza com `mensagens.metadata.ad_referral.ctwa_clid` ja captado pelo parser CTWA). Acha ticket aberto/pendente e vincula. `conciliarOrfaosPorContato(contatoId)` reverso pra quando msg WA chega ANTES do lead. `reconciliarOrfaos(50)` cron worker, ate 5 tentativas com backoff 30min.
+  - `app/api/cron/conciliar-leads/route.ts` + pg_cron jobid=9 `conciliar-leads-tick */5 * * * *` (bearer CRON_SECRET).
+  - UI `/leads-meta` (page server component): KPIs Total/Conciliados/Orfaos/Erros + taxa conciliacao %. Filtros periodo (7/14/30/90d) e status. Tabela: lead_id, nome+tel+email, campanha (resolvida via JOIN com `campanhas.external_id`), badge status com tooltip motivo_orfao, link "Abrir ticket" se conciliado.
+  - Item "Leads Meta" no sidebar -> grupo Trafego (Ads), icone ti-target-arrow.
+  - Setup pendente: env `META_WEBHOOK_VERIFY_TOKEN` na Vercel + configurar webhook no Meta App apontando pra `/api/webhooks/meta/leadgen` com mesmo token + popular `integracoes.metadata.pages` com page tokens decriptados.
+
 - **17:30** — **Menu de mensagem estilo WhatsApp Web (chevron, reacoes, long-press, confirmacao apagar)**.
   - Novo `_msg-acoes.tsx` (client): substitui botoes soltos (lixo + reagir + responder) por um unico chevron-down sobre a bolha (canto sup direito). Hover na bolha mostra barra de emojis acima (animacao scale-in cubic-bezier).
   - Click chevron: dropdown Responder, Copiar, Reagir, Apagar (animacao msg-menu-in).
