@@ -187,11 +187,12 @@ export async function POST(
       }
 
       // Hook IA Atendimento: se msg veio do cliente (não fromMe), adiciona ao buffer
+      // e dispara trigger em background pra processar logo após debounce (sem esperar cron 1/min)
       if (!parsed.fromMe && !parsed.isGroup) {
         void (async () => {
           try {
             const { adicionarAoBuffer } = await import("@/lib/ia-atendimento/executor");
-            await adicionarAoBuffer({
+            const r = await adicionarAoBuffer({
               ticketId: ingest.ticketId,
               agenciaId: canal.agencia_id,
               canalId: canal.id,
@@ -199,6 +200,18 @@ export async function POST(
               conteudo: parsed.conteudo || parsed.midia?.caption || `[${parsed.tipo}]`,
               tipo: parsed.tipo,
             });
+            if (r.ok) {
+              // Dispara trigger background (não espera resposta — fire and forget)
+              const origin = process.env.NEXT_PUBLIC_APP_URL || "https://sistema-trafego.vercel.app";
+              const secret = process.env.CRON_SECRET;
+              if (secret) {
+                void fetch(`${origin}/api/ia-atendimento/trigger`, {
+                  method: "POST",
+                  headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
+                  body: JSON.stringify({ ticketId: ingest.ticketId }),
+                }).catch((e) => console.error("[webhook] trigger IA falhou:", e));
+              }
+            }
           } catch (e) {
             console.error("[webhook uazapi] IA buffer falhou:", e);
           }

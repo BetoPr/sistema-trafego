@@ -198,12 +198,49 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   if (!perfil.api_key_encrypted) throw new Error("chave API não cadastrada");
   const apiKey = decryptToken(byteaToBuffer(perfil.api_key_encrypted));
 
-  // 4. Carrega histórico recente (últimas 20 msgs)
-  const { data: histRows } = await sb
+  // 3b. Comando especial "LIMPAR" do cliente: reseta memória, IA esquece histórico
+  const textoBuffer = (b.mensagens_pendentes as Array<{ conteudo: string }>).map((m) => m.conteudo).join("\n");
+  if (textoBuffer.trim() === "LIMPAR") {
+    await sb.from("tickets").update({ ia_reset_em: new Date().toISOString() }).eq("id", b.ticket_id);
+    // Envia ack rápido
+    const servidorR = Array.isArray((canal as unknown as { servidor: unknown }).servidor)
+      ? ((canal as unknown as { servidor: Array<{ base_url: string }> }).servidor[0])
+      : ((canal as unknown as { servidor: { base_url: string } }).servidor);
+    const baseUrlR = servidorR.base_url;
+    const tokenR = decryptToken(byteaToBuffer(canal.instance_token_encrypted as Parameters<typeof byteaToBuffer>[0]));
+    const waIdR = (contato.wa_id || contato.whatsapp || "") as string;
+    try {
+      const r = await instanceSendText({ baseUrl: baseUrlR, token: tokenR }, { number: waIdR, text: "🧹 Memória limpa! Vamos começar do zero." });
+      await sb.from("mensagens").insert({
+        ticket_id: b.ticket_id,
+        agencia_id: b.agencia_id,
+        autor: "bot",
+        tipo: "texto",
+        conteudo: "🧹 Memória limpa! Vamos começar do zero.",
+        wa_message_id: r.id || null,
+        status: "enviada",
+        metadata: { ia_perfil_id: perfil.id, comando: "LIMPAR" },
+      });
+    } catch {}
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "tool_call",
+      payload: { tool: "LIMPAR", resultado: "memoria_resetada" },
+    });
+    return;
+  }
+
+  // 4. Carrega histórico recente (últimas 20 msgs, respeitando ia_reset_em)
+  const resetEm = (ticket as unknown as { ia_reset_em?: string }).ia_reset_em || null;
+  let histQuery = sb
     .from("mensagens")
     .select("autor, conteudo, transcricao, created_at")
     .eq("ticket_id", b.ticket_id)
-    .is("deleted_em", null)
+    .is("deleted_em", null);
+  if (resetEm) histQuery = histQuery.gte("created_at", resetEm);
+  const { data: histRows } = await histQuery
     .order("created_at", { ascending: false })
     .limit(20);
   const historico = (histRows || []).reverse();
