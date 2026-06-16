@@ -113,6 +113,38 @@ async function aplicarEtiquetaEncerrado(sb: SbClient, prog: ProgressoRow, seq: S
   }
 }
 
+/**
+ * Move ticket para fila Atendimento Humano e pausa IA.
+ * Usado quando cadencia de follow-up termina sem resposta do cliente.
+ */
+async function moverParaFilaHumana(sb: SbClient, prog: ProgressoRow) {
+  const { data: filaHumano } = await sb
+    .from("filas")
+    .select("id")
+    .eq("agencia_id", prog.agencia_id)
+    .eq("tipo", "humano")
+    .eq("ativa", true)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  const patch: Record<string, unknown> = {
+    ia_pausada: true,
+    usuario_id: null,
+    status: "aberto",
+  };
+  if (filaHumano?.id) patch.fila_id = filaHumano.id;
+  await sb.from("tickets").update(patch).eq("id", prog.ticket_id);
+
+  try {
+    await sb.from("notas_internas").insert({
+      ticket_id: prog.ticket_id,
+      agencia_id: prog.agencia_id,
+      usuario_id: null,
+      conteudo: "🤖 Follow-up encerrado sem resposta — ticket movido para Atendimento Humano",
+    });
+  } catch { /* notas_internas opcional */ }
+}
+
 export async function processarFollowUpsIA(limite = 25): Promise<{
   ok: boolean;
   processados: number;
@@ -208,6 +240,8 @@ export async function processarFollowUpsIA(limite = 25): Promise<{
         await aplicarEtiquetaEncerrado(sb, prog, seq);
         if (seq.finalizar_ticket_ao_fim) {
           await sb.from("tickets").update({ status: "fechado" }).eq("id", prog.ticket_id);
+        } else {
+          await moverParaFilaHumana(sb, prog);
         }
         await finalizarProg(sb, prog, "finalizado", "cadencia completa");
         finalizados++;
@@ -349,6 +383,8 @@ export async function processarFollowUpsIA(limite = 25): Promise<{
         await aplicarEtiquetaEncerrado(sb, prog, seq);
         if (seq.finalizar_ticket_ao_fim) {
           await sb.from("tickets").update({ status: "fechado" }).eq("id", prog.ticket_id);
+        } else {
+          await moverParaFilaHumana(sb, prog);
         }
         await finalizarProg(sb, prog, "finalizado", "cadencia completa");
         finalizados++;

@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **16:15** — **Follow-up encerrado move ticket pra fila Atendimento Humano**.
+  - `followup-worker.ts`: novo `moverParaFilaHumana(sb, prog)` resolve fila tipo='humano' fixa da agencia, faz update no ticket (ia_pausada=true, usuario_id=null, status='aberto', fila_id=fila_humano.id) + insere nota interna "Follow-up encerrado sem resposta".
+  - Chamado quando cadencia termina e `seq.finalizar_ticket_ao_fim=false`. Se `finalizar_ticket_ao_fim=true`, mantem fechado.
+  - Combina com etiqueta "Follow Up feito" ja aplicada por `aplicarEtiquetaEncerrado`.
+
 - **16:00** — **Botao Testar envio de resumo (simulacao Groq + UAZAPI)**.
   - `lib/ia-atendimento/resumo-groq.ts`: extraido `executarResumoComConfig(args)` aceita config explicita (sem buscar DB). `gerarEEnviarResumo` virou wrapper. Novo `buscarHistoricoSample(agenciaId, perfilId)` retorna ultimas msgs do ticket mais recente (>=3 msgs) ou conversa exemplo (fake) como fallback.
   - `_actions.ts`: action `testarResumoConfig(formData)` le valores do form (sem precisar Salvar), decripta chave Groq do DB se input vazio, gera resumo via Groq + envia pro destino com prefixo "🧪 *Resumo IA (TESTE)*". Auditado.
