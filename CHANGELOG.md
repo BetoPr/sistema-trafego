@@ -7,6 +7,7 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **03:20** — **Fix dup histórico ↔ buffer**. IA contava 16 onde tinham 10 "Oi". Causa: `ingestMensagem` grava msg em `mensagens` ANTES de cair no buffer, então `processarUm` carregava histórico (incluindo as 10 do buffer) + concatenava as mesmas 10 do buffer no novoTexto = duplicação. Fix em `executor.ts`: histórico filtra `created_at < primeira_msg_do_buffer.recebido_em` e novoTexto sempre PUSH como user msg (em vez de sobrescrever último). Resultado: IA agora vê exatamente N msgs concatenadas, sem repetição.
 - **03:00** — **Lote 1 IA Atendimento — fix toggle + filas fixas + contexto temporal + transferir_para_humano configurável**.
   - **Fix toggle IA travado**: clicar "Ativar IA" no painel direito agora estampa `tickets.ia_reset_em = now()`. O guard `pausa_se_humano_responder` no executor passou a usar `baseline = MAX(ultimo_recebido_em, ia_reset_em)`, então mensagens do atendente anteriores à reativação manual deixam de re-pausar. Antes: clicar reativar não funcionava porque a primeira msg do cliente caía no guard e re-pausava silenciosamente.
   - **Sync UI ↔ DB do toggle**: `_painel.tsx` ganhou `useEffect([ticket.ia_pausada])` pra re-sincronizar `iaPausadaLocal` quando prop muda (refresh, navegação SPA), evitando divergência visual.

@@ -239,11 +239,15 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
 
   // 4+5. Carrega historico + ferramentas EM PARALELO (Promise.all)
   const resetEm = (ticket as unknown as { ia_reset_em?: string }).ia_reset_em || null;
+  // Exclui do historico as msgs que estao no buffer (evita duplicacao:
+  // ingestMensagem ja gravou em `mensagens` antes de cair no buffer).
+  const primeiroBufferEm = (b.mensagens_pendentes[0]?.recebido_em as string | undefined) || b.ultimo_recebido_em;
   let histQuery = sb
     .from("mensagens")
     .select("autor, conteudo, transcricao, created_at")
     .eq("ticket_id", b.ticket_id)
-    .is("deleted_em", null);
+    .is("deleted_em", null)
+    .lt("created_at", primeiroBufferEm);
   if (resetEm) histQuery = histQuery.gte("created_at", resetEm);
 
   const [{ data: histRows }, { data: ferramentas }] = await Promise.all([
@@ -280,13 +284,11 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       mensagens.push({ role: "assistant", content: (h.conteudo || "").slice(0, 2000) });
     }
   }
-  // Mensagens novas (concatenadas do buffer)
+  // Mensagens novas (concatenadas do buffer). Historico ja foi filtrado pra
+  // nao incluir msgs do buffer, entao sempre PUSH (nao sobrescrever).
   const novoTexto = b.mensagens_pendentes.map((m) => m.conteudo).filter(Boolean).join("\n");
-  if (novoTexto.trim() && historico[historico.length - 1]?.autor !== "cliente") {
+  if (novoTexto.trim()) {
     mensagens.push({ role: "user", content: novoTexto });
-  } else if (novoTexto.trim()) {
-    // Já tem histórico cliente recente; sobrescreve último user
-    mensagens[mensagens.length - 1] = { role: "user", content: novoTexto };
   }
 
   // 7. Chama IA
