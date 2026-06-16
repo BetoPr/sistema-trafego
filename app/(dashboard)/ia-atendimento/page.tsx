@@ -9,6 +9,7 @@ import {
   criarFerramentaIA,
   deletarFerramentaIA,
 } from "./_actions";
+import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ interface PerfilRow {
 interface CanalRow { id: string; nome: string; status: string; numero_conectado: string | null }
 interface FilaRow { id: string; nome: string; cor: string }
 interface EtiquetaRow { id: string; nome: string; cor: string }
-interface TemplateRow { id: string; nome: string; descricao: string | null; template_tipo: string | null }
+type TemplateRow = TemplatePicker;
 
 interface PerfilDetalhe {
   id: string;
@@ -141,7 +142,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
 
   try {
     const { data } = await sb.from("ia_atendimento_perfis")
-      .select("id, nome, descricao, template_tipo")
+      .select("id, nome, descricao, template_tipo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg")
       .is("agencia_id", null)
       .eq("eh_template", true)
       .order("nome");
@@ -286,34 +287,21 @@ function PerfilForm({
 
   return (
     <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
-      <h3 className="card-title" style={{ marginBottom: 14 }}>{editando ? `Editar — ${editando.nome}` : "Novo perfil de IA"}</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 10, flexWrap: "wrap" }}>
+        <h3 className="card-title" style={{ margin: 0 }}>{editando ? `Editar — ${editando.nome}` : "Novo perfil de IA"}</h3>
+        <Link
+          href="/ia-atendimento"
+          className="ghost-btn"
+          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
+        >
+          <i className="ti ti-arrow-left" /> Voltar para IAs construídas
+        </Link>
+      </div>
       <form action={editando ? atualizarPerfilIA : criarPerfilIA} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {editandoId && <input type="hidden" name="id" value={editandoId} />}
 
         {!editando && templates.length > 0 && (
-          <fieldset style={{ ...fs, background: "rgba(155,125,191,0.08)", border: "0.5px solid rgba(155,125,191,0.3)" }}>
-            <legend style={{ ...legend, color: "#9B7DBF" }}>🎨 Aplicar template (opcional)</legend>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
-              <label style={templateCard}>
-                <input type="radio" name="template_id" value="" defaultChecked style={{ display: "none" }} />
-                <i className="ti ti-pencil" style={{ color: "var(--mk-text-muted)" }} />
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>Em branco</div>
-                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>Configurar do zero</div>
-                </div>
-              </label>
-              {templates.map((t) => (
-                <label key={t.id} style={templateCard}>
-                  <input type="radio" name="template_id" value={t.id} style={{ display: "none" }} />
-                  <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.nome}</div>
-                    {t.descricao && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{t.descricao}</div>}
-                  </div>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <TemplatesPicker templates={templates} />
         )}
 
         <div style={grid2}>
