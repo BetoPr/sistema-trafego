@@ -135,20 +135,28 @@ export async function POST(
       );
 
       // Foto de perfil do contato: busca na 1ª mensagem (URL pps temporária do WhatsApp).
-      if (ingest.novoContato) {
-        void (async () => {
-          try {
-            const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
-            const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
-            const numero = parsed.waChatId.replace(/@.+$/, "");
-            const ni = await instanceGetNameAndImage({ baseUrl, token }, numero);
-            if (ni.image) {
-              await sb.from("contatos").update({ foto_url: ni.image }).eq("id", ingest.contatoId);
+      // Também roda pra contato existente sem foto_url (backfill incremental).
+      {
+        let precisaBuscarFoto = ingest.novoContato;
+        if (!precisaBuscarFoto) {
+          const { data: c } = await sb.from("contatos").select("foto_url").eq("id", ingest.contatoId).maybeSingle();
+          if (!c?.foto_url) precisaBuscarFoto = true;
+        }
+        if (precisaBuscarFoto) {
+          void (async () => {
+            try {
+              const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
+              const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+              const numero = parsed.waChatId.replace(/@.+$/, "");
+              const ni = await instanceGetNameAndImage({ baseUrl, token }, numero);
+              if (ni.image) {
+                await sb.from("contatos").update({ foto_url: ni.image }).eq("id", ingest.contatoId);
+              }
+            } catch (e) {
+              console.error("[webhook uazapi] foto contato falhou:", e);
             }
-          } catch (e) {
-            console.error("[webhook uazapi] foto contato falhou:", e);
-          }
-        })();
+          })();
+        }
       }
 
       // Mídia: 1ª tentativa de download em background. Falhas ficam pra

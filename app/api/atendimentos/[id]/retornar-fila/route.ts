@@ -15,9 +15,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
+  // Retornar à fila = também reativa IA (ia_pausada=false) — humano abre mão, IA assume
   const { error } = await sb
     .from("tickets")
-    .update({ status: "pendente", usuario_id: null, updated_at: new Date().toISOString() })
+    .update({
+      status: "pendente",
+      usuario_id: null,
+      ia_pausada: false,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -28,6 +34,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     acao: "update",
     entidade: "ticket_retornar_fila",
     entidadeId: id,
+    payload: { ia_reativada: true },
   });
   return NextResponse.json({ ok: true });
 }
