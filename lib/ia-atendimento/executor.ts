@@ -11,6 +11,7 @@ import { chamarIA, type MsgIA } from "./providers";
 import { buildToolsSchema, executarTool, type CtxIA } from "./tools-runner";
 import { dividirEmBlocos, gapAleatorio, type FormatoResposta } from "./split";
 import { buildContextoTemporal, aplicarPlaceholders } from "./contexto-temporal";
+import { inscreverFollowUpIA } from "./followup-worker";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -445,6 +446,32 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       ticket_id: b.ticket_id,
       evento: "encerrado",
     });
+  }
+
+  // L4: inscreve em follow-up sequencial apos primeira resposta IA bem-sucedida.
+  // Conta apenas msgs bot ANTES das que acabamos de inserir agora.
+  try {
+    if (resp.texto.trim() && ticket.canal_id) {
+      const { count: respostasBot } = await sb
+        .from("mensagens")
+        .select("id", { count: "exact", head: true })
+        .eq("ticket_id", b.ticket_id)
+        .eq("autor", "bot");
+      // 1a vez: apenas as msgs que acabamos de inserir (≤ N blocos)
+      const formato = (perfil.formato_resposta || {}) as FormatoResposta;
+      const blocosEnviados = resp.texto.trim() ? dividirEmBlocos(resp.texto, formato).length : 0;
+      if (respostasBot !== null && respostasBot <= blocosEnviados) {
+        await inscreverFollowUpIA({
+          agenciaId: b.agencia_id,
+          perfilId: perfil.id,
+          ticketId: b.ticket_id,
+          contatoId: contato.id,
+          canalId: ticket.canal_id,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[executor] inscrever followup falhou:", e);
   }
 }
 

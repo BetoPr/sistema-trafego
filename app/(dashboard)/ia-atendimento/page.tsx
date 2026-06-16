@@ -11,6 +11,7 @@ import {
 } from "./_actions";
 import EditarFerramentaBtn from "./_ferramenta-editar-btn";
 import type { ImagemGaleria } from "./_galeria-uploader";
+import FollowUpBloco, { type FollowupSeq, type FollowupEtapa } from "./_followup-bloco";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 import { ChipsPicker } from "./_chips-picker";
 import { TestarApiBtn } from "./_testar-btn";
@@ -176,6 +177,8 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let perfilEtiquetas: PerfilEtiquetaRow[] = [];
   let resumoUso: ResumoUso | null = null;
   let galeriaPorFerramenta: Record<string, ImagemGaleria[]> = {};
+  let followupSeqs: FollowupSeq[] = [];
+  let followupEtapas: FollowupEtapa[] = [];
   const intervaloUso: IntervaloUso =
     sp.uso === "24h" || sp.uso === "30d" || sp.uso === "total" ? sp.uso : "7d";
   if (editando) {
@@ -230,6 +233,23 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
     // L2: uso de tokens
     try {
       resumoUso = await carregarUsoTokens(editando.id, ctx.agenciaId, intervaloUso);
+    } catch {}
+
+    // L4: follow-up sequencias + etapas
+    try {
+      const { data: seqs } = await sb.from("ia_atendimento_followup_sequencias")
+        .select("id, nome, descricao, ordem_no_perfil, ativa, finalizar_ticket_ao_fim, etiqueta_em_progresso_id, etiqueta_encerrado_id, janela_inicio, janela_fim")
+        .eq("perfil_id", editando.id)
+        .order("ordem_no_perfil");
+      followupSeqs = (seqs || []) as FollowupSeq[];
+      if (followupSeqs.length > 0) {
+        const seqIds = followupSeqs.map((s) => s.id);
+        const { data: etps } = await sb.from("ia_atendimento_followup_etapas")
+          .select("id, sequencia_id, ordem, delay_segundos_antes, midia_tipo, texto, midia_path, midia_url, midia_mime, midia_filename")
+          .in("sequencia_id", seqIds)
+          .order("ordem");
+        followupEtapas = (etps || []) as FollowupEtapa[];
+      }
     } catch {}
 
     // L3: galeria por ferramenta (so pra acao=enviar_imagem_galeria)
@@ -301,6 +321,8 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           resumoUso={resumoUso}
           intervaloUso={intervaloUso}
           galeriaPorFerramenta={galeriaPorFerramenta}
+          followupSeqs={followupSeqs}
+          followupEtapas={followupEtapas}
         />
       ) : (
         <ListaPerfis perfis={perfis} />
@@ -357,6 +379,7 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
 function PerfilForm({
   editando, editandoId, canais, filas, etiquetas, ferramentas, templates, logs,
   perfilEtiquetas, resumoUso, intervaloUso, galeriaPorFerramenta,
+  followupSeqs, followupEtapas,
 }: {
   editando: PerfilDetalhe | null;
   editandoId: string | null;
@@ -370,6 +393,8 @@ function PerfilForm({
   resumoUso: ResumoUso | null;
   intervaloUso: IntervaloUso;
   galeriaPorFerramenta: Record<string, ImagemGaleria[]>;
+  followupSeqs: FollowupSeq[];
+  followupEtapas: FollowupEtapa[];
 }) {
   const provider = editando?.provider || "anthropic";
   const canaisAtivos = new Set<string>(editando?.canais_ativos || []);
@@ -573,6 +598,15 @@ function PerfilForm({
             configuradas={perfilEtiquetas}
           />
         </div>
+      )}
+
+      {editandoId && (
+        <FollowUpBloco
+          perfilId={editandoId}
+          sequencias={followupSeqs}
+          etapas={followupEtapas}
+          etiquetas={etiquetas}
+        />
       )}
 
       {editandoId && resumoUso && (

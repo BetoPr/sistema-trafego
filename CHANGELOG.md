@@ -7,6 +7,28 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **06:00** — **Lote 4 IA Atendimento — Follow-up engine sequencial completo**.
+  - **Migration**: 4 tabelas novas:
+    - `ia_atendimento_followup_sequencias` (perfil_id, agencia_id, nome, ordem_no_perfil 1-5, ativa, finalizar_ticket_ao_fim bool, etiqueta_em_progresso_id, etiqueta_encerrado_id, janela_inicio/fim, timezone)
+    - `ia_atendimento_followup_etapas` (sequencia_id, ordem 1-6, delay_segundos_antes, midia_tipo enum(texto/imagem/video/audio/documento), texto, midia_path/url/mime/filename)
+    - `ia_atendimento_followup_progresso` (ticket_id, sequencia_id, etapa_atual, proxima_etapa, agendado_para, status enum, motivo_fim, iniciado_em, finalizado_em)
+    - `ia_atendimento_followup_envios` (log de cada envio efetivo)
+  - Triggers: limite 5 sequências por perfil + CHECK 1-6 etapas + CHECK conteúdo válido + UNIQUE constraint (ticket_id ativo).
+  - **Bucket Supabase Storage `ia-followup`** (20MB, image/video/audio/pdf/docx/xlsx) com policies isolando por agencia_id no path.
+  - **RPC `iafp_pickup_devidos`**: pickup atômico com FOR UPDATE SKIP LOCKED — worker idempotente sob concorrência.
+  - **Worker `lib/ia-atendimento/followup-worker.ts`**: 3 funções exportadas:
+    - `processarFollowUpsIA(limite)` — chamado pelo cron, processa etapas devidas. Respeita janela horária (reagenda fora), cancela se cliente respondeu, finaliza ticket+aplica etiqueta encerrado na última etapa.
+    - `cancelarFollowUpsPorRespostaCliente(ticketId)` — chamado pelo webhook via `after()` quando cliente responde.
+    - `inscreverFollowUpIA(...)` — chamado pelo executor após primeira resposta IA bem-sucedida.
+  - **Cron route** `/api/cron/ia-followup` + pg_cron job `ia-followup-tick` 1/min (curl com Bearer CRON_SECRET).
+  - **Executor.ts** inscreve automaticamente após primeira resposta IA (conta blocos enviados).
+  - **Webhook UAZAPI**: novo `after()` cancela follow-ups quando cliente responde (latência <1s).
+  - **UI `_followup-bloco.tsx`**: fieldset "Follow-up sequencial" no edit perfil. Lista até 5 sequências. Balão de edição com:
+    - Meta (nome, ativa, etiqueta progresso, etiqueta encerrado, janela início/fim, finalizar ticket após)
+    - Editor de etapas drag-drop reorder + tipo (texto/imagem/video/audio/documento)
+    - Drag-drop file upload pra bucket ia-followup
+    - 7 server actions: criar/atualizar/deletar sequência, salvar/deletar/reordenar etapa, upload mídia
+  - **Limpou** scaffold antigo `ia_atendimento_followups` (F2 órfão).
 - **05:35** — **Lote 3 IA Atendimento — tools editáveis + tool `enviar_imagem_galeria`**.
   - **CRUD completo de ferramentas**: lápis ao lado de cada ferramenta abre Balão com `FerramentaForm` pré-preenchido (nome readonly, descrição/ação/parâmetros editáveis). Toggle on/off inline (`alternarAtivoFerramentaIA`). Nome técnico tem unique constraint por perfil.
   - **Migration**: nova tabela `ia_atendimento_galeria (perfil_id, agencia_id, ferramenta_id, nome, descricao, tags[], url_storage, mime, ordem)` com RLS + GIN index em tags. Bucket Supabase Storage `ia-galeria` (privado, max 10MB, image/jpeg|png|webp|gif) com policies que isolam por `agencia_id` no path.

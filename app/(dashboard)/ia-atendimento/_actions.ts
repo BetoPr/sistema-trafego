@@ -479,3 +479,183 @@ export async function reordenarImagemGaleria(formData: FormData): Promise<{ ok: 
   revalidatePath(ROUTE);
   return { ok: true };
 }
+
+// ============================================================
+// LOTE 4 — Follow-up sequencial IA: actions
+// ============================================================
+
+interface EtapaSerializada {
+  id: string;
+  sequencia_id: string;
+  ordem: number;
+  delay_segundos_antes: number;
+  midia_tipo: string;
+  texto: string | null;
+  midia_path: string | null;
+  midia_url: string | null;
+  midia_mime: string | null;
+  midia_filename: string | null;
+}
+
+export async function criarSequenciaFollowUp(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const perfilId = String(formData.get("perfil_id") || "");
+  const nome = String(formData.get("nome") || "").trim();
+  if (!perfilId || !nome) return { ok: false, error: "perfil_id e nome obrigatorios" };
+
+  const ordem = parseInt(String(formData.get("ordem_no_perfil") || "1"), 10);
+  const { error } = await sb.from("ia_atendimento_followup_sequencias").insert({
+    perfil_id: perfilId,
+    agencia_id: ctx.agenciaId,
+    nome,
+    descricao: String(formData.get("descricao") || "") || null,
+    ordem_no_perfil: Math.max(1, Math.min(5, ordem)),
+    ativa: formData.get("ativa") === "1",
+    finalizar_ticket_ao_fim: formData.get("finalizar_ticket_ao_fim") === "1",
+    etiqueta_em_progresso_id: String(formData.get("etiqueta_em_progresso_id") || "") || null,
+    etiqueta_encerrado_id: String(formData.get("etiqueta_encerrado_id") || "") || null,
+    janela_inicio: String(formData.get("janela_inicio") || "08:00"),
+    janela_fim: String(formData.get("janela_fim") || "20:00"),
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function atualizarSequenciaFollowUp(id: string, formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const { error } = await sb
+    .from("ia_atendimento_followup_sequencias")
+    .update({
+      nome: String(formData.get("nome") || "").trim(),
+      ativa: formData.get("ativa") === "1",
+      finalizar_ticket_ao_fim: formData.get("finalizar_ticket_ao_fim") === "1",
+      etiqueta_em_progresso_id: String(formData.get("etiqueta_em_progresso_id") || "") || null,
+      etiqueta_encerrado_id: String(formData.get("etiqueta_encerrado_id") || "") || null,
+      janela_inicio: String(formData.get("janela_inicio") || "08:00"),
+      janela_fim: String(formData.get("janela_fim") || "20:00"),
+    })
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function deletarSequenciaFollowUp(id: string): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  await sb
+    .from("ia_atendimento_followup_progresso")
+    .update({ status: "cancelado", motivo_fim: "sequencia deletada", finalizado_em: new Date().toISOString() })
+    .eq("sequencia_id", id)
+    .eq("agencia_id", ctx.agenciaId)
+    .in("status", ["agendado", "executando"]);
+  const { error } = await sb.from("ia_atendimento_followup_sequencias")
+    .delete()
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function salvarEtapaFollowUp(formData: FormData): Promise<{ ok: boolean; error?: string; etapa?: EtapaSerializada }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const sequenciaId = String(formData.get("sequencia_id") || "");
+  const id = String(formData.get("id") || "");
+
+  const { data: seq } = await sb
+    .from("ia_atendimento_followup_sequencias")
+    .select("agencia_id")
+    .eq("id", sequenciaId)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle<{ agencia_id: string }>();
+  if (!seq) return { ok: false, error: "sequencia invalida" };
+
+  const payload = {
+    sequencia_id: sequenciaId,
+    agencia_id: seq.agencia_id,
+    ordem: parseInt(String(formData.get("ordem") || "1"), 10),
+    delay_segundos_antes: parseInt(String(formData.get("delay_segundos_antes") || "0"), 10),
+    midia_tipo: String(formData.get("midia_tipo") || "texto"),
+    texto: String(formData.get("texto") || "") || null,
+    midia_path: String(formData.get("midia_path") || "") || null,
+    midia_url: String(formData.get("midia_url") || "") || null,
+    midia_mime: String(formData.get("midia_mime") || "") || null,
+    midia_filename: String(formData.get("midia_filename") || "") || null,
+  };
+
+  if (id) {
+    const { data, error } = await sb
+      .from("ia_atendimento_followup_etapas")
+      .update(payload)
+      .eq("id", id)
+      .eq("agencia_id", ctx.agenciaId)
+      .select()
+      .single();
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(ROUTE);
+    return { ok: true, etapa: data as EtapaSerializada };
+  } else {
+    const { data, error } = await sb.from("ia_atendimento_followup_etapas").insert(payload).select().single();
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(ROUTE);
+    return { ok: true, etapa: data as EtapaSerializada };
+  }
+}
+
+export async function deletarEtapaFollowUp(id: string): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const { error } = await sb.from("ia_atendimento_followup_etapas")
+    .delete()
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function reordenarEtapasFollowUp(_sequenciaId: string, idsEmOrdem: string[]): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  // Truque: subtrair temporariamente pra evitar conflito de UNIQUE(sequencia_id, ordem)
+  for (let i = 0; i < idsEmOrdem.length; i++) {
+    await sb.from("ia_atendimento_followup_etapas")
+      .update({ ordem: -(i + 1) })
+      .eq("id", idsEmOrdem[i])
+      .eq("agencia_id", ctx.agenciaId);
+  }
+  for (let i = 0; i < idsEmOrdem.length; i++) {
+    await sb.from("ia_atendimento_followup_etapas")
+      .update({ ordem: i + 1 })
+      .eq("id", idsEmOrdem[i])
+      .eq("agencia_id", ctx.agenciaId);
+  }
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function uploadMidiaFollowUp(formData: FormData): Promise<{ ok: boolean; error?: string; path?: string; mime?: string; filename?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const file = formData.get("file") as File | null;
+  if (!file) return { ok: false, error: "arquivo ausente" };
+  if (file.size > 20 * 1024 * 1024) return { ok: false, error: "arquivo > 20 MB" };
+
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase().slice(0, 5);
+  const path = `${ctx.agenciaId}/${crypto.randomUUID()}.${ext}`;
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await sb.storage.from("ia-followup").upload(path, buf, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (upErr) return { ok: false, error: upErr.message };
+
+  return { ok: true, path, mime: file.type, filename: file.name };
+}

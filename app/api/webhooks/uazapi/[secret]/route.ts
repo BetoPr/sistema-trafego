@@ -208,6 +208,16 @@ export async function POST(
             console.error("[webhook uazapi] IA after() falhou:", e);
           }
         });
+
+        // L4: cancela follow-up sequencial em progresso se cliente respondeu
+        after(async () => {
+          try {
+            const { cancelarFollowUpsPorRespostaCliente } = await import("@/lib/ia-atendimento/followup-worker");
+            await cancelarFollowUpsPorRespostaCliente(ingest.ticketId);
+          } catch (e) {
+            console.warn("[webhook uazapi] cancelar followup falhou:", e);
+          }
+        });
       }
 
       return NextResponse.json({
