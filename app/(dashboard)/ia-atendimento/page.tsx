@@ -10,6 +10,7 @@ import {
   deletarFerramentaIA,
 } from "./_actions";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
+import { ChipsPicker } from "./_chips-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -406,25 +407,19 @@ function PerfilForm({
           <legend style={legend}>Onde a IA atua</legend>
           <div>
             <label style={lbl}>Canais (vazio = todos)</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {canais.map((c) => (
-                <label key={c.id} style={chip(canaisAtivos.has(c.id))}>
-                  <input type="checkbox" name="canal_id" value={c.id} defaultChecked={canaisAtivos.has(c.id)} style={{ display: "none" }} />
-                  <i className="ti ti-brand-whatsapp" style={{ color: "#25D366" }} /> {c.nome}
-                </label>
-              ))}
-            </div>
+            <ChipsPicker
+              name="canal_id"
+              defaultSelected={Array.from(canaisAtivos)}
+              items={canais.map((c) => ({ id: c.id, nome: c.nome, iconTabler: "ti-brand-whatsapp", iconColor: "#25D366" }))}
+            />
           </div>
           <div style={{ marginTop: 8 }}>
             <label style={lbl}>Filas (vazio = todas)</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {filas.map((f) => (
-                <label key={f.id} style={chip(filasAtivas.has(f.id))}>
-                  <input type="checkbox" name="fila_id" value={f.id} defaultChecked={filasAtivas.has(f.id)} style={{ display: "none" }} />
-                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: f.cor, marginRight: 4 }} /> {f.nome}
-                </label>
-              ))}
-            </div>
+            <ChipsPicker
+              name="fila_id"
+              defaultSelected={Array.from(filasAtivas)}
+              items={filas.map((f) => ({ id: f.id, nome: f.nome, cor: f.cor }))}
+            />
           </div>
         </fieldset>
 
