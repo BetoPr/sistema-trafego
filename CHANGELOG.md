@@ -7,6 +7,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **17:30** — **Menu de mensagem estilo WhatsApp Web (chevron, reacoes, long-press, confirmacao apagar)**.
+  - Novo `_msg-acoes.tsx` (client): substitui botoes soltos (lixo + reagir + responder) por um unico chevron-down sobre a bolha (canto sup direito). Hover na bolha mostra barra de emojis acima (animacao scale-in cubic-bezier).
+  - Click chevron: dropdown Responder, Copiar, Reagir, Apagar (animacao msg-menu-in).
+  - Mobile long-press 450ms: abre o mesmo dropdown.
+  - Apagar abre Balao confirmando "Apagar so pra mim (oculta no CRM)" ou "Apagar pra todos (revogar no WhatsApp)". Cancelar disponivel.
+  - Animacoes globais novas em `globals.css`: `@keyframes msg-react-pop`, `@keyframes msg-menu-in`. `.msg-chevron:hover` scale + escurece. `.msg-bubble { position: relative }` pra ancorar overlays.
+  - Removido `<ExcluirBtn>` inline + reactPicker inline duplicado em `_chat.tsx`.
+
 - **17:10** — **Fix alinhamento do botao collapse do sidebar (mobile + desktop)**.
   - Desktop collapsed (`@media min-width 769px`): `.mk-logo` vira flex centralizado com min-height 44px, `.collapse-inline` vira `position: relative` + `margin: 0 auto` (deixa de ficar deslocado pro canto direito quando logo-wrap some).
   - Mobile drawer (`@media max-width 768px`): `.mk-logo` flex align-center + `.collapse-inline` ancorado em right:10px com translateY(-50%).

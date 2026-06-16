@@ -7,6 +7,7 @@ import { AudioPlayer } from "./_audio";
 import { MediaPreview } from "./_media";
 import { ChatHeader } from "./_header";
 import { InputBar } from "./_input";
+import { MsgAcoes } from "./_msg-acoes";
 
 const scrollBtnStyle: React.CSSProperties = {
   width: 30,
@@ -585,17 +586,6 @@ export function ChatView(props: Props) {
         ) : (
           msgs.map((m) => (
             <div key={m.id} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
-              {m.autor !== "cliente" && !m.deleted_em && (
-                <>
-                  <ExcluirBtn open={excluirPicker === m.id} podeApagarTodos={!!m.wa_message_id} onToggle={() => setExcluirPicker((p) => p === m.id ? null : m.id)} onEscolher={(t) => excluirMensagem(m, t)} />
-                  {m.wa_message_id && (
-                    <>
-                      <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
-                      <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
-                    </>
-                  )}
-                </>
-              )}
               <div
                 style={{
                   maxWidth: "72%",
@@ -613,6 +603,18 @@ export function ChatView(props: Props) {
                 }}
                 className="msg-bubble"
               >
+                {!m.deleted_em && (
+                  <MsgAcoes
+                    ladoCliente={m.autor === "cliente"}
+                    podeApagarTodos={m.autor !== "cliente" && !!m.wa_message_id}
+                    podeReagir={!!m.wa_message_id}
+                    podeResponder={!!m.wa_message_id}
+                    textoParaCopiar={m.conteudo || m.transcricao || ""}
+                    onResponder={() => setRespondendo(m)}
+                    onReagir={(emoji) => reagir(m, emoji)}
+                    onApagar={(paraTodos) => excluirMensagem(m, paraTodos)}
+                  />
+                )}
                 {m.deleted_em ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontStyle: "italic", color: "var(--mk-text-muted)", fontSize: 12 }}>
                     <i className="ti ti-trash" />
@@ -684,15 +686,6 @@ export function ChatView(props: Props) {
                     </div>
                   );
                 })()}
-                {reactPicker === m.id && (
-                  <div style={{ position: "relative", marginTop: 4 }}>
-                    <div style={{ position: "absolute", top: 0, [m.autor === "cliente" ? "left" : "right"]: 0, display: "flex", gap: 2, padding: "4px 6px", background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.3)", zIndex: 5 }}>
-                      {EMOJIS_RAPIDOS.map((e) => (
-                        <button key={e} type="button" onClick={() => reagir(m, e)} style={{ background: "transparent", border: 0, fontSize: 16, cursor: "pointer", padding: "2px 4px", borderRadius: 999, transition: "transform 0.12s ease" }} onMouseEnter={(ev) => (ev.currentTarget as HTMLButtonElement).style.transform = "scale(1.25)"} onMouseLeave={(ev) => (ev.currentTarget as HTMLButtonElement).style.transform = "scale(1)"}>{e}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", marginTop: 4, textAlign: "right" }}>
                   {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                   {m.autor === "atendente" && (() => {
@@ -708,17 +701,6 @@ export function ChatView(props: Props) {
                   })()}
                 </div>
               </div>
-              {m.autor === "cliente" && !m.deleted_em && (
-                <>
-                  {m.wa_message_id && (
-                    <>
-                      <button type="button" onClick={() => setRespondendo(m)} title="Responder" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-arrow-back-up" /></button>
-                      <button type="button" onClick={() => setReactPicker((p) => p === m.id ? null : m.id)} title="Reagir" className="msg-reply-btn" style={replyBtnStyle}><i className="ti ti-mood-smile" /></button>
-                    </>
-                  )}
-                  <ExcluirBtn open={excluirPicker === m.id} podeApagarTodos={false} onToggle={() => setExcluirPicker((p) => p === m.id ? null : m.id)} onEscolher={(t) => excluirMensagem(m, t)} />
-                </>
-              )}
             </div>
           ))
         )}

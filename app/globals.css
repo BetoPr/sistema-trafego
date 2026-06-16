@@ -495,6 +495,18 @@ select option { background: #ffffff; color: #111111; }
 .msg-reply-btn:hover { opacity: 1; background: var(--mk-surface-2); }
 @media (hover: none) { .msg-reply-btn { opacity: 0.4; } }
 
+/* Animacoes do menu de mensagem (estilo WhatsApp Web) */
+@keyframes msg-react-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes msg-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.msg-chevron:hover { background: rgba(0,0,0,0.75) !important; transform: scale(1.08) !important; }
+.msg-bubble { position: relative; }
+
 .nav-badge {
   background: rgba(16,185,129,0.15);
   color: var(--mk-accent); font-size: 9px; padding: 2px 7px;
