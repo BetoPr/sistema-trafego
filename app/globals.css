@@ -149,7 +149,7 @@
   --mk-bg-deep: #050505;
   --mk-surface: rgba(0,0,0,0.50);
   --mk-surface-2: rgba(255,255,255,0.05);
-  --mk-sidebar-bg: #070b09;
+  --mk-sidebar-bg: rgba(0,0,0,0.70);
   --mk-side-text: rgba(245,239,228,0.62);
   --mk-side-strong: #FFFFFF;
   --mk-side-label: rgba(245,239,228,0.50);
@@ -244,11 +244,7 @@ select option { background: #ffffff; color: #111111; }
 .app-root.collapsed .mk-sidebar { padding: 18px 8px; }
 
 .sidebar-blob-1 {
-  position: absolute; top: -50px; left: -50px;
-  width: 200px; height: 200px;
-  background: linear-gradient(135deg, #10b981, #14b8a6);
-  border-radius: 50%; opacity: 0.18; filter: blur(50px);
-  pointer-events: none;
+  display: none;
 }
 .sidebar-blob-2 {
   position: absolute; bottom: 100px; right: -80px;
