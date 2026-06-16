@@ -122,8 +122,26 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   if (!perfil || !perfil.ativo) {
     throw new Error("perfil inativo ou não encontrado");
   }
-  if (!ticket || ticket.ia_pausada || ticket.status === "fechado") {
-    return; // pausado/fechado, drop
+  if (!ticket) return;
+  if (ticket.status === "fechado") {
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "encerrado",
+      payload: { motivo: "ticket fechado" },
+    });
+    return;
+  }
+  if (ticket.ia_pausada) {
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "pausa_humano",
+      payload: { motivo: "ticket.ia_pausada=true — alguém respondeu via CRM. Use 'Retornar à fila' pra reativar." },
+    });
+    return;
   }
 
   const [{ data: contato }, { data: canal }] = await Promise.all([
