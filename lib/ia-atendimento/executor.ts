@@ -232,7 +232,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     return;
   }
 
-  // 4. Carrega histórico recente (últimas 20 msgs, respeitando ia_reset_em)
+  // 4+5. Carrega historico + ferramentas EM PARALELO (Promise.all)
   const resetEm = (ticket as unknown as { ia_reset_em?: string }).ia_reset_em || null;
   let histQuery = sb
     .from("mensagens")
@@ -240,17 +240,15 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     .eq("ticket_id", b.ticket_id)
     .is("deleted_em", null);
   if (resetEm) histQuery = histQuery.gte("created_at", resetEm);
-  const { data: histRows } = await histQuery
-    .order("created_at", { ascending: false })
-    .limit(20);
-  const historico = (histRows || []).reverse();
 
-  // 5. Carrega ferramentas
-  const { data: ferramentas } = await sb
-    .from("ia_atendimento_ferramentas")
-    .select("nome, descricao, acao, parametros")
-    .eq("perfil_id", perfil.id)
-    .eq("ativo", true);
+  const [{ data: histRows }, { data: ferramentas }] = await Promise.all([
+    histQuery.order("created_at", { ascending: false }).limit(20),
+    sb.from("ia_atendimento_ferramentas")
+      .select("nome, descricao, acao, parametros")
+      .eq("perfil_id", perfil.id)
+      .eq("ativo", true),
+  ]);
+  const historico = (histRows || []).reverse();
   const tools = buildToolsSchema((ferramentas || []) as Array<{ nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>);
 
   // 6. Monta prompt
@@ -393,19 +391,25 @@ export async function adicionarAoBuffer(params: {
   contatoId: string;
   conteudo: string;
   tipo: string;
-}): Promise<{ ok: boolean; motivo?: string }> {
+}): Promise<{ ok: boolean; motivo?: string; perfilId?: string; debounceMs?: number }> {
   const sb = createServiceClient();
 
-  // Procura perfil ativo na agência que cobre esse canal/fila
-  const { data: ticket } = await sb.from("tickets").select("fila_id, ia_pausada, ia_perfil_id").eq("id", params.ticketId).maybeSingle();
+  // PARALELO: ticket + perfis ativos + buffer existente
+  const [
+    { data: ticket },
+    { data: perfis },
+    { data: bufferExistente },
+  ] = await Promise.all([
+    sb.from("tickets").select("fila_id, ia_pausada, ia_perfil_id, canal_id").eq("id", params.ticketId).maybeSingle(),
+    sb.from("ia_atendimento_perfis")
+      .select("id, canais_ativos, filas_ativas, delay_debounce_seg")
+      .eq("agencia_id", params.agenciaId)
+      .eq("ativo", true),
+    sb.from("ia_atendimento_buffer").select("mensagens_pendentes, ultimo_recebido_em").eq("ticket_id", params.ticketId).maybeSingle(),
+  ]);
+
   if (!ticket) return { ok: false, motivo: "ticket nao encontrado" };
   if (ticket.ia_pausada) return { ok: false, motivo: "ia pausada nesse ticket" };
-
-  const { data: perfis } = await sb
-    .from("ia_atendimento_perfis")
-    .select("id, canais_ativos, filas_ativas, delay_debounce_seg")
-    .eq("agencia_id", params.agenciaId)
-    .eq("ativo", true);
 
   // Match: canal precisa bater. Fila opcional — se perfil declara filas_ativas
   // e ticket está em fila diferente, MOVE ticket pra primeira fila ativa do perfil
@@ -426,31 +430,64 @@ export async function adicionarAoBuffer(params: {
   }
 
   const agora = new Date();
-  const processarApos = new Date(agora.getTime() + perfilEscolhido.delay_debounce_seg * 1000).toISOString();
+  const debounceMs = Math.max(0, perfilEscolhido.delay_debounce_seg) * 1000;
+  const processarApos = new Date(agora.getTime() + debounceMs).toISOString();
 
-  // Upsert no buffer
-  const { data: existente } = await sb
-    .from("ia_atendimento_buffer")
-    .select("mensagens_pendentes")
-    .eq("ticket_id", params.ticketId)
-    .maybeSingle();
-
+  // Upsert no buffer (buffer existente ja vem do fetch paralelo acima)
   const nova = { conteudo: params.conteudo, recebido_em: agora.toISOString(), tipo: params.tipo };
-  const lista = existente ? [...(existente.mensagens_pendentes as Array<unknown>), nova] : [nova];
+  const lista = bufferExistente ? [...(bufferExistente.mensagens_pendentes as Array<unknown>), nova] : [nova];
 
-  await sb.from("ia_atendimento_buffer").upsert({
-    ticket_id: params.ticketId,
-    perfil_id: perfilEscolhido.id,
-    agencia_id: params.agenciaId,
-    mensagens_pendentes: lista,
-    ultimo_recebido_em: agora.toISOString(),
-    processar_apos: processarApos,
-    trava_processando: false,
-  }, { onConflict: "ticket_id" });
+  // Upsert + opcional update ia_perfil_id em paralelo
+  await Promise.all([
+    sb.from("ia_atendimento_buffer").upsert({
+      ticket_id: params.ticketId,
+      perfil_id: perfilEscolhido.id,
+      agencia_id: params.agenciaId,
+      mensagens_pendentes: lista,
+      ultimo_recebido_em: agora.toISOString(),
+      processar_apos: processarApos,
+      trava_processando: false,
+    }, { onConflict: "ticket_id" }),
+    !ticket.ia_perfil_id
+      ? sb.from("tickets").update({ ia_perfil_id: perfilEscolhido.id }).eq("id", params.ticketId)
+      : Promise.resolve(),
+  ]);
 
-  if (!ticket.ia_perfil_id) {
-    await sb.from("tickets").update({ ia_perfil_id: perfilEscolhido.id }).eq("id", params.ticketId);
+  return { ok: true, perfilId: perfilEscolhido.id, debounceMs };
+}
+
+/**
+ * Processa um ticket especifico (substitui o loop processarBufferIA).
+ * Espera debounceMs apos chamada, depois processa o buffer desse ticket.
+ * Usado pelo webhook via after() pra responder em ~debounce + IA latency.
+ */
+export async function processarTicket(ticketId: string, debounceMs: number): Promise<{ ok: boolean; motivo?: string; erro?: string }> {
+  if (debounceMs > 0) await sleep(debounceMs);
+  const sb = createServiceClient();
+  // Trava buffer atomicamente
+  const { data: travado } = await sb
+    .from("ia_atendimento_buffer")
+    .update({ trava_processando: true })
+    .eq("ticket_id", ticketId)
+    .eq("trava_processando", false)
+    .lte("processar_apos", new Date().toISOString())
+    .select("ticket_id, perfil_id, agencia_id, mensagens_pendentes, ultimo_recebido_em, processar_apos")
+    .maybeSingle();
+  if (!travado) return { ok: false, motivo: "buffer_nao_disponivel" };
+  try {
+    await processarUm(travado as unknown as BufferRow, sb);
+    await sb.from("ia_atendimento_buffer").delete().eq("ticket_id", ticketId);
+    return { ok: true };
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: travado.agencia_id,
+      perfil_id: travado.perfil_id,
+      ticket_id: ticketId,
+      evento: "erro",
+      erro,
+    });
+    await sb.from("ia_atendimento_buffer").delete().eq("ticket_id", ticketId);
+    return { ok: false, erro };
   }
-
-  return { ok: true };
 }

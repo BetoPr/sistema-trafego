@@ -14,7 +14,7 @@
  *  4. Se áudio: dispara transcrição em background
  *  5. Se connection: atualiza status do canal
  */
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   detectEventType,
@@ -30,6 +30,7 @@ import { baixarEUploadMidia } from "@/lib/crm/midia-download";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(
   req: Request,
@@ -186,12 +187,12 @@ export async function POST(
         })();
       }
 
-      // Hook IA Atendimento: se msg veio do cliente (não fromMe), adiciona ao buffer
-      // e dispara trigger em background pra processar logo após debounce (sem esperar cron 1/min)
+      // Hook IA Atendimento: msg do cliente vai pro buffer + processa inline via after()
+      // (zero cold-start adicional, sem chamar outro endpoint)
       if (!parsed.fromMe && !parsed.isGroup) {
-        void (async () => {
+        after(async () => {
           try {
-            const { adicionarAoBuffer } = await import("@/lib/ia-atendimento/executor");
+            const { adicionarAoBuffer, processarTicket } = await import("@/lib/ia-atendimento/executor");
             const r = await adicionarAoBuffer({
               ticketId: ingest.ticketId,
               agenciaId: canal.agencia_id,
@@ -200,22 +201,13 @@ export async function POST(
               conteudo: parsed.conteudo || parsed.midia?.caption || `[${parsed.tipo}]`,
               tipo: parsed.tipo,
             });
-            if (r.ok) {
-              // Dispara trigger background (não espera resposta — fire and forget)
-              const origin = process.env.NEXT_PUBLIC_APP_URL || "https://sistema-trafego.vercel.app";
-              const secret = process.env.CRON_SECRET;
-              if (secret) {
-                void fetch(`${origin}/api/ia-atendimento/trigger`, {
-                  method: "POST",
-                  headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
-                  body: JSON.stringify({ ticketId: ingest.ticketId }),
-                }).catch((e) => console.error("[webhook] trigger IA falhou:", e));
-              }
+            if (r.ok && r.debounceMs !== undefined) {
+              await processarTicket(ingest.ticketId, r.debounceMs);
             }
           } catch (e) {
-            console.error("[webhook uazapi] IA buffer falhou:", e);
+            console.error("[webhook uazapi] IA after() falhou:", e);
           }
-        })();
+        });
       }
 
       return NextResponse.json({

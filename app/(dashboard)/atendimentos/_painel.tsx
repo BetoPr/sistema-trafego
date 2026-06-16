@@ -30,6 +30,8 @@ interface Ticket {
   resumo_atualizado_em: string | null;
   valor_fechado?: number | null;
   metadata?: { servico?: string; quantidade?: number } | null;
+  ia_pausada?: boolean | null;
+  ia_perfil_id?: string | null;
 }
 
 interface Tag {
@@ -72,6 +74,34 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const [fuMsg, setFuMsg] = useState("");
   const [fuBusy, setFuBusy] = useState(false);
   const [fuAvulsoAberto, setFuAvulsoAberto] = useState(false);
+  const [iaPausadaLocal, setIaPausadaLocal] = useState<boolean>(!!ticket.ia_pausada);
+  const [iaTogglando, setIaTogglando] = useState(false);
+
+  async function toggleIA() {
+    if (iaTogglando) return;
+    const nova = !iaPausadaLocal;
+    setIaTogglando(true);
+    setIaPausadaLocal(nova); // otimista
+    try {
+      const r = await fetch(`/api/atendimentos/${ticket.id}/ia-toggle`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pausada: nova }),
+      });
+      if (!r.ok) {
+        setIaPausadaLocal(!nova);
+        const j = await r.json().catch(() => ({}));
+        alert(`Falha: ${j.error || r.statusText}`);
+        return;
+      }
+      refresh();
+    } catch (e) {
+      setIaPausadaLocal(!nova);
+      alert(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIaTogglando(false);
+    }
+  }
   const [logsTicket, setLogsTicket] = useState<Array<{ id: string; acao: string; entidade: string | null; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null; payload?: Record<string, unknown> | null }>>([]);
   const [notas, setNotas] = useState<Array<{ id: string; conteudo: string; created_at: string; usuario?: { nome?: string } | { nome?: string }[] | null }>>([]);
   const [novaNota, setNovaNota] = useState("");
@@ -547,6 +577,34 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
 
         {tab === "atend" && (
           <>
+            {/* CARD IA Atendendo — toggle liga/desliga */}
+            <Card titulo="IA Atendendo">
+              <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: iaPausadaLocal ? "var(--mk-text-muted)" : "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
+                    <i className={`ti ${iaPausadaLocal ? "ti-robot-off" : "ti-robot"}`} style={{ fontSize: 16 }} />
+                    {iaPausadaLocal ? "IA pausada" : "IA ativa"}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2, lineHeight: 1.4 }}>
+                    {iaPausadaLocal
+                      ? "Atendente humano cuidando. IA não responde automaticamente."
+                      : "IA responde mensagens do cliente. Se você responder pelo CRM, pausa automaticamente."}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleIA}
+                  disabled={iaTogglando}
+                  className={`toggle-switch ${!iaPausadaLocal ? "is-on" : ""}`}
+                  aria-pressed={!iaPausadaLocal}
+                  title={iaPausadaLocal ? "Ativar IA" : "Pausar IA"}
+                  style={{ flexShrink: 0 }}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </div>
+            </Card>
+
             {/* CARD sentimento — 1x por atendimento */}
             <Card>
               <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", borderBottom: "0.5px solid var(--mk-border)" }}>
