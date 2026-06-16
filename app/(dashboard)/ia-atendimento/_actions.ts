@@ -55,6 +55,7 @@ export async function criarPerfilIA(formData: FormData) {
   const whitelistRaw = String(formData.get("whatsapp_teste_lista") || "");
   const whitelist = whitelistRaw.split(/[\n,;]/).map((s) => s.trim()).filter(Boolean);
 
+  const timezone = String(formData.get("timezone") || "America/Sao_Paulo");
   const patch: Record<string, unknown> = {
     agencia_id: ctx.agenciaId,
     nome,
@@ -62,6 +63,7 @@ export async function criarPerfilIA(formData: FormData) {
     provider,
     modelo,
     prompt_sistema: promptFinal,
+    timezone,
     whatsapp_teste_lista: whitelist,
     delay_debounce_seg: Math.max(0, Math.min(600, parseInt(String(formData.get("delay_debounce_seg") || "20"), 10))),
     delay_min_resposta_seg: Math.max(0, parseInt(String(formData.get("delay_min_resposta_seg") || "3"), 10)),
@@ -98,12 +100,14 @@ export async function atualizarPerfilIA(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const timezone = String(formData.get("timezone") || "America/Sao_Paulo");
   const patch: Record<string, unknown> = {
     nome: String(formData.get("nome") || "").trim(),
     descricao: String(formData.get("descricao") || "").trim() || null,
     provider: String(formData.get("provider") || "anthropic"),
     modelo: String(formData.get("modelo") || "claude-haiku-4-5-20251001"),
     prompt_sistema: String(formData.get("prompt_sistema") || "").trim(),
+    timezone,
     delay_debounce_seg: Math.max(0, Math.min(600, parseInt(String(formData.get("delay_debounce_seg") || "20"), 10))),
     delay_min_resposta_seg: Math.max(0, parseInt(String(formData.get("delay_min_resposta_seg") || "3"), 10)),
     delay_max_resposta_seg: Math.max(0, parseInt(String(formData.get("delay_max_resposta_seg") || "8"), 10)),

@@ -5,6 +5,21 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-16
+
+- **03:00** — **Lote 1 IA Atendimento — fix toggle + filas fixas + contexto temporal + transferir_para_humano configurável**.
+  - **Fix toggle IA travado**: clicar "Ativar IA" no painel direito agora estampa `tickets.ia_reset_em = now()`. O guard `pausa_se_humano_responder` no executor passou a usar `baseline = MAX(ultimo_recebido_em, ia_reset_em)`, então mensagens do atendente anteriores à reativação manual deixam de re-pausar. Antes: clicar reativar não funcionava porque a primeira msg do cliente caía no guard e re-pausava silenciosamente.
+  - **Sync UI ↔ DB do toggle**: `_painel.tsx` ganhou `useEffect([ticket.ia_pausada])` pra re-sincronizar `iaPausadaLocal` quando prop muda (refresh, navegação SPA), evitando divergência visual.
+  - **Filas fixas "Atendimento Humano" + "IA Atendendo"**: migration adiciona `filas.fixa BOOLEAN` + `filas.tipo TEXT CHECK IN ('humano','ia','custom')` com índice único parcial por (agencia_id, tipo) pra tipos fixos. Backfill cria as duas pra cada agência existente. Trigger `seed_filas_fixas_para_agencia` semeia automaticamente em nova agência. Triggers `bloquear_delete_fila_fixa` + `bloquear_update_fila_fixa` impedem deletar fila fixa e renomear/trocar tipo (cor/descrição/ativa permanecem editáveis). UI em `/filas` esconde botão lixeira em filas fixas, mostra badge `<i ti-lock/> humano|ia`, input nome fica `readOnly` ao editar fixa. Server actions também bloqueiam (defesa em camadas).
+  - **`transferir_para_humano` configurável**: o tool agora lê `parametros_padrao.{fila_destino_id, status_destino, etiqueta_id}` da row em `ia_atendimento_ferramentas`. Quando IA chama, ticket vai pra fila escolhida + status (default `aberto`) + opcional aplica etiqueta no contato. Fallback automático: se não configurado, busca fila tipo='humano' da agência. Merge logic refatorado: criar ferramenta com nome de tool fixa (`transferir_para_humano`) faz overlay de `parametros_padrao` em vez de duplicar.
+  - **Contexto temporal pra IA**: novo `lib/ia-atendimento/contexto-temporal.ts` com `buildContextoTemporal(timezone)` + `aplicarPlaceholders(texto, mapa)` + `resolverReferenciaTemporal(ref)`. Bloco `[CONTEXTO TEMPORAL]` (data de hoje + hora + amanhã + depois de amanhã) auto-prepended em todo system prompt. Placeholders `{{data_hoje}}, {{hora_atual}}, {{dia_semana}}, {{periodo_dia}}, {{data_amanha}}, {{data_proxima_segunda}}` (e todos dias da semana), `{{data_iso}}, {{timestamp_iso}}, {{timezone}}` substituídos no momento da resposta. Tag `SEM_CONTEXTO_TEMPORAL` no topo do prompt suprime o bloco. Migration: `ia_atendimento_perfis.timezone TEXT DEFAULT 'America/Sao_Paulo'`.
+  - **Tool fixa `consultar_data`**: IA chama com `referencia: "amanhã"|"próxima quinta"|"daqui a 3 dias"|"22/06/2026"|"2026-06-22"` e recebe data ISO + dia da semana resolvidos deterministicamente (sem chutar ano, sem LLM). Usa timezone do perfil.
+  - **UI placeholder picker**: botão "Inserir placeholder" no fieldset Prompt do sistema. Dropdown com 17 placeholders + exemplo de cada. Clicar insere no cursor da textarea.
+  - **Form de ferramentas refatorado** (`_ferramenta-form.tsx` client): sub-config dinâmico por ação. Pra `transferir_para_humano|transferir_para_fila` mostra dropdowns de fila/status/etiqueta. Pra `aplicar_etiqueta`, escolhe etiqueta existente OU nome novo. Pra `agendar_followup`, minutos. Pra `marcar_qualificado`, score+obs. Pra `consultar_data`, nenhum input (sem config). JSON `parametros` é construído automaticamente no submit.
+  - **Migration `lote1_filas_fixas_timezone_ia_reset`** aplicada (idempotente).
+
+---
+
 ## 2026-06-15
 
 - **20:02** — **IA Atendimento BÁSICA ROODANDO (F3 completo)**. Runtime end-to-end:

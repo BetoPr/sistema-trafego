@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { inscreverTicket } from "@/app/(dashboard)/follow-up/_actions";
@@ -75,6 +75,10 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const [fuBusy, setFuBusy] = useState(false);
   const [fuAvulsoAberto, setFuAvulsoAberto] = useState(false);
   const [iaPausadaLocal, setIaPausadaLocal] = useState<boolean>(!!ticket.ia_pausada);
+  // Re-sincroniza quando prop muda apos navigation/refresh
+  useEffect(() => {
+    setIaPausadaLocal(!!ticket.ia_pausada);
+  }, [ticket.ia_pausada]);
   const [iaTogglando, setIaTogglando] = useState(false);
 
   async function toggleIA() {

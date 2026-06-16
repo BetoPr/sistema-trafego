@@ -10,6 +10,7 @@ import { instanceSendText } from "@/lib/uazapi/client";
 import { chamarIA, type MsgIA } from "./providers";
 import { buildToolsSchema, executarTool, type CtxIA } from "./tools-runner";
 import { dividirEmBlocos, gapAleatorio, type FormatoResposta } from "./split";
+import { buildContextoTemporal, aplicarPlaceholders } from "./contexto-temporal";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -116,7 +117,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   // 1. Carrega perfil + ticket + contato + canal
   const [{ data: perfil }, { data: ticket }] = await Promise.all([
     sb.from("ia_atendimento_perfis").select("*").eq("id", b.perfil_id).maybeSingle(),
-    sb.from("tickets").select("id, agencia_id, canal_id, contato_id, ia_pausada, status").eq("id", b.ticket_id).maybeSingle(),
+    sb.from("tickets").select("id, agencia_id, canal_id, contato_id, ia_pausada, status, ia_reset_em").eq("id", b.ticket_id).maybeSingle(),
   ]);
 
   if (!perfil || !perfil.ativo) {
@@ -173,14 +174,18 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     }
   }
 
-  // 2. Confere se humano respondeu desde último cliente
+  // 2. Confere se humano respondeu desde último cliente.
+  // Baseline = MAX(ultimo_recebido_em, ia_reset_em) — ignora msgs do atendente
+  // anteriores a uma reativação manual da IA (botão toggle, RETOMAR).
   if (perfil.pausa_se_humano_responder) {
+    const resetEm = (ticket as unknown as { ia_reset_em?: string | null }).ia_reset_em || null;
+    const baseline = resetEm && resetEm > b.ultimo_recebido_em ? resetEm : b.ultimo_recebido_em;
     const { data: humanoMsg } = await sb
       .from("mensagens")
       .select("id")
       .eq("ticket_id", b.ticket_id)
       .eq("autor", "atendente")
-      .gt("created_at", b.ultimo_recebido_em)
+      .gt("created_at", baseline)
       .limit(1);
     if (humanoMsg && humanoMsg.length) {
       await sb.from("tickets").update({ ia_pausada: true }).eq("id", b.ticket_id);
@@ -251,10 +256,19 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   const historico = (histRows || []).reverse();
   const tools = buildToolsSchema((ferramentas || []) as Array<{ nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>);
 
-  // 6. Monta prompt
-  const promptSistema = (perfil.prompt_sistema || "")
+  // 6. Monta prompt (com contexto temporal + placeholders {{...}})
+  const tz = (perfil.timezone as string) || "America/Sao_Paulo";
+  const ctxTemporal = buildContextoTemporal(tz);
+  const promptBase = (perfil.prompt_sistema || "")
     .replaceAll("{nome_cliente}", contato.nome || "Cliente")
     .replaceAll("{nome_agencia}", "");
+  const promptComPlaceholders = aplicarPlaceholders(promptBase, ctxTemporal.replacements);
+  // Sempre prepende bloco temporal (garante baseline). Tag SEM_CONTEXTO_TEMPORAL
+  // no início suprime.
+  const suprimir = /^\s*SEM_CONTEXTO_TEMPORAL\b/i.test(promptComPlaceholders);
+  const promptSistema = suprimir
+    ? promptComPlaceholders.replace(/^\s*SEM_CONTEXTO_TEMPORAL\b/i, "").trimStart()
+    : `${ctxTemporal.block}\n\n${promptComPlaceholders}`;
 
   const mensagens: MsgIA[] = [
     { role: "system", content: promptSistema },
@@ -319,6 +333,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     contatoId: contato.id,
     perfilId: perfil.id,
     canalId: ticket.canal_id,
+    timezone: tz,
     enviarMensagemUazapi,
   };
 

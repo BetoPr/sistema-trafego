@@ -3,6 +3,7 @@
  * contra agencia_id antes de qualquer mutação.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { resolverReferenciaTemporal } from "./contexto-temporal";
 
 export interface ToolDef {
   name: string;
@@ -19,6 +20,7 @@ export interface CtxIA {
   contatoId: string;
   perfilId: string;
   canalId: string | null;
+  timezone: string;
   enviarMensagemUazapi: (texto: string) => Promise<{ id?: string }>;
 }
 
@@ -87,10 +89,36 @@ export function buildToolsSchema(ferramentas: Array<{ nome: string; descricao: s
     },
   });
 
-  // Tools custom do user (mescla com fixas pelo nome — custom sobrescreve)
-  const nomesFixos = new Set(tools.map((t) => t.name));
+  // Tool fixa: consulta data deterministicamente (sem chutar)
+  tools.push({
+    name: "consultar_data",
+    description: "Resolve uma referência temporal (ex: 'amanhã', 'próxima segunda', 'daqui a 3 dias', '22/06/2026') na data exata no timezone do perfil. Use SEMPRE que precisar agendar, lembrar ou confirmar uma data com o cliente. Nunca invente datas.",
+    acao: "consultar_data",
+    parametros_padrao: {},
+    input_schema: {
+      type: "object",
+      properties: {
+        referencia: { type: "string", description: "Referência em pt-BR: 'amanhã', 'próxima quinta', 'daqui a 5 dias', '2026-06-22', '22/06/2026'." },
+      },
+      required: ["referencia"],
+    },
+  });
+
+  // Tools custom do user. Se o nome bate com uma fixa (ex: user criou um row
+  // chamado "transferir_para_humano" pra configurar fila destino), faz OVERLAY
+  // de parametros_padrao em vez de duplicar — assim user configura sem perder
+  // a descrição cuidadosa da fixa.
+  const idxPorNome = new Map<string, number>();
+  tools.forEach((t, i) => idxPorNome.set(t.name, i));
   for (const f of ferramentas) {
-    if (nomesFixos.has(f.nome)) continue; // não duplica
+    const idx = idxPorNome.get(f.nome);
+    if (idx !== undefined) {
+      tools[idx] = {
+        ...tools[idx],
+        parametros_padrao: { ...tools[idx].parametros_padrao, ...(f.parametros || {}) },
+      };
+      continue;
+    }
     tools.push({
       name: f.nome,
       description: f.descricao,
@@ -134,10 +162,45 @@ export async function executarTool(
 
     case "transferir_para_humano": {
       const motivo = String(merged.motivo || "transferência pela IA");
-      await ctx.sb.from("tickets").update({
+
+      // Configurável via parametros_padrao da ferramenta:
+      //   fila_destino_id?: uuid       (default: fila tipo='humano' da agência)
+      //   status_destino?: 'aberto' | 'pendente' | 'fechado'  (default: 'aberto')
+      //   etiqueta_id?: uuid           (opcional — aplica no contato)
+      let filaDestinoId = (merged.fila_destino_id as string | undefined) || undefined;
+      const statusDestino = (merged.status_destino as string | undefined) || "aberto";
+      const etiquetaId = (merged.etiqueta_id as string | undefined) || undefined;
+
+      // Fallback: fila tipo='humano' da agência
+      if (!filaDestinoId) {
+        const { data: filaHumano } = await ctx.sb
+          .from("filas")
+          .select("id")
+          .eq("agencia_id", ctx.agenciaId)
+          .eq("tipo", "humano")
+          .eq("ativa", true)
+          .limit(1)
+          .maybeSingle();
+        if (filaHumano?.id) filaDestinoId = filaHumano.id as string;
+      }
+
+      const patch: Record<string, unknown> = {
         ia_pausada: true,
         usuario_id: null,
-      }).eq("id", ctx.ticketId);
+        status: statusDestino,
+      };
+      if (filaDestinoId) patch.fila_id = filaDestinoId;
+      await ctx.sb.from("tickets").update(patch).eq("id", ctx.ticketId);
+
+      if (etiquetaId) {
+        try {
+          await ctx.sb.from("contato_etiquetas").upsert(
+            { contato_id: ctx.contatoId, etiqueta_id: etiquetaId },
+            { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true },
+          );
+        } catch { /* contato_etiquetas opcional */ }
+      }
+
       try {
         await ctx.sb.from("notas_internas").insert({
           ticket_id: ctx.ticketId,
@@ -146,6 +209,7 @@ export async function executarTool(
           conteudo: `🤖 IA transferiu pra humano: ${motivo}`,
         });
       } catch { /* notas_internas opcional */ }
+
       return { ok: true, resultado: `transferido — ${motivo}`, encerra_ia: true };
     }
 
@@ -189,6 +253,16 @@ export async function executarTool(
         conteudo: `🤖 IA: ${texto}`,
       });
       return { ok: true, resultado: "nota criada" };
+    }
+
+    case "consultar_data": {
+      const referencia = String(merged.referencia || "").trim();
+      if (!referencia) {
+        return { ok: false, resultado: "Parâmetro 'referencia' obrigatório (ex: 'amanhã', 'próxima segunda', '22/06/2026')." };
+      }
+      const res = resolverReferenciaTemporal(referencia, ctx.timezone);
+      if (!res.resolvido) return { ok: false, resultado: res.motivo };
+      return { ok: true, resultado: `${res.descricao}: ${res.dia_semana}, ${res.iso}` };
     }
 
     case "marcar_qualificado": {

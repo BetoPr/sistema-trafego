@@ -60,6 +60,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const patch: Record<string, unknown> = { ia_pausada: novaPausada };
   if (filaAjustada) patch.fila_id = filaAjustada;
   if (perfilAtribuido) patch.ia_perfil_id = perfilAtribuido;
+  // Fix: marca instante de reativacao manual da IA. Usado pelo guard
+  // pausa_se_humano_responder pra ignorar mensagens do atendente
+  // anteriores ao toggle.
+  if (!novaPausada) patch.ia_reset_em = new Date().toISOString();
 
   const { error } = await sb.from("tickets").update(patch).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

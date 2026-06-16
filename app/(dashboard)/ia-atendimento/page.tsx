@@ -6,12 +6,13 @@ import {
   atualizarPerfilIA,
   deletarPerfilIA,
   alternarAtivoPerfilIA,
-  criarFerramentaIA,
   deletarFerramentaIA,
 } from "./_actions";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 import { ChipsPicker } from "./_chips-picker";
 import { TestarApiBtn } from "./_testar-btn";
+import PlaceholderPicker from "./_placeholder-picker";
+import FerramentaForm from "./_ferramenta-form";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,7 @@ interface PerfilDetalhe {
   filas_ativas: string[];
   formato_resposta: { bullets?: boolean; separador_blocos?: string; max_msgs?: number };
   whatsapp_teste_lista: string[];
+  timezone: string | null;
 }
 
 interface LogRow {
@@ -160,7 +162,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   if (editando) {
     try {
       const { data } = await sb.from("ia_atendimento_perfis")
-        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista")
+        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista, timezone")
         .eq("id", editando.id)
         .single();
       if (data) perfilDetalhe = data as unknown as PerfilDetalhe;
@@ -280,7 +282,6 @@ function PerfilForm({
   templates: TemplateRow[];
   logs: LogRow[];
 }) {
-  void etiquetas;
   const provider = editando?.provider || "anthropic";
   const canaisAtivos = new Set<string>(editando?.canais_ativos || []);
   const filasAtivas = new Set<string>(editando?.filas_ativas || []);
@@ -349,6 +350,7 @@ function PerfilForm({
 
         <fieldset style={fs}>
           <legend style={legend}>Prompt do sistema</legend>
+          <PlaceholderPicker />
           <textarea
             name="prompt_sistema"
             rows={10}
@@ -437,6 +439,18 @@ function PerfilForm({
               </label>
             </div>
           </div>
+          <div>
+            <label style={lbl}>Timezone (placeholders {`{{data_hoje}}, {{hora_atual}}`}, etc)</label>
+            <select name="timezone" defaultValue={editando?.timezone ?? "America/Sao_Paulo"} style={inp}>
+              <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+              <option value="America/Manaus">Manaus (AMT)</option>
+              <option value="America/Belem">Belém (BRT)</option>
+              <option value="America/Cuiaba">Cuiabá (AMT)</option>
+              <option value="America/Rio_Branco">Rio Branco (ACT)</option>
+              <option value="America/Noronha">Fernando de Noronha (FNT)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
         </fieldset>
 
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -445,21 +459,38 @@ function PerfilForm({
         </div>
       </form>
 
-      {editandoId && <FerramentasBloco perfilId={editandoId} ferramentas={ferramentas} />}
+      {editandoId && (
+        <FerramentasBloco
+          perfilId={editandoId}
+          ferramentas={ferramentas}
+          filas={filas}
+          etiquetas={etiquetas}
+        />
+      )}
       {editandoId && logs.length > 0 && <LogsBloco logs={logs} />}
     </div>
   );
 }
 
-function FerramentasBloco({ perfilId, ferramentas }: { perfilId: string; ferramentas: FerramentaRow[] }) {
+function FerramentasBloco({
+  perfilId,
+  ferramentas,
+  filas,
+  etiquetas,
+}: {
+  perfilId: string;
+  ferramentas: FerramentaRow[];
+  filas: FilaRow[];
+  etiquetas: EtiquetaRow[];
+}) {
   return (
     <div style={{ marginTop: 24, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
       <h3 className="card-title" style={{ marginBottom: 14 }}>
         <i className="ti ti-tool" style={{ color: "#9B7DBF", marginRight: 6 }} /> Ferramentas
       </h3>
       {ferramentas.length === 0 ? (
-        <div style={{ padding: 14, color: "var(--mk-text-muted)", fontSize: 12, textAlign: "center", border: "0.5px dashed var(--mk-border)", borderRadius: 8 }}>
-          Sem ferramentas custom. As fixas (manda_biscoito, transferir_para_humano, aplicar_etiqueta, criar_nota) já vem ativas.
+        <div style={{ padding: 14, color: "var(--mk-text-muted)", fontSize: 12, textAlign: "center", border: "0.5px dashed var(--mk-border)", borderRadius: 8, marginBottom: 12 }}>
+          Sem ferramentas custom. As fixas (manda_biscoito, transferir_para_humano, aplicar_etiqueta, criar_nota, consultar_data) já vem ativas.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
@@ -478,28 +509,8 @@ function FerramentasBloco({ perfilId, ferramentas }: { perfilId: string; ferrame
           ))}
         </div>
       )}
-      <div style={{ padding: 12, borderRadius: 8, background: "var(--mk-surface)", border: "0.5px dashed var(--mk-border)" }}>
-        <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 8 }}>Adicionar ferramenta</div>
-        <form action={criarFerramentaIA} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input type="hidden" name="perfil_id" value={perfilId} />
-          <div style={grid2}>
-            <Field label="Nome técnico" name="nome" placeholder="aplicar_etiqueta_lead_quente" required />
-            <div>
-              <label style={lbl}>Ação</label>
-              <select name="acao" style={inp} required defaultValue="">
-                <option value="">— Escolha —</option>
-                {Object.entries(ACOES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-          </div>
-          <Field label="Descrição pra IA decidir quando usar" name="descricao" placeholder="Use quando..." required />
-          <div>
-            <label style={lbl}>Parâmetros (JSON)</label>
-            <textarea name="parametros" rows={2} placeholder='{"etiqueta_nome": "Lead Quente"}' style={{ ...inp, fontFamily: "monospace", fontSize: 11.5 }} />
-          </div>
-          <button type="submit" className="ghost-btn" style={{ fontSize: 12, alignSelf: "flex-start" }}><i className="ti ti-plus" /> Adicionar</button>
-        </form>
-      </div>
+      <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 6 }}>Adicionar ferramenta</div>
+      <FerramentaForm perfilId={perfilId} filas={filas} etiquetas={etiquetas} />
     </div>
   );
 }
