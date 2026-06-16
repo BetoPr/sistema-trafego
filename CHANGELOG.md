@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **16:00** — **Botao Testar envio de resumo (simulacao Groq + UAZAPI)**.
+  - `lib/ia-atendimento/resumo-groq.ts`: extraido `executarResumoComConfig(args)` aceita config explicita (sem buscar DB). `gerarEEnviarResumo` virou wrapper. Novo `buscarHistoricoSample(agenciaId, perfilId)` retorna ultimas msgs do ticket mais recente (>=3 msgs) ou conversa exemplo (fake) como fallback.
+  - `_actions.ts`: action `testarResumoConfig(formData)` le valores do form (sem precisar Salvar), decripta chave Groq do DB se input vazio, gera resumo via Groq + envia pro destino com prefixo "🧪 *Resumo IA (TESTE)*". Auditado.
+  - `_resumo-config-balao.tsx`: botao "Testar envio" no footer + preview do texto gerado dentro do balao (com flag origem: ticket_real|conversa_exemplo). Permite ajustar prompt → testar → ajustar de novo.
+
 - **15:30** — **Fix: follow-up IA nao inscrevia ticket reaproveitado**.
   - Guard `respostasBot <= blocosEnviados` em `executor.ts` impedia inscricao quando ticket ja tinha msgs bot antigas (de teste/conversas anteriores). Resultado: progresso vazio mesmo com sequencia ativa.
   - Removida a guard. `inscreverFollowUpIA()` ja dedupica via `jaExiste` (status agendado/executando). Status `finalizado`/`respondido` libera reinscrever no proximo turno IA.

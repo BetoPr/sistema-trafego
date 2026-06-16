@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Balao } from "@/components/ui/Balao";
-import { salvarResumoConfig } from "./_actions";
+import { salvarResumoConfig, testarResumoConfig } from "./_actions";
 
 interface CanalOpt { id: string; nome: string; status: string }
 
@@ -52,6 +52,9 @@ export default function ResumoConfigBalao({
 
   const [grupos, setGrupos] = useState<Array<{ jid: string; nome: string }>>([]);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
+  const [testando, setTestando] = useState(false);
+  const [resumoPreview, setResumoPreview] = useState<string | null>(null);
+  const [previewOrigem, setPreviewOrigem] = useState<string | null>(null);
 
   async function buscarGrupos() {
     if (!canalId) {
@@ -68,6 +71,38 @@ export default function ResumoConfigBalao({
       setToast(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     }
     setLoadingGrupos(false);
+  }
+
+  async function testar() {
+    setResumoPreview(null);
+    setPreviewOrigem(null);
+    const fd = new FormData();
+    fd.set("perfil_id", perfilId);
+    fd.set("modelo_groq", modeloGroq);
+    fd.set("destino_tipo", destinoTipo);
+    fd.set("canal_id", canalId);
+    if (destinoTipo === "grupo") fd.set("grupo_jid", grupoJid);
+    else fd.set("telefone", telefone);
+    fd.set("prompt_resumo", promptResumo);
+    if (groqApiKey) fd.set("groq_api_key", groqApiKey);
+    setTestando(true);
+    try {
+      const r = await testarResumoConfig(fd);
+      if (r.ok) {
+        setResumoPreview(r.resumo || "(sem texto)");
+        setPreviewOrigem(r.origem || null);
+        setToast("Resumo enviado pro destino");
+      } else {
+        if (r.resumo) {
+          setResumoPreview(r.resumo);
+          setPreviewOrigem(r.origem || null);
+        }
+        setToast(`Erro: ${r.error}`);
+      }
+    } catch (e) {
+      setToast(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setTestando(false);
   }
 
   async function salvar() {
@@ -219,11 +254,41 @@ export default function ResumoConfigBalao({
             </select>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button type="button" onClick={() => setAberto(false)} className="ghost-btn" style={{ fontSize: 12 }}>Cancelar</button>
-            <button type="button" onClick={salvar} disabled={pending} className="cta-btn" style={{ fontSize: 12 }}>
-              <i className="ti ti-device-floppy" /> Salvar
+          {resumoPreview && (
+            <div style={{
+              border: "0.5px solid var(--mk-border)",
+              borderRadius: 8,
+              padding: 12,
+              background: "var(--mk-surface-2)",
+            }}>
+              <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                <span><i className="ti ti-sparkles" /> Resumo gerado (preview)</span>
+                <span>{previewOrigem === "ticket_real" ? "ticket real" : "conversa exemplo"}</span>
+              </div>
+              <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12, margin: 0, color: "var(--mk-text)" }}>
+                {resumoPreview}
+              </pre>
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={testar}
+              disabled={testando || pending}
+              className="ghost-btn"
+              style={{ fontSize: 12 }}
+              title="Gera um resumo de teste e envia pro destino configurado"
+            >
+              <i className={`ti ${testando ? "ti-loader-2" : "ti-flask"}`} />
+              {testando ? " Testando..." : " Testar envio"}
             </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setAberto(false)} className="ghost-btn" style={{ fontSize: 12 }}>Cancelar</button>
+              <button type="button" onClick={salvar} disabled={pending || testando} className="cta-btn" style={{ fontSize: 12 }}>
+                <i className="ti ti-device-floppy" /> Salvar
+              </button>
+            </div>
           </div>
         </div>
       </Balao>

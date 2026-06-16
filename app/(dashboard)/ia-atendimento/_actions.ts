@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireRole } from "@/lib/crm/permissions";
 import { audit } from "@/lib/crm/audit";
-import { encryptToken, bufferToBytea } from "@/lib/crypto/tokens";
+import { encryptToken, bufferToBytea, decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+import { executarResumoComConfig, buscarHistoricoSample } from "@/lib/ia-atendimento/resumo-groq";
 
 const ROUTE = "/ia-atendimento";
 
@@ -679,6 +680,97 @@ export async function salvarResumoConfig(formData: FormData): Promise<{ ok: bool
   if (error) return { ok: false, error: error.message };
   revalidatePath(ROUTE);
   return { ok: true };
+}
+
+/**
+ * Simula envio de resumo com a config do form atual (sem precisar salvar).
+ * Gera resumo via Groq usando ultimo ticket da agencia (ou historico fake)
+ * e envia pro destino configurado. Retorna o texto pro UI mostrar.
+ */
+export async function testarResumoConfig(formData: FormData): Promise<{ ok: boolean; error?: string; resumo?: string; origem?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+
+  const perfilId = String(formData.get("perfil_id") || "");
+  if (!perfilId) return { ok: false, error: "perfil_id obrigatorio" };
+
+  const modeloGroq = String(formData.get("modelo_groq") || "llama-3.3-70b-versatile");
+  const destinoTipo = String(formData.get("destino_tipo") || "grupo");
+  if (destinoTipo !== "grupo" && destinoTipo !== "privado") return { ok: false, error: "destino_tipo invalido" };
+  const canalId = String(formData.get("canal_id") || "");
+  if (!canalId) return { ok: false, error: "selecione um canal" };
+  const grupoJid = String(formData.get("grupo_jid") || "") || null;
+  const telefone = String(formData.get("telefone") || "").replace(/\D/g, "") || null;
+  if (destinoTipo === "grupo" && !grupoJid) return { ok: false, error: "selecione o grupo" };
+  if (destinoTipo === "privado" && !telefone) return { ok: false, error: "informe o telefone" };
+  const promptResumo = String(formData.get("prompt_resumo") || "").trim();
+  if (!promptResumo) return { ok: false, error: "prompt vazio" };
+  const groqApiKeyInput = String(formData.get("groq_api_key") || "").trim();
+
+  // Resolve groqKey: usa input do form, ou decripta do DB
+  let groqKey = groqApiKeyInput;
+  if (!groqKey) {
+    const { data: cfg } = await sb
+      .from("ia_atendimento_resumo_config")
+      .select("groq_api_key_encrypted")
+      .eq("perfil_id", perfilId)
+      .maybeSingle<{ groq_api_key_encrypted: unknown }>();
+    if (!cfg?.groq_api_key_encrypted) return { ok: false, error: "cole a chave Groq ou salve antes" };
+    try {
+      groqKey = decryptToken(byteaToBuffer(cfg.groq_api_key_encrypted as Parameters<typeof byteaToBuffer>[0]));
+    } catch {
+      return { ok: false, error: "chave Groq corrompida no DB" };
+    }
+  }
+
+  // Resolve canal
+  const { data: canal } = await sb
+    .from("canais")
+    .select("id, agencia_id, status, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .eq("id", canalId)
+    .maybeSingle();
+  if (!canal || canal.agencia_id !== ctx.agenciaId) return { ok: false, error: "canal invalido" };
+  if (canal.status !== "connected") return { ok: false, error: "canal desconectado" };
+
+  const servidorRaw = (canal as unknown as { servidor: unknown }).servidor;
+  const servidor = Array.isArray(servidorRaw)
+    ? (servidorRaw[0] as { base_url: string } | undefined)
+    : (servidorRaw as { base_url: string } | undefined);
+  if (!servidor?.base_url) return { ok: false, error: "servidor sem base_url" };
+
+  let canalToken: string;
+  try {
+    canalToken = decryptToken(byteaToBuffer(canal.instance_token_encrypted as Parameters<typeof byteaToBuffer>[0]));
+  } catch {
+    return { ok: false, error: "token do canal corrompido" };
+  }
+
+  const sample = await buscarHistoricoSample(ctx.agenciaId, perfilId);
+
+  const r = await executarResumoComConfig({
+    modeloGroq,
+    groqKey,
+    promptResumo,
+    historico: sample.historico,
+    destinoTipo: destinoTipo as "grupo" | "privado",
+    grupoJid,
+    telefone,
+    canalBaseUrl: servidor.base_url,
+    canalToken,
+    prefixo: "🧪 *Resumo IA (TESTE)*",
+  });
+
+  await audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "ia_resumo_teste",
+    entidade: "ia_atendimento_resumo_config",
+    entidadeId: perfilId,
+    payload: { ok: r.ok, motivo: r.motivo, origem: sample.origem },
+  });
+
+  if (!r.ok) return { ok: false, error: r.motivo || "falhou", resumo: r.resumo, origem: sample.origem };
+  return { ok: true, resumo: r.resumo, origem: sample.origem };
 }
 
 export async function uploadMidiaFollowUp(formData: FormData): Promise<{ ok: boolean; error?: string; path?: string; mime?: string; filename?: string }> {
