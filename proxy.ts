@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   "/favicon.ico",
   "/manifest.json",
   "/sw.js",
+  "/apresentacao",
 ];
 
 function isPublic(pathname: string): boolean {
