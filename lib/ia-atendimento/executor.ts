@@ -250,12 +250,16 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     .lt("created_at", primeiroBufferEm);
   if (resetEm) histQuery = histQuery.gte("created_at", resetEm);
 
-  const [{ data: histRows }, { data: ferramentas }] = await Promise.all([
+  const [{ data: histRows }, { data: ferramentas }, { data: etiquetasCfg }] = await Promise.all([
     histQuery.order("created_at", { ascending: false }).limit(20),
     sb.from("ia_atendimento_ferramentas")
       .select("nome, descricao, acao, parametros")
       .eq("perfil_id", perfil.id)
       .eq("ativo", true),
+    sb.from("ia_atendimento_perfil_etiquetas")
+      .select("descricao_uso, ordem, etiqueta:etiquetas!inner(id, nome, ativo)")
+      .eq("perfil_id", perfil.id)
+      .order("ordem"),
   ]);
   const historico = (histRows || []).reverse();
   const tools = buildToolsSchema((ferramentas || []) as Array<{ nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>);
@@ -267,12 +271,33 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     .replaceAll("{nome_cliente}", contato.nome || "Cliente")
     .replaceAll("{nome_agencia}", "");
   const promptComPlaceholders = aplicarPlaceholders(promptBase, ctxTemporal.replacements);
+
+  // L2: bloco de etiquetas disponiveis (so injeta se perfil tiver etiquetas configuradas)
+  type EtqCfgRow = {
+    descricao_uso: string;
+    ordem: number;
+    etiqueta: { id: string; nome: string; ativo: boolean } | { id: string; nome: string; ativo: boolean }[] | null;
+  };
+  const etqRowsRaw = (etiquetasCfg || []) as EtqCfgRow[];
+  const etqRows = etqRowsRaw
+    .map((r) => {
+      const e = Array.isArray(r.etiqueta) ? r.etiqueta[0] : r.etiqueta;
+      return e ? { descricao_uso: r.descricao_uso, ordem: r.ordem, etiqueta: e } : null;
+    })
+    .filter((r): r is { descricao_uso: string; ordem: number; etiqueta: { id: string; nome: string; ativo: boolean } } => r !== null && r.etiqueta.ativo);
+
+  const blocoEtiquetas = etqRows.length
+    ? `[ETIQUETAS DISPONIVEIS]\nVoce SO pode aplicar essas etiquetas via aplicar_etiqueta. NAO invente outras.\n${
+        etqRows.map((r) => `- ${r.etiqueta.nome}: ${r.descricao_uso || "(sem instrucao especifica)"}`).join("\n")
+      }\n\n`
+    : "";
+
   // Sempre prepende bloco temporal (garante baseline). Tag SEM_CONTEXTO_TEMPORAL
-  // no início suprime.
+  // no inicio suprime.
   const suprimir = /^\s*SEM_CONTEXTO_TEMPORAL\b/i.test(promptComPlaceholders);
   const promptSistema = suprimir
     ? promptComPlaceholders.replace(/^\s*SEM_CONTEXTO_TEMPORAL\b/i, "").trimStart()
-    : `${ctxTemporal.block}\n\n${promptComPlaceholders}`;
+    : `${ctxTemporal.block}\n\n${blocoEtiquetas}${promptComPlaceholders}`;
 
   const mensagens: MsgIA[] = [
     { role: "system", content: promptSistema },
@@ -328,6 +353,11 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     return { id: r.id };
   };
 
+  // L2: map nome (lowercase) -> etiqueta_id pras etiquetas permitidas do perfil
+  const etiquetasPermitidasMap = new Map<string, string>(
+    etqRows.map((r) => [r.etiqueta.nome.toLowerCase(), r.etiqueta.id]),
+  );
+
   const ctxIA: CtxIA = {
     sb,
     agenciaId: b.agencia_id,
@@ -336,6 +366,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     perfilId: perfil.id,
     canalId: ticket.canal_id,
     timezone: tz,
+    etiquetasPermitidas: etiquetasPermitidasMap,
     enviarMensagemUazapi,
   };
 

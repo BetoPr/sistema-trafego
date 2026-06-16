@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **05:15** — **Lote 2 IA Atendimento — Tokens UI + Etiquetas configuráveis no perfil**.
+  - **Card "Uso de tokens"** no edit perfil: KPIs respostas / tokens IN / tokens OUT / custo USD estimado + média por resposta + mini-gráfico de barras dos últimos 7 dias + filtro 24h / 7d / 30d / total. Pricing snapshot 2026-01 em `lib/ia-atendimento/precos.ts` cobre Anthropic (Haiku/Sonnet/Opus + legacy), OpenAI (4o, 4.1, o1, o3-mini), Groq.
+  - **Etiquetas configuradas por perfil**: nova migration `ia_atendimento_perfil_etiquetas (perfil_id, etiqueta_id, agencia_id, descricao_uso TEXT, ordem INT)` com RLS multi-tenant. Editor no perfil: dropdown adicionar + textarea descrição de uso por etiqueta + autosave on blur + remover.
+  - **executor.ts** injeta bloco `[ETIQUETAS DISPONIVEIS]` no system prompt quando perfil tem etiquetas configuradas — IA é instruída a só aplicar etiquetas dessa whitelist.
+  - **tools-runner.ts** tool `aplicar_etiqueta` validando whitelist: aceita `etiqueta_nome` OR `etiqueta_id`. Quando whitelist configurada, rejeita etiqueta de fora. Quando vazia, comportamento legado (busca/cria por nome) preservado.
+  - Server actions `salvarEtiquetaPerfil` + `deletarEtiquetaPerfil` em `_actions.ts`.
+  - Índices novos em `ia_atendimento_log` (perfil_id + created_at) pra acelerar agregações.
 - **04:55** — **Fluxo de entrada SONAR — beam no login + slide-in no CRM**.
   - **Beam no login**: `SonarRadarBg` ganhou prop `beam` que dispara feixe de varredura conic-gradient girando 380° uma vez em 1.6s. Aplicado em `app/(auth)/layout.tsx` beamSize 600.
   - **Slide-in CRM**: `.mk-sidebar` desliza da esquerda em 0.55s + `.mk-main` fade-rise 0.5s com delay 0.18s. Ambos respeitam `prefers-reduced-motion`.

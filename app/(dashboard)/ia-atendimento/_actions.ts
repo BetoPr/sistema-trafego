@@ -192,6 +192,55 @@ export async function deletarFerramentaIA(formData: FormData) {
   redirect(`${ROUTE}?editar=${perfilId}&ok=ferramenta_deletada`);
 }
 
+// L2: Etiquetas configuraveis por perfil
+
+export async function salvarEtiquetaPerfil(formData: FormData) {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const perfilId = String(formData.get("perfil_id") || "");
+  const etiquetaId = String(formData.get("etiqueta_id") || "");
+  const descricaoUso = String(formData.get("descricao_uso") || "");
+  const ordem = Number(formData.get("ordem") || 0);
+  if (!perfilId || !etiquetaId) return;
+
+  const { data: etq } = await sb
+    .from("etiquetas")
+    .select("id")
+    .eq("id", etiquetaId)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle();
+  if (!etq) return;
+
+  await sb.from("ia_atendimento_perfil_etiquetas").upsert(
+    {
+      perfil_id: perfilId,
+      etiqueta_id: etiquetaId,
+      agencia_id: ctx.agenciaId,
+      descricao_uso: descricaoUso,
+      ordem,
+    },
+    { onConflict: "perfil_id,etiqueta_id" },
+  );
+
+  revalidatePath(ROUTE);
+}
+
+export async function deletarEtiquetaPerfil(formData: FormData) {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const perfilId = String(formData.get("perfil_id") || "");
+  const etiquetaId = String(formData.get("etiqueta_id") || "");
+  if (!perfilId || !etiquetaId) return;
+
+  await sb.from("ia_atendimento_perfil_etiquetas")
+    .delete()
+    .eq("perfil_id", perfilId)
+    .eq("etiqueta_id", etiquetaId)
+    .eq("agencia_id", ctx.agenciaId);
+
+  revalidatePath(ROUTE);
+}
+
 export async function salvarFollowUpIA(formData: FormData) {
   const ctx = await requireRole("admin", "super_admin");
   const sb = createServiceClient();

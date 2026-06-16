@@ -13,11 +13,22 @@ import { ChipsPicker } from "./_chips-picker";
 import { TestarApiBtn } from "./_testar-btn";
 import PlaceholderPicker from "./_placeholder-picker";
 import FerramentaForm from "./_ferramenta-form";
+import UsoTokensCard from "./_uso-tokens-card";
+import PerfilEtiquetasEditor from "./_perfil-etiquetas";
+import { carregarUsoTokens, type IntervaloUso, type ResumoUso } from "@/lib/ia-atendimento/uso-tokens";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ editar?: string; novo?: string; ok?: string; erro?: string; msg?: string }>;
+  searchParams: Promise<{ editar?: string; novo?: string; ok?: string; erro?: string; msg?: string; uso?: string }>;
+}
+
+interface PerfilEtiquetaRow {
+  etiqueta_id: string;
+  descricao_uso: string;
+  ordem: number;
+  nome: string;
+  cor: string;
 }
 
 const MODELOS: Record<string, Array<{ id: string; nome: string }>> = {
@@ -159,6 +170,10 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let perfilDetalhe: PerfilDetalhe | null = null;
   let ferramentas: FerramentaRow[] = [];
   let logs: LogRow[] = [];
+  let perfilEtiquetas: PerfilEtiquetaRow[] = [];
+  let resumoUso: ResumoUso | null = null;
+  const intervaloUso: IntervaloUso =
+    sp.uso === "24h" || sp.uso === "30d" || sp.uso === "total" ? sp.uso : "7d";
   if (editando) {
     try {
       const { data } = await sb.from("ia_atendimento_perfis")
@@ -183,6 +198,34 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
         .order("created_at", { ascending: false })
         .limit(50);
       logs = (data || []) as LogRow[];
+    } catch {}
+
+    // L2: etiquetas configuradas do perfil
+    try {
+      const { data } = await sb.from("ia_atendimento_perfil_etiquetas")
+        .select("etiqueta_id, descricao_uso, ordem, etiqueta:etiquetas!inner(id, nome, cor)")
+        .eq("perfil_id", editando.id)
+        .order("ordem");
+      perfilEtiquetas = ((data || []) as Array<{
+        etiqueta_id: string;
+        descricao_uso: string;
+        ordem: number;
+        etiqueta: { id: string; nome: string; cor: string } | { id: string; nome: string; cor: string }[] | null;
+      }>).map((r) => {
+        const e = Array.isArray(r.etiqueta) ? r.etiqueta[0] : r.etiqueta;
+        return {
+          etiqueta_id: r.etiqueta_id,
+          descricao_uso: r.descricao_uso,
+          ordem: r.ordem,
+          nome: e?.nome || "?",
+          cor: e?.cor || "#999",
+        };
+      });
+    } catch {}
+
+    // L2: uso de tokens
+    try {
+      resumoUso = await carregarUsoTokens(editando.id, ctx.agenciaId, intervaloUso);
     } catch {}
   }
 
@@ -217,6 +260,9 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           ferramentas={ferramentas}
           templates={templates}
           logs={logs}
+          perfilEtiquetas={perfilEtiquetas}
+          resumoUso={resumoUso}
+          intervaloUso={intervaloUso}
         />
       ) : (
         <ListaPerfis perfis={perfis} />
@@ -272,6 +318,7 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
 
 function PerfilForm({
   editando, editandoId, canais, filas, etiquetas, ferramentas, templates, logs,
+  perfilEtiquetas, resumoUso, intervaloUso,
 }: {
   editando: PerfilDetalhe | null;
   editandoId: string | null;
@@ -281,6 +328,9 @@ function PerfilForm({
   ferramentas: FerramentaRow[];
   templates: TemplateRow[];
   logs: LogRow[];
+  perfilEtiquetas: PerfilEtiquetaRow[];
+  resumoUso: ResumoUso | null;
+  intervaloUso: IntervaloUso;
 }) {
   const provider = editando?.provider || "anthropic";
   const canaisAtivos = new Set<string>(editando?.canais_ativos || []);
@@ -466,6 +516,27 @@ function PerfilForm({
           filas={filas}
           etiquetas={etiquetas}
         />
+      )}
+
+      {editandoId && (
+        <div style={{ marginTop: 18, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
+          <h3 className="card-title" style={{ marginBottom: 12 }}>
+            <i className="ti ti-tag" style={{ color: "#9B7DBF", marginRight: 6 }} /> Etiquetas configuradas
+          </h3>
+          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 10 }}>
+            Selecione quais etiquetas a IA pode aplicar. A descrição vira instrução no system prompt
+            (ex: &quot;Lead Quente — cliente pediu orçamento&quot;).
+          </div>
+          <PerfilEtiquetasEditor
+            perfilId={editandoId}
+            todasEtiquetas={etiquetas}
+            configuradas={perfilEtiquetas}
+          />
+        </div>
+      )}
+
+      {editandoId && resumoUso && (
+        <UsoTokensCard resumo={resumoUso} intervalo={intervaloUso} perfilId={editandoId} />
       )}
       {editandoId && logs.length > 0 && <LogsBloco logs={logs} />}
     </div>

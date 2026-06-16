@@ -21,6 +21,8 @@ export interface CtxIA {
   perfilId: string;
   canalId: string | null;
   timezone: string;
+  /** L2: map nome lowercase -> etiqueta_id permitidas pelo perfil. Undefined/vazio = comportamento legado. */
+  etiquetasPermitidas?: Map<string, string>;
   enviarMensagemUazapi: (texto: string) => Promise<{ id?: string }>;
 }
 
@@ -214,33 +216,63 @@ export async function executarTool(
     }
 
     case "aplicar_etiqueta": {
-      const nome = String(merged.etiqueta_nome || "").trim();
-      if (!nome) return { ok: false, resultado: "etiqueta_nome vazio" };
+      const nomeRaw = String(merged.etiqueta_nome || "").trim();
+      const idRaw = String(merged.etiqueta_id || "").trim();
+      if (!nomeRaw && !idRaw) return { ok: false, resultado: "etiqueta_nome ou etiqueta_id obrigatorio" };
+
+      const lista = ctx.etiquetasPermitidas;
       let etiquetaId: string | null = null;
-      const { data: existente } = await ctx.sb
-        .from("etiquetas")
-        .select("id")
-        .eq("agencia_id", ctx.agenciaId)
-        .ilike("nome", nome)
-        .maybeSingle();
-      if (existente) {
-        etiquetaId = existente.id;
+      let nomeUsado = nomeRaw;
+
+      // L2: se perfil tem etiquetas configuradas, valida e usa id quando vier
+      if (lista && lista.size > 0) {
+        if (idRaw) {
+          const idsPermitidos = new Set(Array.from(lista.values()));
+          if (!idsPermitidos.has(idRaw)) {
+            return { ok: false, resultado: `etiqueta_id "${idRaw}" nao esta na lista permitida` };
+          }
+          etiquetaId = idRaw;
+          const nomeEntry = Array.from(lista.entries()).find(([, id]) => id === idRaw);
+          if (nomeEntry) nomeUsado = nomeEntry[0];
+        } else {
+          const id = lista.get(nomeRaw.toLowerCase());
+          if (!id) {
+            const nomes = Array.from(lista.keys()).join(", ");
+            return { ok: false, resultado: `Etiqueta "${nomeRaw}" nao esta disponivel. Use uma de: ${nomes}` };
+          }
+          etiquetaId = id;
+        }
       } else {
-        const cores = ["#10b981", "#9B7DBF", "#f59e0b", "#C97064", "#5B8BA6"];
-        const cor = cores[Math.floor(Math.random() * cores.length)];
-        const { data: nova } = await ctx.sb
+        // Legado: busca/cria por nome
+        if (!nomeRaw) return { ok: false, resultado: "etiqueta_nome vazio" };
+        const { data: existente } = await ctx.sb
           .from("etiquetas")
-          .insert({ agencia_id: ctx.agenciaId, nome, cor, categoria: "etiqueta", ativo: true })
           .select("id")
-          .single();
-        etiquetaId = nova?.id || null;
+          .eq("agencia_id", ctx.agenciaId)
+          .ilike("nome", nomeRaw)
+          .maybeSingle();
+        if (existente) {
+          etiquetaId = existente.id;
+        } else {
+          const cores = ["#10b981", "#9B7DBF", "#f59e0b", "#C97064", "#5B8BA6"];
+          const cor = cores[Math.floor(Math.random() * cores.length)];
+          const { data: nova } = await ctx.sb
+            .from("etiquetas")
+            .insert({ agencia_id: ctx.agenciaId, nome: nomeRaw, cor, categoria: "etiqueta", ativo: true })
+            .select("id")
+            .single();
+          etiquetaId = nova?.id || null;
+        }
       }
+
       if (etiquetaId) {
         await ctx.sb
           .from("contato_etiquetas")
           .upsert({ contato_id: ctx.contatoId, etiqueta_id: etiquetaId }, { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true });
+      } else {
+        return { ok: false, resultado: "nao foi possivel resolver etiqueta_id" };
       }
-      return { ok: true, resultado: `etiqueta "${nome}" aplicada` };
+      return { ok: true, resultado: `etiqueta "${nomeUsado}" aplicada` };
     }
 
     case "criar_nota": {
