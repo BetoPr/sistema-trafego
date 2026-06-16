@@ -370,13 +370,23 @@ export async function adicionarAoBuffer(params: {
     .eq("agencia_id", params.agenciaId)
     .eq("ativo", true);
 
+  // Match: canal precisa bater. Fila opcional — se perfil declara filas_ativas
+  // e ticket está em fila diferente, MOVE ticket pra primeira fila ativa do perfil
+  // (IA está assumindo, então força a fila correta visualmente).
   const perfilEscolhido = (perfis || []).find((p) => {
-    const canaisOk = !p.canais_ativos.length || (params.canalId && p.canais_ativos.includes(params.canalId));
-    const filasOk = !p.filas_ativas.length || (ticket.fila_id && p.filas_ativas.includes(ticket.fila_id));
-    return canaisOk && filasOk;
+    const canaisArr = (p.canais_ativos || []) as string[];
+    return canaisArr.length === 0 || (params.canalId && canaisArr.includes(params.canalId));
   });
 
-  if (!perfilEscolhido) return { ok: false, motivo: "nenhum perfil cobre esse canal/fila" };
+  if (!perfilEscolhido) return { ok: false, motivo: "nenhum perfil ativo cobre esse canal" };
+
+  // Se ticket está em fila fora das filas_ativas do perfil, move agora
+  const filasArr = (perfilEscolhido.filas_ativas || []) as string[];
+  if (filasArr.length > 0 && ticket.fila_id && !filasArr.includes(ticket.fila_id)) {
+    await sb.from("tickets").update({ fila_id: filasArr[0] }).eq("id", params.ticketId);
+  } else if (filasArr.length > 0 && !ticket.fila_id) {
+    await sb.from("tickets").update({ fila_id: filasArr[0] }).eq("id", params.ticketId);
+  }
 
   const agora = new Date();
   const processarApos = new Date(agora.getTime() + perfilEscolhido.delay_debounce_seg * 1000).toISOString();
