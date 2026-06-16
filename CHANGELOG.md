@@ -7,8 +7,7 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
-- **04:55** — **Fluxo de entrada SONAR — splash + beam + slide-in**.
-  - **Splash**: novo `SonarSplash.tsx` (overlay full-screen com 3 pings expandindo + logo pulsando). Mostra UMA vez por sessão (sessionStorage flag). Auto-fade depois de 2.4s. Mount em `app/layout.tsx`.
+- **04:55** — **Fluxo de entrada SONAR — beam no login + slide-in no CRM**.
   - **Beam no login**: `SonarRadarBg` ganhou prop `beam` que dispara feixe de varredura conic-gradient girando 380° uma vez em 1.6s. Aplicado em `app/(auth)/layout.tsx` beamSize 600.
   - **Slide-in CRM**: `.mk-sidebar` desliza da esquerda em 0.55s + `.mk-main` fade-rise 0.5s com delay 0.18s. Ambos respeitam `prefers-reduced-motion`.
 - **04:35** — **Radar bg na tela de login + bgRadarSize 520 no header**. Novo componente `SonarRadarBg.tsx` (radar girando standalone pra fundo). Aplicado no `app/(auth)/layout.tsx` atrás do balão de login com size 900 opacity 0.5 spinSeconds 14. Sidebar bgRadarSize 260→520 pra preencher edge-to-edge (mask radial fade cortava cantos antes).
