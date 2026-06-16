@@ -640,6 +640,47 @@ export async function reordenarEtapasFollowUp(_sequenciaId: string, idsEmOrdem: 
   return { ok: true };
 }
 
+// ============================================================
+// LOTE 5 — Envio de Resumo no grupo (config + actions)
+// ============================================================
+
+export async function salvarResumoConfig(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const perfilId = String(formData.get("perfil_id") || "");
+  if (!perfilId) return { ok: false, error: "perfil_id obrigatorio" };
+
+  const ativo = formData.get("ativo") === "1";
+  const modeloGroq = String(formData.get("modelo_groq") || "llama-3.3-70b-versatile");
+  const destinoTipo = String(formData.get("destino_tipo") || "grupo");
+  if (destinoTipo !== "grupo" && destinoTipo !== "privado") return { ok: false, error: "destino_tipo invalido" };
+  const canalId = String(formData.get("canal_id") || "") || null;
+  const grupoJid = String(formData.get("grupo_jid") || "") || null;
+  const telefone = String(formData.get("telefone") || "").replace(/\D/g, "") || null;
+  const promptResumo = String(formData.get("prompt_resumo") || "").trim() || "Resuma a conversa abaixo em 3-5 bullets curtos (cliente, interesse, gatilho de transferencia, observacoes). Seja direto.";
+  const dispararEm = String(formData.get("disparar_em") || "transferir_humano");
+  const groqApiKey = String(formData.get("groq_api_key") || "").trim();
+
+  const patch: Record<string, unknown> = {
+    perfil_id: perfilId,
+    agencia_id: ctx.agenciaId,
+    ativo,
+    modelo_groq: modeloGroq,
+    destino_tipo: destinoTipo,
+    canal_id: canalId,
+    grupo_jid: grupoJid,
+    telefone,
+    prompt_resumo: promptResumo,
+    disparar_em: dispararEm,
+  };
+  if (groqApiKey) patch.groq_api_key_encrypted = bufferToBytea(encryptToken(groqApiKey));
+
+  const { error } = await sb.from("ia_atendimento_resumo_config").upsert(patch, { onConflict: "perfil_id" });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
 export async function uploadMidiaFollowUp(formData: FormData): Promise<{ ok: boolean; error?: string; path?: string; mime?: string; filename?: string }> {
   const ctx = await requireRole("admin", "super_admin");
   const sb = createServiceClient();

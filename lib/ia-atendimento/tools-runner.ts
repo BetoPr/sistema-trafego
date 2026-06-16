@@ -260,6 +260,20 @@ export async function executarTool(
         });
       } catch { /* notas_internas opcional */ }
 
+      // L5: dispara resumo via Groq se config ativo (fire-and-forget)
+      (async () => {
+        try {
+          const { gerarEEnviarResumo } = await import("./resumo-groq");
+          await gerarEEnviarResumo({
+            ticketId: ctx.ticketId,
+            perfilId: ctx.perfilId,
+            agenciaId: ctx.agenciaId,
+          });
+        } catch (e) {
+          console.warn("[tools-runner] resumo groq falhou:", e);
+        }
+      })();
+
       return { ok: true, resultado: `transferido — ${motivo}`, encerra_ia: true };
     }
 

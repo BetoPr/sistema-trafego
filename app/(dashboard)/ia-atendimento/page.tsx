@@ -12,6 +12,7 @@ import {
 import EditarFerramentaBtn from "./_ferramenta-editar-btn";
 import type { ImagemGaleria } from "./_galeria-uploader";
 import FollowUpBloco, { type FollowupSeq, type FollowupEtapa } from "./_followup-bloco";
+import ResumoConfigBalao, { type ResumoConfig } from "./_resumo-config-balao";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 import { ChipsPicker } from "./_chips-picker";
 import { TestarApiBtn } from "./_testar-btn";
@@ -179,6 +180,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let galeriaPorFerramenta: Record<string, ImagemGaleria[]> = {};
   let followupSeqs: FollowupSeq[] = [];
   let followupEtapas: FollowupEtapa[] = [];
+  let resumoConfig: ResumoConfig | null = null;
   const intervaloUso: IntervaloUso =
     sp.uso === "24h" || sp.uso === "30d" || sp.uso === "total" ? sp.uso : "7d";
   if (editando) {
@@ -233,6 +235,27 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
     // L2: uso de tokens
     try {
       resumoUso = await carregarUsoTokens(editando.id, ctx.agenciaId, intervaloUso);
+    } catch {}
+
+    // L5: resumo config
+    try {
+      const { data } = await sb.from("ia_atendimento_resumo_config")
+        .select("ativo, modelo_groq, destino_tipo, canal_id, grupo_jid, telefone, prompt_resumo, disparar_em, groq_api_key_encrypted")
+        .eq("perfil_id", editando.id)
+        .maybeSingle();
+      if (data) {
+        resumoConfig = {
+          ativo: data.ativo as boolean,
+          modelo_groq: data.modelo_groq as string,
+          destino_tipo: data.destino_tipo as "grupo" | "privado",
+          canal_id: (data.canal_id as string) || null,
+          grupo_jid: (data.grupo_jid as string) || null,
+          telefone: (data.telefone as string) || null,
+          prompt_resumo: data.prompt_resumo as string,
+          disparar_em: data.disparar_em as string,
+          tem_chave: !!data.groq_api_key_encrypted,
+        };
+      }
     } catch {}
 
     // L4: follow-up sequencias + etapas
@@ -323,6 +346,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           galeriaPorFerramenta={galeriaPorFerramenta}
           followupSeqs={followupSeqs}
           followupEtapas={followupEtapas}
+          resumoConfig={resumoConfig}
         />
       ) : (
         <ListaPerfis perfis={perfis} />
@@ -379,7 +403,7 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
 function PerfilForm({
   editando, editandoId, canais, filas, etiquetas, ferramentas, templates, logs,
   perfilEtiquetas, resumoUso, intervaloUso, galeriaPorFerramenta,
-  followupSeqs, followupEtapas,
+  followupSeqs, followupEtapas, resumoConfig,
 }: {
   editando: PerfilDetalhe | null;
   editandoId: string | null;
@@ -395,6 +419,7 @@ function PerfilForm({
   galeriaPorFerramenta: Record<string, ImagemGaleria[]>;
   followupSeqs: FollowupSeq[];
   followupEtapas: FollowupEtapa[];
+  resumoConfig: ResumoConfig | null;
 }) {
   const provider = editando?.provider || "anthropic";
   const canaisAtivos = new Set<string>(editando?.canais_ativos || []);
@@ -607,6 +632,22 @@ function PerfilForm({
           etapas={followupEtapas}
           etiquetas={etiquetas}
         />
+      )}
+
+      {editandoId && (
+        <div style={{ marginTop: 18, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
+          <h3 className="card-title" style={{ marginBottom: 6 }}>
+            <i className="ti ti-message-2-share" style={{ color: "#9B7DBF", marginRight: 6 }} /> Envio de resumo
+          </h3>
+          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8 }}>
+            Quando IA transferir o ticket pra humano, gera resumo via Groq + envia em grupo/privado.
+          </div>
+          <ResumoConfigBalao
+            perfilId={editandoId}
+            canais={canais}
+            config={resumoConfig}
+          />
+        </div>
       )}
 
       {editandoId && resumoUso && (
