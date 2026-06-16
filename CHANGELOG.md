@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **15:30** — **Fix: follow-up IA nao inscrevia ticket reaproveitado**.
+  - Guard `respostasBot <= blocosEnviados` em `executor.ts` impedia inscricao quando ticket ja tinha msgs bot antigas (de teste/conversas anteriores). Resultado: progresso vazio mesmo com sequencia ativa.
+  - Removida a guard. `inscreverFollowUpIA()` ja dedupica via `jaExiste` (status agendado/executando). Status `finalizado`/`respondido` libera reinscrever no proximo turno IA.
+  - **Atencao UX**: editor de etapas tem botao "Salvar etapa" por bloco — trocar valor sem clicar nao persiste. Sequencia 6cf5430e seguia com 3600s embora usuario tenha digitado 1200/1800.
+
 - **06:00** — **Lote 4 IA Atendimento — Follow-up engine sequencial completo**.
   - **Migration**: 4 tabelas novas:
     - `ia_atendimento_followup_sequencias` (perfil_id, agencia_id, nome, ordem_no_perfil 1-5, ativa, finalizar_ticket_ao_fim bool, etiqueta_em_progresso_id, etiqueta_encerrado_id, janela_inicio/fim, timezone)

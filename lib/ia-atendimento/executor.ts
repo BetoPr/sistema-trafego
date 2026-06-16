@@ -448,27 +448,18 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     });
   }
 
-  // L4: inscreve em follow-up sequencial apos primeira resposta IA bem-sucedida.
-  // Conta apenas msgs bot ANTES das que acabamos de inserir agora.
+  // L4: inscreve em follow-up sequencial sempre que IA responde com texto.
+  // inscreverFollowUpIA() dedupica via guard `jaExiste` (status IN agendado/executando).
+  // Status 'respondido'/'finalizado' libera reinscrever no proximo turno.
   try {
     if (resp.texto.trim() && ticket.canal_id) {
-      const { count: respostasBot } = await sb
-        .from("mensagens")
-        .select("id", { count: "exact", head: true })
-        .eq("ticket_id", b.ticket_id)
-        .eq("autor", "bot");
-      // 1a vez: apenas as msgs que acabamos de inserir (≤ N blocos)
-      const formato = (perfil.formato_resposta || {}) as FormatoResposta;
-      const blocosEnviados = resp.texto.trim() ? dividirEmBlocos(resp.texto, formato).length : 0;
-      if (respostasBot !== null && respostasBot <= blocosEnviados) {
-        await inscreverFollowUpIA({
-          agenciaId: b.agencia_id,
-          perfilId: perfil.id,
-          ticketId: b.ticket_id,
-          contatoId: contato.id,
-          canalId: ticket.canal_id,
-        });
-      }
+      await inscreverFollowUpIA({
+        agenciaId: b.agencia_id,
+        perfilId: perfil.id,
+        ticketId: b.ticket_id,
+        contatoId: contato.id,
+        canalId: ticket.canal_id,
+      });
     }
   } catch (e) {
     console.warn("[executor] inscrever followup falhou:", e);
