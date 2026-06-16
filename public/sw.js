@@ -2,7 +2,7 @@
 // Estratégia: network-first; fallback offline SÓ pra navegação (HTML).
 // Nunca responder asset (JS/CSS) com HTML — quebra a página após deploys.
 
-const CACHE_NAME = "sistema-trafego-v2";
+const CACHE_NAME = "sistema-trafego-v3";
 const OFFLINE_FALLBACK = "/dashboard";
 
 self.addEventListener("install", (event) => {

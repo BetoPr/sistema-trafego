@@ -54,13 +54,18 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const sb = createServiceClient();
 
-  const [{ data: perfis }, { data: canais }, { data: filas }, { data: etiquetas }, { data: templates }] = await Promise.all([
+  const [perfisRes, canaisRes, filasRes, etiquetasRes, templatesRes] = await Promise.allSettled([
     sb.from("ia_atendimento_perfis").select("id, nome, descricao, ativo, modelo, provider, created_at").eq("agencia_id", ctx.agenciaId).eq("eh_template", false).order("nome"),
     sb.from("canais").select("id, nome, status, numero_conectado").eq("agencia_id", ctx.agenciaId).order("nome"),
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
     sb.from("etiquetas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
     sb.from("ia_atendimento_perfis").select("id, nome, descricao, template_tipo, modelo, provider").is("agencia_id", null).eq("eh_template", true).order("nome"),
   ]);
+  const perfis = perfisRes.status === "fulfilled" ? (perfisRes.value.data || []) : [];
+  const canais = canaisRes.status === "fulfilled" ? (canaisRes.value.data || []) : [];
+  const filas = filasRes.status === "fulfilled" ? (filasRes.value.data || []) : [];
+  const etiquetas = etiquetasRes.status === "fulfilled" ? (etiquetasRes.value.data || []) : [];
+  const templates = templatesRes.status === "fulfilled" ? (templatesRes.value.data || []) : [];
 
   const editando = sp.editar ? perfis?.find((p) => p.id === sp.editar) : null;
   const mostrarForm = !!editando || sp.novo === "1";
