@@ -11,6 +11,7 @@ import {
 } from "./_actions";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 import { ChipsPicker } from "./_chips-picker";
+import { TestarApiBtn } from "./_testar-btn";
 
 export const dynamic = "force-dynamic";
 
@@ -343,6 +344,7 @@ function PerfilForm({
             type="password"
             placeholder={editando ? "Deixe em branco pra manter a atual" : "sk-..."}
           />
+          {editandoId && <TestarApiBtn perfilId={editandoId} />}
         </fieldset>
 
         <fieldset style={fs}>

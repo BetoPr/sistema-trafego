@@ -304,6 +304,12 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     if (r.encerra_ia) encerraIA = true;
   }
 
+  // 10b. Move ticket pra primeira fila ativa do perfil (IA Atendendo) sempre que IA assume
+  if ((perfil.filas_ativas || []).length > 0) {
+    const filaIA = (perfil.filas_ativas as string[])[0];
+    await sb.from("tickets").update({ fila_id: filaIA, ia_perfil_id: perfil.id }).eq("id", b.ticket_id);
+  }
+
   // 11. Envia resposta texto (em blocos)
   if (resp.texto.trim()) {
     const formato = (perfil.formato_resposta || {}) as FormatoResposta;
