@@ -8,8 +8,9 @@
 
 const KEYFRAMES = `
 @keyframes sonarBgSpin { to { transform: rotate(360deg); } }
+@keyframes sonarBeamSweep { 0%{opacity:0;transform:translate(-50%,-50%) rotate(0)} 12%{opacity:.85} 100%{opacity:0;transform:translate(-50%,-50%) rotate(380deg)} }
 @media (prefers-reduced-motion: reduce) {
-  .sonar-bg-spin { animation: none !important; }
+  .sonar-bg-spin, .sonar-beam { animation: none !important; }
 }`;
 
 export interface SonarRadarBgProps {
@@ -17,6 +18,10 @@ export interface SonarRadarBgProps {
   opacity?: number;
   spinSeconds?: number;
   className?: string;
+  /** Feixe de varredura entrando uma vez na monta (ex: tela de login). */
+  beam?: boolean;
+  beamSize?: number;
+  beamDurationSeconds?: number;
 }
 
 export default function SonarRadarBg({
@@ -24,7 +29,11 @@ export default function SonarRadarBg({
   opacity = 0.35,
   spinSeconds = 14,
   className,
+  beam = false,
+  beamSize,
+  beamDurationSeconds = 1.6,
 }: SonarRadarBgProps) {
+  const bSize = beamSize ?? Math.round(size * 0.6);
   return (
     <div
       aria-hidden="true"
@@ -88,6 +97,26 @@ export default function SonarRadarBg({
           }}
         />
       </div>
+      {beam && (
+        <div
+          className="sonar-beam"
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: bSize,
+            height: bSize,
+            borderRadius: "50%",
+            pointerEvents: "none",
+            background:
+              "conic-gradient(from 0deg, transparent 0 305deg, rgba(94,234,212,0) 320deg, rgba(94,234,212,.55) 360deg)",
+            WebkitMaskImage: "radial-gradient(circle, #000 26%, transparent 75%)",
+            maskImage: "radial-gradient(circle, #000 26%, transparent 75%)",
+            animation: `sonarBeamSweep ${beamDurationSeconds}s ease-out both`,
+          }}
+        />
+      )}
     </div>
   );
 }
