@@ -10,6 +10,12 @@ interface Slide {
   bullets?: string[];
   mockup: React.ReactNode;
   destaque?: string;
+  /**
+   * Caminho relativo pra screenshot real em /public/apresentacao/img/.
+   * Se preenchido E o arquivo existir, substitui o mockup SVG.
+   * Ex: "/apresentacao/img/caixa.png"
+   */
+  screenshot?: string;
 }
 
 const ACCENT = "#10b981";
@@ -57,6 +63,7 @@ const SLIDES: Slide[] = [
       "Atender direto no hover do avatar",
     ],
     mockup: <CaixaMockup />,
+    screenshot: "/apresentacao/img/02-atendimentos.png",
   },
   {
     id: "ia",
@@ -70,6 +77,7 @@ const SLIDES: Slide[] = [
     ],
     mockup: <IAMockup />,
     destaque: "Você no controle dos custos",
+    screenshot: "/apresentacao/img/03-ia.png",
   },
   {
     id: "tools",
@@ -82,6 +90,7 @@ const SLIDES: Slide[] = [
       "Tools toggle on/off em tempo real",
     ],
     mockup: <ToolsMockup />,
+    screenshot: "/apresentacao/img/04-tools.png",
   },
   {
     id: "followup",
@@ -94,6 +103,7 @@ const SLIDES: Slide[] = [
       "Etiqueta 'Em Follow Up' e 'Follow Up feito' aplicadas",
     ],
     mockup: <FollowupMockup />,
+    screenshot: "/apresentacao/img/05-followup.png",
   },
   {
     id: "leads",
@@ -107,6 +117,7 @@ const SLIDES: Slide[] = [
     ],
     mockup: <LeadsMockup />,
     destaque: "Fim do 'qual ad trouxe esse lead?'",
+    screenshot: "/apresentacao/img/06-leads-meta.png",
   },
   {
     id: "massa",
@@ -131,6 +142,7 @@ const SLIDES: Slide[] = [
       "Export PDF + prompt visual pra ChatGPT",
     ],
     mockup: <DashboardMockup />,
+    screenshot: "/apresentacao/img/07-dashboard.png",
   },
   {
     id: "preco",
@@ -144,6 +156,7 @@ const SLIDES: Slide[] = [
     ],
     mockup: <PrecoMockup />,
     destaque: "Sem markup, sem pegadinha",
+    screenshot: "/apresentacao/img/08-plano.png",
   },
   {
     id: "comeco",
@@ -257,7 +270,7 @@ export default function Deck() {
           )}
         </section>
         <section style={{ animation: "slide-in-right 0.5s ease both" }} key={`mock-${s.id}`}>
-          {s.mockup}
+          {s.screenshot ? <ScreenshotFrame src={s.screenshot} alt={s.titulo} fallback={s.mockup} /> : s.mockup}
         </section>
       </main>
 
@@ -350,6 +363,47 @@ const ctaSecondary: React.CSSProperties = {
   fontSize: 14,
   border: `1px solid ${BORDER}`,
 };
+
+/**
+ * Tenta carregar screenshot real. Se 404 (arquivo nao colocado ainda),
+ * cai pro mockup SVG fallback. Permite ir adicionando PNGs aos poucos.
+ */
+function ScreenshotFrame({ src, alt, fallback }: { src: string; alt: string; fallback: React.ReactNode }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) return <>{fallback}</>;
+  return (
+    <div style={{
+      background: SURFACE,
+      border: `1px solid ${BORDER}`,
+      borderRadius: 16,
+      overflow: "hidden",
+      boxShadow: "0 30px 60px rgba(0,0,0,0.5)",
+      position: "relative",
+    }}>
+      <div style={{
+        padding: "10px 14px",
+        background: "rgba(0,0,0,0.4)",
+        borderBottom: `1px solid ${BORDER}`,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 11,
+        color: MUTED,
+      }}>
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF5F57" }} />
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#FEBC2E" }} />
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28C840" }} />
+        <span style={{ marginLeft: 14 }}>sistema-trafego.vercel.app</span>
+      </div>
+      <img
+        src={src}
+        alt={alt}
+        onError={() => setErrored(true)}
+        style={{ width: "100%", display: "block", aspectRatio: "1126 / 854", objectFit: "cover" }}
+      />
+    </div>
+  );
+}
 
 function BackgroundAurora() {
   return (
