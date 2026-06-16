@@ -43,7 +43,7 @@ function buildSections(role?: string): NavSection[] {
         { href: "/atendimentos", label: "Atendimentos", icon: "ti-messages" },
         { href: "/follow-up", label: "Follow-up", icon: "ti-clock-bolt" },
         { href: "/contatos", label: "Contatos", icon: "ti-address-book" },
-        { href: "/ia-atendimento", label: "IA Atendimento", icon: "ti-brain", badge: { text: "BÁSICA", variant: "amber" } },
+        { href: "/ia-atendimento", label: "IA", icon: "ti-brain", badge: { text: "BÁSICA", variant: "amber" } },
       ],
     },
     {
