@@ -7,8 +7,8 @@ import {
   deletarPerfilIA,
   alternarAtivoPerfilIA,
   deletarFerramentaIA,
-  alternarAtivoFerramentaIA,
 } from "./_actions";
+import { FerramentaToggle } from "./_ferramenta-toggle";
 import EditarFerramentaBtn from "./_ferramenta-editar-btn";
 import type { ImagemGaleria } from "./_galeria-uploader";
 import FollowUpBloco, { type FollowupSeq, type FollowupEtapa } from "./_followup-bloco";
@@ -712,19 +712,7 @@ function FerramentasBloco({
                 imagensGaleria={galeriaPorFerramenta[f.id] || []}
               />
 
-              <form action={alternarAtivoFerramentaIA} style={{ display: "inline" }}>
-                <input type="hidden" name="id" value={f.id} />
-                <input type="hidden" name="perfil_id" value={perfilId} />
-                <input type="hidden" name="ativo" value={String(f.ativo)} />
-                <button
-                  type="submit"
-                  className={`toggle-switch ${f.ativo ? "is-on" : ""}`}
-                  aria-pressed={f.ativo}
-                  title={f.ativo ? "Desativar" : "Ativar"}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </form>
+              <FerramentaToggle id={f.id} ativo={f.ativo} />
 
               <form action={deletarFerramentaIA} style={{ display: "inline" }}>
                 <input type="hidden" name="id" value={f.id} />

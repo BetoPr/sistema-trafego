@@ -324,6 +324,19 @@ export async function alternarAtivoFerramentaIA(formData: FormData) {
   redirect(`${ROUTE}?editar=${perfilId}&ok=ferramenta_alterada`);
 }
 
+/** Variante sem redirect: toggle inline via fetch/useTransition. */
+export async function toggleFerramentaIA(id: string, novoAtivo: boolean): Promise<{ ok: boolean; ativo?: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const { error } = await sb.from("ia_atendimento_ferramentas")
+    .update({ ativo: novoAtivo })
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true, ativo: novoAtivo };
+}
+
 // ---------- Galeria de imagens ----------
 
 interface UploadResult {

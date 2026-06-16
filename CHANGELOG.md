@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **17:00** — **Toggle ferramenta IA agora fluido (sem reload) + 130 tickets movidos**.
+  - SQL ad-hoc: 130 tickets da agencia 'aaaa-...' movidos pra fila Atendimento Humano (id 99c17497). Filtrados contatos com numero terminando em 81991594716 ou 8191594716 (Roberto) — preservados.
+  - Novo `_ferramenta-toggle.tsx` (client + useTransition + estado otimista). Substitui `<form action={alternarAtivoFerramentaIA}>` que fazia full page reload no clique. UI vira instantaneo, reverte se action falhar.
+  - Nova action `toggleFerramentaIA(id, novoAtivo)` em `_actions.ts` — variante sem redirect/revalidatePath de `alternarAtivoFerramentaIA` (mantida pra fallback).
+
 - **16:45** — **Resumo Groq recebe nome+telefone do contato via cabecalho**.
   - `resumo-groq.ts > gerarEEnviarResumo`: busca contato do ticket (nome, wa_id, whatsapp) e prepend bloco "DADOS DO CLIENTE: Nome=..., Telefone=..." antes do historico. IA pode citar diretamente no resumo (ex: `https://wa.me/{telefone}`).
   - `buscarHistoricoSample` faz o mesmo pro modo TESTE (busca contato real do ticket sample).
