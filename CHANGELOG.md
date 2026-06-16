@@ -7,6 +7,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **16:30** — **Animacoes globais fluidas + top progress bar de navegacao**.
+  - `globals.css`: regras universais de transicao pra `button, a, .ghost-btn, .cta-btn, .mk-icon-btn, .pill-tab, .nav-item, .footer-item, .acesso-pill, [role="button"]`. transform/bg/border/color/box-shadow/opacity em 120-180ms easing spring.
+  - `:active scale(0.96)` global como feedback de clique (bouncy cubic-bezier).
+  - `:disabled` opacity 0.55 + cursor not-allowed + pointer-events:none + grayscale leve.
+  - `:focus-visible outline accent` 2px pra acessibilidade.
+  - `:hover translateY(-1px)` em CTAs/ghost/icon (lift sutil).
+  - Spinner auto pra `i.ti-loader-2` em botoes disabled.
+  - `prefers-reduced-motion` respeitado.
+  - Novo componente `components/layout/RouteProgress.tsx` (client + Suspense) usa `usePathname`/`useSearchParams` pra mostrar barra fina animada (gradiente acento) no topo quando rota muda. Auto-some 600ms. Renderizado em `app/(dashboard)/layout.tsx`.
+
 - **16:15** — **Follow-up encerrado move ticket pra fila Atendimento Humano**.
   - `followup-worker.ts`: novo `moverParaFilaHumana(sb, prog)` resolve fila tipo='humano' fixa da agencia, faz update no ticket (ia_pausada=true, usuario_id=null, status='aberto', fila_id=fila_humano.id) + insere nota interna "Follow-up encerrado sem resposta".
   - Chamado quando cadencia termina e `seq.finalizar_ticket_ao_fim=false`. Se `finalizar_ticket_ao_fim=true`, mantem fechado.

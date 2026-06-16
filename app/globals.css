@@ -1089,3 +1089,136 @@ select option { background: #ffffff; color: #111111; }
   from { opacity: 0; transform: translateY(-8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ============================================================
+   Animacoes globais de botoes/links (feedback visual fluido)
+   - transition no transform + opacity para todos elementos
+     interativos
+   - :active scale(0.97) feedback de clique
+   - disabled cursor wait + opacity reduzida + bloqueia eventos
+   - hover lift sutil
+   - reduce motion respeitado
+============================================================ */
+button,
+a,
+.ghost-btn,
+.cta-btn,
+.mk-icon-btn,
+.pill-tab,
+.acesso-pill,
+.acesso-icon-btn,
+.footer-item,
+.nav-item,
+.mk-hamburger,
+.date-pill,
+.mk-toggle,
+.toggle-switch,
+[role="button"] {
+  transition:
+    transform 0.12s cubic-bezier(0.34, 1.4, 0.64, 1),
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.15s ease,
+    filter 0.18s ease;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled),
+.ghost-btn:active,
+.cta-btn:active,
+.mk-icon-btn:active,
+.pill-tab:active,
+.acesso-pill:active,
+.footer-item:active,
+.nav-item:active,
+.mk-hamburger:active,
+.date-pill:active,
+[role="button"]:active {
+  transform: scale(0.96);
+}
+
+button:disabled,
+a[aria-disabled="true"],
+.ghost-btn:disabled,
+.cta-btn:disabled,
+[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  filter: grayscale(0.25);
+}
+
+/* Spinner inline pra botoes com texto " Carregando..." ou " Enviando..." */
+button[disabled] i.ti-loader-2,
+.ghost-btn[disabled] i.ti-loader-2,
+.cta-btn[disabled] i.ti-loader-2 {
+  animation: btn-spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes btn-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Cards clicaveis: hover lift */
+.mk-card[role="button"]:hover,
+.mk-card.is-clickable:hover,
+a > .mk-card:hover,
+button > .mk-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.10);
+  border-color: var(--mk-accent);
+}
+
+/* Top progress bar — pista pra usuario que nav esta carregando */
+.mk-route-progress {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--mk-accent), transparent);
+  z-index: 9999;
+  pointer-events: none;
+  animation: mk-route-progress 1.1s ease-in-out infinite;
+  transform-origin: left center;
+}
+@keyframes mk-route-progress {
+  0%   { transform: translateX(-100%); opacity: 0.8; }
+  50%  { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0.8; }
+}
+
+/* Page enter — fade-rise mais suave que mk-page (substitui em pages com route mudando) */
+.mk-page { animation: mk-fade-in 0.28s cubic-bezier(0.22, 0.9, 0.36, 1); }
+
+/* Hover ghost-btn / cta-btn com lift sutil — overrides anteriores onde fazia sentido */
+.ghost-btn:hover:not(:disabled),
+.cta-btn:hover:not(:disabled),
+.mk-icon-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Focus visivel — acessibilidade + feedback */
+button:focus-visible,
+.ghost-btn:focus-visible,
+.cta-btn:focus-visible,
+.mk-icon-btn:focus-visible,
+.pill-tab:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--mk-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, a, .ghost-btn, .cta-btn, .mk-icon-btn, .pill-tab,
+  .acesso-pill, .acesso-icon-btn, .footer-item, .nav-item,
+  .mk-hamburger, .date-pill, .mk-toggle, .toggle-switch,
+  [role="button"], .mk-card[role="button"], .mk-card.is-clickable,
+  .mk-page, .mk-route-progress {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}

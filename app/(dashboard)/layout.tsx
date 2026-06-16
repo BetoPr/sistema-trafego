@@ -3,6 +3,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NotificacaoMensagens } from "@/components/layout/NotificacaoMensagens";
 import { HeartbeatOnline } from "@/components/layout/HeartbeatOnline";
+import { RouteProgress } from "@/components/layout/RouteProgress";
 import { AudioGlobalProvider } from "@/components/providers/AudioGlobalProvider";
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
         <AudioGlobalProvider>
         <AppShell>
           <AppSidebar role={usuario.role} />
+          <RouteProgress />
           <main className="mk-main">
             <Topbar
               userName={usuario.nome}
