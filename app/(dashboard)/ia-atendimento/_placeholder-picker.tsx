@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 const PLACEHOLDERS: Array<{ key: string; label: string; exemplo: string }> = [
+  { key: "nome_cliente", label: "Nome do cliente", exemplo: "João" },
   { key: "data_hoje", label: "Data de hoje", exemplo: "16/06/2026" },
   { key: "hora_atual", label: "Hora atual", exemplo: "14:32" },
   { key: "dia_semana", label: "Dia da semana", exemplo: "segunda-feira" },
@@ -10,16 +11,7 @@ const PLACEHOLDERS: Array<{ key: string; label: string; exemplo: string }> = [
   { key: "data_amanha", label: "Amanhã", exemplo: "17/06/2026" },
   { key: "data_depois_amanha", label: "Depois de amanhã", exemplo: "18/06/2026" },
   { key: "data_proxima_segunda", label: "Próxima segunda", exemplo: "22/06/2026" },
-  { key: "data_proxima_terca", label: "Próxima terça", exemplo: "23/06/2026" },
-  { key: "data_proxima_quarta", label: "Próxima quarta", exemplo: "17/06/2026" },
-  { key: "data_proxima_quinta", label: "Próxima quinta", exemplo: "18/06/2026" },
   { key: "data_proxima_sexta", label: "Próxima sexta", exemplo: "19/06/2026" },
-  { key: "data_proximo_sabado", label: "Próximo sábado", exemplo: "20/06/2026" },
-  { key: "data_proximo_domingo", label: "Próximo domingo", exemplo: "21/06/2026" },
-  { key: "data_iso", label: "Data ISO", exemplo: "2026-06-16" },
-  { key: "timestamp_iso", label: "Timestamp UTC", exemplo: "2026-06-16T17:32:00Z" },
-  { key: "timezone", label: "Timezone do perfil", exemplo: "America/Sao_Paulo" },
-  { key: "nome_cliente", label: "Nome do cliente (placeholder antigo)", exemplo: "Cliente" },
 ];
 
 export default function PlaceholderPicker() {
@@ -48,54 +40,66 @@ export default function PlaceholderPicker() {
         <i className="ti ti-calendar-plus" /> Inserir placeholder
       </button>
       {aberto && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            zIndex: 50,
-            background: "var(--mk-surface)",
-            border: "0.5px solid var(--mk-border)",
-            borderRadius: 8,
-            padding: 6,
-            minWidth: 280,
-            maxHeight: 320,
-            overflowY: "auto",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
-          }}
-        >
-          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "4px 8px" }}>
-            Placeholders resolvidos no momento da resposta da IA, usando o timezone do perfil.
+        <>
+          <div
+            onClick={() => setAberto(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 999,
+              background: "transparent",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 4px)",
+              left: 0,
+              zIndex: 1000,
+              background: "#1a1d1c",
+              border: "1px solid rgba(155,125,191,0.4)",
+              borderRadius: 10,
+              padding: 6,
+              minWidth: 280,
+              maxHeight: 360,
+              overflowY: "auto",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
+            }}
+          >
+            <div style={{ fontSize: 10.5, color: "#9aa69e", padding: "6px 8px", borderBottom: "0.5px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>
+              Resolvido no momento da resposta. Usa timezone do perfil.
+            </div>
+            {PLACEHOLDERS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => inserir(p.key)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  fontSize: 12.5,
+                  background: "transparent",
+                  border: 0,
+                  color: "#f2f5f4",
+                  cursor: "pointer",
+                  borderRadius: 6,
+                  marginBottom: 2,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(155,125,191,0.12)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <div style={{ fontWeight: 600, fontFamily: "monospace", fontSize: 12 }}>
+                  {p.key === "nome_cliente" ? "{nome_cliente}" : `{{${p.key}}}`}
+                </div>
+                <div style={{ fontSize: 10.5, color: "#9aa69e", marginTop: 2 }}>
+                  {p.label} — ex: <code style={{ color: "#9B7DBF" }}>{p.exemplo}</code>
+                </div>
+              </button>
+            ))}
           </div>
-          {PLACEHOLDERS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => inserir(p.key)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "6px 8px",
-                fontSize: 12.5,
-                background: "transparent",
-                border: 0,
-                color: "var(--mk-text)",
-                cursor: "pointer",
-                borderRadius: 4,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--mk-surface-2)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              <div style={{ fontWeight: 500 }}>
-                {p.key === "nome_cliente" ? "{nome_cliente}" : `{{${p.key}}}`}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
-                {p.label} — ex: <code>{p.exemplo}</code>
-              </div>
-            </button>
-          ))}
-        </div>
+        </>
       )}
     </div>
   );
