@@ -978,6 +978,37 @@ select option { background: #ffffff; color: #111111; }
   /* Tabelas largas: o card rola na horizontal em vez de espremer colunas */
   .mk-card:has(table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .mk-card table { min-width: 520px; }
+
+  /* Catch-all: nenhum elemento estoura horizontal */
+  .mk-page,
+  .mk-card,
+  .mk-card-lg,
+  fieldset,
+  form { max-width: 100%; min-width: 0; }
+  .mk-page > *,
+  .mk-card > *,
+  .mk-card-lg > * { max-width: 100%; }
+
+  /* Tabelas fora de .mk-card */
+  table { width: 100%; max-width: 100%; }
+  /* Imagens/iframes responsivas */
+  img, video, iframe { max-width: 100%; height: auto; }
+  /* Textos longos quebram */
+  .mk-page, .mk-card, .mk-card-lg { word-wrap: break-word; overflow-wrap: anywhere; }
+
+  /* Sections com grid inline (gridTemplateColumns: repeat(N,...)): forca 1 coluna */
+  .mk-page > section[style*="grid-template-columns"],
+  .mk-page > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+
+  /* Painel direito atendimentos: vira drawer */
+  .painel-direito,
+  [class*="painel-direito"] { width: 100% !important; max-width: 100% !important; }
+}
+
+/* TABLET responsivo extra (1001-1280px): cards comprimem */
+@media (min-width: 1001px) and (max-width: 1280px) {
+  .grid-4 { grid-template-columns: repeat(3, 1fr); }
+  .mk-page > section[style*="repeat(4"] { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
 @keyframes mk-sheet-up {
