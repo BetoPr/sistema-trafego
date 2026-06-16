@@ -300,12 +300,13 @@ select option { background: #ffffff; color: #111111; }
   border-bottom: 0.5px solid var(--mk-side-border);
   margin-bottom: 14px;
 }
-.logo-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.logo-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
 .logo-text {
   position: relative;
-  display: inline-flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   width: 100%;
-  min-height: 64px;
+  height: 64px;
+  overflow: hidden;
   white-space: nowrap;
   transition: opacity 0.2s ease;
 }

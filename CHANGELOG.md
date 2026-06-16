@@ -7,6 +7,7 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **03:50** — **Fix logo SONAR**: ficou achatado top-left porque `.logo-wrap` não tinha `flex:1` (sized by content). Corrigido em `globals.css`: `.logo-wrap{flex:1}` + `.logo-text{height:64px;overflow:hidden}` (frame que recorta radar bg). Removido `frameHeight` redundante do componente — `.logo-text` é o frame agora.
 - **03:35** — **Logo SONAR novo no sidebar**. Substituído SVG estático por `<SonarLogo />` (`components/layout/SonarLogo.tsx`): wordmark com a letra "O" como radar nítido (varredura forte) + radar maior de fundo (anéis, crosshair, varredura sutil) girando devagar em 8s. Self-contained, zero deps, respeita `prefers-reduced-motion`. Props: `frameHeight=64`, `fontSize=18`, `bgRadarOpacity=0.85`. CSS antigo de `.logo-radar/.logo-radar-text` permanece (dead) — limpo em futura iteração.
 - **03:20** — **Fix dup histórico ↔ buffer**. IA contava 16 onde tinham 10 "Oi". Causa: `ingestMensagem` grava msg em `mensagens` ANTES de cair no buffer, então `processarUm` carregava histórico (incluindo as 10 do buffer) + concatenava as mesmas 10 do buffer no novoTexto = duplicação. Fix em `executor.ts`: histórico filtra `created_at < primeira_msg_do_buffer.recebido_em` e novoTexto sempre PUSH como user msg (em vez de sobrescrever último). Resultado: IA agora vê exatamente N msgs concatenadas, sem repetição.
 - **03:00** — **Lote 1 IA Atendimento — fix toggle + filas fixas + contexto temporal + transferir_para_humano configurável**.
