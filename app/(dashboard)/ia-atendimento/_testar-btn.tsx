@@ -10,10 +10,13 @@ export function TestarApiBtn({ perfilId }: { perfilId: string }) {
     setRodando(true);
     setResultado(null);
     try {
+      // Pega chave do input se digitada (sem precisar salvar primeiro)
+      const apiInput = document.querySelector<HTMLInputElement>('input[name="api_key"]');
+      const apiKeyOverride = (apiInput?.value || "").trim();
       const r = await fetch("/api/ia-atendimento/testar-perfil", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ perfilId }),
+        body: JSON.stringify({ perfilId, apiKeyOverride: apiKeyOverride || undefined }),
       });
       const j = await r.json();
       setResultado(j);

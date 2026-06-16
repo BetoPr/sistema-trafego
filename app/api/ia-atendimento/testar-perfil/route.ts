@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const { data: u } = await sb.from("usuarios").select("agencia_id, role").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
-  const body = (await req.json().catch(() => null)) as { perfilId?: string } | null;
+  const body = (await req.json().catch(() => null)) as { perfilId?: string; apiKeyOverride?: string } | null;
   if (!body?.perfilId) return NextResponse.json({ error: "perfilId_obrigatorio" }, { status: 400 });
 
   const { data: perfil } = await sb
@@ -34,13 +34,19 @@ export async function POST(req: Request) {
 
   if (!perfil) return NextResponse.json({ error: "perfil_nao_encontrado" }, { status: 404 });
   if (perfil.agencia_id !== u.agencia_id) return NextResponse.json({ error: "perfil_fora_agencia" }, { status: 403 });
-  if (!perfil.api_key_encrypted) return NextResponse.json({ error: "sem_chave_api" }, { status: 400 });
 
+  // Override: usa chave do form (sem precisar salvar). Fallback pra do DB.
   let apiKey: string;
-  try {
-    apiKey = decryptToken(byteaToBuffer(perfil.api_key_encrypted as Parameters<typeof byteaToBuffer>[0]));
-  } catch {
-    return NextResponse.json({ error: "chave_corrompida" }, { status: 500 });
+  const override = (body.apiKeyOverride || "").trim();
+  if (override) {
+    apiKey = override;
+  } else {
+    if (!perfil.api_key_encrypted) return NextResponse.json({ error: "sem_chave_api" }, { status: 400 });
+    try {
+      apiKey = decryptToken(byteaToBuffer(perfil.api_key_encrypted as Parameters<typeof byteaToBuffer>[0]));
+    } catch {
+      return NextResponse.json({ error: "chave_corrompida" }, { status: 500 });
+    }
   }
 
   const inicio = Date.now();
