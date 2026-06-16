@@ -7,7 +7,10 @@ import {
   deletarPerfilIA,
   alternarAtivoPerfilIA,
   deletarFerramentaIA,
+  alternarAtivoFerramentaIA,
 } from "./_actions";
+import EditarFerramentaBtn from "./_ferramenta-editar-btn";
+import type { ImagemGaleria } from "./_galeria-uploader";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 import { ChipsPicker } from "./_chips-picker";
 import { TestarApiBtn } from "./_testar-btn";
@@ -172,6 +175,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let logs: LogRow[] = [];
   let perfilEtiquetas: PerfilEtiquetaRow[] = [];
   let resumoUso: ResumoUso | null = null;
+  let galeriaPorFerramenta: Record<string, ImagemGaleria[]> = {};
   const intervaloUso: IntervaloUso =
     sp.uso === "24h" || sp.uso === "30d" || sp.uso === "total" ? sp.uso : "7d";
   if (editando) {
@@ -227,6 +231,39 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
     try {
       resumoUso = await carregarUsoTokens(editando.id, ctx.agenciaId, intervaloUso);
     } catch {}
+
+    // L3: galeria por ferramenta (so pra acao=enviar_imagem_galeria)
+    try {
+      const idsGaleria = ferramentas.filter((f) => f.acao === "enviar_imagem_galeria").map((f) => f.id);
+      if (idsGaleria.length) {
+        const { data: gals } = await sb
+          .from("ia_atendimento_galeria")
+          .select("id, ferramenta_id, nome, descricao, tags, url_storage, mime, ordem")
+          .in("ferramenta_id", idsGaleria)
+          .order("ordem", { ascending: true });
+        if (gals?.length) {
+          const comSigned = await Promise.all(
+            gals.map(async (g) => {
+              const { data: s } = await sb.storage.from("ia-galeria").createSignedUrl(g.url_storage, 3600);
+              return { ...g, signed_url: s?.signedUrl || null };
+            }),
+          );
+          galeriaPorFerramenta = comSigned.reduce((acc, g) => {
+            (acc[g.ferramenta_id as string] ||= []).push({
+              id: g.id as string,
+              nome: g.nome as string,
+              descricao: g.descricao as string,
+              tags: (g.tags || []) as string[],
+              url_storage: g.url_storage as string,
+              mime: g.mime as string,
+              ordem: g.ordem as number,
+              signed_url: g.signed_url,
+            });
+            return acc;
+          }, {} as Record<string, ImagemGaleria[]>);
+        }
+      }
+    } catch {}
   }
 
   return (
@@ -263,6 +300,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           perfilEtiquetas={perfilEtiquetas}
           resumoUso={resumoUso}
           intervaloUso={intervaloUso}
+          galeriaPorFerramenta={galeriaPorFerramenta}
         />
       ) : (
         <ListaPerfis perfis={perfis} />
@@ -318,7 +356,7 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
 
 function PerfilForm({
   editando, editandoId, canais, filas, etiquetas, ferramentas, templates, logs,
-  perfilEtiquetas, resumoUso, intervaloUso,
+  perfilEtiquetas, resumoUso, intervaloUso, galeriaPorFerramenta,
 }: {
   editando: PerfilDetalhe | null;
   editandoId: string | null;
@@ -331,6 +369,7 @@ function PerfilForm({
   perfilEtiquetas: PerfilEtiquetaRow[];
   resumoUso: ResumoUso | null;
   intervaloUso: IntervaloUso;
+  galeriaPorFerramenta: Record<string, ImagemGaleria[]>;
 }) {
   const provider = editando?.provider || "anthropic";
   const canaisAtivos = new Set<string>(editando?.canais_ativos || []);
@@ -515,6 +554,7 @@ function PerfilForm({
           ferramentas={ferramentas}
           filas={filas}
           etiquetas={etiquetas}
+          galeriaPorFerramenta={galeriaPorFerramenta}
         />
       )}
 
@@ -548,11 +588,13 @@ function FerramentasBloco({
   ferramentas,
   filas,
   etiquetas,
+  galeriaPorFerramenta,
 }: {
   perfilId: string;
   ferramentas: FerramentaRow[];
   filas: FilaRow[];
   etiquetas: EtiquetaRow[];
+  galeriaPorFerramenta: Record<string, ImagemGaleria[]>;
 }) {
   return (
     <div style={{ marginTop: 24, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
@@ -566,15 +608,55 @@ function FerramentasBloco({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
           {ferramentas.map((f) => (
-            <div key={f.id} style={{ padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600 }}>{f.nome} <span style={{ fontSize: 10, color: "#9B7DBF", marginLeft: 6 }}>{ACOES[f.acao] || f.acao}</span></div>
+            <div
+              key={f.id}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "0.5px solid var(--mk-border)",
+                background: "var(--mk-surface)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                opacity: f.ativo ? 1 : 0.55,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+                  {f.nome}{" "}
+                  <span style={{ fontSize: 10, color: "#9B7DBF", marginLeft: 6 }}>{ACOES[f.acao] || f.acao}</span>
+                </div>
                 <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2 }}>{f.descricao}</div>
               </div>
+
+              <EditarFerramentaBtn
+                ferramenta={f}
+                perfilId={perfilId}
+                filas={filas}
+                etiquetas={etiquetas}
+                imagensGaleria={galeriaPorFerramenta[f.id] || []}
+              />
+
+              <form action={alternarAtivoFerramentaIA} style={{ display: "inline" }}>
+                <input type="hidden" name="id" value={f.id} />
+                <input type="hidden" name="perfil_id" value={perfilId} />
+                <input type="hidden" name="ativo" value={String(f.ativo)} />
+                <button
+                  type="submit"
+                  className={`toggle-switch ${f.ativo ? "is-on" : ""}`}
+                  aria-pressed={f.ativo}
+                  title={f.ativo ? "Desativar" : "Ativar"}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </form>
+
               <form action={deletarFerramentaIA} style={{ display: "inline" }}>
                 <input type="hidden" name="id" value={f.id} />
                 <input type="hidden" name="perfil_id" value={perfilId} />
-                <button type="submit" className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}><i className="ti ti-trash" /></button>
+                <button type="submit" className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}>
+                  <i className="ti ti-trash" />
+                </button>
               </form>
             </div>
           ))}

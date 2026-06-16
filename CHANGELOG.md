@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-16
 
+- **05:35** — **Lote 3 IA Atendimento — tools editáveis + tool `enviar_imagem_galeria`**.
+  - **CRUD completo de ferramentas**: lápis ao lado de cada ferramenta abre Balão com `FerramentaForm` pré-preenchido (nome readonly, descrição/ação/parâmetros editáveis). Toggle on/off inline (`alternarAtivoFerramentaIA`). Nome técnico tem unique constraint por perfil.
+  - **Migration**: nova tabela `ia_atendimento_galeria (perfil_id, agencia_id, ferramenta_id, nome, descricao, tags[], url_storage, mime, ordem)` com RLS + GIN index em tags. Bucket Supabase Storage `ia-galeria` (privado, max 10MB, image/jpeg|png|webp|gif) com policies que isolam por `agencia_id` no path.
+  - **Nova ação `enviar_imagem_galeria`**: ferramenta carrega imagens via drag-drop upload, IA escolhe quais enviar por `indices: [1,2]` OR `tags: ["preço"]` OR `quantidade: N`. Catálogo formatado é injetado na description da tool (LLM enxerga: `"  1. plano_basico — R$29 [tags: preço, plano]"`).
+  - **Handler** em `tools-runner.ts` gera signed URL TTL 600s + chama `instanceSendMedia` UAZAPI + registra em `mensagens` (autor=bot, tipo=imagem, midia_url, caption só na primeira).
+  - **`buildToolsSchema`** virou async + aceita `{sb, agenciaId}` opcional — galerias vazias são automaticamente skipadas (não poluem schema do LLM).
+  - **CtxIA** ganhou `enviarMidiaUazapi` injetado pelo executor (instanceSendMedia bound a baseUrl/token do canal).
 - **05:15** — **Lote 2 IA Atendimento — Tokens UI + Etiquetas configuráveis no perfil**.
   - **Card "Uso de tokens"** no edit perfil: KPIs respostas / tokens IN / tokens OUT / custo USD estimado + média por resposta + mini-gráfico de barras dos últimos 7 dias + filtro 24h / 7d / 30d / total. Pricing snapshot 2026-01 em `lib/ia-atendimento/precos.ts` cobre Anthropic (Haiku/Sonnet/Opus + legacy), OpenAI (4o, 4.1, o1, o3-mini), Groq.
   - **Etiquetas configuradas por perfil**: nova migration `ia_atendimento_perfil_etiquetas (perfil_id, etiqueta_id, agencia_id, descricao_uso TEXT, ordem INT)` com RLS multi-tenant. Editor no perfil: dropdown adicionar + textarea descrição de uso por etiqueta + autosave on blur + remover.

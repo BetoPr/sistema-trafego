@@ -6,7 +6,7 @@
  */
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
-import { instanceSendText } from "@/lib/uazapi/client";
+import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { chamarIA, type MsgIA } from "./providers";
 import { buildToolsSchema, executarTool, type CtxIA } from "./tools-runner";
 import { dividirEmBlocos, gapAleatorio, type FormatoResposta } from "./split";
@@ -253,7 +253,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   const [{ data: histRows }, { data: ferramentas }, { data: etiquetasCfg }] = await Promise.all([
     histQuery.order("created_at", { ascending: false }).limit(20),
     sb.from("ia_atendimento_ferramentas")
-      .select("nome, descricao, acao, parametros")
+      .select("id, nome, descricao, acao, parametros")
       .eq("perfil_id", perfil.id)
       .eq("ativo", true),
     sb.from("ia_atendimento_perfil_etiquetas")
@@ -262,7 +262,10 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       .order("ordem"),
   ]);
   const historico = (histRows || []).reverse();
-  const tools = buildToolsSchema((ferramentas || []) as Array<{ nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>);
+  const tools = await buildToolsSchema(
+    (ferramentas || []) as Array<{ id: string; nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>,
+    { sb, agenciaId: b.agencia_id },
+  );
 
   // 6. Monta prompt (com contexto temporal + placeholders {{...}})
   const tz = (perfil.timezone as string) || "America/Sao_Paulo";
@@ -353,6 +356,22 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     return { id: r.id };
   };
 
+  const enviarMidiaUazapi = async (p: {
+    file: string;
+    type: "image" | "video" | "document" | "audio" | "ptt";
+    text?: string;
+    docName?: string;
+  }) => {
+    const r = await instanceSendMedia({ baseUrl, token }, {
+      number: waId,
+      type: p.type,
+      file: p.file,
+      text: p.text,
+      docName: p.docName,
+    });
+    return { id: r.id };
+  };
+
   // L2: map nome (lowercase) -> etiqueta_id pras etiquetas permitidas do perfil
   const etiquetasPermitidasMap = new Map<string, string>(
     etqRows.map((r) => [r.etiqueta.nome.toLowerCase(), r.etiqueta.id]),
@@ -368,6 +387,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     timezone: tz,
     etiquetasPermitidas: etiquetasPermitidasMap,
     enviarMensagemUazapi,
+    enviarMidiaUazapi,
   };
 
   // 10. Executa tool calls (na ordem que a IA pediu)

@@ -264,3 +264,218 @@ export async function salvarFollowUpIA(formData: FormData) {
   revalidatePath(ROUTE);
   redirect(`${ROUTE}?editar=${perfilId}&ok=followup_salvo`);
 }
+
+// ============================================================
+// LOTE 3 — CRUD ferramentas + galeria
+// ============================================================
+
+export async function atualizarFerramentaIA(formData: FormData) {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const id = String(formData.get("id") || "");
+  const perfilId = String(formData.get("perfil_id") || "");
+  const descricao = String(formData.get("descricao") || "").trim();
+  const acao = String(formData.get("acao") || "");
+  if (!id || !perfilId || !descricao || !acao) {
+    redirect(`${ROUTE}?editar=${perfilId}&erro=campos`);
+  }
+  const parametrosRaw = String(formData.get("parametros") || "{}");
+  let parametros: Record<string, unknown> = {};
+  try { parametros = JSON.parse(parametrosRaw); } catch { parametros = {}; }
+
+  const patch: Record<string, unknown> = { descricao, acao, parametros };
+  // nome só atualiza se vier (nao readonly)
+  const novoNome = String(formData.get("nome") || "").trim();
+  if (novoNome) patch.nome = novoNome;
+  if (formData.has("ativo")) patch.ativo = formData.get("ativo") === "on";
+
+  const { error } = await sb
+    .from("ia_atendimento_ferramentas")
+    .update(patch)
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) redirect(`${ROUTE}?editar=${perfilId}&erro=db&msg=${encodeURIComponent(error.message)}`);
+
+  void audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "update",
+    entidade: "ia_atendimento_ferramentas",
+    entidadeId: id,
+    payload: { acao },
+  });
+
+  revalidatePath(ROUTE);
+  redirect(`${ROUTE}?editar=${perfilId}&ok=ferramenta_atualizada`);
+}
+
+export async function alternarAtivoFerramentaIA(formData: FormData) {
+  const ctx = await requireRole("admin", "super_admin");
+  const id = String(formData.get("id") || "");
+  const perfilId = String(formData.get("perfil_id") || "");
+  const ativoAtual = formData.get("ativo") === "true";
+  const sb = createServiceClient();
+  await sb.from("ia_atendimento_ferramentas")
+    .update({ ativo: !ativoAtual })
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  revalidatePath(ROUTE);
+  redirect(`${ROUTE}?editar=${perfilId}&ok=ferramenta_alterada`);
+}
+
+// ---------- Galeria de imagens ----------
+
+interface UploadResult {
+  ok: boolean;
+  error?: string;
+  imagem?: {
+    id: string;
+    nome: string;
+    descricao: string;
+    tags: string[];
+    url_storage: string;
+    mime: string;
+    ordem: number;
+    signed_url: string | null;
+  };
+}
+
+export async function uploadImagemGaleria(formData: FormData): Promise<UploadResult> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+
+  const file = formData.get("file") as File | null;
+  const ferramentaId = String(formData.get("ferramenta_id") || "");
+  const nome = String(formData.get("nome") || file?.name || "imagem").slice(0, 80);
+  const descricao = String(formData.get("descricao") || "");
+
+  if (!file || !ferramentaId) return { ok: false, error: "arquivo ou ferramenta_id ausente" };
+  if (file.size > 10 * 1024 * 1024) return { ok: false, error: "imagem maior que 10MB" };
+  if (!file.type.startsWith("image/")) return { ok: false, error: "tipo não suportado (só imagens)" };
+
+  const { data: ferr } = await sb
+    .from("ia_atendimento_ferramentas")
+    .select("id, perfil_id, agencia_id, acao")
+    .eq("id", ferramentaId)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle();
+  if (!ferr) return { ok: false, error: "ferramenta não encontrada" };
+  if (ferr.acao !== "enviar_imagem_galeria") return { ok: false, error: "ferramenta não é do tipo galeria" };
+
+  const { count } = await sb
+    .from("ia_atendimento_galeria")
+    .select("id", { count: "exact", head: true })
+    .eq("ferramenta_id", ferramentaId);
+  const ordem = count ?? 0;
+
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
+  const path = `${ferr.agencia_id}/${ferr.perfil_id}/${ferramentaId}/${crypto.randomUUID()}.${ext}`;
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await sb.storage.from("ia-galeria").upload(path, buf, { contentType: file.type, upsert: false });
+  if (upErr) return { ok: false, error: upErr.message };
+
+  const { data: row, error: insErr } = await sb
+    .from("ia_atendimento_galeria")
+    .insert({
+      perfil_id: ferr.perfil_id,
+      agencia_id: ferr.agencia_id,
+      ferramenta_id: ferramentaId,
+      nome,
+      descricao,
+      tags: [],
+      url_storage: path,
+      mime: file.type,
+      tamanho_bytes: file.size,
+      ordem,
+    })
+    .select("id, nome, descricao, tags, url_storage, mime, ordem")
+    .single();
+
+  if (insErr || !row) {
+    await sb.storage.from("ia-galeria").remove([path]);
+    return { ok: false, error: insErr?.message || "insert falhou" };
+  }
+
+  const { data: signed } = await sb.storage.from("ia-galeria").createSignedUrl(path, 3600);
+
+  revalidatePath(ROUTE);
+  return {
+    ok: true,
+    imagem: {
+      id: row.id,
+      nome: row.nome,
+      descricao: row.descricao,
+      tags: row.tags || [],
+      url_storage: row.url_storage,
+      mime: row.mime,
+      ordem: row.ordem,
+      signed_url: signed?.signedUrl || null,
+    },
+  };
+}
+
+export async function atualizarImagemGaleria(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const id = String(formData.get("id") || "");
+  const nome = String(formData.get("nome") || "").slice(0, 80);
+  const descricao = String(formData.get("descricao") || "");
+  const tagsStr = String(formData.get("tags") || "");
+  const tags = tagsStr.split(",").map((t) => t.trim()).filter(Boolean);
+  if (!id) return { ok: false, error: "id ausente" };
+
+  const { error } = await sb
+    .from("ia_atendimento_galeria")
+    .update({ nome, descricao, tags })
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function deletarImagemGaleria(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const id = String(formData.get("id") || "");
+  if (!id) return { ok: false, error: "id ausente" };
+
+  const { data: row } = await sb
+    .from("ia_atendimento_galeria")
+    .select("url_storage")
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "nao encontrada" };
+
+  await sb.storage.from("ia-galeria").remove([row.url_storage]);
+  const { error } = await sb
+    .from("ia_atendimento_galeria")
+    .delete()
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+export async function reordenarImagemGaleria(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireRole("admin", "super_admin");
+  const sb = createServiceClient();
+  const ferramentaId = String(formData.get("ferramenta_id") || "");
+  const ordemJson = String(formData.get("ordem_json") || "[]");
+  let lista: Array<{ id: string; ordem: number }> = [];
+  try { lista = JSON.parse(ordemJson); } catch { lista = []; }
+  if (!ferramentaId || !lista.length) return { ok: false, error: "input inválido" };
+
+  for (const it of lista) {
+    await sb.from("ia_atendimento_galeria")
+      .update({ ordem: it.ordem })
+      .eq("id", it.id)
+      .eq("ferramenta_id", ferramentaId)
+      .eq("agencia_id", ctx.agenciaId);
+  }
+  revalidatePath(ROUTE);
+  return { ok: true };
+}

@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { criarFerramentaIA } from "./_actions";
+import { criarFerramentaIA, atualizarFerramentaIA } from "./_actions";
+import GaleriaUploader, { type ImagemGaleria } from "./_galeria-uploader";
 
 interface FilaOpt { id: string; nome: string; cor: string }
 interface EtiquetaOpt { id: string; nome: string; cor: string }
+
+interface FerramentaExistente {
+  id: string;
+  nome: string;
+  descricao: string;
+  acao: string;
+  parametros: Record<string, unknown>;
+  ativo: boolean;
+}
 
 const ACOES: Record<string, string> = {
   aplicar_etiqueta: "Aplicar etiqueta",
@@ -15,6 +25,7 @@ const ACOES: Record<string, string> = {
   marcar_qualificado: "Marcar qualificado",
   criar_nota: "Criar nota interna",
   consultar_data: "Consultar data",
+  enviar_imagem_galeria: "Enviar imagem da galeria",
 };
 
 const lbl: React.CSSProperties = {
@@ -33,25 +44,36 @@ const inp: React.CSSProperties = {
   padding: "8px 10px",
   fontSize: 12.5,
 };
+
 export default function FerramentaForm({
   perfilId,
   filas,
   etiquetas,
+  ferramentaExistente,
+  imagensGaleria = [],
+  onSaved,
 }: {
   perfilId: string;
   filas: FilaOpt[];
   etiquetas: EtiquetaOpt[];
+  ferramentaExistente?: FerramentaExistente;
+  imagensGaleria?: ImagemGaleria[];
+  onSaved?: () => void;
 }) {
-  const [acao, setAcao] = useState<string>("aplicar_etiqueta");
+  const editando = !!ferramentaExistente;
+  const p = (ferramentaExistente?.parametros || {}) as Record<string, unknown>;
 
-  const [filaDestinoId, setFilaDestinoId] = useState<string>("");
-  const [statusDestino, setStatusDestino] = useState<string>("aberto");
-  const [etiquetaId, setEtiquetaId] = useState<string>("");
-  const [etiquetaNome, setEtiquetaNome] = useState<string>("");
-  const [aposMinutos, setAposMinutos] = useState<number>(60);
-  const [score, setScore] = useState<number>(7);
-  const [observacao, setObservacao] = useState<string>("");
-  const [parametrosLivres, setParametrosLivres] = useState<string>("");
+  const [acao, setAcao] = useState<string>(ferramentaExistente?.acao || "aplicar_etiqueta");
+  const [filaDestinoId, setFilaDestinoId] = useState<string>(String(p.fila_destino_id || ""));
+  const [statusDestino, setStatusDestino] = useState<string>(String(p.status_destino || "aberto"));
+  const [etiquetaId, setEtiquetaId] = useState<string>(String(p.etiqueta_id || ""));
+  const [etiquetaNome, setEtiquetaNome] = useState<string>(String(p.etiqueta_nome || ""));
+  const [aposMinutos, setAposMinutos] = useState<number>(Number(p.apos_minutos) || 60);
+  const [score, setScore] = useState<number>(Number(p.score) || 7);
+  const [observacao, setObservacao] = useState<string>(String(p.observacao || p.texto || ""));
+  const [parametrosLivres, setParametrosLivres] = useState<string>(
+    editando && acao === "enviar_template" ? JSON.stringify(p, null, 2) : "",
+  );
 
   function buildParametros(): string {
     if (acao === "transferir_para_humano" || acao === "transferir_para_fila") {
@@ -70,6 +92,7 @@ export default function FerramentaForm({
     if (acao === "marcar_qualificado") return JSON.stringify({ score, observacao });
     if (acao === "criar_nota") return JSON.stringify({ texto: observacao });
     if (acao === "consultar_data") return "{}";
+    if (acao === "enviar_imagem_galeria") return "{}";
     return parametrosLivres || "{}";
   }
 
@@ -77,7 +100,9 @@ export default function FerramentaForm({
     <form
       action={async (fd: FormData) => {
         fd.set("parametros", buildParametros());
-        await criarFerramentaIA(fd);
+        if (editando) await atualizarFerramentaIA(fd);
+        else await criarFerramentaIA(fd);
+        onSaved?.();
       }}
       style={{
         display: "grid",
@@ -90,10 +115,19 @@ export default function FerramentaForm({
       }}
     >
       <input type="hidden" name="perfil_id" value={perfilId} />
+      {editando && <input type="hidden" name="id" value={ferramentaExistente!.id} />}
 
       <div>
         <label style={lbl}>Nome técnico (id pra IA)</label>
-        <input name="nome" required style={inp} placeholder="ex: marcar_lead_quente" />
+        <input
+          name="nome"
+          required
+          readOnly={editando}
+          defaultValue={ferramentaExistente?.nome || ""}
+          style={{ ...inp, opacity: editando ? 0.6 : 1, cursor: editando ? "not-allowed" : "auto" }}
+          placeholder="ex: marcar_lead_quente"
+          title={editando ? "Nome técnico não pode ser alterado" : ""}
+        />
       </div>
 
       <div>
@@ -107,7 +141,13 @@ export default function FerramentaForm({
 
       <div style={{ gridColumn: "1 / -1" }}>
         <label style={lbl}>Descrição (a IA lê pra decidir quando usar)</label>
-        <input name="descricao" required style={inp} placeholder="Use quando cliente disser..." />
+        <input
+          name="descricao"
+          required
+          defaultValue={ferramentaExistente?.descricao || ""}
+          style={inp}
+          placeholder="Use quando cliente disser..."
+        />
       </div>
 
       {(acao === "transferir_para_humano" || acao === "transferir_para_fila") && (
@@ -116,9 +156,7 @@ export default function FerramentaForm({
             <label style={lbl}>Fila de destino</label>
             <select value={filaDestinoId} onChange={(e) => setFilaDestinoId(e.target.value)} style={inp}>
               <option value="">— Padrão (fila Humano da agência) —</option>
-              {filas.map((f) => (
-                <option key={f.id} value={f.id}>{f.nome}</option>
-              ))}
+              {filas.map((f) => (<option key={f.id} value={f.id}>{f.nome}</option>))}
             </select>
           </div>
           <div>
@@ -133,9 +171,7 @@ export default function FerramentaForm({
             <label style={lbl}>Aplicar etiqueta (opcional)</label>
             <select value={etiquetaId} onChange={(e) => setEtiquetaId(e.target.value)} style={inp}>
               <option value="">— Nenhuma —</option>
-              {etiquetas.map((e) => (
-                <option key={e.id} value={e.id}>{e.nome}</option>
-              ))}
+              {etiquetas.map((e) => (<option key={e.id} value={e.id}>{e.nome}</option>))}
             </select>
           </div>
         </>
@@ -151,9 +187,7 @@ export default function FerramentaForm({
               style={inp}
             >
               <option value="">— Escolha uma —</option>
-              {etiquetas.map((et) => (
-                <option key={et.id} value={et.id}>{et.nome}</option>
-              ))}
+              {etiquetas.map((et) => (<option key={et.id} value={et.id}>{et.nome}</option>))}
             </select>
           </div>
           <div>
@@ -171,14 +205,7 @@ export default function FerramentaForm({
       {acao === "agendar_followup" && (
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={lbl}>Disparar após (minutos)</label>
-          <input
-            type="number"
-            min={1}
-            max={10080}
-            value={aposMinutos}
-            onChange={(e) => setAposMinutos(parseInt(e.target.value, 10) || 60)}
-            style={inp}
-          />
+          <input type="number" min={1} max={10080} value={aposMinutos} onChange={(e) => setAposMinutos(parseInt(e.target.value, 10) || 60)} style={inp} />
         </div>
       )}
 
@@ -186,14 +213,7 @@ export default function FerramentaForm({
         <>
           <div>
             <label style={lbl}>Score padrão (1-10)</label>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={score}
-              onChange={(e) => setScore(parseInt(e.target.value, 10) || 5)}
-              style={inp}
-            />
+            <input type="number" min={1} max={10} value={score} onChange={(e) => setScore(parseInt(e.target.value, 10) || 5)} style={inp} />
           </div>
           <div>
             <label style={lbl}>Observação padrão</label>
@@ -224,13 +244,37 @@ export default function FerramentaForm({
 
       {acao === "consultar_data" && (
         <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "var(--mk-text-muted)", padding: 8, background: "var(--mk-surface-2)", borderRadius: 6 }}>
-          Não precisa de configuração. A IA consulta datas como &quot;amanhã&quot;, &quot;próxima segunda&quot;, etc.
+          Sem configuração. A IA consulta &quot;amanhã&quot;, &quot;próxima segunda&quot;, etc.
+        </div>
+      )}
+
+      {acao === "enviar_imagem_galeria" && (
+        <div style={{ gridColumn: "1 / -1" }}>
+          {editando ? (
+            <>
+              <label style={lbl}>Imagens da galeria</label>
+              <GaleriaUploader ferramentaId={ferramentaExistente!.id} imagens={imagensGaleria} />
+            </>
+          ) : (
+            <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: 10, background: "var(--mk-surface-2)", borderRadius: 6 }}>
+              <i className="ti ti-info-circle" /> Salve a ferramenta primeiro pra subir imagens. Depois clique editar.
+            </div>
+          )}
+        </div>
+      )}
+
+      {editando && (
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--mk-text-secondary)" }}>
+            <input type="checkbox" name="ativo" defaultChecked={ferramentaExistente!.ativo} />
+            Ativa (IA pode usar)
+          </label>
         </div>
       )}
 
       <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end" }}>
-        <button type="submit" className="ghost-btn" style={{ fontSize: 12, padding: "8px 14px" }}>
-          <i className="ti ti-plus" /> Adicionar ferramenta
+        <button type="submit" className={editando ? "cta-btn" : "ghost-btn"} style={{ fontSize: 12, padding: "8px 14px" }}>
+          <i className={`ti ${editando ? "ti-device-floppy" : "ti-plus"}`} /> {editando ? "Salvar alterações" : "Adicionar ferramenta"}
         </button>
       </div>
     </form>

@@ -4,6 +4,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolverReferenciaTemporal } from "./contexto-temporal";
+import { carregarGaleria, gerarSignedUrlGaleria, escolherImagens, formatCatalogoParaIA } from "./galeria";
 
 export interface ToolDef {
   name: string;
@@ -24,13 +25,23 @@ export interface CtxIA {
   /** L2: map nome lowercase -> etiqueta_id permitidas pelo perfil. Undefined/vazio = comportamento legado. */
   etiquetasPermitidas?: Map<string, string>;
   enviarMensagemUazapi: (texto: string) => Promise<{ id?: string }>;
+  /** L3: envia midia via UAZAPI. file: URL publica/signed. */
+  enviarMidiaUazapi?: (p: {
+    file: string;
+    type: "image" | "video" | "document" | "audio" | "ptt";
+    text?: string;
+    docName?: string;
+  }) => Promise<{ id?: string }>;
 }
 
 /**
  * Constrói schema de tools no formato esperado pelos providers.
  * Tools fixas (definidas no enum acao) + tools custom do user.
  */
-export function buildToolsSchema(ferramentas: Array<{ nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>): ToolDef[] {
+export async function buildToolsSchema(
+  ferramentas: Array<{ id?: string; nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>,
+  opts?: { sb?: SupabaseClient; agenciaId?: string },
+): Promise<ToolDef[]> {
   const tools: ToolDef[] = [];
 
   // Tool fixa "biscoito" pra teste — sempre disponível
@@ -113,6 +124,43 @@ export function buildToolsSchema(ferramentas: Array<{ nome: string; descricao: s
   const idxPorNome = new Map<string, number>();
   tools.forEach((t, i) => idxPorNome.set(t.name, i));
   for (const f of ferramentas) {
+    // L3: galeria — carrega itens e formata catalogo na descricao
+    if (f.acao === "enviar_imagem_galeria") {
+      if (!opts?.sb || !opts?.agenciaId || !f.id) continue;
+      const itens = await carregarGaleria(opts.sb, f.id, opts.agenciaId);
+      if (!itens.length) continue; // skip se vazia — IA nao enxerga
+      tools.push({
+        name: f.nome,
+        description: (f.descricao || "Envia imagem(ns) da galeria.") + formatCatalogoParaIA(itens),
+        acao: "enviar_imagem_galeria",
+        parametros_padrao: { ...(f.parametros || {}), __ferramenta_id: f.id },
+        input_schema: {
+          type: "object",
+          properties: {
+            indices: {
+              type: "array",
+              items: { type: "integer" },
+              description: "Índices 1-based das imagens a enviar (ex: [1,3]).",
+            },
+            tags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Alternativa: filtra por tags/nome/descricao.",
+            },
+            quantidade: {
+              type: "integer",
+              description: "Limite de imagens a enviar (default 1).",
+            },
+            legenda: {
+              type: "string",
+              description: "Legenda opcional pra acompanhar as imagens.",
+            },
+          },
+        },
+      });
+      continue;
+    }
+
     const idx = idxPorNome.get(f.nome);
     if (idx !== undefined) {
       tools[idx] = {
@@ -285,6 +333,64 @@ export async function executarTool(
         conteudo: `🤖 IA: ${texto}`,
       });
       return { ok: true, resultado: "nota criada" };
+    }
+
+    case "enviar_imagem_galeria": {
+      if (!ctx.enviarMidiaUazapi) return { ok: false, resultado: "enviarMidiaUazapi nao disponivel no contexto" };
+      const ferramentaId = String(merged.__ferramenta_id || "");
+      if (!ferramentaId) return { ok: false, resultado: "__ferramenta_id ausente" };
+
+      const itens = await carregarGaleria(ctx.sb, ferramentaId, ctx.agenciaId);
+      if (!itens.length) return { ok: false, resultado: "galeria vazia" };
+
+      const escolhidas = escolherImagens(itens, {
+        indices: Array.isArray(argumentos.indices) ? (argumentos.indices as number[]) : undefined,
+        tags: Array.isArray(argumentos.tags) ? (argumentos.tags as string[]) : undefined,
+        quantidade: typeof argumentos.quantidade === "number" ? argumentos.quantidade : undefined,
+      });
+      if (!escolhidas.length) return { ok: false, resultado: "nenhuma imagem casou" };
+
+      const legenda = String(argumentos.legenda || "").trim();
+      let enviadas = 0;
+      const erros: string[] = [];
+
+      for (let i = 0; i < escolhidas.length; i++) {
+        const im = escolhidas[i];
+        const url = await gerarSignedUrlGaleria(ctx.sb, im.url_storage, 600);
+        if (!url) { erros.push(`signed-url falhou: ${im.nome}`); continue; }
+        const captionParaEsta = i === 0 ? (legenda || im.descricao || undefined) : undefined;
+        try {
+          const r = await ctx.enviarMidiaUazapi({
+            file: url,
+            type: "image",
+            text: captionParaEsta,
+          });
+          await ctx.sb.from("mensagens").insert({
+            ticket_id: ctx.ticketId,
+            agencia_id: ctx.agenciaId,
+            autor: "bot",
+            tipo: "imagem",
+            conteudo: captionParaEsta || "",
+            midia_url: im.url_storage,
+            midia_mime: im.mime,
+            status: "enviada",
+            wa_message_id: r?.id || null,
+            metadata: {
+              ia_perfil_id: ctx.perfilId,
+              tool: "enviar_imagem_galeria",
+              galeria_id: im.id,
+            },
+          });
+          enviadas++;
+        } catch (e) {
+          erros.push(`envio falhou ${im.nome}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+
+      return {
+        ok: enviadas > 0,
+        resultado: `${enviadas} imagem(ns) enviada(s)` + (erros.length ? `; ${erros.length} erro(s)` : ""),
+      };
     }
 
     case "consultar_data": {
