@@ -244,7 +244,11 @@ select option { background: #ffffff; color: #111111; }
 .app-root.collapsed .mk-sidebar { padding: 18px 8px; }
 
 .sidebar-blob-1 {
-  display: none;
+  position: absolute; top: -50px; left: -50px;
+  width: 200px; height: 200px;
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  border-radius: 50%; opacity: 0.18; filter: blur(50px);
+  pointer-events: none;
 }
 .sidebar-blob-2 {
   position: absolute; bottom: 100px; right: -80px;
