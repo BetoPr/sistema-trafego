@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-17
 
+- **22:32** — **Manoel isolado da Waléria + fix criação de agência (slug).**
+  - Acesso do Manoel movido pra agência própria vazia (antes dividia "Cliente Teste" com a Waléria, vendo conversas/fechamentos/IA dela). Dados da Waléria intactos; Manoel zerado.
+  - Fix crítico: `criarAcesso` inseria `agencias { nome, ativa: true }`, mas a tabela não tem `ativa` e exige `slug` (NOT NULL) — criação de acesso estava quebrada. Agora gera `slug` único (nome normalizado + sufixo) e insere `{ nome, slug }`.
+
 - **22:27** — **Acesso: agência compartilhada → "Tipo de cliente" + isolamento garantido.**
   - Removido o seletor de agência ao criar/editar acesso (atribuir agência existente vazava dashboard + conversas entre clientes). Componente `_agencia-picker.tsx` deletado.
   - Cada novo acesso **sempre cria uma agência própria e isolada** automaticamente (RLS por `agencia_id` continua sendo o limite; a agência fica interna, some da tela).

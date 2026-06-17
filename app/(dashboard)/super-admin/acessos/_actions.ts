@@ -34,9 +34,18 @@ export async function criarAcesso(formData: FormData) {
   // existente (reaproveitar vazava dashboard + conversas entre clientes).
   // A agencia e o limite de isolamento (RLS por agencia_id); fica interna e nao
   // aparece mais na tela. "tipo_cliente" e so um rotulo do acesso.
+  // slug e NOT NULL e unico — gera a partir do nome + sufixo aleatorio
+  const slugBase = nome
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "cliente";
+  const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
   const { data: ag, error: agErr } = await sb
     .from("agencias")
-    .insert({ nome, ativa: true })
+    .insert({ nome, slug })
     .select("id")
     .single();
   if (agErr || !ag) {
