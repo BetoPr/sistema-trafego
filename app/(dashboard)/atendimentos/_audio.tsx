@@ -8,6 +8,8 @@ interface Props {
   transcricao?: string | null;
   /** Rótulo mostrado no mini-player quando você sai da conversa (ex: nome do contato). */
   rotulo?: string;
+  /** Status atual da mensagem (pendente=enviando, enviada=ok). */
+  status?: string | null;
 }
 
 /**
@@ -15,14 +17,21 @@ interface Props {
  * O <audio> real fica no provider (mini-player flutuante) — assim continua
  * tocando mesmo quando você muda de conversa.
  */
-export function AudioPlayer({ midiaPath, transcricao, rotulo }: Props) {
+export function AudioPlayer({ midiaPath, transcricao, rotulo, status }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const audio = useAudioGlobal();
 
   useEffect(() => {
     let cancel = false;
-    if (midiaPath.startsWith("http://") || midiaPath.startsWith("https://") || midiaPath.startsWith("data:")) {
+    // URL direta — usa imediatamente (sem fetch). Inclui blob: pra optimistic
+    // local (envio do atendente ainda subindo).
+    if (
+      midiaPath.startsWith("http://") ||
+      midiaPath.startsWith("https://") ||
+      midiaPath.startsWith("data:") ||
+      midiaPath.startsWith("blob:")
+    ) {
       setUrl(midiaPath);
       return;
     }
@@ -72,8 +81,25 @@ export function AudioPlayer({ midiaPath, transcricao, rotulo }: Props) {
           <i className={`ti ${ativo ? "ti-player-pause-filled" : "ti-player-play-filled"}`} />
         </button>
         <div style={{ flex: 1, color: "var(--mk-text-secondary)", fontSize: 11.5 }}>
-          {erro ? <span style={{ color: "#C97064" }}>{erro}</span> : url ? (ativo ? "Tocando…" : "Áudio") : "Carregando…"}
+          {erro ? (
+            <span style={{ color: "#C97064" }}>{erro}</span>
+          ) : status === "pendente" ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <i className="ti ti-loader-2" style={{ animation: "spin 0.8s linear infinite" }} />
+              Enviando…
+            </span>
+          ) : status === "falha" ? (
+            <span style={{ color: "#C97064" }}>Falha ao enviar</span>
+          ) : url ? (
+            ativo ? "Tocando…" : "Áudio"
+          ) : (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <i className="ti ti-loader-2" style={{ animation: "spin 0.8s linear infinite" }} />
+              Carregando…
+            </span>
+          )}
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
       {transcricao && (
         <div style={{ marginTop: 6, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-accent)", paddingLeft: 6 }}>
