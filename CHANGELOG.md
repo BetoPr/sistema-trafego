@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-17
 
+- **22:38** — **Apresentação + tutorial: narrativa de transformação (vender o resultado, não a configuração).**
+  - Tutorial (`/apresentacao/tutorial`): títulos vendedores ("Conecte seu WhatsApp em menos de 1 minuto", "Crie sua primeira atendente de IA"...), subtítulo de valor, e novo bloco **Resultado/Benefício** por passo (🟢✅✨🛡️🚀🎯). Kicker mostra a trilha da jornada (Conecte → Traga base → Crie IA → Teste → 1ª conversa → Ative → Escale). Passo 7 vira "Recursos" (operação de vendas).
+  - Deck (`/apresentacao`): copy reescrita pra foco em transformação — capa "Seu vendedor de IA no WhatsApp"; problema "Cada lead sem resposta é dinheiro indo embora"; slides de IA/follow-up/leads/dashboard com bullets de benefício em vez de feature técnica. Mockups e screenshots mantidos.
+
 - **22:32** — **Manoel isolado da Waléria + fix criação de agência (slug).**
   - Acesso do Manoel movido pra agência própria vazia (antes dividia "Cliente Teste" com a Waléria, vendo conversas/fechamentos/IA dela). Dados da Waléria intactos; Manoel zerado.
   - Fix crítico: `criarAcesso` inseria `agencias { nome, ativa: true }`, mas a tabela não tem `ativa` e exige `slug` (NOT NULL) — criação de acesso estava quebrada. Agora gera `slug` único (nome normalizado + sufixo) e insere `{ nome, slug }`.

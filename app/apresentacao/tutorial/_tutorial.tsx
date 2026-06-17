@@ -9,6 +9,8 @@ interface Passo {
   caminho: string;
   print: string;
   acoes: string[];
+  labelAcoes?: string;
+  resultado?: string;
   dica?: string;
   cor: string;
 }
@@ -23,113 +25,130 @@ const MUTED = "#9B9B9B";
 const PASSOS: Passo[] = [
   {
     num: 1,
-    titulo: "Conecta WhatsApp",
-    resumo: "Cria canal e escaneia QR code com teu celular",
+    titulo: "Conecte seu WhatsApp em menos de 1 minuto",
+    resumo: "Transforme seu número em um canal capaz de atender, qualificar e responder clientes automaticamente.",
     caminho: "/canais",
     print: "/apresentacao/img/01-canais.png",
     acoes: [
-      "Vai em /canais no menu lateral",
-      "Clica 'Novo canal' (cria conexão)",
-      "Pega o celular, abre WhatsApp → ⋮ → Aparelhos conectados",
-      "Escaneia o QR code que aparece na tela",
-      "Aguarda status virar verde: connected ✓",
+      "Acesse Canais",
+      "Clique em Novo Canal",
+      "No celular, abra: WhatsApp → Aparelhos Conectados",
+      "Escaneie o QR Code",
+      "Quando aparecer Conectado, sua IA já pode conversar com clientes",
     ],
-    dica: "iOS pode demorar 30-60s pra terminar sincronização. Deixa o app aberto.",
+    resultado: "🟢 Conectado = seu número vira um canal de atendimento automático.",
+    dica: "Mantenha o WhatsApp aberto durante a sincronização inicial.",
     cor: "#25D366",
   },
   {
     num: 2,
-    titulo: "Importa contatos (opcional, mas RECOMENDADO)",
-    resumo: "Puxa contatos + etiquetas do WhatsApp Business em 1 clique",
+    titulo: "Traga toda sua base para dentro do Sonar",
+    resumo: "Importe contatos e etiquetas do WhatsApp Business sem perder histórico ou organização.",
     caminho: "/contatos",
     print: "/apresentacao/img/09-contatos.png",
     acoes: [
-      "Vai em /contatos",
-      "Card verde no topo: 'Importe seus contatos e etiquetas do WhatsApp Business'",
-      "Clica 'Importar' — leva ~5 segundos",
-      "Resultado: todos teus contatos + etiquetas já existentes no DB",
+      "Acesse Contatos",
+      "Clique em Importar contatos e etiquetas",
+      "Aguarde alguns segundos",
+      "Sua base será sincronizada automaticamente",
     ],
-    dica: "Idempotente. Pode rodar várias vezes — não duplica.",
+    resultado: "✅ Sua IA já começa entendendo quem é cliente, lead, orçamento ou pós-venda.",
+    dica: "Você pode importar quantas vezes quiser sem criar duplicações.",
     cor: "#25D366",
   },
   {
     num: 3,
-    titulo: "Cria perfil IA",
-    resumo: "Configura provider + chave API + prompt de atendimento",
+    titulo: "Crie sua primeira atendente de IA",
+    resumo: "Defina personalidade, conhecimento e comportamento da IA que vai falar com seus clientes.",
     caminho: "/ia-atendimento",
     print: "/apresentacao/img/10-perfil-topo.png",
     acoes: [
-      "Vai em /ia-atendimento → 'Novo perfil'",
-      "Aplica template se houver (preenche prompt+provider automático)",
-      "Escolhe Provider: OpenAI, Anthropic (Claude) ou Groq",
-      "Cola chave API: clica nos links 'Pegar chave OpenAI' / Anthropic / Groq",
-      "Botão olho confere prefixo da chave (sk-proj- / sk-ant- / gsk_)",
-      "Salva",
+      "Acesse IA → Novo Perfil",
+      "Escolha o provedor: OpenAI, Claude ou Groq",
+      "Cole sua chave API",
+      "Configure o prompt",
+      "Salve",
     ],
-    dica: "BYOK: chave fica criptografada no DB. Custo é teu direto com o provider, sem markup.",
+    resultado: "✨ A partir daqui sua IA já sabe quem é, o que vende e como deve atender.",
+    dica: "Quanto melhor o prompt, melhor a qualidade das conversas.",
     cor: "#9B7DBF",
   },
   {
     num: 4,
-    titulo: "Modo teste (whitelist)",
-    resumo: "IA só responde teu número enquanto tu testa",
+    titulo: "Teste sem risco para seus clientes",
+    resumo: "Valide tudo primeiro no seu próprio número.",
     caminho: "/ia-atendimento → editar",
     print: "/apresentacao/img/11-whitelist.png",
     acoes: [
-      "Fieldset 'Modo teste — Whitelist'",
-      "Coloca SEU número (1 por linha, ex: 5581991594716)",
-      "Salva",
-      "IA agora só responde nesse número — todos outros leads ficam intactos",
+      "Abra o perfil da IA",
+      "Preencha a Whitelist com seu número",
+      "Salve",
+      "Somente os números autorizados receberão respostas da IA",
     ],
-    dica: "Banner amarelo 'MODO TESTE ATIVO' aparece na tela enquanto whitelist tem números.",
+    resultado: "🛡️ Você testa o fluxo inteiro antes de colocar em produção.",
+    dica: "Enquanto houver números na whitelist, nenhum cliente real será impactado.",
     cor: "#FBBF24",
   },
   {
     num: 5,
-    titulo: "Testa",
-    resumo: "Valida chave + manda mensagem real pelo WhatsApp",
+    titulo: "Hora de conversar com sua IA",
+    resumo: "Faça uma conversa real e valide que tudo está funcionando.",
     caminho: "/ia-atendimento → editar → Testar",
     print: "/apresentacao/img/10-perfil-topo.png",
     acoes: [
-      "Clica 'Testar chave API agora' — valida em ~2s",
-      "Se mostrar Falha, mensagem te diz qual o problema (provider errado, chave inválida, etc)",
-      "Se OK: pega celular e manda 'oi' pelo WhatsApp pro número conectado",
-      "IA responde em 3-8s automático no chat",
+      "Clique em Testar chave API",
+      "Confirme que a validação foi aprovada",
+      "Envie uma mensagem para o WhatsApp conectado",
+      "Aguarde a resposta automática",
     ],
-    dica: "Tudo aparece também em /atendimentos como ticket normal.",
+    resultado: "🚀 Se a IA respondeu, seu atendimento automático está ativo.",
+    dica: "Toda conversa também aparecerá em Atendimentos.",
     cor: "#10b981",
   },
   {
     num: 6,
-    titulo: "Produção",
-    resumo: "Limpa whitelist → IA atende qualquer lead",
+    titulo: "Liberar para clientes reais",
+    resumo: "Coloque sua IA para trabalhar 24 horas por dia.",
     caminho: "/ia-atendimento → editar",
     print: "/apresentacao/img/10-perfil-topo.png",
     acoes: [
-      "Volta no perfil → fieldset 'Modo teste — Whitelist'",
-      "APAGA todos os números (deixa vazio)",
-      "Salva",
-      "Banner MODO TESTE desaparece",
-      "Daqui em diante: qualquer pessoa que mandar mensagem → IA responde",
+      "Volte ao perfil",
+      "Remova todos os números da Whitelist",
+      "Salve",
+      "Pronto",
     ],
-    dica: "Se algo der errado, ativa o perfil em OFF no card (toggle) ou recoloca teu número na whitelist.",
+    resultado: "🎯 Agora qualquer pessoa que enviar mensagem pode ser atendida pela IA.",
+    dica: "Caso precise pausar rapidamente, basta desativar o perfil.",
     cor: "#10b981",
   },
   {
     num: 7,
-    titulo: "Configurações finas (depois)",
-    resumo: "Ferramentas + Follow-up + Resumo Groq pra próximos níveis",
+    titulo: "Transforme uma IA em uma operação de vendas",
+    resumo: "Ative recursos que aumentam conversão, velocidade e controle.",
     caminho: "/ia-atendimento → editar (rola pra baixo)",
     print: "/apresentacao/img/04-tools.png",
+    labelAcoes: "Recursos",
     acoes: [
-      "Ferramentas custom: marcar_lead_quente, marcar_lead_frio, transferir_para_humano",
-      "Follow-up sequencial: lead esfriou? IA reaquece sozinha com 1-3 msgs",
-      "Envio de resumo Groq: quando IA passa pra humano, envia resumo da conversa no grupo do time",
-      "Galeria de imagens: IA pode mostrar foto de produto/serviço durante conversa",
+      "Ferramentas inteligentes — marcar leads, mover etapas e transferir para humanos",
+      "Follow-up automático — a IA retoma conversas que esfriaram sem intervenção da equipe",
+      "Resumo para equipe — ao transferir, a IA envia o contexto completo",
+      "Galeria de mídia — mostre produtos, serviços e catálogos durante a conversa",
     ],
+    resultado: "🚀 Sua operação está pronta. A IA capta, qualifica, responde e acompanha clientes automaticamente pelo WhatsApp.",
     dica: "Tudo é opcional. Funciona sem isso, mas multiplica conversão quando ativado.",
     cor: "#9B7DBF",
   },
+];
+
+// Trilha curta da jornada — mostrada como kicker (sensação de progresso)
+const JORNADA = [
+  "Conecte seu WhatsApp",
+  "Traga sua base de contatos",
+  "Crie sua atendente IA",
+  "Teste com segurança",
+  "Faça a primeira conversa",
+  "Ative para clientes reais",
+  "Escale sua operação",
 ];
 
 export default function Tutorial() {
@@ -220,7 +239,7 @@ export default function Tutorial() {
             </div>
             <div>
               <div style={{ fontSize: 10, color: p.cor, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>
-                PASSO {p.num}
+                PASSO {p.num} · {JORNADA[p.num - 1]}
               </div>
               <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, lineHeight: 1.15, letterSpacing: -0.5 }}>
                 {p.titulo}
@@ -247,7 +266,7 @@ export default function Tutorial() {
           </div>
 
           <div style={{ fontSize: 12, color: MUTED, fontWeight: 700, letterSpacing: 1, marginBottom: 10, textTransform: "uppercase" }}>
-            O que fazer
+            {p.labelAcoes || "O que fazer"}
           </div>
           <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 9 }}>
             {p.acoes.map((acao, idx) => (
@@ -274,12 +293,27 @@ export default function Tutorial() {
             ))}
           </ol>
 
-          {p.dica && (
+          {p.resultado && (
             <div style={{
               marginTop: 18,
+              padding: "13px 16px",
+              background: `linear-gradient(135deg, ${p.cor}26, ${p.cor}0a)`,
+              border: `1px solid ${p.cor}`,
+              borderRadius: 10,
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              fontWeight: 600,
+            }}>
+              {p.resultado}
+            </div>
+          )}
+
+          {p.dica && (
+            <div style={{
+              marginTop: 12,
               padding: "12px 14px",
-              background: `linear-gradient(135deg, ${p.cor}22, transparent)`,
-              border: `1px solid ${p.cor}55`,
+              background: SURFACE,
+              border: `1px solid ${BORDER}`,
               borderRadius: 10,
               fontSize: 12,
               lineHeight: 1.5,
