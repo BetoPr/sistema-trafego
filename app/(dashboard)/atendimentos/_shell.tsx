@@ -65,7 +65,7 @@ interface Tag {
 interface Props {
   ticketsIniciais: TicketLista[];
   canais: Array<{ id: string; nome: string; status: string; numero_conectado: string | null }>;
-  filas: Array<{ id: string; nome: string; cor?: string | null }>;
+  filas: Array<{ id: string; nome: string; cor?: string | null; fixa?: boolean | null }>;
   usuarios: Array<{ id: string; nome: string }>;
   mensagensRapidas: Array<{ id: string; comando: string; conteudo: string }>;
   todasEtiquetas: Tag[];

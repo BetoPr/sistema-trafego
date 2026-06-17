@@ -14,6 +14,8 @@ export interface TicketLista {
   sentimento: string | null;
   created_at?: string | null;
   usuario_id?: string | null;
+  ia_pausada?: boolean | null;
+  ia_perfil_id?: string | null;
   nao_lido?: boolean;
   nao_lidas?: number;
   contato: {
@@ -24,7 +26,7 @@ export interface TicketLista {
     contato_etiquetas?: Array<{ etiqueta: { id: string; nome: string; cor: string; categoria?: string | null } | null } | null> | null;
   } | null;
   canal: { id: string; nome: string; status: string; instance_id: string | null } | null;
-  fila: { id: string; nome: string; cor: string } | null;
+  fila: { id: string; nome: string; cor: string; fixa?: boolean | null } | null;
 }
 
 interface Canal {
@@ -37,7 +39,7 @@ interface Canal {
 interface Props {
   tickets: TicketLista[];
   canais: Canal[];
-  filas?: Array<{ id: string; nome: string; cor?: string | null }>;
+  filas?: Array<{ id: string; nome: string; cor?: string | null; fixa?: boolean | null }>;
   usuarios?: Array<{ id: string; nome: string }>;
   /** Todas as etiquetas ativas da agência — usado pra montar o filtro completo. */
   todasEtiquetas?: Array<{ id: string; nome: string; cor: string; categoria: string }>;
@@ -228,9 +230,10 @@ export function ListaAtendimentos(p: Props) {
     + canalFiltros.length + filaFiltros.length + usuarioFiltros.length + etiquetaFiltros.length;
 
   const filasDisponiveis = useMemo(() => {
-    const m = new Map<string, { id: string; nome: string; cor?: string | null }>();
-    for (const f of p.filas || []) m.set(f.id, f);
-    for (const t of p.tickets) if (t.fila && !m.has(t.fila.id)) m.set(t.fila.id, t.fila);
+    const m = new Map<string, { id: string; nome: string; cor?: string | null; fixa?: boolean | null }>();
+    // Filas fixas do sistema (IA Atendendo / Atendimento Humano) nao aparecem no filtro
+    for (const f of p.filas || []) if (!f.fixa) m.set(f.id, f);
+    for (const t of p.tickets) if (t.fila && !t.fila.fixa && !m.has(t.fila.id)) m.set(t.fila.id, t.fila);
     return Array.from(m.values());
   }, [p.filas, p.tickets]);
 
@@ -460,6 +463,12 @@ export function ListaAtendimentos(p: Props) {
                         <i className="ti ti-eye" />
                       </span>
                     )}
+                    {/* IA atendendo: robô verde (mesmo do card "IA ativa"). Some quando humano assume. */}
+                    {t.ia_perfil_id && !t.ia_pausada && (
+                      <span title="IA atendendo esta conversa" style={{ color: "#10b981", fontSize: 14, padding: "0 1px", display: "inline-flex", flexShrink: 0 }}>
+                        <i className="ti ti-robot" />
+                      </span>
+                    )}
                     {now > 0 && t.ultima_mensagem_em && (
                       <span style={{ fontSize: 10, fontWeight: 600, color: corTempo(t.ultima_mensagem_em, now) }}>{tempoRel(t.ultima_mensagem_em, now)}</span>
                     )}
@@ -490,7 +499,8 @@ export function ListaAtendimentos(p: Props) {
                     {t.ultima_mensagem_preview || "—"}
                   </div>
                   <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-                    {f && <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: `${f.cor}22`, color: f.cor, border: `0.5px solid ${f.cor}` }}>{f.nome}</span>}
+                    {/* Filas fixas (IA Atendendo / Atendimento Humano) nao viram badge — IA vira o icone de robo acima */}
+                    {f && !f.fixa && <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: `${f.cor}22`, color: f.cor, border: `0.5px solid ${f.cor}` }}>{f.nome}</span>}
                     {t.canal && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, background: "rgba(37,211,102,0.12)", color: "#25D366" }}>{t.canal.nome}</span>}
                     {t.sentimento === "muito_bom" && <span style={{ fontSize: 9.5, color: "#10b981" }}>● ótimo</span>}
                     {t.sentimento === "ruim" && <span style={{ fontSize: 9.5, color: "#C97064" }}>● ruim</span>}

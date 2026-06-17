@@ -28,12 +28,12 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
   ] = await Promise.all([
     sb
       .from("tickets")
-      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, created_at, usuario_id, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
+      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, created_at, usuario_id, ia_pausada, ia_perfil_id, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor, fixa)")
       .eq("agencia_id", ctx.agenciaId)
       .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
       .limit(300),
     sb.from("canais").select("id, nome, status, numero_conectado").eq("agencia_id", ctx.agenciaId).order("nome"),
-    sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
+    sb.from("filas").select("id, nome, cor, fixa").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
     sb.from("usuarios").select("id, nome").eq("agencia_id", ctx.agenciaId).eq("ativo", true).is("deleted_at", null).order("nome"),
     sb.from("mensagens_rapidas").select("id, comando, conteudo").eq("agencia_id", ctx.agenciaId).or(`usuario_id.eq.${ctx.userId},global.eq.true`),
     sb.from("etiquetas").select("id, nome, cor, categoria").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
@@ -57,6 +57,8 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     sentimento: t.sentimento,
     created_at: t.created_at,
     usuario_id: t.usuario_id ?? null,
+    ia_pausada: t.ia_pausada ?? null,
+    ia_perfil_id: t.ia_perfil_id ?? null,
     nao_lido: (naoLidasCount.get(t.id) || 0) > 0,
     nao_lidas: naoLidasCount.get(t.id) || 0,
     contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as unknown as TicketLista["contato"],
@@ -70,7 +72,7 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     <AtendimentosShell
       ticketsIniciais={ticketsFlat}
       canais={(canaisAtivos || []).map((c) => ({ id: c.id, nome: c.nome, status: c.status, numero_conectado: c.numero_conectado }))}
-      filas={(filasAll || []) as Array<{ id: string; nome: string; cor?: string | null }>}
+      filas={(filasAll || []) as Array<{ id: string; nome: string; cor?: string | null; fixa?: boolean }>}
       usuarios={(usuariosAll || []) as Array<{ id: string; nome: string }>}
       mensagensRapidas={(rapidas || []) as Array<{ id: string; comando: string; conteudo: string }>}
       todasEtiquetas={(todasTags || []) as Array<{ id: string; nome: string; cor: string; categoria: "etiqueta" | "flag" }>}

@@ -21,7 +21,7 @@ export async function GET() {
   const [{ data: tickets }, { data: naoLidasRows }] = await Promise.all([
     sb
       .from("tickets")
-      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, created_at, usuario_id, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor)")
+      .select("id, numero, status, ultima_mensagem_em, ultima_mensagem_preview, sentimento, created_at, usuario_id, ia_pausada, ia_perfil_id, contato:contatos(id, nome, whatsapp, foto_url, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))), canal:canais(id, nome, status, instance_id), fila:filas(id, nome, cor, fixa)")
       .eq("agencia_id", u.agencia_id)
       .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
       .limit(300),
@@ -43,6 +43,8 @@ export async function GET() {
     sentimento: t.sentimento,
     created_at: t.created_at,
     usuario_id: t.usuario_id ?? null,
+    ia_pausada: t.ia_pausada ?? null,
+    ia_perfil_id: t.ia_perfil_id ?? null,
     nao_lido: (naoLidasCount.get(t.id as string) || 0) > 0,
     nao_lidas: naoLidasCount.get(t.id as string) || 0,
     contato: (Array.isArray(t.contato) ? t.contato[0] : t.contato) as AnyObj | null,
