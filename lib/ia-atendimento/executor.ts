@@ -121,8 +121,25 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     sb.from("tickets").select("id, agencia_id, canal_id, contato_id, ia_pausada, status, ia_reset_em").eq("id", b.ticket_id).maybeSingle(),
   ]);
 
-  if (!perfil || !perfil.ativo) {
-    throw new Error("perfil inativo ou não encontrado");
+  if (!perfil) {
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "erro",
+      payload: { motivo: "perfil_nao_encontrado" },
+    });
+    return;
+  }
+  if (!perfil.ativo) {
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "pausa_humano",
+      payload: { motivo: "perfil_inativo", dica: "Ative o perfil em /ia-atendimento." },
+    });
+    return;
   }
   if (!ticket) return;
   if (ticket.status === "fechado") {
@@ -150,8 +167,26 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     sb.from("contatos").select("id, nome, wa_id, whatsapp").eq("id", ticket.contato_id).maybeSingle(),
     sb.from("canais").select("id, status, instance_token_encrypted, servidor:super_admin_servidores(base_url)").eq("id", ticket.canal_id).maybeSingle(),
   ]);
-  if (!contato || !canal) throw new Error("contato ou canal não encontrado");
-  if (canal.status !== "connected") throw new Error("canal desconectado");
+  if (!contato || !canal) {
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "erro",
+      payload: { motivo: !contato ? "contato_nao_encontrado" : "canal_nao_encontrado" },
+    });
+    return;
+  }
+  if (canal.status !== "connected") {
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "pausa_humano",
+      payload: { motivo: "canal_desconectado", status: canal.status, dica: "Reconecte o WhatsApp em /canais." },
+    });
+    return;
+  }
 
   // Whitelist (modo teste) — normaliza variantes BR (com/sem 9 inicial)
   const whitelist = (perfil.whatsapp_teste_lista || []) as string[];

@@ -77,6 +77,11 @@ interface PerfilRow {
   ativo: boolean;
   modelo: string | null;
   provider: string | null;
+  whatsapp_teste_lista?: string[] | null;
+}
+
+function perfilTemWhitelist(p: PerfilRow): boolean {
+  return Array.isArray(p.whatsapp_teste_lista) && p.whatsapp_teste_lista.length > 0;
 }
 
 interface CanalRow { id: string; nome: string; status: string; numero_conectado: string | null }
@@ -142,7 +147,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
     // Cada usuario so ve seus proprios perfis (chave API individual).
     // Super_admin vê todos. Perfis legados sem criado_por viram do dono atual.
     let q = sb.from("ia_atendimento_perfis")
-      .select("id, nome, descricao, ativo, modelo, provider, criado_por")
+      .select("id, nome, descricao, ativo, modelo, provider, criado_por, whatsapp_teste_lista")
       .eq("agencia_id", ctx.agenciaId)
       .eq("eh_template", false)
       .order("nome");
@@ -344,6 +349,32 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
+
+      {/* Banner MODO TESTE — perfis ativos com whitelist preenchida */}
+      {!mostrarForm && perfis.some((p) => p.ativo && perfilTemWhitelist(p)) && (
+        <div style={{ background: "rgba(251,191,36,0.10)", border: "0.5px solid rgba(251,191,36,0.4)", borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+          <i className="ti ti-flask" style={{ fontSize: 18, color: "#FBBF24", flexShrink: 0 }} />
+          <div style={{ flex: 1, fontSize: 12 }}>
+            <strong>Modo teste ativo</strong> — IA so responde numeros na whitelist. Pra producao, edita perfil e limpa "WhatsApp autorizados".
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding zero — primeira vez, sem perfis */}
+      {!mostrarForm && perfis.length === 0 && (
+        <div style={{ background: "linear-gradient(135deg, rgba(155,125,191,0.16), transparent)", border: "1px solid rgba(155,125,191,0.4)", borderRadius: 14, padding: "22px 26px", marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: "#C9A8E8", fontWeight: 700, letterSpacing: 1.2, marginBottom: 6, textTransform: "uppercase" }}>⚡ Primeiros passos</div>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Configure sua IA de Atendimento em 3 passos</div>
+          <ol style={{ paddingLeft: 18, margin: 0, fontSize: 13, color: "var(--mk-text-secondary)", lineHeight: 1.8 }}>
+            <li><strong>Clica "Novo perfil"</strong> no topo direito {templates.length > 0 ? `e escolha um dos ${templates.length} templates prontos` : "(ainda nao tem template — crie do zero)"}</li>
+            <li><strong>Cole sua chave API</strong> (OpenAI, Anthropic ou Groq — BYOK, custo fica com voce)</li>
+            <li><strong>Coloque seu numero na whitelist</strong> pra testar antes de soltar pra todos (pode ser limpada depois)</li>
+          </ol>
+          <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--mk-text-muted)" }}>
+            <i className="ti ti-info-circle" /> Depois de criar, clica "Testar chave API agora" pra validar e ja mandar uma msg pelo WhatsApp.
+          </div>
+        </div>
+      )}
 
       {mostrarForm ? (
         <PerfilForm
