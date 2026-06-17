@@ -5,7 +5,6 @@ import { criarAcesso, atualizarAcesso } from "./_actions";
 import { TabelaAcessos } from "./_tabela";
 import { CobrancasBloco, type AgenciaCobranca, type CanalOpcao } from "./_cobrancas";
 import { AbrirCobrancasBtn } from "./_abrir-cobrancas";
-import AgenciaPicker from "./_agencia-picker";
 
 // Apenas funções que existem no CRM hoje.
 const PERMS_LABEL: Record<string, string> = {
@@ -34,7 +33,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
   const sb = createServiceClient();
 
   const [{ data: usuarios }, { data: agencias }, { data: cobrancaConfig }, { data: canaisRaw }, { data: ultimasCobrancas }] = await Promise.all([
-    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, ultimo_logout, created_at, deleted_at").order("nome"),
+    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, tipo_cliente, ultimo_login, ultimo_logout, created_at, deleted_at").order("nome"),
     sb.from("agencias").select("id, nome, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado").order("nome"),
     sb.from("super_admin_cobranca_config").select("canal_id, horario, template_texto, ativo").eq("id", 1).maybeSingle(),
     sb.from("canais").select("id, nome, numero_conectado, status, agencia_id").order("nome"),
@@ -45,7 +44,10 @@ export default async function AcessosPage({ searchParams }: PageProps) {
       .limit(500),
   ]);
 
-  const agenciaPorId = new Map((agencias || []).map((a) => [a.id, a.nome] as const));
+  // Tipos de cliente já usados — alimentam o datalist (escolher existente ou criar novo)
+  const tiposExistentes = Array.from(
+    new Set((usuarios || []).map((u) => (u.tipo_cliente as string | null)?.trim()).filter((t): t is string => !!t)),
+  ).sort((a, b) => a.localeCompare(b));
 
   // Última cobrança por agência (dedup)
   const ultimaPorAgencia = new Map<string, { status: string; enviada_em: string }>();
@@ -140,11 +142,22 @@ export default async function AcessosPage({ searchParams }: PageProps) {
             </div>
             <div style={grid2}>
               <div>
-                <label style={lblMono}>Agência *</label>
-                <AgenciaPicker
-                  agencias={(agencias || []).map((a) => ({ id: a.id, nome: a.nome }))}
-                  defaultId={editando?.agencia_id ?? undefined}
+                <label style={lblMono}>Tipo de cliente</label>
+                <input
+                  name="tipo_cliente"
+                  list="tipos-cliente"
+                  defaultValue={(editando?.tipo_cliente as string | null) ?? ""}
+                  placeholder="Escolha um existente ou digite um novo"
+                  style={inpStyle}
                 />
+                <datalist id="tipos-cliente">
+                  {tiposExistentes.map((t) => <option key={t} value={t} />)}
+                </datalist>
+                {!editando && (
+                  <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 4, fontStyle: "italic" }}>
+                    <i className="ti ti-info-circle" /> Cada acesso cria um espaço próprio e isolado — não compartilha dados com outros clientes.
+                  </div>
+                )}
               </div>
               <div>
                 <label style={lblMono}>Perfil *</label>
@@ -222,8 +235,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
       )}
 
       <TabelaAcessos
-        usuarios={((usuarios || []) as Array<{ id: string; nome: string; email: string; role: "atendente" | "admin" | "super_admin"; ativo: boolean; agencia_id: string; ultimo_login: string | null; deleted_at: string | null }>)}
-        agenciaPorId={Object.fromEntries(agenciaPorId.entries())}
+        usuarios={((usuarios || []) as Array<{ id: string; nome: string; email: string; role: "atendente" | "admin" | "super_admin"; ativo: boolean; agencia_id: string; tipo_cliente: string | null; ultimo_login: string | null; deleted_at: string | null }>)}
       />
     </section>
   );

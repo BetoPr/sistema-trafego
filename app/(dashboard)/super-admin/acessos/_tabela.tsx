@@ -15,13 +15,13 @@ interface UsuarioLinha {
   role: Role;
   ativo: boolean;
   agencia_id: string;
+  tipo_cliente: string | null;
   ultimo_login: string | null;
   deleted_at: string | null;
 }
 
 interface Props {
   usuarios: UsuarioLinha[];
-  agenciaPorId: Record<string, string>;
 }
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -36,7 +36,7 @@ const ROLE_COR: Record<Role, string> = {
   super_admin: "#C97064",
 };
 
-export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
+export function TabelaAcessos({ usuarios }: Props) {
   const [rolesAtivos, setRolesAtivos] = useState<Set<Role>>(new Set(["atendente", "admin", "super_admin"]));
   const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
   const [confirmando, setConfirmando] = useState<UsuarioLinha | null>(null);
@@ -140,7 +140,7 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
               <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 11 }}>
                 <th style={thLi}>Nome</th>
                 <th style={thLi}>Email</th>
-                <th style={thLi}>Agência</th>
+                <th style={thLi}>Tipo de cliente</th>
                 <th style={thLi}>Perfil</th>
                 <th style={thLi}>Status</th>
                 <th style={thLi}>Último login</th>
@@ -152,7 +152,7 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
                 <tr key={u.id} className="acesso-row" style={{ borderTop: "0.5px solid var(--mk-border)" }}>
                   <td style={tdLi}>{u.nome}</td>
                   <td style={tdLi}><span style={{ fontFamily: "monospace", fontSize: 11.5 }}>{u.email}</span></td>
-                  <td style={tdLi}>{agenciaPorId[u.agencia_id] || <span style={{ color: "var(--mk-text-muted)" }}>—</span>}</td>
+                  <td style={tdLi}>{u.tipo_cliente ? <span className="mk-badge b-purple">{u.tipo_cliente}</span> : <span style={{ color: "var(--mk-text-muted)" }}>—</span>}</td>
                   <td style={tdLi}>
                     <span className={`mk-badge ${u.role === "super_admin" ? "b-red" : u.role === "admin" ? "b-purple" : "b-gray"}`}>
                       {u.role === "super_admin" ? "Super" : u.role === "admin" ? "Admin" : "Atendente"}
@@ -230,7 +230,7 @@ export function TabelaAcessos({ usuarios, agenciaPorId }: Props) {
             <div style={{ background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8, padding: "10px 14px", fontSize: 12.5 }}>
               <div><span style={{ color: "var(--mk-text-muted)" }}>Email:</span> <code>{confirmando.email}</code></div>
               <div style={{ marginTop: 4 }}><span style={{ color: "var(--mk-text-muted)" }}>Perfil:</span> {confirmando.role === "super_admin" ? "Super Admin" : confirmando.role === "admin" ? "Administrador" : "Atendente"}</div>
-              <div style={{ marginTop: 4 }}><span style={{ color: "var(--mk-text-muted)" }}>Agência:</span> {agenciaPorId[confirmando.agencia_id] || "—"}</div>
+              <div style={{ marginTop: 4 }}><span style={{ color: "var(--mk-text-muted)" }}>Tipo de cliente:</span> {confirmando.tipo_cliente || "—"}</div>
             </div>
             <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", lineHeight: 1.5 }}>
               <i className="ti ti-info-circle" style={{ marginRight: 4 }} />

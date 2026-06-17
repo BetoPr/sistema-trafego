@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-17
 
+- **22:27** — **Acesso: agência compartilhada → "Tipo de cliente" + isolamento garantido.**
+  - Removido o seletor de agência ao criar/editar acesso (atribuir agência existente vazava dashboard + conversas entre clientes). Componente `_agencia-picker.tsx` deletado.
+  - Cada novo acesso **sempre cria uma agência própria e isolada** automaticamente (RLS por `agencia_id` continua sendo o limite; a agência fica interna, some da tela).
+  - Migration: coluna `usuarios.tipo_cliente text`. Novo campo "Tipo de cliente" (input + datalist: escolhe um existente OU digita um novo) marca o acesso. Tabela de acessos mostra a coluna "Tipo de cliente" (badge) no lugar de "Agência".
+  - `atualizarAcesso` não troca mais de agência (evita re-vazamento); só edita o rótulo.
+  - **Bulk IA off:** desligada a IA em todas as 137 conversas ativas (`ia_pausada=true`); ícone de robô some. Contatos novos chegam sem IA/ícone, salvo quando um perfil ativo assume.
+
 - **22:17** — **"Última saída no CRM" no editar acesso (Super Admin).**
   - Migration: coluna `usuarios.ultimo_logout timestamptz`.
   - Carimbada em 3 pontos: signOut explícito (`lib/actions/auth.ts`), heartbeat offline ao fechar aba (`/api/usuarios/heartbeat`), e cron `usuarios-offline` (heartbeat parado > 90s).

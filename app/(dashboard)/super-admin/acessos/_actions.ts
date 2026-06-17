@@ -22,28 +22,27 @@ export async function criarAcesso(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const senha = String(formData.get("senha") || "");
   const telefone = String(formData.get("telefone") || "").trim() || null;
-  let agenciaId = String(formData.get("agencia_id") || "");
-  const novaAgenciaNome = String(formData.get("nova_agencia_nome") || "").trim();
+  const tipoCliente = String(formData.get("tipo_cliente") || "").trim() || null;
   const role = (String(formData.get("role") || "atendente") as Role);
 
   if (!nome || !email || !senha) redirect("/super-admin/acessos?erro=campos");
   if (senha.length < 6) redirect("/super-admin/acessos?erro=senha_curta");
-  if (!agenciaId && !novaAgenciaNome) redirect("/super-admin/acessos?erro=campos");
 
   const sb = createServiceClient();
 
-  // Cria nova agencia se solicitado
-  if (!agenciaId && novaAgenciaNome) {
-    const { data: ag, error: agErr } = await sb
-      .from("agencias")
-      .insert({ nome: novaAgenciaNome, ativa: true })
-      .select("id")
-      .single();
-    if (agErr || !ag) {
-      redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(agErr?.message || "Falha criando agencia")}`);
-    }
-    agenciaId = ag.id as string;
+  // Cada acesso tem SEMPRE uma agencia propria isolada — nunca reaproveita uma
+  // existente (reaproveitar vazava dashboard + conversas entre clientes).
+  // A agencia e o limite de isolamento (RLS por agencia_id); fica interna e nao
+  // aparece mais na tela. "tipo_cliente" e so um rotulo do acesso.
+  const { data: ag, error: agErr } = await sb
+    .from("agencias")
+    .insert({ nome, ativa: true })
+    .select("id")
+    .single();
+  if (agErr || !ag) {
+    redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(agErr?.message || "Falha criando espaco do cliente")}`);
   }
+  const agenciaId = ag.id as string;
 
   const { data: created, error: authErr } = await sb.auth.admin.createUser({
     email,
@@ -64,6 +63,7 @@ export async function criarAcesso(formData: FormData) {
     email,
     role,
     telefone,
+    tipo_cliente: tipoCliente,
     restrito: false,
     permissoes_menu: perms,
     ativo: true,
@@ -88,11 +88,12 @@ export async function atualizarAcesso(formData: FormData) {
   const patch: Record<string, unknown> = {};
   const nome = String(formData.get("nome") || "").trim();
   const telefone = String(formData.get("telefone") || "").trim() || null;
-  const agenciaId = String(formData.get("agencia_id") || "");
   const role = String(formData.get("role") || "");
+  // NAO troca mais de agencia (reatribuir vazava dados entre clientes).
+  // So atualiza o rotulo "tipo_cliente".
+  patch.tipo_cliente = String(formData.get("tipo_cliente") || "").trim() || null;
   if (nome) patch.nome = nome;
   if (telefone !== undefined) patch.telefone = telefone;
-  if (agenciaId) patch.agencia_id = agenciaId;
   if (role) patch.role = role;
   patch.permissoes_menu = parsePermissoes(formData);
 
@@ -107,7 +108,7 @@ export async function atualizarAcesso(formData: FormData) {
   const { error } = await sb.from("usuarios").update(patch).eq("id", id);
   if (error) redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(error.message)}`);
 
-  await audit({ agenciaId: agenciaId || "", usuarioId: ctx.userId, acao: "update", entidade: "usuario_super", entidadeId: id, payload: patch });
+  await audit({ agenciaId: ctx.agenciaId || "", usuarioId: ctx.userId, acao: "update", entidade: "usuario_super", entidadeId: id, payload: patch });
   revalidatePath("/super-admin/acessos");
   redirect("/super-admin/acessos?ok=atualizado");
 }
