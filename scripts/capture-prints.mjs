@@ -38,12 +38,16 @@ if (!EMAIL || !SENHA) {
 }
 
 const TELAS = [
+  { url: "/canais", arquivo: "01-canais.png", esperar: 3000 },
+  { url: "/contatos", arquivo: "09-contatos.png", esperar: 3000 },
   { url: "/dashboard", arquivo: "07-dashboard.png", esperar: 3000 },
   { url: "/atendimentos", arquivo: "02-atendimentos.png", esperar: 3000 },
   { url: "/ia-atendimento", arquivo: "03-ia.png", esperar: 2500 },
   { url: "/follow-up", arquivo: "05-followup.png", esperar: 2500 },
   { url: "/leads-meta", arquivo: "06-leads-meta.png", esperar: 2500 },
   { url: "/plano", arquivo: "08-plano.png", esperar: 2500 },
+  { url: "/ia-atendimento?editar=d2a328c4-41de-4e0f-93ad-bc07c685a675", arquivo: "10-perfil-topo.png", esperar: 3500 },
+  { url: "/ia-atendimento?editar=d2a328c4-41de-4e0f-93ad-bc07c685a675", arquivo: "11-whitelist.png", esperar: 3500, scroll: 600 },
   { url: "/ia-atendimento?editar=d2a328c4-41de-4e0f-93ad-bc07c685a675", arquivo: "04-tools.png", esperar: 3500, scroll: 1200 },
 ];
 
