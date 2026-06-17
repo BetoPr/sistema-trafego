@@ -340,7 +340,11 @@ select option { background: #ffffff; color: #111111; }
 }
 .logo-radar-sweep {
   transform-origin: 50% 50%;
-  animation: radar-sweep 3.6s linear infinite;
+  animation: radar-sweep 4s ease-in-out infinite;
+  animation-direction: alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-radar-sweep { animation: none !important; }
 }
 @keyframes radar-sweep {
   from { transform: rotate(0deg); }
@@ -610,7 +614,8 @@ select option { background: #ffffff; color: #111111; }
 }
 
 .mk-icon-btn {
-  width: 34px; height: 34px; border-radius: 9px;
+  width: 40px; height: 40px; border-radius: 9px;
+  min-width: 40px;
   background: var(--mk-surface); border: 0.5px solid var(--mk-border);
   display: flex; align-items: center; justify-content: center;
   color: var(--mk-text-secondary); cursor: pointer;
@@ -958,7 +963,9 @@ select option { background: #ffffff; color: #111111; }
   .mk-sidebar,
   .app-root.collapsed .mk-sidebar {
     position: fixed; top: 0; left: 0; z-index: 3000;
-    width: 270px; height: 100vh; height: 100dvh;
+    width: 270px;
+    height: 100vh;
+    height: 100dvh; /* dynamic vh: respeita address bar Android */
     padding: 18px 14px;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);

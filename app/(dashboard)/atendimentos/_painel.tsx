@@ -787,7 +787,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
           return (
             <div
               onClick={() => { setShowEtiquetaPicker(null); setNovaEtiquetaNome(""); }}
-              style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}
+              style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3100 }}
             >
               <div
                 onClick={(e) => e.stopPropagation()}

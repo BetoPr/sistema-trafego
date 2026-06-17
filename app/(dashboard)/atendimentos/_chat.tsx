@@ -10,8 +10,8 @@ import { InputBar } from "./_input";
 import { MsgAcoes } from "./_msg-acoes";
 
 const scrollBtnStyle: React.CSSProperties = {
-  width: 30,
-  height: 30,
+  width: 40,
+  height: 40,
   borderRadius: "50%",
   border: "0.5px solid var(--mk-border)",
   background: "var(--mk-surface)",
@@ -26,8 +26,8 @@ const scrollBtnStyle: React.CSSProperties = {
 
 const replyBtnStyle: React.CSSProperties = {
   flexShrink: 0,
-  width: 26,
-  height: 26,
+  width: 36,
+  height: 36,
   borderRadius: "50%",
   border: "0.5px solid var(--mk-border)",
   background: "var(--mk-surface)",
