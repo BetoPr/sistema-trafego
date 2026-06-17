@@ -168,6 +168,34 @@ export async function atualizarPerfilIA(formData: FormData) {
   redirect(`${ROUTE}?editar=${id}&ok=atualizado`);
 }
 
+export async function duplicarPerfilIA(formData: FormData) {
+  const ctx = await requireRole("admin", "super_admin");
+  const id = String(formData.get("id") || "");
+  if (!id) redirect(`${ROUTE}?erro=id`);
+  const sb = createServiceClient();
+  const { data: orig } = await sb
+    .from("ia_atendimento_perfis")
+    .select("*")
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle();
+  if (!orig) redirect(`${ROUTE}?erro=nao_encontrado`);
+  const copy = { ...(orig as Record<string, unknown>) };
+  delete copy.id;
+  delete copy.created_at;
+  delete copy.updated_at;
+  copy.nome = `${(orig as { nome: string }).nome} (copia)`;
+  copy.ativo = false;
+  copy.criado_por = ctx.userId;
+  // Limpa chave — usuario precisa colar dele
+  copy.api_key_encrypted = null;
+  const { data: nova, error } = await sb.from("ia_atendimento_perfis").insert(copy).select("id").single();
+  if (error) redirect(`${ROUTE}?erro=db&msg=${encodeURIComponent(error.message)}`);
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "ia_atendimento_perfil", entidadeId: nova.id, payload: { copiado_de: id } });
+  revalidatePath(ROUTE);
+  redirect(`${ROUTE}?editar=${nova.id}&ok=duplicado`);
+}
+
 export async function deletarPerfilIA(formData: FormData) {
   const ctx = await requireRole("admin", "super_admin");
   const id = String(formData.get("id") || "");

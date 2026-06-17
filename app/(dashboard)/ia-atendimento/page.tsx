@@ -7,6 +7,7 @@ import {
   deletarPerfilIA,
   alternarAtivoPerfilIA,
   deletarFerramentaIA,
+  duplicarPerfilIA,
 } from "./_actions";
 import { FerramentaToggle } from "./_ferramenta-toggle";
 import EditarFerramentaBtn from "./_ferramenta-editar-btn";
@@ -401,6 +402,12 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   );
 }
 
+function statusInfo(p: PerfilRow): { label: string; cor: string; bg: string; ico: string } {
+  if (!p.ativo) return { label: "Inativo", cor: "#9B9B9B", bg: "rgba(255,255,255,0.06)", ico: "ti-power" };
+  if (perfilTemWhitelist(p)) return { label: "Teste", cor: "#FBBF24", bg: "rgba(251,191,36,0.15)", ico: "ti-flask" };
+  return { label: "Producao", cor: "#10b981", bg: "rgba(16,185,129,0.15)", ico: "ti-rocket" };
+}
+
 function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
@@ -409,38 +416,51 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
           Nenhum perfil de IA. Crie o primeiro.
         </div>
       ) : (
-        perfis.map((p) => (
-          <div key={p.id} className="mk-card mk-card-lg">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h4 style={{ fontSize: 14, fontWeight: 600 }}>{p.nome}</h4>
-                {p.descricao && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2 }}>{p.descricao}</div>}
+        perfis.map((p) => {
+          const st = statusInfo(p);
+          return (
+            <div key={p.id} className="mk-card mk-card-lg" style={{ position: "relative" }}>
+              <div style={{ position: "absolute", top: 12, right: 12, padding: "3px 9px", borderRadius: 999, background: st.bg, color: st.cor, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <i className={`ti ${st.ico}`} style={{ fontSize: 11 }} /> {st.label.toUpperCase()}
               </div>
-              <form action={alternarAtivoPerfilIA} style={{ display: "inline" }}>
-                <input type="hidden" name="id" value={p.id} />
-                <input type="hidden" name="ativo" value={String(p.ativo)} />
-                <button type="submit" className={`toggle-switch ${p.ativo ? "is-on" : ""}`} aria-pressed={p.ativo}>
-                  <span className="toggle-knob" />
-                </button>
-              </form>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6, paddingRight: 90 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{p.nome}</h4>
+                  {p.descricao && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.descricao}</div>}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                {p.provider && <Chip>{p.provider}</Chip>}
+                {p.modelo && <Chip>{String(p.modelo).split("-").slice(0, 2).join(" ")}</Chip>}
+                {perfilTemWhitelist(p) && <Chip>{p.whatsapp_teste_lista!.length} num</Chip>}
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 12, borderTop: "0.5px solid var(--mk-border)", paddingTop: 10, alignItems: "center" }}>
+                <form action={alternarAtivoPerfilIA} style={{ display: "inline" }}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="ativo" value={String(p.ativo)} />
+                  <button type="submit" className={`toggle-switch ${p.ativo ? "is-on" : ""}`} aria-pressed={p.ativo} title={p.ativo ? "Desativar" : "Ativar"}>
+                    <span className="toggle-knob" />
+                  </button>
+                </form>
+                <Link href={`/ia-atendimento?editar=${p.id}`} className="ghost-btn" style={{ fontSize: 12, flex: 1, justifyContent: "center" }}>
+                  <i className="ti ti-pencil" /> Editar
+                </Link>
+                <form action={duplicarPerfilIA} style={{ display: "inline" }}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <button type="submit" className="ghost-btn" style={{ fontSize: 12 }} title="Duplicar perfil">
+                    <i className="ti ti-copy" />
+                  </button>
+                </form>
+                <form action={deletarPerfilIA} style={{ display: "inline" }}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <button type="submit" className="ghost-btn" style={{ fontSize: 12, color: "#C97064" }} title="Excluir">
+                    <i className="ti ti-trash" />
+                  </button>
+                </form>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-              {p.provider && <Chip>{p.provider}</Chip>}
-              {p.modelo && <Chip>{String(p.modelo).split("-").slice(0, 2).join(" ")}</Chip>}
-            </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 12, borderTop: "0.5px solid var(--mk-border)", paddingTop: 10 }}>
-              <Link href={`/ia-atendimento?editar=${p.id}`} className="ghost-btn" style={{ fontSize: 12, flex: 1, justifyContent: "center" }}>
-                <i className="ti ti-pencil" /> Editar
-              </Link>
-              <form action={deletarPerfilIA} style={{ display: "inline" }}>
-                <input type="hidden" name="id" value={p.id} />
-                <button type="submit" className="ghost-btn" style={{ fontSize: 12, color: "#C97064" }}>
-                  <i className="ti ti-trash" />
-                </button>
-              </form>
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );
@@ -531,6 +551,17 @@ function PerfilForm({
               temChave={!!editando?.tem_api_key}
               placeholder="sk-proj-... (OpenAI) · sk-ant-... (Anthropic) · gsk_... (Groq)"
             />
+            <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "none" }}>
+                <i className="ti ti-external-link" /> Pegar chave OpenAI
+              </a>
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "none" }}>
+                <i className="ti ti-external-link" /> Pegar chave Anthropic
+              </a>
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "none" }}>
+                <i className="ti ti-external-link" /> Pegar chave Groq
+              </a>
+            </div>
           </div>
           {editandoId && <TestarApiBtn perfilId={editandoId} />}
         </fieldset>
@@ -640,9 +671,29 @@ function PerfilForm({
           </div>
         </fieldset>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button type="submit" className="cta-btn"><i className="ti ti-device-floppy" /> {editando ? "Salvar" : "Criar perfil"}</button>
+        <div style={{
+          position: "sticky",
+          bottom: 0,
+          marginLeft: -18,
+          marginRight: -18,
+          marginBottom: -18,
+          marginTop: 12,
+          padding: "12px 18px",
+          background: "rgba(20, 20, 20, 0.85)",
+          backdropFilter: "blur(8px)",
+          borderTop: "0.5px solid var(--mk-border)",
+          borderRadius: "0 0 13px 13px",
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          zIndex: 5,
+        }}>
+          <button type="submit" className="cta-btn"><i className="ti ti-device-floppy" /> {editando ? "Salvar alteracoes" : "Criar perfil"}</button>
           <Link href="/ia-atendimento" className="ghost-btn">Cancelar</Link>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
+            <i className="ti ti-info-circle" /> Botao sempre acessivel
+          </span>
         </div>
       </form>
 
