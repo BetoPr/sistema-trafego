@@ -159,17 +159,74 @@ export default async function ContatosPage({ searchParams }: PageProps) {
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
 
       {canaisSemImport.length > 0 && !mostrarForm && (
-        <div style={{ background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 10, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
-          <i className="ti ti-brand-whatsapp" style={{ fontSize: 22, color: "#25D366", flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--mk-text)" }}>
-              {canaisSemImport.length === 1 ? "Canal conectado:" : `${canaisSemImport.length} canais conectados:`} importe seus contatos e etiquetas
+        <div
+          className="onboarding-card-import"
+          style={{
+            position: "relative",
+            background: "linear-gradient(135deg, rgba(37,211,102,0.18), rgba(16,185,129,0.10) 60%, transparent)",
+            border: "1px solid rgba(37,211,102,0.45)",
+            borderRadius: 14,
+            padding: "22px 24px",
+            display: "flex",
+            gap: 18,
+            alignItems: "center",
+            marginBottom: 16,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: -40,
+              right: -40,
+              width: 180,
+              height: 180,
+              background: "radial-gradient(circle, rgba(37,211,102,0.20), transparent 70%)",
+              filter: "blur(10px)",
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              background: "linear-gradient(135deg, #25D366, #128C7E)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              boxShadow: "0 8px 24px rgba(37,211,102,0.4)",
+              animation: "onboarding-pulse 2s ease-in-out infinite",
+            }}
+          >
+            <i className="ti ti-brand-whatsapp" style={{ fontSize: 30, color: "#fff" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative", zIndex: 1 }}>
+            <div style={{ fontSize: 11, color: "#25D366", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4, textTransform: "uppercase" }}>
+              ⚡ Primeiro passo
             </div>
-            <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginTop: 2 }}>
-              Puxa direto do WhatsApp Business: contatos com quem você já conversou + todas etiquetas que você criou. Idempotente — pode rodar quantas vezes quiser.
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--mk-text)", marginBottom: 6 }}>
+              Importe seus contatos e etiquetas do WhatsApp Business
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--mk-text-secondary)", marginBottom: 8 }}>
+              Em segundos puxa <strong>todos os seus contatos</strong> (com quem você já conversou) + <strong>todas as etiquetas</strong> que você criou. Idempotente — pode rodar várias vezes.
+            </div>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--mk-text-muted)" }}>
+              <span><i className="ti ti-check" style={{ color: "#25D366" }} /> Contatos do WA Business</span>
+              <span><i className="ti ti-check" style={{ color: "#25D366" }} /> Etiquetas e categorias</span>
+              <span><i className="ti ti-check" style={{ color: "#25D366" }} /> Sem duplicatas</span>
             </div>
           </div>
-          <ImportarWhatsAppBtn canais={canaisSemImport.map((c) => ({ id: c.id, nome: c.nome, numero_conectado: c.numero_conectado }))} />
+          <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
+            <ImportarWhatsAppBtn canais={canaisSemImport.map((c) => ({ id: c.id, nome: c.nome, numero_conectado: c.numero_conectado }))} />
+          </div>
+          <style>{`
+            @keyframes onboarding-pulse {
+              0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(37,211,102,0.4); }
+              50% { transform: scale(1.05); box-shadow: 0 8px 32px rgba(37,211,102,0.6); }
+            }
+          `}</style>
         </div>
       )}
 
