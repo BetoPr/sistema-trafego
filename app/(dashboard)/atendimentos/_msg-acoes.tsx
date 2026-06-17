@@ -44,11 +44,12 @@ export function MsgAcoes({
     function fechar(e: MouseEvent) {
       if (refContainer.current && !refContainer.current.contains(e.target as Node)) {
         setMenuAberto(false);
+        setReactBarAberto(false);
       }
     }
-    if (menuAberto) document.addEventListener("mousedown", fechar);
+    if (menuAberto || reactBarAberto) document.addEventListener("mousedown", fechar);
     return () => document.removeEventListener("mousedown", fechar);
-  }, [menuAberto]);
+  }, [menuAberto, reactBarAberto]);
 
   function onTouchStart() {
     refLongPress.current = setTimeout(() => setMenuAberto(true), 450);
@@ -83,8 +84,8 @@ export function MsgAcoes({
     <div
       ref={refContainer}
       className="msg-acoes-wrap"
-      onMouseEnter={() => { setHover(true); setReactBarAberto(true); }}
-      onMouseLeave={() => { setHover(false); setReactBarAberto(false); }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onTouchCancel={onTouchEnd}
@@ -99,7 +100,9 @@ export function MsgAcoes({
         style={{
           position: "absolute",
           top: 4,
-          right: 6,
+          // Cliente (esquerda da tela) -> chevron a direita da bolha
+          // Atendente (direita da tela) -> chevron a esquerda da bolha
+          ...(ladoCliente ? { right: 6 } : { left: 6 }),
           width: 22,
           height: 22,
           borderRadius: 999,

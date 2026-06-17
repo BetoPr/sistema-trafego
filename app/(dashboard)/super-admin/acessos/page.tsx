@@ -5,6 +5,7 @@ import { criarAcesso, atualizarAcesso } from "./_actions";
 import { TabelaAcessos } from "./_tabela";
 import { CobrancasBloco, type AgenciaCobranca, type CanalOpcao } from "./_cobrancas";
 import { AbrirCobrancasBtn } from "./_abrir-cobrancas";
+import AgenciaPicker from "./_agencia-picker";
 
 // Apenas funções que existem no CRM hoje.
 const PERMS_LABEL: Record<string, string> = {
@@ -139,10 +140,10 @@ export default async function AcessosPage({ searchParams }: PageProps) {
             <div style={grid2}>
               <div>
                 <label style={lblMono}>Agência *</label>
-                <select name="agencia_id" defaultValue={editando?.agencia_id ?? ""} required style={inpStyle}>
-                  <option value="">— Selecione —</option>
-                  {(agencias || []).map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
-                </select>
+                <AgenciaPicker
+                  agencias={(agencias || []).map((a) => ({ id: a.id, nome: a.nome }))}
+                  defaultId={editando?.agencia_id ?? undefined}
+                />
               </div>
               <div>
                 <label style={lblMono}>Perfil *</label>

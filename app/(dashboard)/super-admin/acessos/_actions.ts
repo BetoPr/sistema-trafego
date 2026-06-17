@@ -22,13 +22,28 @@ export async function criarAcesso(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const senha = String(formData.get("senha") || "");
   const telefone = String(formData.get("telefone") || "").trim() || null;
-  const agenciaId = String(formData.get("agencia_id") || "");
+  let agenciaId = String(formData.get("agencia_id") || "");
+  const novaAgenciaNome = String(formData.get("nova_agencia_nome") || "").trim();
   const role = (String(formData.get("role") || "atendente") as Role);
 
-  if (!nome || !email || !senha || !agenciaId) redirect("/super-admin/acessos?erro=campos");
+  if (!nome || !email || !senha) redirect("/super-admin/acessos?erro=campos");
   if (senha.length < 6) redirect("/super-admin/acessos?erro=senha_curta");
+  if (!agenciaId && !novaAgenciaNome) redirect("/super-admin/acessos?erro=campos");
 
   const sb = createServiceClient();
+
+  // Cria nova agencia se solicitado
+  if (!agenciaId && novaAgenciaNome) {
+    const { data: ag, error: agErr } = await sb
+      .from("agencias")
+      .insert({ nome: novaAgenciaNome, ativa: true })
+      .select("id")
+      .single();
+    if (agErr || !ag) {
+      redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(agErr?.message || "Falha criando agencia")}`);
+    }
+    agenciaId = ag.id as string;
+  }
 
   const { data: created, error: authErr } = await sb.auth.admin.createUser({
     email,
