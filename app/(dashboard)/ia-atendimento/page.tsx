@@ -803,7 +803,7 @@ function labelOk(k: string) {
   return ({ criado: "Perfil criado.", atualizado: "Atualizado.", alterado: "Status alterado.", deletado: "Excluído.", ferramenta_criada: "Ferramenta criada.", ferramenta_deletada: "Removida." } as Record<string, string>)[k] || "OK.";
 }
 function labelErr(k: string) {
-  return ({ nome: "Nome obrigatório.", id: "ID inválido.", db: "Erro no banco.", campos: "Campos obrigatórios." } as Record<string, string>)[k] || "Erro.";
+  return ({ nome: "Nome obrigatório.", id: "ID inválido.", db: "Erro no banco.", campos: "Campos obrigatórios.", chave_mismatch: "Chave API não bate com o provider escolhido:" } as Record<string, string>)[k] || "Erro.";
 }
 function Field({ label, name, defaultValue, placeholder, required, type = "text", step }: { label: string; name: string; defaultValue?: string; placeholder?: string; required?: boolean; type?: string; step?: string }) {
   return (

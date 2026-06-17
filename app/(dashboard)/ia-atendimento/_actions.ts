@@ -52,6 +52,20 @@ export async function criarPerfilIA(formData: FormData) {
   const provider = String(formData.get("provider") || templateProvider || "anthropic");
   const modelo = String(formData.get("modelo") || templateModelo || "claude-haiku-4-5-20251001");
 
+  // Valida prefixo da chave bate com provider escolhido
+  if (apiKey) {
+    const p = apiKey.toLowerCase();
+    if (p.startsWith("gsk_") && provider !== "groq") {
+      redirect(`${ROUTE}?erro=chave_mismatch&msg=${encodeURIComponent(`Esta chave eh do Groq (prefixo gsk_). Troque o provider para Groq.`)}`);
+    }
+    if (p.startsWith("sk-ant") && provider !== "anthropic") {
+      redirect(`${ROUTE}?erro=chave_mismatch&msg=${encodeURIComponent(`Esta chave eh da Anthropic (prefixo sk-ant). Troque o provider para Anthropic.`)}`);
+    }
+    if (p.startsWith("sk-") && !p.startsWith("sk-ant") && provider !== "openai") {
+      redirect(`${ROUTE}?erro=chave_mismatch&msg=${encodeURIComponent(`Esta chave eh da OpenAI (prefixo sk-). Troque o provider para OpenAI.`)}`);
+    }
+  }
+
   const promptFinal = (String(formData.get("prompt_sistema") || "").trim()) || templatePrompt;
   const whitelistRaw = String(formData.get("whatsapp_teste_lista") || "");
   const whitelist = whitelistRaw.split(/[\n,;]/).map((s) => s.trim()).filter(Boolean);
@@ -95,6 +109,22 @@ export async function atualizarPerfilIA(formData: FormData) {
 
   const sb = createServiceClient();
   const apiKey = String(formData.get("api_key") || "").trim();
+  const providerNovo = String(formData.get("provider") || "anthropic");
+
+  // Valida prefixo da chave bate com provider escolhido
+  if (apiKey) {
+    const p = apiKey.toLowerCase();
+    if (p.startsWith("gsk_") && providerNovo !== "groq") {
+      redirect(`${ROUTE}?editar=${id}&erro=chave_mismatch&msg=${encodeURIComponent(`Esta chave eh do Groq (prefixo gsk_). Troque o provider para Groq.`)}`);
+    }
+    if (p.startsWith("sk-ant") && providerNovo !== "anthropic") {
+      redirect(`${ROUTE}?editar=${id}&erro=chave_mismatch&msg=${encodeURIComponent(`Esta chave eh da Anthropic (prefixo sk-ant). Troque o provider para Anthropic.`)}`);
+    }
+    if (p.startsWith("sk-") && !p.startsWith("sk-ant") && providerNovo !== "openai") {
+      redirect(`${ROUTE}?editar=${id}&erro=chave_mismatch&msg=${encodeURIComponent(`Esta chave eh da OpenAI (prefixo sk-). Troque o provider para OpenAI.`)}`);
+    }
+  }
+
   const whitelistRaw = String(formData.get("whatsapp_teste_lista") || "");
   const whitelist = whitelistRaw
     .split(/[\n,;]/)
