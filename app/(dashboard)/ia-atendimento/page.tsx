@@ -137,11 +137,19 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let templates: TemplateRow[] = [];
 
   try {
-    const { data } = await sb.from("ia_atendimento_perfis")
-      .select("id, nome, descricao, ativo, modelo, provider")
+    // Cada usuario so ve seus proprios perfis (chave API individual).
+    // Super_admin vê todos. Perfis legados sem criado_por viram do dono atual.
+    let q = sb.from("ia_atendimento_perfis")
+      .select("id, nome, descricao, ativo, modelo, provider, criado_por")
       .eq("agencia_id", ctx.agenciaId)
       .eq("eh_template", false)
       .order("nome");
+    // Cada user (incluindo admin) so ve proprios perfis — chave API e config
+    // sao individuais. Super_admin ve todos pra gestao.
+    if (ctx.role !== "super_admin") {
+      q = q.eq("criado_por", ctx.userId);
+    }
+    const { data } = await q;
     perfis = (data || []) as PerfilRow[];
   } catch {}
 

@@ -127,7 +127,10 @@ export async function atualizarPerfilIA(formData: FormData) {
 
   if (apiKey) patch.api_key_encrypted = bufferToBytea(encryptToken(apiKey));
 
-  const { error } = await sb.from("ia_atendimento_perfis").update(patch).eq("id", id).eq("agencia_id", ctx.agenciaId);
+  // Restringe edicao ao dono. Super_admin pode editar qualquer perfil.
+  let q = sb.from("ia_atendimento_perfis").update(patch).eq("id", id).eq("agencia_id", ctx.agenciaId);
+  if (ctx.role !== "super_admin") q = q.eq("criado_por", ctx.userId);
+  const { error } = await q;
   if (error) redirect(`${ROUTE}?erro=db&msg=${encodeURIComponent(error.message)}`);
 
   await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "ia_atendimento_perfil", entidadeId: id });
@@ -140,7 +143,9 @@ export async function deletarPerfilIA(formData: FormData) {
   const id = String(formData.get("id") || "");
   if (!id) redirect(`${ROUTE}?erro=id`);
   const sb = createServiceClient();
-  await sb.from("ia_atendimento_perfis").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
+  let dq = sb.from("ia_atendimento_perfis").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
+  if (ctx.role !== "super_admin") dq = dq.eq("criado_por", ctx.userId);
+  await dq;
   await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "delete", entidade: "ia_atendimento_perfil", entidadeId: id });
   revalidatePath(ROUTE);
   redirect(`${ROUTE}?ok=deletado`);

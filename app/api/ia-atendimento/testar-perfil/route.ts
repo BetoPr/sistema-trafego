@@ -49,6 +49,21 @@ export async function POST(req: Request) {
     }
   }
 
+  // Detecta mismatch entre prefixo da chave e provider escolhido.
+  const provider = perfil.provider as string;
+  const prefix = apiKey.slice(0, 4).toLowerCase();
+  let dicaMismatch: string | null = null;
+  if (prefix.startsWith("gsk_") && provider !== "groq") {
+    dicaMismatch = `Esta chave parece ser do Groq (prefixo gsk_) mas o provider esta setado pra ${provider}. Troca o provider pra Groq.`;
+  } else if (prefix.startsWith("sk-a") && provider !== "anthropic") {
+    dicaMismatch = `Esta chave parece ser da Anthropic (prefixo sk-ant) mas o provider esta setado pra ${provider}. Troca o provider pra Anthropic (Claude).`;
+  } else if (prefix.startsWith("sk-") && !prefix.startsWith("sk-a") && provider !== "openai") {
+    dicaMismatch = `Esta chave parece ser da OpenAI (prefixo sk-) mas o provider esta setado pra ${provider}. Troca o provider pra OpenAI.`;
+  }
+  if (dicaMismatch) {
+    return NextResponse.json({ ok: false, erro: dicaMismatch }, { status: 200 });
+  }
+
   const inicio = Date.now();
   try {
     const resp = await chamarIA({
