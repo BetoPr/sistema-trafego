@@ -16,6 +16,7 @@ import ResumoConfigBalao, { type ResumoConfig } from "./_resumo-config-balao";
 import { TemplatesPicker, type TemplatePicker } from "./_templates-picker";
 import { ChipsPicker } from "./_chips-picker";
 import { TestarApiBtn } from "./_testar-btn";
+import ApiKeyInput from "./_api-key-input";
 import PlaceholderPicker from "./_placeholder-picker";
 import FerramentaForm from "./_ferramenta-form";
 import UsoTokensCard from "./_uso-tokens-card";
@@ -102,6 +103,7 @@ interface PerfilDetalhe {
   formato_resposta: { bullets?: boolean; separador_blocos?: string; max_msgs?: number };
   whatsapp_teste_lista: string[];
   timezone: string | null;
+  tem_api_key?: boolean;
 }
 
 interface LogRow {
@@ -194,10 +196,15 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   if (editando) {
     try {
       const { data } = await sb.from("ia_atendimento_perfis")
-        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista, timezone")
+        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista, timezone, api_key_encrypted")
         .eq("id", editando.id)
         .single();
-      if (data) perfilDetalhe = data as unknown as PerfilDetalhe;
+      if (data) {
+        const tem = !!(data as { api_key_encrypted?: unknown }).api_key_encrypted;
+        const { api_key_encrypted: _ak, ...rest } = data as Record<string, unknown>;
+        void _ak;
+        perfilDetalhe = { ...rest, tem_api_key: tem } as unknown as PerfilDetalhe;
+      }
     } catch {}
 
     try {
@@ -486,12 +493,14 @@ function PerfilForm({
               </select>
             </div>
           </div>
-          <Field
-            label="Chave API"
-            name="api_key"
-            type="password"
-            placeholder={editando ? "Deixe em branco pra manter a atual" : "sk-..."}
-          />
+          <div>
+            <label style={lbl}>Chave API</label>
+            <ApiKeyInput
+              perfilId={editandoId || undefined}
+              temChave={!!editando?.tem_api_key}
+              placeholder="sk-proj-... (OpenAI) · sk-ant-... (Anthropic) · gsk_... (Groq)"
+            />
+          </div>
           {editandoId && <TestarApiBtn perfilId={editandoId} />}
         </fieldset>
 
