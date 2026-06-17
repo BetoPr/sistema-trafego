@@ -5,6 +5,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-17
+
+- **21:49** — **Aba Tráfego (Ads) restrita a Super Admin + Follow-up: botão único "Salvar tudo" com animação de sucesso.**
+  - `AppSidebar.tsx`: seção "Tráfego (Ads)" (Leads Meta, Campanhas, Funil, Criativos, Público, Relatórios, Insights IA, Alertas, Clientes Ads) agora só aparece pra `role === "super_admin"`. Demais roles não veem a aba.
+  - `_followup-bloco.tsx`: removidos os botões "Salvar" (meta) e "Salvar etapa" individuais. Estado das etapas elevado pra `SequenciaEditor` (controlado via `updateEtapa`). Um único botão **"Salvar tudo"** no rodapé persiste meta da sequência + todas as etapas de uma vez. Botão "Deletar" movido pro rodapé.
+  - Animação de sucesso: `CheckSucesso` (SVG ✅ com brilho/glow pulsante e anéis expansivos, sem emoji) overlay ao concluir; some sozinho após ~1.8s.
+
 ## 2026-06-16
 
 - **18:00** — **Meta Leads: webhook leadgen + conciliacao automatica com tickets WA**.

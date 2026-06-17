@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Balao } from "@/components/ui/Balao";
+import { CheckSucesso } from "./_check-sucesso";
 import {
   criarSequenciaFollowUp,
   atualizarSequenciaFollowUp,
@@ -57,6 +58,14 @@ export default function FollowUpBloco({
   const [editSeq, setEditSeq] = useState<FollowupSeq | null>(null);
   const [criandoNova, setCriandoNova] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
+  const [sucesso, setSucesso] = useState(false);
+
+  // Animacao de sucesso some sozinha apos ~1.8s
+  useEffect(() => {
+    if (!sucesso) return;
+    const t = setTimeout(() => setSucesso(false), 1800);
+    return () => clearTimeout(t);
+  }, [sucesso]);
 
   const podeAdicionar = sequencias.length < 5;
 
@@ -131,6 +140,7 @@ export default function FollowUpBloco({
             etapasDaSeq={editSeq ? etapas.filter((e) => e.sequencia_id === editSeq.id) : []}
             etiquetas={etiquetas}
             onSaved={(msg) => { setToast({ msg, tipo: "ok" }); setEditSeq(null); setCriandoNova(false); }}
+            onSucesso={() => { setEditSeq(null); setCriandoNova(false); setSucesso(true); }}
             onError={(msg) => setToast({ msg, tipo: "erro" })}
             ordemNoPerfil={editSeq?.ordem_no_perfil ?? sequencias.length + 1}
           />
@@ -157,6 +167,8 @@ export default function FollowUpBloco({
           {toast.msg}
         </div>
       )}
+
+      <CheckSucesso open={sucesso} mensagem="Follow-up configurado!" onClose={() => setSucesso(false)} />
     </div>
   );
 }
@@ -167,6 +179,7 @@ function SequenciaEditor({
   etapasDaSeq,
   etiquetas,
   onSaved,
+  onSucesso,
   onError,
   ordemNoPerfil,
 }: {
@@ -175,6 +188,7 @@ function SequenciaEditor({
   etapasDaSeq: FollowupEtapa[];
   etiquetas: EtiquetaOpt[];
   onSaved: (msg: string) => void;
+  onSucesso: () => void;
   onError: (msg: string) => void;
   ordemNoPerfil: number;
 }) {
@@ -189,7 +203,13 @@ function SequenciaEditor({
   const [etapas, setEtapas] = useState<FollowupEtapa[]>(etapasDaSeq);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  async function salvarMeta() {
+  // Atualiza campos de uma etapa em memoria (persiste so no "Salvar tudo")
+  function updateEtapa(id: string, patch: Partial<FollowupEtapa>) {
+    setEtapas((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }
+
+  // Salva meta da sequencia + todas as etapas de uma vez
+  async function salvarTudo() {
     const fd = new FormData();
     fd.set("perfil_id", perfilId);
     fd.set("nome", nome);
@@ -200,12 +220,34 @@ function SequenciaEditor({
     fd.set("janela_inicio", janIni);
     fd.set("janela_fim", janFim);
     fd.set("ordem_no_perfil", String(ordemNoPerfil));
+
     start(async () => {
-      const r = sequencia
+      // 1. Meta da sequencia
+      const rMeta = sequencia
         ? await atualizarSequenciaFollowUp(sequencia.id, fd)
         : await criarSequenciaFollowUp(fd);
-      if (r.ok) onSaved("Sequência salva");
-      else onError(r.error || "Erro ao salvar");
+      if (!rMeta.ok) { onError(rMeta.error || "Erro ao salvar sequência"); return; }
+
+      // 2. Todas as etapas (sequencia nova ainda nao tem etapas)
+      if (sequencia) {
+        for (const et of etapas) {
+          const efd = new FormData();
+          efd.set("sequencia_id", sequencia.id);
+          efd.set("id", et.id);
+          efd.set("ordem", String(et.ordem));
+          efd.set("delay_segundos_antes", String(et.delay_segundos_antes));
+          efd.set("midia_tipo", et.midia_tipo);
+          efd.set("texto", et.texto || "");
+          if (et.midia_path) efd.set("midia_path", et.midia_path);
+          if (et.midia_url) efd.set("midia_url", et.midia_url);
+          if (et.midia_mime) efd.set("midia_mime", et.midia_mime);
+          if (et.midia_filename) efd.set("midia_filename", et.midia_filename);
+          const re = await salvarEtapaFollowUp(efd);
+          if (!re.ok) { onError(re.error || "Erro ao salvar etapa"); return; }
+        }
+      }
+
+      onSucesso();
     });
   }
 
@@ -293,33 +335,26 @@ function SequenciaEditor({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" onClick={salvarMeta} disabled={pending || !nome} className="cta-btn" style={{ fontSize: 12, padding: "8px 14px" }}>
-          <i className="ti ti-device-floppy" /> Salvar
-        </button>
-        {sequencia && (
-          <button type="button" onClick={deletar} disabled={pending} className="ghost-btn" style={{ fontSize: 12, padding: "8px 14px", color: "#C97064" }}>
-            <i className="ti ti-trash" /> Deletar
-          </button>
-        )}
-      </div>
-
       {sequencia && (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 4 }}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Etapas ({etapas.length}/6)</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {etapas.map((etapa, idx) => (
               <EtapaCard
                 key={etapa.id}
                 etapa={etapa}
-                sequenciaId={sequencia.id}
                 draggable
                 onDragStart={() => onDragStart(idx)}
                 onDragOver={(e) => onDragOver(e, idx)}
                 onDragEnd={onDragEnd}
-                onSaved={onSaved}
+                onChange={(patch) => updateEtapa(etapa.id, patch)}
                 onError={onError}
-                onDeleted={(id) => setEtapas(etapas.filter((e) => e.id !== id))}
+                onDeleted={async (id) => {
+                  if (!confirm("Deletar etapa?")) return;
+                  const r = await deletarEtapaFollowUp(id);
+                  if (r.ok) setEtapas((prev) => prev.filter((e) => e.id !== id));
+                  else onError(r.error || "Erro");
+                }}
               />
             ))}
           </div>
@@ -330,40 +365,45 @@ function SequenciaEditor({
           )}
         </div>
       )}
+
+      {/* Acoes no rodape: um unico botao salva tudo */}
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "0.5px solid var(--mk-border)", paddingTop: 14, marginTop: 4 }}>
+        {sequencia && (
+          <button type="button" onClick={deletar} disabled={pending} className="ghost-btn" style={{ fontSize: 12, padding: "9px 16px", color: "#C97064", marginRight: "auto" }}>
+            <i className="ti ti-trash" /> Deletar
+          </button>
+        )}
+        <button type="button" onClick={salvarTudo} disabled={pending || !nome} className="cta-btn" style={{ fontSize: 12.5, padding: "9px 20px" }}>
+          {pending ? (<><i className="ti ti-loader-2 spin" /> Salvando...</>) : (<><i className="ti ti-device-floppy" /> Salvar tudo</>)}
+        </button>
+      </div>
     </div>
   );
 }
 
 function EtapaCard({
   etapa,
-  sequenciaId,
   draggable,
   onDragStart,
   onDragOver,
   onDragEnd,
-  onSaved,
+  onChange,
   onError,
   onDeleted,
 }: {
   etapa: FollowupEtapa;
-  sequenciaId: string;
   draggable?: boolean;
   onDragStart?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
-  onSaved: (msg: string) => void;
+  onChange: (patch: Partial<FollowupEtapa>) => void;
   onError: (msg: string) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [delay, setDelay] = useState(etapa.delay_segundos_antes);
-  const [tipo, setTipo] = useState<FollowupEtapa["midia_tipo"]>(etapa.midia_tipo);
-  const [texto, setTexto] = useState(etapa.texto || "");
-  const [midiaPath, setMidiaPath] = useState(etapa.midia_path);
-  const [midiaUrl, setMidiaUrl] = useState(etapa.midia_url);
-  const [midiaMime, setMidiaMime] = useState(etapa.midia_mime);
-  const [midiaFilename, setMidiaFilename] = useState(etapa.midia_filename);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const tipo = etapa.midia_tipo;
 
   async function uploadArquivo(file: File) {
     setUploading(true);
@@ -372,40 +412,13 @@ function EtapaCard({
       fd.set("file", file);
       const r = await uploadMidiaFollowUp(fd);
       if (r.ok && r.path) {
-        setMidiaPath(r.path);
-        setMidiaMime(r.mime || file.type);
-        setMidiaFilename(r.filename || file.name);
-        setMidiaUrl(null);
+        onChange({ midia_path: r.path, midia_mime: r.mime || file.type, midia_filename: r.filename || file.name, midia_url: null });
       } else {
         onError(r.error || "Erro no upload");
       }
     } finally {
       setUploading(false);
     }
-  }
-
-  async function salvar() {
-    const fd = new FormData();
-    fd.set("sequencia_id", sequenciaId);
-    fd.set("id", etapa.id);
-    fd.set("ordem", String(etapa.ordem));
-    fd.set("delay_segundos_antes", String(delay));
-    fd.set("midia_tipo", tipo);
-    fd.set("texto", texto);
-    if (midiaPath) fd.set("midia_path", midiaPath);
-    if (midiaUrl) fd.set("midia_url", midiaUrl);
-    if (midiaMime) fd.set("midia_mime", midiaMime);
-    if (midiaFilename) fd.set("midia_filename", midiaFilename);
-    const r = await salvarEtapaFollowUp(fd);
-    if (r.ok) onSaved("Etapa salva");
-    else onError(r.error || "Erro");
-  }
-
-  async function deletar() {
-    if (!confirm("Deletar etapa?")) return;
-    const r = await deletarEtapaFollowUp(etapa.id);
-    if (r.ok) { onSaved("Etapa deletada"); onDeleted(etapa.id); }
-    else onError(r.error || "Erro");
   }
 
   return (
@@ -425,7 +438,7 @@ function EtapaCard({
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <i className="ti ti-grip-vertical" style={{ color: "var(--mk-text-muted)" }} />
         <strong style={{ fontSize: 13 }}>Etapa {etapa.ordem}</strong>
-        <button type="button" onClick={deletar} className="ghost-btn" style={{ marginLeft: "auto", fontSize: 11, color: "#C97064" }}>
+        <button type="button" onClick={() => onDeleted(etapa.id)} className="ghost-btn" style={{ marginLeft: "auto", fontSize: 11, color: "#C97064" }}>
           <i className="ti ti-trash" />
         </button>
       </div>
@@ -433,11 +446,11 @@ function EtapaCard({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
         <div>
           <label style={lbl}>Esperar (segundos antes desta etapa)</label>
-          <input type="number" min={0} value={delay} onChange={(e) => setDelay(parseInt(e.target.value || "0", 10))} style={inp} />
+          <input type="number" min={0} value={etapa.delay_segundos_antes} onChange={(e) => onChange({ delay_segundos_antes: parseInt(e.target.value || "0", 10) })} style={inp} />
         </div>
         <div>
           <label style={lbl}>Tipo</label>
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as FollowupEtapa["midia_tipo"])} style={inp}>
+          <select value={tipo} onChange={(e) => onChange({ midia_tipo: e.target.value as FollowupEtapa["midia_tipo"] })} style={inp}>
             <option value="texto">Texto</option>
             <option value="imagem">Imagem</option>
             <option value="video">Vídeo</option>
@@ -449,8 +462,8 @@ function EtapaCard({
 
       {tipo === "texto" ? (
         <textarea
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          value={etapa.texto || ""}
+          onChange={(e) => onChange({ texto: e.target.value })}
           rows={3}
           style={{ ...inp, resize: "vertical" }}
           placeholder="Mensagem da etapa"
@@ -480,10 +493,10 @@ function EtapaCard({
           >
             {uploading ? (
               "Enviando..."
-            ) : midiaPath || midiaUrl ? (
+            ) : etapa.midia_path || etapa.midia_url ? (
               <>
                 <i className="ti ti-file-check" style={{ color: "#10b981" }} />{" "}
-                {midiaFilename || "mídia anexada"}
+                {etapa.midia_filename || "mídia anexada"}
                 <div style={{ fontSize: 10.5, marginTop: 4 }}>Arraste outro arquivo pra substituir</div>
               </>
             ) : (
@@ -508,17 +521,13 @@ function EtapaCard({
             />
           </div>
           <input
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
+            value={etapa.texto || ""}
+            onChange={(e) => onChange({ texto: e.target.value })}
             placeholder="Legenda (opcional)"
             style={{ ...inp, marginTop: 6 }}
           />
         </>
       )}
-
-      <button type="button" onClick={salvar} className="ghost-btn" style={{ fontSize: 12, marginTop: 8 }}>
-        <i className="ti ti-device-floppy" /> Salvar etapa
-      </button>
     </div>
   );
 }

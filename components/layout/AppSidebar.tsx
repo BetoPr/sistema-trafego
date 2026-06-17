@@ -57,23 +57,28 @@ function buildSections(role?: string): NavSection[] {
         { href: "/grupos", label: "Grupos", icon: "ti-users-group" },
       ],
     },
-    {
-      id: "trafego",
-      label: "Tráfego (Ads)",
-      icon: "ti-speakerphone",
-      iconColor: "var(--mk-icon-purple)",
-      items: [
-        { href: "/leads-meta", label: "Leads Meta", icon: "ti-target-arrow" },
-        { href: "/campanhas", label: "Campanhas", icon: "ti-speakerphone", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/funil", label: "Funil", icon: "ti-filter", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/publico", label: "Público", icon: "ti-users-group", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/ia-insights", label: "Insights IA", icon: "ti-brain", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", badge: { text: "BREVE", variant: "amber" } },
-        { href: "/clientes", label: "Clientes (Ads)", icon: "ti-briefcase" },
-      ],
-    },
+    // Tráfego (Ads) — visível só pra super_admin
+    ...(role === "super_admin"
+      ? [
+          {
+            id: "trafego",
+            label: "Tráfego (Ads)",
+            icon: "ti-speakerphone",
+            iconColor: "var(--mk-icon-purple)",
+            items: [
+              { href: "/leads-meta", label: "Leads Meta", icon: "ti-target-arrow" },
+              { href: "/campanhas", label: "Campanhas", icon: "ti-speakerphone", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/funil", label: "Funil", icon: "ti-filter", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/publico", label: "Público", icon: "ti-users-group", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/ia-insights", label: "Insights IA", icon: "ti-brain", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", badge: { text: "BREVE", variant: "amber" as const } },
+              { href: "/clientes", label: "Clientes (Ads)", icon: "ti-briefcase" },
+            ],
+          } as NavSection,
+        ]
+      : []),
     {
       id: "administracao",
       label: "Administração",
