@@ -53,11 +53,52 @@ const ctx = await browser.newContext({ viewport: { width: 1280, height: 854 } })
 const page = await ctx.newPage();
 
 console.log("Login...");
-await page.goto(`${BASE}/login`);
-await page.fill('input[type="email"]', EMAIL);
-await page.fill('input[type="password"]', SENHA);
-await page.click('button[type="submit"]');
-await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 30000 });
+await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+await page.locator('input[type="email"]').click();
+await page.keyboard.type(EMAIL, { delay: 20 });
+await page.locator('input[type="password"]').click();
+await page.keyboard.type(SENHA, { delay: 20 });
+await page.waitForTimeout(500);
+// Arrastar slider anti-bot — acha track pelo texto "Deslize para verificar"
+const trackInfo = await page.evaluate(() => {
+  const texto = Array.from(document.querySelectorAll("div")).find((d) => d.textContent === "Deslize para verificar →");
+  if (!texto) return null;
+  const track = texto.parentElement;
+  if (!track) return null;
+  const handle = Array.from(track.querySelectorAll("div")).find((d) => {
+    const s = getComputedStyle(d);
+    return s.cursor === "grab" || s.borderRadius === "10px" && parseInt(s.width) > 30 && parseInt(s.width) < 60;
+  });
+  const handleBox = handle?.getBoundingClientRect();
+  const trackBox = track.getBoundingClientRect();
+  return handleBox && trackBox
+    ? { hx: handleBox.x, hy: handleBox.y, hw: handleBox.width, hh: handleBox.height, tx: trackBox.x, tw: trackBox.width }
+    : null;
+});
+if (!trackInfo) throw new Error("Slider nao encontrado");
+const startX = trackInfo.hx + trackInfo.hw / 2;
+const startY = trackInfo.hy + trackInfo.hh / 2;
+const endX = trackInfo.tx + trackInfo.tw - trackInfo.hw / 2 - 4;
+await page.mouse.move(startX, startY);
+await page.mouse.down();
+for (let i = 1; i <= 12; i++) {
+  await page.mouse.move(startX + ((endX - startX) * i) / 12, startY, { steps: 3 });
+  await page.waitForTimeout(25);
+}
+await page.mouse.up();
+await page.waitForTimeout(500);
+await page.locator('button[type="submit"]').waitFor({ state: "visible" });
+await page.locator('button[type="submit"]').click({ force: true });
+try {
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15000 });
+} catch (e) {
+  await page.screenshot({ path: join(OUT, "_DEBUG-login.png") });
+  const txt = await page.evaluate(() => document.body.innerText);
+  console.error("Login falhou. URL:", page.url());
+  console.error("Texto da pagina:", txt.slice(0, 500));
+  process.exit(1);
+}
 console.log("Logado!");
 
 for (const t of TELAS) {
