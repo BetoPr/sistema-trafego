@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-17
 
+- **22:45** — **Fix: ativar IA quebrava com FK `tickets_fila_id_fkey`.**
+  - Causa: toggle de IA, executor e retornar-à-fila setavam `fila_id = perfil.filas_ativas[0]`, mas essa fila (fixa, aposentada) não existe mais → violação de FK ao ativar IA.
+  - Como o ícone de robô agora é dirigido por `ia_perfil_id && !ia_pausada` (não por fila), os 3 caminhos pararam de mexer em `fila_id`. Só marcam `ia_perfil_id` + `ia_pausada`. Ativar IA num contato volta a funcionar.
+  - `transferir_para_humano` não afetado (usa fila `tipo=humano` real do DB).
+
 - **22:38** — **Apresentação + tutorial: narrativa de transformação (vender o resultado, não a configuração).**
   - Tutorial (`/apresentacao/tutorial`): títulos vendedores ("Conecte seu WhatsApp em menos de 1 minuto", "Crie sua primeira atendente de IA"...), subtítulo de valor, e novo bloco **Resultado/Benefício** por passo (🟢✅✨🛡️🚀🎯). Kicker mostra a trilha da jornada (Conecte → Traga base → Crie IA → Teste → 1ª conversa → Ative → Escale). Passo 7 vira "Recursos" (operação de vendas).
   - Deck (`/apresentacao`): copy reescrita pra foco em transformação — capa "Seu vendedor de IA no WhatsApp"; problema "Cada lead sem resposta é dinheiro indo embora"; slides de IA/follow-up/leads/dashboard com bullets de benefício em vez de feature técnica. Mockups e screenshots mantidos.

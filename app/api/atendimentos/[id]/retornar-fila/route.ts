@@ -15,32 +15,28 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
-  // Retornar à fila = reativa IA + se houver perfil IA ativo cobrindo o canal,
-  // move ticket pra primeira fila ativa do perfil (ex: "IA Atendendo")
+  // Retornar à fila = reativa IA. Se houver perfil IA ativo cobrindo o canal,
+  // marca ia_perfil_id (liga o ícone de robô). NÃO mexe em fila_id — filas fixas
+  // foram aposentadas; setar fila inexistente quebrava FK (tickets_fila_id_fkey).
   const { data: ticket } = await sb
     .from("tickets")
-    .select("canal_id, fila_id")
+    .select("canal_id")
     .eq("id", id)
     .eq("agencia_id", u.agencia_id)
     .maybeSingle();
 
-  let filaIA: string | null = null;
   let perfilIA: string | null = null;
   if (ticket?.canal_id) {
     const { data: perfis } = await sb
       .from("ia_atendimento_perfis")
-      .select("id, canais_ativos, filas_ativas")
+      .select("id, canais_ativos")
       .eq("agencia_id", u.agencia_id)
       .eq("ativo", true);
     const perfilEscolhido = (perfis || []).find((p) => {
       const canaisArr = (p.canais_ativos || []) as string[];
       return canaisArr.length === 0 || canaisArr.includes(ticket.canal_id as string);
     });
-    if (perfilEscolhido) {
-      const filasArr = (perfilEscolhido.filas_ativas || []) as string[];
-      if (filasArr.length > 0) filaIA = filasArr[0];
-      perfilIA = perfilEscolhido.id;
-    }
+    if (perfilEscolhido) perfilIA = perfilEscolhido.id;
   }
 
   const patch: Record<string, unknown> = {
@@ -49,7 +45,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     ia_pausada: false,
     updated_at: new Date().toISOString(),
   };
-  if (filaIA) patch.fila_id = filaIA;
   if (perfilIA) patch.ia_perfil_id = perfilIA;
 
   const { error } = await sb

@@ -35,30 +35,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const novaPausada = typeof body.pausada === "boolean" ? body.pausada : !ticket.ia_pausada;
 
-  // Se reativando IA: também garante que está numa fila ativa do perfil
-  let filaAjustada: string | null = null;
+  // Se reativando IA: escolhe o perfil ativo que cobre esse canal (liga o ícone
+  // de robô na lista). NÃO mexe em fila_id — filas fixas foram aposentadas e
+  // setar fila inexistente quebrava FK (tickets_fila_id_fkey).
   let perfilAtribuido: string | null = ticket.ia_perfil_id;
   if (!novaPausada && ticket.canal_id) {
     const { data: perfis } = await sb
       .from("ia_atendimento_perfis")
-      .select("id, canais_ativos, filas_ativas")
+      .select("id, canais_ativos")
       .eq("agencia_id", u.agencia_id)
       .eq("ativo", true);
     const perfilEscolhido = (perfis || []).find((p) => {
       const arr = (p.canais_ativos || []) as string[];
       return arr.length === 0 || arr.includes(ticket.canal_id as string);
     });
-    if (perfilEscolhido) {
-      perfilAtribuido = perfilEscolhido.id;
-      const filasArr = (perfilEscolhido.filas_ativas || []) as string[];
-      if (filasArr.length > 0 && (!ticket.fila_id || !filasArr.includes(ticket.fila_id))) {
-        filaAjustada = filasArr[0];
-      }
-    }
+    if (perfilEscolhido) perfilAtribuido = perfilEscolhido.id;
   }
 
   const patch: Record<string, unknown> = { ia_pausada: novaPausada };
-  if (filaAjustada) patch.fila_id = filaAjustada;
   if (perfilAtribuido) patch.ia_perfil_id = perfilAtribuido;
   // Fix: marca instante de reativacao manual da IA. Usado pelo guard
   // pausa_se_humano_responder pra ignorar mensagens do atendente
@@ -87,8 +81,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     acao: "update",
     entidade: "ticket_ia_toggle",
     entidadeId: id,
-    payload: { ia_pausada: novaPausada, fila_ajustada: filaAjustada },
+    payload: { ia_pausada: novaPausada, perfil: perfilAtribuido },
   });
 
-  return NextResponse.json({ ok: true, ia_pausada: novaPausada, fila_id: filaAjustada || ticket.fila_id });
+  return NextResponse.json({ ok: true, ia_pausada: novaPausada, fila_id: ticket.fila_id });
 }
