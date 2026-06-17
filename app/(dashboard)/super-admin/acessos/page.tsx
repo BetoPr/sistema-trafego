@@ -34,7 +34,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
   const sb = createServiceClient();
 
   const [{ data: usuarios }, { data: agencias }, { data: cobrancaConfig }, { data: canaisRaw }, { data: ultimasCobrancas }] = await Promise.all([
-    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, created_at, deleted_at").order("nome"),
+    sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, ultimo_login, ultimo_logout, created_at, deleted_at").order("nome"),
     sb.from("agencias").select("id, nome, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado").order("nome"),
     sb.from("super_admin_cobranca_config").select("canal_id, horario, template_texto, ativo").eq("id", 1).maybeSingle(),
     sb.from("canais").select("id, nome, numero_conectado, status, agencia_id").order("nome"),
@@ -121,9 +121,10 @@ export default async function AcessosPage({ searchParams }: PageProps) {
         <div className="mk-card mk-card-lg acesso-edit-card" style={{ marginBottom: 14 }}>
           <h3 className="card-title" style={{ marginBottom: 14 }}>{editando ? `Editar — ${editando.nome}` : "Novo acesso"}</h3>
           {editando && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14, padding: "10px 12px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 14, padding: "10px 12px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}>
               <Stat label="Criado em" valor={new Date(editando.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} />
               <Stat label="Última entrada no CRM" valor={editando.ultimo_login ? new Date(editando.ultimo_login).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "Nunca"} cor={editando.ultimo_login ? "#10b981" : "var(--mk-text-muted)"} />
+              <Stat label="Última saída no CRM" valor={editando.ultimo_logout ? new Date(editando.ultimo_logout).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"} cor={editando.ultimo_logout ? "var(--mk-text-secondary)" : "var(--mk-text-muted)"} />
               <Stat label="Status" valor={editando.ativo ? "Ativo" : "Inativo"} cor={editando.ativo ? "#10b981" : "#C97064"} />
             </div>
           )}

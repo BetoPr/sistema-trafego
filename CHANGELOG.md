@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-17
 
+- **22:17** — **"Última saída no CRM" no editar acesso (Super Admin).**
+  - Migration: coluna `usuarios.ultimo_logout timestamptz`.
+  - Carimbada em 3 pontos: signOut explícito (`lib/actions/auth.ts`), heartbeat offline ao fechar aba (`/api/usuarios/heartbeat`), e cron `usuarios-offline` (heartbeat parado > 90s).
+  - UI editar acesso: card agora mostra 4 colunas — Criado em · Última entrada · **Última saída** · Status.
+
 - **22:10** — **Fila IA vira ícone de robô na lista + fix navegação Instâncias.**
   - Lista de atendimentos: tickets atendidos pela IA (`ia_perfil_id && !ia_pausada`) mostram ícone de robô verde (`ti-robot`, mesmo do card "IA ativa") ao lado do tempo/olho. Quando humano assume (IA pausada), o ícone some.
   - Filas fixas do sistema (IA Atendendo / Atendimento Humano, `filas.fixa`) não viram mais badge no card nem aparecem no filtro de filas. Aba "Abertos" fica como lista limpa de contatos (humanos sem label; IA marcada só pelo robô).

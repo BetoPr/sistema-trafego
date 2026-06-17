@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const agora = new Date().toISOString();
 
   if (body?.offline) {
-    await sb.from("usuarios").update({ online: false }).eq("id", auth.user.id);
+    await sb.from("usuarios").update({ online: false, ultimo_logout: agora }).eq("id", auth.user.id);
     return NextResponse.json({ ok: true, offline: true });
   }
 

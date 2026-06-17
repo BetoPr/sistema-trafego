@@ -18,9 +18,10 @@ export async function GET(req: NextRequest) {
 
   const sb = createServiceClient();
   const cutoff = new Date(Date.now() - 90_000).toISOString();
+  // Carimba ultimo_logout com o ultimo heartbeat conhecido (instante real em que sumiu)
   const { data, error } = await sb
     .from("usuarios")
-    .update({ online: false })
+    .update({ online: false, ultimo_logout: cutoff })
     .eq("online", true)
     .lt("ultimo_heartbeat", cutoff)
     .select("id");
