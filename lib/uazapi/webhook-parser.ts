@@ -17,6 +17,7 @@ export type UazapiEventType =
   | "presence"
   | "groups"
   | "newsletter_messages"
+  | "history"
   | "unknown";
 
 export interface UazapiWebhookPayload {
@@ -111,6 +112,7 @@ export function detectEventType(p: UazapiWebhookPayload): UazapiEventType {
   if (ev === "presence") return "presence";
   if (ev === "groups") return "groups";
   if (ev === "newsletter_messages") return "newsletter_messages";
+  if (ev === "history" || ev === "messages_history" || ev === "history_sync") return "history";
   return "unknown";
 }
 

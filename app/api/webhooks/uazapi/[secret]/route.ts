@@ -73,6 +73,14 @@ export async function POST(
   });
 
   try {
+    // Evento 'history' = sync de mensagens antigas pos-QR (UAZAPI dispara em massa).
+    // NAO processar — ja foram processadas quando recebidas em tempo real,
+    // ou sao mais antigas do que o cliente precisa pra responder. Evita IA
+    // re-responder histórico inteiro quando usuario reconecta WhatsApp.
+    if (evento === "history") {
+      return NextResponse.json({ ok: true, skipped: "history_sync" });
+    }
+
     if (evento === "messages") {
       const parsed = parseMessage(payload);
       if (!parsed) return NextResponse.json({ ok: true, skipped: "sem_mensagem" });
