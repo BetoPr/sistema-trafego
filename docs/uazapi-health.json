@@ -1,0 +1,172 @@
+{
+  "gerado_em": "2026-06-18T14:02:42.702Z",
+  "instancia": "Restauração",
+  "base_url": "https://sistema-trafego.uazapi.com",
+  "uazapi": "uazapiGO v2.1.1 (139 endpoints)",
+  "testados": [
+    {
+      "nome": "instance_status",
+      "metodo": "GET",
+      "path": "/instance/status",
+      "uso": "Status real da conexão (connected/loggedIn)",
+      "status": 200,
+      "ok": true,
+      "ms": 186,
+      "obs": ""
+    },
+    {
+      "nome": "webhook_get",
+      "metodo": "GET",
+      "path": "/webhook",
+      "uso": "Ler config de webhook da instância",
+      "status": 200,
+      "ok": true,
+      "ms": 185,
+      "obs": ""
+    },
+    {
+      "nome": "labels",
+      "metodo": "GET",
+      "path": "/labels",
+      "uso": "Etiquetas do WhatsApp Business (import)",
+      "status": 200,
+      "ok": true,
+      "ms": 184,
+      "obs": "0 etiqueta(s)"
+    },
+    {
+      "nome": "contacts",
+      "metodo": "GET",
+      "path": "/contacts?contactScope=all",
+      "uso": "Contatos com número real (@s.whatsapp.net)",
+      "status": 200,
+      "ok": true,
+      "ms": 208,
+      "obs": "1334 contato(s)"
+    },
+    {
+      "nome": "chat_find",
+      "metodo": "POST",
+      "path": "/chat/find",
+      "uso": "Lista chats (import contatos/histórico)",
+      "status": 200,
+      "ok": true,
+      "ms": 187,
+      "obs": ""
+    },
+    {
+      "nome": "group_list",
+      "metodo": "GET",
+      "path": "/group/list",
+      "uso": "Lista grupos (envio em grupo)",
+      "status": 200,
+      "ok": true,
+      "ms": 574,
+      "obs": ""
+    },
+    {
+      "nome": "chat_details",
+      "metodo": "POST",
+      "path": "/chat/details",
+      "uso": "Resolve número real do @lid",
+      "status": 200,
+      "ok": true,
+      "ms": 186,
+      "obs": ""
+    },
+    {
+      "nome": "message_find",
+      "metodo": "POST",
+      "path": "/message/find",
+      "uso": "Histórico de mensagens do chat",
+      "status": 200,
+      "ok": true,
+      "ms": 185,
+      "obs": ""
+    },
+    {
+      "nome": "chat_nameimage",
+      "metodo": "POST",
+      "path": "/chat/GetNameAndImageURL",
+      "uso": "Nome + foto de um número",
+      "status": 200,
+      "ok": true,
+      "ms": 184,
+      "obs": ""
+    }
+  ],
+  "mutaveis_nao_testados": [
+    {
+      "nome": "send_text",
+      "metodo": "POST",
+      "path": "/send/text",
+      "uso": "Enviar texto"
+    },
+    {
+      "nome": "send_media",
+      "metodo": "POST",
+      "path": "/send/media",
+      "uso": "Enviar imagem/áudio/doc"
+    },
+    {
+      "nome": "message_download",
+      "metodo": "POST",
+      "path": "/message/download",
+      "uso": "Baixar mídia recebida"
+    },
+    {
+      "nome": "message_react",
+      "metodo": "POST",
+      "path": "/message/react",
+      "uso": "Reagir com emoji"
+    },
+    {
+      "nome": "message_delete",
+      "metodo": "POST",
+      "path": "/message/delete",
+      "uso": "Apagar mensagem"
+    },
+    {
+      "nome": "webhook_set",
+      "metodo": "POST",
+      "path": "/webhook",
+      "uso": "Configurar webhook"
+    },
+    {
+      "nome": "instance_connect",
+      "metodo": "POST",
+      "path": "/instance/connect",
+      "uso": "Conectar (QR)"
+    },
+    {
+      "nome": "instance_disconnect",
+      "metodo": "POST",
+      "path": "/instance/disconnect",
+      "uso": "Desconectar"
+    },
+    {
+      "nome": "instance_create",
+      "metodo": "POST",
+      "path": "/instance/create",
+      "uso": "Criar instância (admin)"
+    },
+    {
+      "nome": "instance_all",
+      "metodo": "GET",
+      "path": "/instance/all",
+      "uso": "Listar instâncias (admin)"
+    },
+    {
+      "nome": "instance_delete",
+      "metodo": "DELETE",
+      "path": "/instance",
+      "uso": "Deletar instância"
+    },
+    {
+      "nome": "group_update*",
+      "metodo": "POST",
+      "path": "/group/update*",
+      "uso": "Editar grupo (membros/nome/desc/img)"
+    }
+  ]
+}

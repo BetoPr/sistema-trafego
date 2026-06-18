@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **14:02** — **Healthcheck dos endpoints UAZAPI + relatório consultável.**
+  - `scripts/uazapi-healthcheck.ts`: testa ao vivo os endpoints de LEITURA que o CRM usa (status HTTP, com retry pra evitar falso negativo) e documenta os mutáveis sem disparar. Grava `docs/UAZAPI-STATUS.md` (tabela legível) + `docs/uazapi-health.json` (snapshot pra comparar via git).
+  - Rodada (instância Restauração): **9/9 leitura OK** — instance/status, webhook, labels, contacts, chat/find, group/list, chat/details, message/find, GetNameAndImageURL.
+  - Etiquetas Guilherme: re-checado, **/labels = 0** (segue sem sincronizar pra UAZAPI — precisa reconectar o WhatsApp dele).
+
 - **13:37** — **Resolve número real dos contatos `@lid` via `/chat/details`.**
   - `/chat/details` traz o campo `phone` com o número real mesmo pra chats `@lid` (que `/chat/find` e `/contacts` escondem). Nova `instanceChatDetails` + `resolverNumerosLid` (1 chamada por contato, bounded).
   - Integrado no import (resolve até 120 por vez, o resto na próxima) + backfill do Guilherme: **273/276 @lid resolvidos**.
