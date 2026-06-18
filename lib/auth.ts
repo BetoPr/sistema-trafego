@@ -15,7 +15,7 @@ export async function requireUserWithAgencia() {
   const { supabase, user } = await requireUser();
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("id, nome, email, role, agencia_id, agencias(id, nome, slug, branding)")
+    .select("id, nome, email, role, agencia_id, avatar_url, agencias(id, nome, slug, branding)")
     .eq("id", user.id)
     .single();
 

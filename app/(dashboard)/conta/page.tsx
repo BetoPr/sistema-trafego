@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { salvarPerfilProprio, alterarSenha } from "./_actions";
+import AvatarForm from "./_avatar-form";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string }>;
@@ -10,7 +11,7 @@ export default async function ContaPage({ searchParams }: PageProps) {
   const ctx = await requireAuth();
   const sp = await searchParams;
   const sb = createServiceClient();
-  const { data: u } = await sb.from("usuarios").select("nome, email, telefone, role").eq("id", ctx.userId).single();
+  const { data: u } = await sb.from("usuarios").select("nome, email, telefone, role, avatar_url").eq("id", ctx.userId).single();
 
   return (
     <section className="mk-page">
@@ -25,18 +26,14 @@ export default async function ContaPage({ searchParams }: PageProps) {
 
       <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
         <h3 className="card-title" style={{ marginBottom: 14 }}>Perfil</h3>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(155,125,191,0.25)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 22 }}>
-            {(u?.nome || "?").slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>{u?.nome}</div>
-            <div style={{ fontSize: 12, color: "var(--mk-text-muted)" }}>{u?.email}</div>
-            <div style={{ marginTop: 4 }}>
-              <span className={`mk-badge ${u?.role === "super_admin" ? "b-red" : u?.role === "admin" ? "b-purple" : "b-gray"}`}>
-                {u?.role === "super_admin" ? "Super Admin" : u?.role === "admin" ? "Administrador" : "Atendente"}
-              </span>
-            </div>
+        <AvatarForm nome={u?.nome ?? "?"} avatarUrl={u?.avatar_url ?? null} />
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{u?.nome}</div>
+          <div style={{ fontSize: 12, color: "var(--mk-text-muted)" }}>{u?.email}</div>
+          <div style={{ marginTop: 4 }}>
+            <span className={`mk-badge ${u?.role === "super_admin" ? "b-red" : u?.role === "admin" ? "b-purple" : "b-gray"}`}>
+              {u?.role === "super_admin" ? "Super Admin" : u?.role === "admin" ? "Administrador" : "Atendente"}
+            </span>
           </div>
         </div>
         <form action={salvarPerfilProprio} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -58,8 +55,8 @@ export default async function ContaPage({ searchParams }: PageProps) {
   );
 }
 
-function labelOk(k: string) { return ({ perfil: "Perfil atualizado.", senha: "Senha alterada." } as Record<string, string>)[k] || "OK."; }
-function labelErr(k: string) { return ({ nome: "Nome obrigatório.", senha_curta: "Senha precisa de 6+ caracteres.", senha_diferente: "Senhas não coincidem.", auth: "Erro auth." } as Record<string, string>)[k] || "Erro."; }
+function labelOk(k: string) { return ({ perfil: "Perfil atualizado.", senha: "Senha alterada.", foto: "Foto de perfil atualizada.", foto_removida: "Foto removida." } as Record<string, string>)[k] || "OK."; }
+function labelErr(k: string) { return ({ nome: "Nome obrigatório.", senha_curta: "Senha precisa de 6+ caracteres.", senha_diferente: "Senhas não coincidem.", auth: "Erro auth.", foto: "Selecione uma imagem.", foto_tipo: "Arquivo precisa ser imagem.", foto_grande: "Imagem muito grande (máx 5MB).", upload: "Falha ao subir a foto." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
   const cor = tipo === "ok" ? "#10b981" : "#C97064";

@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **06:56** — **Foto de perfil do usuário (avatar) — trocar/remover em Conta → Meu Perfil.**
+  - Qualquer usuário logado (inclusive admin) troca a própria foto. Sobe em `/conta`, comprime no navegador (recorta quadrado central, 400px, JPEG 0.85) e salva em bucket público `avatares`.
+  - Aparece no topo (avatar do menu do usuário) e na página Conta. Sem foto = iniciais como antes.
+  - `usuarios.avatar_url` (já existia) populado; foto antiga é apagada do storage ao trocar. Actions `salvarAvatar`/`removerAvatar` em `conta/_actions.ts`; `Topbar` e `lib/auth` passam a ler `avatar_url`.
+
 - **06:48** — **Logo SONAR na sidebar: radar não fica mais cortado num retângulo.**
   - Causa: `.logo-text` tinha `height:52px; overflow:hidden` → cortava o radar de fundo (520px) numa caixa retangular visível ao redor.
   - Fix: máscara radial elíptica no `.logo-text` (fade suave nas bordas, núcleo opaco preserva o wordmark) + radar de fundo reduzido (520→220) e altura 52→64. Agora o radar esvanece em vez de cortar.

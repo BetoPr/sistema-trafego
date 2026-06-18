@@ -45,6 +45,7 @@ export default async function DashboardLayout({
               userName={usuario.nome}
               userEmail={usuario.email}
               agencia={agencia?.nome ?? "—"}
+              avatarUrl={(usuario as { avatar_url?: string | null }).avatar_url ?? null}
             />
             <CommandPalette role={usuario.role} />
             <NotificacaoMensagens agenciaId={usuario.agencia_id} />

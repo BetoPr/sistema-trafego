@@ -19,9 +19,10 @@ interface TopbarProps {
   userName: string;
   userEmail: string;
   agencia: string;
+  avatarUrl?: string | null;
 }
 
-export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
+export function Topbar({ userName, userEmail, agencia, avatarUrl }: TopbarProps) {
   const initial = userName.charAt(0).toUpperCase() || "U";
   const router = useRouter();
   const { openMobile } = useCollapse();
@@ -82,7 +83,10 @@ export function Topbar({ userName, userEmail, agencia }: TopbarProps) {
             title={userName}
             aria-label="Menu do usuário"
           >
-            {initial}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt={userName} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+            ) : initial}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuGroup>
