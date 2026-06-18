@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **04:47** — **Catálogo central de modelos de IA + seletor amigável + fallback automático.**
+  - `lib/ia-atendimento/modelos-catalogo.ts`: fonte única dos modelos (OpenAI/Anthropic/Groq) com nome amigável, categoria, custo, velocidade, contexto, o que suporta, melhor-para, evitar e fallback. Inclui família GPT-5.x (gpt-5.4-mini/nano, gpt-5.4, gpt-5.5, gpt-5.5-pro) marcada como experimental (disponibilidade incerta).
+  - `_modelo-picker.tsx`: seletor por categoria (Recomendados/Econômicos/Contexto longo/Avançados) com cartão explicando custo/velocidade/contexto/ferramentas/melhor-para/evitar/fallback + aviso em modelos caros/experimentais. Substitui os 2 selects crus na aba Identidade.
+  - **Fallback automático no executor:** se o modelo escolhido falhar (ex: GPT-5.x não liberado na conta), tenta o fallback do catálogo (modelo real). A IA nunca quebra por escolha de modelo. Novo evento de log `fallback_modelo`.
+  - Padrão de modelo por provider (gpt-4.1 / claude-sonnet-4-6 / llama-3.3-70b) — todos REAIS.
+  - Escopo: aplicado o núcleo simples (catálogo + seletor + fallback). Partes enterprise da spec (roteador automático multi-campo, multiagentes, Responses API, observability dashboard, idempotência) deliberadamente fora — "não tão técnico".
+
 - **04:39** — **Conexão do canal: status real, aviso no chat e continuidade ao trocar/recriar canal.**
   - **Auto-cura de status:** webhook marca o canal `connected` ao receber mensagem; envio que falha marca `disconnected`. Acaba o status defasado (mostrava desconectado mas recebia / mostrava conectado mas não enviava).
   - **Aviso no chat:** banner vermelho "Canal desconectado — não é possível enviar" no topo do atendimento quando o canal cai; envio falho não some mais num alerta, fica visível.

@@ -8,6 +8,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { chamarIA, type MsgIA } from "./providers";
+import { fallbackDe } from "./modelos-catalogo";
 import { buildToolsSchema, executarTool, type CtxIA } from "./tools-runner";
 import { dividirEmBlocos, gapAleatorio, type FormatoResposta } from "./split";
 import { buildContextoTemporal, aplicarPlaceholders } from "./contexto-temporal";
@@ -363,16 +364,42 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     mensagens.push({ role: "user", content: novoTexto });
   }
 
-  // 7. Chama IA
-  const resp = await chamarIA({
-    provider: perfil.provider,
-    modelo: perfil.modelo,
-    apiKey,
-    mensagens,
-    tools,
-    maxTokens: perfil.max_tokens_por_resposta,
-    temperatura: Number(perfil.temperatura),
-  });
+  // 7. Chama IA — com fallback automático de modelo.
+  // Se o modelo escolhido falhar (ex: não existe na conta / indisponível),
+  // tenta o fallback do catálogo. Assim a IA não quebra por escolha de modelo.
+  let modeloEfetivo = perfil.modelo as string;
+  let resp;
+  try {
+    resp = await chamarIA({
+      provider: perfil.provider,
+      modelo: modeloEfetivo,
+      apiKey,
+      mensagens,
+      tools,
+      maxTokens: perfil.max_tokens_por_resposta,
+      temperatura: Number(perfil.temperatura),
+    });
+  } catch (e) {
+    const fb = fallbackDe(modeloEfetivo);
+    if (!fb || fb === modeloEfetivo) throw e;
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "fallback_modelo",
+      payload: { de: modeloEfetivo, para: fb, erro: e instanceof Error ? e.message : String(e) },
+    });
+    modeloEfetivo = fb;
+    resp = await chamarIA({
+      provider: perfil.provider,
+      modelo: fb,
+      apiKey,
+      mensagens,
+      tools,
+      maxTokens: perfil.max_tokens_por_resposta,
+      temperatura: Number(perfil.temperatura),
+    });
+  }
 
   // 8. Log da resposta
   await sb.from("ia_atendimento_log").insert({
@@ -504,7 +531,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
     try {
       const resp2 = await chamarIA({
         provider: perfil.provider,
-        modelo: perfil.modelo,
+        modelo: modeloEfetivo,
         apiKey,
         mensagens: [
           ...mensagens,

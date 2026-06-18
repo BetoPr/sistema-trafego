@@ -21,6 +21,7 @@ import ApiKeyInput from "./_api-key-input";
 import PlaceholderPicker from "./_placeholder-picker";
 import FerramentaForm from "./_ferramenta-form";
 import { PerfilTabs, Tab } from "./_perfil-tabs";
+import ModeloPicker from "./_modelo-picker";
 import UsoTokensCard from "./_uso-tokens-card";
 import { carregarUsoTokens, type IntervaloUso, type ResumoUso } from "@/lib/ia-atendimento/uso-tokens";
 
@@ -545,24 +546,7 @@ function PerfilForm({
 
         <fieldset style={fs}>
           <legend style={legend}>Modelo IA</legend>
-          <div style={grid2}>
-            <div>
-              <label style={lbl}>Provider</label>
-              <select name="provider" defaultValue={provider} style={inp}>
-                <option value="anthropic">Anthropic (Claude)</option>
-                <option value="openai">OpenAI (ChatGPT)</option>
-                <option value="groq">Groq (Llama)</option>
-              </select>
-            </div>
-            <div>
-              <label style={lbl}>Modelo</label>
-              <select name="modelo" defaultValue={editando?.modelo ?? "gpt-4o-mini"} style={inp}>
-                {Object.entries(MODELOS).flatMap(([, lista]) =>
-                  lista.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)
-                )}
-              </select>
-            </div>
-          </div>
+          <ModeloPicker defaultProvider={provider} defaultModelo={editando?.modelo ?? undefined} />
           <div>
             <label style={lbl}>Chave API</label>
             <ApiKeyInput
