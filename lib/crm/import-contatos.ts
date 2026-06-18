@@ -12,7 +12,7 @@
  * Pula etiquetas nativas (Não lidas, Grupos, Favoritos) por default.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { instanceListLabels, instanceFindChats, type UazapiLabel, type UazapiChat } from "@/lib/uazapi/client";
+import { instanceListLabels, instanceFindChats, instanceListContacts, type UazapiLabel, type UazapiChat } from "@/lib/uazapi/client";
 
 const LABELS_NATIVAS = new Set(["Não lidas", "Grupos", "Favoritos", "Não lidos"]);
 
@@ -20,6 +20,8 @@ export interface ImportResumo {
   contatos_totais: number;
   contatos_novos: number;
   contatos_existentes: number;
+  contatos_reais_totais: number;
+  contatos_reais_novos: number;
   etiquetas_criadas: number;
   etiquetas_existentes: number;
   etiquetas_aplicadas: number;
@@ -43,6 +45,8 @@ export async function importarContatosUazapi(params: {
     contatos_totais: 0,
     contatos_novos: 0,
     contatos_existentes: 0,
+    contatos_reais_totais: 0,
+    contatos_reais_novos: 0,
     etiquetas_criadas: 0,
     etiquetas_existentes: 0,
     etiquetas_aplicadas: 0,
@@ -144,6 +148,36 @@ export async function importarContatosUazapi(params: {
     resumo.etiquetas_criadas_nomes.push(lbl.name);
   }
 
+  // 2.5 Contatos com NÚMERO REAL via /contacts.
+  // /chat/find devolve @lid (privacidade, sem telefone); /contacts devolve o jid
+  // real (@s.whatsapp.net). Importa esses primeiro pra lista de contatos sair certa.
+  try {
+    const contatosApi = await instanceListContacts({ baseUrl: params.baseUrl, token: params.token }, "all");
+    const reais = contatosApi.filter((c) => /@s\.whatsapp\.net$/.test(c.jid || ""));
+    resumo.contatos_reais_totais = reais.length;
+    const jidsReais = reais.map((c) => c.jid);
+    const jaTemReal = new Set<string>();
+    for (let i = 0; i < jidsReais.length; i += 200) {
+      const { data } = await params.sb
+        .from("contatos").select("wa_id").eq("agencia_id", params.agenciaId).in("wa_id", jidsReais.slice(i, i + 200));
+      for (const r of (data || []) as Array<{ wa_id: string }>) jaTemReal.add(r.wa_id);
+    }
+    const novosReais = reais
+      .filter((c) => !jaTemReal.has(c.jid))
+      .map((c) => {
+        const num = c.jid.replace(/@.+$/, "");
+        const nome = (c.contact_name || c.contact_FirstName || num).trim() || num;
+        return { agencia_id: params.agenciaId, wa_id: c.jid, whatsapp: num, nome, primeiro_nome: (c.contact_FirstName || nome.split(" ")[0]) || null, foto_url: null };
+      });
+    for (let i = 0; i < novosReais.length; i += 100) {
+      const { error } = await params.sb.from("contatos").insert(novosReais.slice(i, i + 100));
+      if (error) { resumo.erros.push(`contatos-reais batch ${i}: ${error.message}`); continue; }
+      resumo.contatos_reais_novos += Math.min(100, novosReais.length - i);
+    }
+  } catch (e) {
+    resumo.erros.push(`contatos-reais: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
   // 3. Itera chats em páginas (limit 500 por chamada)
   const PAGE = 500;
   let offset = 0;
@@ -200,7 +234,8 @@ export async function importarContatosUazapi(params: {
     novos.push({
       agencia_id: params.agenciaId,
       wa_id: c.wa_chatid,
-      whatsapp: c.wa_chatid.replace(/@.+$/, ""),
+      // @lid não tem telefone real (privacidade) → não grava número falso.
+      whatsapp: c.wa_chatid.endsWith("@lid") ? "" : c.wa_chatid.replace(/@.+$/, ""),
       nome,
       primeiro_nome: nome.split(" ")[0] || null,
       foto_url: c.image || c.imagePreview || null,

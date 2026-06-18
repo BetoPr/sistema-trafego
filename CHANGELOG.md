@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **13:23** — **Import de contatos puxa NÚMERO REAL via `/contacts` (resolve o `@lid`).**
+  - Causa: `/chat/find` devolve `@lid` (privacidade do WhatsApp, sem telefone). O endpoint `/contacts?contactScope=all` devolve o `jid` real (`@s.whatsapp.net`).
+  - `instanceListContacts` novo + passo no `importarContatosUazapi`: importa todos os contatos com número real. `@lid` (sem telefone) deixa de gravar número falso — campo fica vazio (decisão: manter contato, sem número).
+  - Backfill Guilherme: **12 → 1141 contatos com número real** (+ 276 @lid sem número falso). Vale pra qualquer import futuro (dele ou de outro).
+  - Obs: 179 contatos no WhatsApp seguem `@lid` mesmo no /contacts (mascarados pelo WhatsApp) — esses o número não existe pra ninguém.
+
 - **13:15** — **Fix: permissões de menu (quadrados em branco) + escopo por role.**
   - Causa: `/usuarios` renderizava a lista legada `PERMISSOES_MENU` (22 chaves antigas tipo kanban/protocolos) e só 6 tinham rótulo → resto aparecia como quadrado vazio.
   - Nova fonte única `MENU_PERMISSOES` em `lib/crm/permissions.ts` com os menus REAIS do CRM (todos rotulados). `menusVisiveis(role)`: admin vê 12 quadros; super_admin vê 15 (Relatórios Ads, Cobranças, Webhooks só pra super). `parsePermissoes` passou a iterar a mesma lista. (Tela de Acessos do super já estava correta.)

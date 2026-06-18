@@ -587,6 +587,30 @@ export interface UazapiLabel {
   owner: string;      // numero da conta
 }
 
+export interface UazapiContact {
+  jid: string;               // ex: "557381837447@s.whatsapp.net" (NÚMERO REAL) ou "...@lid"
+  contact_name?: string;
+  contact_FirstName?: string;
+}
+
+/**
+ * GET /contacts — lista contatos CONHECIDOS com o número real (jid @s.whatsapp.net).
+ * Diferente de /chat/find, que devolve @lid (privacidade). Use pra puxar telefone real.
+ * scope: "all" | "inAddressBook" | "notInAddressBook".
+ */
+export async function instanceListContacts(
+  inst: UazapiInstance,
+  scope: "all" | "inAddressBook" | "notInAddressBook" = "all",
+): Promise<UazapiContact[]> {
+  const r = (await call(inst.baseUrl, `/contacts?contactScope=${scope}`, {
+    method: "GET",
+    headers: { token: inst.token },
+    timeoutMs: 45_000,
+  })) as UazapiContact[] | { contacts?: UazapiContact[] };
+  if (Array.isArray(r)) return r;
+  return r.contacts ?? [];
+}
+
 export interface UazapiChat {
   id: string;
   wa_chatid: string;

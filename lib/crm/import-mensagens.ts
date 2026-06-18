@@ -73,7 +73,8 @@ export async function importarMensagensUazapi(params: {
   for (const chat of chats) {
     resumo.chats_processados++;
     const waId = chat.wa_chatid;
-    const whatsapp = waId.replace(/@.+$/, "");
+    // @lid não expõe telefone real (privacidade) → não grava número falso.
+    const whatsapp = waId.endsWith("@lid") ? "" : waId.replace(/@.+$/, "");
 
     // contato (reusa por wa_id, senão cria)
     let contatoId: string;
