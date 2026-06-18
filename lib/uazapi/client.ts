@@ -346,6 +346,41 @@ export async function instanceDownloadMessage(
   })) as DownloadedMedia;
 }
 
+// =========================================
+// HISTÓRICO de mensagens (import / migração)
+// =========================================
+
+export interface UazapiMensagem {
+  id: string;            // "owner:msgid" completo
+  messageid: string;     // id curto
+  chatid: string;
+  fromMe: boolean;
+  messageTimestamp: number; // epoch ms
+  messageType?: string;
+  text?: string;
+  content?: { text?: string } | null;
+  fileURL?: string;
+  senderName?: string;
+  isGroup?: boolean;
+}
+
+/**
+ * POST /message/find — lista mensagens de um chat (newest-first).
+ * Body: { chatid, limit }. Resposta: { messages, hasMore, limit }.
+ */
+export async function instanceFindMessages(
+  inst: UazapiInstance,
+  params: { chatid: string; limit?: number },
+): Promise<{ messages: UazapiMensagem[]; hasMore: boolean }> {
+  const r = (await call(inst.baseUrl, "/message/find", {
+    method: "POST",
+    headers: { token: inst.token },
+    body: { chatid: params.chatid, limit: params.limit ?? 30 },
+    timeoutMs: 30_000,
+  })) as { messages?: UazapiMensagem[]; hasMore?: boolean };
+  return { messages: r.messages || [], hasMore: !!r.hasMore };
+}
+
 export async function instanceListGroups(
   inst: UazapiInstance,
   opts: { force?: boolean; noparticipants?: boolean } = {},

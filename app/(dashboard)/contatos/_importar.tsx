@@ -23,6 +23,7 @@ interface ImportResumo {
   duracao_ms: number;
   etiquetas_criadas_nomes: string[];
   erros: string[];
+  mensagens?: { mensagens_novas?: number; chats_processados?: number; tickets_criados?: number; erro?: string } | null;
 }
 
 interface Props {
@@ -156,6 +157,9 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
               <Stat label="Etiquetas criadas" valor={resumo.etiquetas_criadas} cor="#9B7DBF" />
               <Stat label="Etiquetas reaproveitadas" valor={resumo.etiquetas_existentes} cor="var(--mk-text-muted)" />
               <Stat label="Aplicações de etiqueta" valor={resumo.etiquetas_aplicadas} cor="#10b981" />
+              {resumo.mensagens?.mensagens_novas != null && (
+                <Stat label="Mensagens do histórico" valor={resumo.mensagens.mensagens_novas} cor="#5B8BA6" />
+              )}
               {resumo.etiquetas_puladas > 0 && <Stat label="Etiquetas puladas" valor={resumo.etiquetas_puladas} cor="#f59e0b" />}
               {resumo.etiquetas_duplicadas_mescladas > 0 && <Stat label="Duplicadas mescladas" valor={resumo.etiquetas_duplicadas_mescladas} cor="#9B7DBF" />}
             </div>

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { importarContatosUazapi } from "@/lib/crm/import-contatos";
+import { importarMensagensUazapi } from "@/lib/crm/import-mensagens";
 import { audit } from "@/lib/crm/audit";
 
 export const runtime = "nodejs";
@@ -27,12 +28,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
   }
 
-  const body = (await req.json().catch(() => null)) as { canalId?: string; pularLabelsNativas?: boolean } | null;
+  const body = (await req.json().catch(() => null)) as { canalId?: string; pularLabelsNativas?: boolean; incluirMensagens?: boolean } | null;
   if (!body?.canalId) return NextResponse.json({ error: "canalId_obrigatorio" }, { status: 400 });
 
   const { data: canal } = await sb
     .from("canais")
-    .select("id, agencia_id, instance_token_encrypted, status, servidor:super_admin_servidores(base_url)")
+    .select("id, agencia_id, fila_id, instance_token_encrypted, status, servidor:super_admin_servidores(base_url)")
     .eq("id", body.canalId)
     .maybeSingle();
   if (!canal || canal.agencia_id !== u.agencia_id) {
@@ -60,6 +61,25 @@ export async function POST(req: Request) {
     pularLabelsNativas: body.pularLabelsNativas !== false,
   });
 
+  // Histórico recente de conversas (default ligado). Bounded pra caber no tempo.
+  let mensagens = null;
+  if (body.incluirMensagens !== false) {
+    try {
+      mensagens = await importarMensagensUazapi({
+        sb,
+        agenciaId: u.agencia_id,
+        canalId: canal.id,
+        canalFilaPadrao: (canal as { fila_id?: string | null }).fila_id ?? null,
+        baseUrl,
+        token,
+        maxChats: 60,
+        porChat: 20,
+      });
+    } catch (e) {
+      mensagens = { erro: e instanceof Error ? e.message : String(e) };
+    }
+  }
+
   // Marca primeiro import no canal — onboarding banner some
   await sb.from("canais").update({ contatos_importados_em: new Date().toISOString() }).eq("id", canal.id);
 
@@ -72,5 +92,5 @@ export async function POST(req: Request) {
     payload: resumo as unknown as Record<string, unknown>,
   });
 
-  return NextResponse.json(resumo);
+  return NextResponse.json({ ...resumo, mensagens });
 }

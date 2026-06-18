@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **05:08** — **Importação do histórico recente de conversas do WhatsApp (migração).**
+  - Novo `lib/uazapi/client.ts#instanceFindMessages` (POST /message/find) + `lib/crm/import-mensagens.ts`: ao importar contatos/etiquetas, também puxa as últimas ~20 mensagens dos ~60 chats mais recentes e grava no CRM. **Não passa pelo webhook → NÃO aciona a IA.**
+  - Idempotente (dedup por wa_message_id — testado: 2ª rodada = 0 novas). 1 ticket por contato (reaproveita o existente; conversa recente com cliente esperando vira "pendente", resto "fechado"). Re-aponta ticket pro canal atual.
+  - Rota `/api/contatos/importar-uazapi` aceita `incluirMensagens` (default ligado) e retorna o resumo do histórico. UI mostra "Mensagens do histórico". Testado ao vivo: 45 msgs / 3 chats, 0 erros.
+
 - **04:47** — **Catálogo central de modelos de IA + seletor amigável + fallback automático.**
   - `lib/ia-atendimento/modelos-catalogo.ts`: fonte única dos modelos (OpenAI/Anthropic/Groq) com nome amigável, categoria, custo, velocidade, contexto, o que suporta, melhor-para, evitar e fallback. Inclui família GPT-5.x (gpt-5.4-mini/nano, gpt-5.4, gpt-5.5, gpt-5.5-pro) marcada como experimental (disponibilidade incerta).
   - `_modelo-picker.tsx`: seletor por categoria (Recomendados/Econômicos/Contexto longo/Avançados) com cartão explicando custo/velocidade/contexto/ferramentas/melhor-para/evitar/fallback + aviso em modelos caros/experimentais. Substitui os 2 selects crus na aba Identidade.
