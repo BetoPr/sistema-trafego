@@ -20,8 +20,11 @@ export async function resolverNumerosLid(params: {
   baseUrl: string;
   token: string;
   limite?: number;
-}): Promise<{ tentados: number; resolvidos: number; falhas: number }> {
-  const limite = params.limite ?? 300;
+  maxMs?: number; // teto de tempo (o resto fica pra próxima importação)
+}): Promise<{ tentados: number; resolvidos: number; falhas: number; restantes: number }> {
+  const limite = params.limite ?? 600;
+  const maxMs = params.maxMs ?? 180_000;
+  const inicio = Date.now();
 
   const { data: rows } = await params.sb
     .from("contatos")
@@ -29,20 +32,23 @@ export async function resolverNumerosLid(params: {
     .eq("agencia_id", params.agenciaId)
     .like("wa_id", "%@lid")
     .is("deleted_at", null)
-    .limit(limite * 3);
+    .limit(5000);
 
-  const alvo = ((rows || []) as Array<{ id: string; wa_id: string; whatsapp: string | null }>)
-    .filter((c) => !c.whatsapp || c.whatsapp.trim() === "")
-    .slice(0, limite);
+  const pendentes = ((rows || []) as Array<{ id: string; wa_id: string; whatsapp: string | null }>)
+    .filter((c) => !c.whatsapp || c.whatsapp.trim() === "");
+  const alvo = pendentes.slice(0, limite);
 
   let resolvidos = 0;
   let falhas = 0;
+  let tentados = 0;
   for (const c of alvo) {
+    if (Date.now() - inicio > maxMs) break; // estoura tempo → para, resto na próxima
+    tentados++;
     const det = await instanceChatDetails({ baseUrl: params.baseUrl, token: params.token }, c.wa_id);
     const num = normalizarTelefone(det?.phone);
     if (!num || num.length < 8 || num.length > 15) { falhas++; continue; }
     await params.sb.from("contatos").update({ whatsapp: num }).eq("id", c.id);
     resolvidos++;
   }
-  return { tentados: alvo.length, resolvidos, falhas };
+  return { tentados, resolvidos, falhas, restantes: Math.max(0, pendentes.length - resolvidos) };
 }

@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **15:02** — **Importar do WhatsApp: 1 botão faz tudo (etiquetas + contatos nome/número + conversas + dedup).**
+  - O botão "Importar do WhatsApp" (em /contatos) agora roda o fluxo completo num clique: etiquetas (se houver) → contatos com **nome e número real** (via `/contacts` + resolve `@lid` por `/chat/details`) → histórico de conversas → **dedup automático** (junta o registro @lid com histórico ao da agenda, sem duplicar).
+  - Nova função SQL `dedup_contatos_agencia` (migration) chamada no fim do import. Resolver de número com teto de tempo (resto continua numa 2ª importação, idempotente — avisa na tela se sobrar).
+  - Validado em Restauração: estado final 1268 contatos com número, **0 duplicados**, histórico ligado. UI mostra números resolvidos + duplicados juntados.
+
 - **14:02** — **Healthcheck dos endpoints UAZAPI + relatório consultável.**
   - `scripts/uazapi-healthcheck.ts`: testa ao vivo os endpoints de LEITURA que o CRM usa (status HTTP, com retry pra evitar falso negativo) e documenta os mutáveis sem disparar. Grava `docs/UAZAPI-STATUS.md` (tabela legível) + `docs/uazapi-health.json` (snapshot pra comparar via git).
   - Rodada (instância Restauração): **9/9 leitura OK** — instance/status, webhook, labels, contacts, chat/find, group/list, chat/details, message/find, GetNameAndImageURL.

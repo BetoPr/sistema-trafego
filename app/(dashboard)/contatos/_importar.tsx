@@ -24,6 +24,8 @@ interface ImportResumo {
   etiquetas_criadas_nomes: string[];
   erros: string[];
   mensagens?: { mensagens_novas?: number; chats_processados?: number; tickets_criados?: number; erro?: string } | null;
+  numeros_lid?: { resolvidos?: number; restantes?: number; erro?: string } | null;
+  dedup?: { mesclados?: number; erro?: string } | null;
 }
 
 interface Props {
@@ -93,8 +95,7 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
         {estado === "idle" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <p style={{ fontSize: 12.5, color: "var(--mk-text-secondary)", lineHeight: 1.5, margin: 0 }}>
-              Puxa todos os contatos com quem o número conectado já trocou mensagem, junto com as etiquetas marcadas no WhatsApp Business.
-              Não duplica: contatos que já existem na plataforma só ganham as novas etiquetas.
+              Um clique traz tudo: <strong>contatos com nome e número real</strong>, as <strong>etiquetas</strong> do WhatsApp Business (se tiver) e o <strong>histórico de conversas</strong> recentes. Junta automaticamente quem está duplicado — sem bagunça.
             </p>
 
             <div>
@@ -138,7 +139,7 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
             <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
             <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600 }}>Importando…</div>
             <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginTop: 4 }}>
-              Buscando etiquetas + contatos + aplicando etiquetas. Pode levar 30s pra grandes bases.
+              Etiquetas → contatos (nome + número real) → conversas → juntando duplicados. Bases grandes podem levar 1-2 min.
             </div>
           </div>
         )}
@@ -160,9 +161,21 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
               {resumo.mensagens?.mensagens_novas != null && (
                 <Stat label="Mensagens do histórico" valor={resumo.mensagens.mensagens_novas} cor="#5B8BA6" />
               )}
+              {resumo.numeros_lid?.resolvidos != null && resumo.numeros_lid.resolvidos > 0 && (
+                <Stat label="Números resolvidos" valor={resumo.numeros_lid.resolvidos} cor="#10b981" />
+              )}
+              {resumo.dedup?.mesclados != null && resumo.dedup.mesclados > 0 && (
+                <Stat label="Contatos duplicados juntados" valor={resumo.dedup.mesclados} cor="#9B7DBF" />
+              )}
               {resumo.etiquetas_puladas > 0 && <Stat label="Etiquetas puladas" valor={resumo.etiquetas_puladas} cor="#f59e0b" />}
-              {resumo.etiquetas_duplicadas_mescladas > 0 && <Stat label="Duplicadas mescladas" valor={resumo.etiquetas_duplicadas_mescladas} cor="#9B7DBF" />}
             </div>
+
+            {resumo.numeros_lid?.restantes != null && resumo.numeros_lid.restantes > 0 && (
+              <div style={{ background: "rgba(245,158,11,0.10)", border: "0.5px solid rgba(245,158,11,0.4)", borderRadius: 8, padding: "8px 12px", fontSize: 11.5, color: "var(--mk-text-secondary)", display: "flex", gap: 6 }}>
+                <i className="ti ti-info-circle" style={{ color: "#f59e0b" }} />
+                <span>Faltam <strong>{resumo.numeros_lid.restantes}</strong> número(s) a resolver (base grande). É só clicar <strong>Importar</strong> de novo pra terminar — não duplica nada.</span>
+              </div>
+            )}
 
             {resumo.etiquetas_criadas_nomes.length > 0 && (
               <div>

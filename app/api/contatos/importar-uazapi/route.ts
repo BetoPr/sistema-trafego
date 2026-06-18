@@ -82,12 +82,22 @@ export async function POST(req: Request) {
   }
 
   // Resolve número real dos contatos @lid (1 chamada /chat/details cada).
-  // Bounded pra caber no tempo — o resto pega numa próxima importação.
+  // Bounded por tempo — se sobrar, a próxima importação continua (idempotente).
   let numerosLid = null;
   try {
-    numerosLid = await resolverNumerosLid({ sb, agenciaId: u.agencia_id, baseUrl, token, limite: 120 });
+    numerosLid = await resolverNumerosLid({ sb, agenciaId: u.agencia_id, baseUrl, token, limite: 600, maxMs: 180_000 });
   } catch (e) {
     numerosLid = { erro: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Dedup: junta contatos com o mesmo número (o @lid com histórico + o da agenda)
+  // num só, mantendo histórico/etiquetas. Roda sempre — idempotente.
+  let dedup: { mesclados: number } | { erro: string } | null = null;
+  try {
+    const { data } = await sb.rpc("dedup_contatos_agencia", { p_agencia: u.agencia_id });
+    dedup = { mesclados: typeof data === "number" ? data : 0 };
+  } catch (e) {
+    dedup = { erro: e instanceof Error ? e.message : String(e) };
   }
 
   // Marca primeiro import no canal — onboarding banner some
@@ -102,5 +112,5 @@ export async function POST(req: Request) {
     payload: resumo as unknown as Record<string, unknown>,
   });
 
-  return NextResponse.json({ ...resumo, mensagens, numeros_lid: numerosLid });
+  return NextResponse.json({ ...resumo, mensagens, numeros_lid: numerosLid, dedup });
 }
