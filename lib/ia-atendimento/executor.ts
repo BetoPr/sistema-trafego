@@ -464,10 +464,12 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   // 10. Executa tool calls (na ordem que a IA pediu)
   let encerraIA = false;
   let respondeuCliente = false; // garante que o cliente nunca fica sem resposta
+  let suprimirTextoIA = false; // ferramenta (ex: galeria) ja mandou a moldura intro/CTA
   for (const tc of resp.toolCalls) {
     const tool = tools.find((t) => t.name === tc.name);
     if (!tool) continue;
     const r = await executarTool(ctxIA, tool, tc.arguments);
+    if (r.suprimirTextoIA) suprimirTextoIA = true;
     await sb.from("ia_atendimento_log").insert({
       agencia_id: b.agencia_id,
       perfil_id: b.perfil_id,
@@ -496,8 +498,9 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   // foram aposentadas e setar uma fila inexistente quebrava FK (tickets_fila_id_fkey).
   await sb.from("tickets").update({ ia_perfil_id: perfil.id }).eq("id", b.ticket_id);
 
-  // 11. Envia resposta texto (em blocos)
-  if (resp.texto.trim()) {
+  // 11. Envia resposta texto (em blocos). Pula se uma ferramenta ja mandou a
+  // moldura completa (galeria com texto_antes/texto_depois) — evita texto duplicado.
+  if (resp.texto.trim() && !suprimirTextoIA) {
     respondeuCliente = true;
     const formato = (perfil.formato_resposta || {}) as FormatoResposta;
     const blocos = dividirEmBlocos(resp.texto, formato);

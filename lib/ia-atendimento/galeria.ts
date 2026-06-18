@@ -69,5 +69,6 @@ export function escolherImagens(
     return quantidade ? matches.slice(0, quantidade) : matches;
   }
 
-  return quantidade ? itens.slice(0, quantidade) : [itens[0]];
+  // Sem filtro: envia a galeria inteira na ordem definida (antes/depois etc).
+  return quantidade ? itens.slice(0, quantidade) : itens;
 }

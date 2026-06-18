@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **06:13** — **Galeria: estrutura de envio (texto → imagens limpas → CTA) + fix do "nao_encontrada" no chat.**
+  - **Bug do display:** imagens da galeria apareciam como balões "nao_encontrada" no CRM. Causa: a msg salvava o path do bucket `ia-galeria`, mas `/api/media` (que o chat usa) só assina `crm-media` → 404. Imagens chegavam no WhatsApp normalmente; só quebravam na exibição interna. Fix: cada imagem enviada é copiada pro `crm-media` (path por ticket) e a msg aponta pra lá → chat exibe como qualquer mídia. Validado por teste seco (`test-galeria-display.ts`).
+  - **Estrutura de mensagens:** a ferramenta agora manda **1) texto de abertura → 2) cada imagem como mensagem separada e SEM legenda (na ordem) → 3) texto de fechamento (CTA)**. Novos parâmetros `texto_antes`/`texto_depois` (a IA preenche por contexto; fallback configurável em `texto_antes_padrao`/`texto_depois_padrao`). Executor não duplica o texto da IA quando a ferramenta já mandou a moldura (`suprimirTextoIA`).
+  - **Default = galeria inteira na ordem:** `escolherImagens` sem filtro agora envia TODAS as imagens (antes mandava só a 1ª). IA ainda pode limitar via `indices`/`tags`/`quantidade`.
+  - Defaults de texto setados nas 7 ferramentas-galeria (estoque_restauracao + 6 ensaio_*).
+
 - **05:56** — **Galeria: número de posição editável por imagem (ordem de envio clara).**
   - Cada imagem mostra o nº da posição (1º, 2º…) no canto + campo de número editável: digita o número e tecla Enter → vai pra aquela posição. Estrela removida (redundante: posição 1 = capa).
   - Confirmado: a IA envia EXATAMENTE nesta ordem (`carregarGaleria` ordena por `ordem`; seleção preserva). Ordem do estoque_restauracao normalizada (1→4).

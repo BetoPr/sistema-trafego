@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolverReferenciaTemporal } from "./contexto-temporal";
 import { carregarGaleria, gerarSignedUrlGaleria, escolherImagens, formatCatalogoParaIA } from "./galeria";
+import { downloadAndUpload } from "@/lib/crm/storage";
 
 export interface ToolDef {
   name: string;
@@ -140,20 +141,24 @@ export async function buildToolsSchema(
             indices: {
               type: "array",
               items: { type: "integer" },
-              description: "Índices 1-based das imagens a enviar (ex: [1,3]).",
+              description: "Índices 1-based das imagens a enviar (ex: [1,3]). Omita pra enviar TODAS na ordem.",
             },
             tags: {
               type: "array",
               items: { type: "string" },
-              description: "Alternativa: filtra por tags/nome/descricao.",
+              description: "Alternativa: filtra por tags/nome/descrição (ex: ['aniversário']).",
             },
             quantidade: {
               type: "integer",
-              description: "Limite de imagens a enviar (default 1).",
+              description: "Limite de imagens (default: todas).",
             },
-            legenda: {
+            texto_antes: {
               type: "string",
-              description: "Legenda opcional pra acompanhar as imagens.",
+              description: "Mensagem curta enviada ANTES das imagens (lead-in). Ex: 'Olha só alguns exemplos de antes e depois!'. SEMPRE preencha — é a abertura.",
+            },
+            texto_depois: {
+              type: "string",
+              description: "Mensagem curta enviada DEPOIS das imagens (chamada pra ação). Ex: 'Se quiser, me manda sua foto que eu analiso 😊'. SEMPRE preencha — é o fechamento.",
             },
           },
         },
@@ -191,7 +196,7 @@ export async function executarTool(
   ctx: CtxIA,
   tool: ToolDef,
   argumentos: Record<string, unknown>,
-): Promise<{ ok: boolean; resultado: string; encerra_ia?: boolean }> {
+): Promise<{ ok: boolean; resultado: string; encerra_ia?: boolean; suprimirTextoIA?: boolean }> {
   const merged = { ...tool.parametros_padrao, ...argumentos };
 
   switch (tool.acao) {
@@ -372,36 +377,68 @@ export async function executarTool(
       });
       if (!escolhidas.length) return { ok: false, resultado: "nenhuma imagem casou" };
 
-      const legenda = String(argumentos.legenda || "").trim();
+      // Textos de moldura: intro antes + CTA depois. IA preenche; fallback no
+      // parametros_padrao da ferramenta (texto_antes_padrao / texto_depois_padrao).
+      const textoAntes = String(argumentos.texto_antes ?? merged.texto_antes_padrao ?? "").trim();
+      const textoDepois = String(argumentos.texto_depois ?? merged.texto_depois_padrao ?? "").trim();
+
+      const inserirMsgTexto = async (conteudo: string, waId?: string | null) => {
+        await ctx.sb.from("mensagens").insert({
+          ticket_id: ctx.ticketId,
+          agencia_id: ctx.agenciaId,
+          autor: "bot",
+          tipo: "texto",
+          conteudo,
+          status: "enviada",
+          wa_message_id: waId || null,
+          metadata: { ia_perfil_id: ctx.perfilId, tool: "enviar_imagem_galeria" },
+        });
+      };
+
       let enviadas = 0;
       const erros: string[] = [];
 
-      for (let i = 0; i < escolhidas.length; i++) {
-        const im = escolhidas[i];
+      // 1. Mensagem de abertura (separada, antes das imagens)
+      if (textoAntes) {
+        try {
+          const r = await ctx.enviarMensagemUazapi(textoAntes);
+          await inserirMsgTexto(textoAntes, r?.id);
+        } catch (e) {
+          erros.push(`texto_antes falhou: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+
+      // 2. Imagens — uma mensagem por imagem, SEM legenda (limpas), na ordem.
+      //    Copia cada uma pro bucket crm-media (path por ticket) pro chat renderizar:
+      //    a galeria fica em ia-galeria, que /api/media nao resolve → mostrava "nao_encontrada".
+      for (const im of escolhidas) {
         const url = await gerarSignedUrlGaleria(ctx.sb, im.url_storage, 600);
         if (!url) { erros.push(`signed-url falhou: ${im.nome}`); continue; }
-        const captionParaEsta = i === 0 ? (legenda || im.descricao || undefined) : undefined;
         try {
-          const r = await ctx.enviarMidiaUazapi({
-            file: url,
-            type: "image",
-            text: captionParaEsta,
-          });
+          const r = await ctx.enviarMidiaUazapi({ file: url, type: "image" });
+          let midiaPath = im.url_storage; // fallback (imagem ja foi pro WhatsApp de qualquer forma)
+          try {
+            const ext = (im.mime?.split("/")[1] || "jpg").split("+")[0];
+            const up = await downloadAndUpload({
+              agenciaId: ctx.agenciaId,
+              ticketId: ctx.ticketId,
+              sourceUrl: url,
+              filename: `galeria.${ext}`,
+              contentType: im.mime,
+            });
+            if (up?.path) midiaPath = up.path;
+          } catch { /* mantem url_storage */ }
           await ctx.sb.from("mensagens").insert({
             ticket_id: ctx.ticketId,
             agencia_id: ctx.agenciaId,
             autor: "bot",
             tipo: "imagem",
-            conteudo: captionParaEsta || "",
-            midia_url: im.url_storage,
+            conteudo: "",
+            midia_url: midiaPath,
             midia_mime: im.mime,
             status: "enviada",
             wa_message_id: r?.id || null,
-            metadata: {
-              ia_perfil_id: ctx.perfilId,
-              tool: "enviar_imagem_galeria",
-              galeria_id: im.id,
-            },
+            metadata: { ia_perfil_id: ctx.perfilId, tool: "enviar_imagem_galeria", galeria_id: im.id },
           });
           enviadas++;
         } catch (e) {
@@ -409,9 +446,21 @@ export async function executarTool(
         }
       }
 
+      // 3. Mensagem de fechamento (CTA, depois das imagens)
+      if (textoDepois) {
+        try {
+          const r = await ctx.enviarMensagemUazapi(textoDepois);
+          await inserirMsgTexto(textoDepois, r?.id);
+        } catch (e) {
+          erros.push(`texto_depois falhou: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+
       return {
         ok: enviadas > 0,
         resultado: `${enviadas} imagem(ns) enviada(s)` + (erros.length ? `; ${erros.length} erro(s)` : ""),
+        // Moldura (intro/CTA) ja enviada pela ferramenta → executor nao duplica resp.texto.
+        suprimirTextoIA: !!(textoAntes || textoDepois),
       };
     }
 
