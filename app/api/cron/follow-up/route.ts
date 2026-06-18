@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processarFollowUpsDevidos } from "@/lib/crm/follow-up";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * Processa follow-ups devidos. Protegido por CRON_SECRET.
- * Disparado pelo Supabase pg_cron (pg_net) a cada minuto:
- *   Authorization: Bearer <CRON_SECRET>
+ * DESLIGADO (2026-06-18). As sequências/fila de follow-up MANUAL foram removidas do
+ * produto — o follow-up agora é só "Follow-up IA" (envio revisado pelo humano).
+ * Este cron virou no-op autenticado e REVERSÍVEL: pra religar, reimporte
+ * `processarFollowUpsDevidos` de "@/lib/crm/follow-up" e volte a chamá-lo aqui.
+ *
+ * Não confundir com o follow-up AUTOMÁTICO da IA de atendimento
+ * (lib/ia-atendimento/followup-worker.ts), que tem cron próprio e segue ativo.
  */
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -17,7 +20,5 @@ export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${secret}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const inicio = Date.now();
-  const r = await processarFollowUpsDevidos();
-  return NextResponse.json({ ok: true, ...r, duracao_ms: Date.now() - inicio });
+  return NextResponse.json({ ok: true, disabled: true, motivo: "follow_up_manual_removido" });
 }

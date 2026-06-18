@@ -215,14 +215,27 @@ export async function gerarResumoTicket(params: {
   }
 }
 
+/** Estilos de escrita do follow-up (escolhidos no dropdown de Regenerar). */
+const TONS_FOLLOWUP: Record<string, string> = {
+  direto: "Tom DIRETO e objetivo, sem rodeios — vá direto ao ponto.",
+  emocional: "Tom EMOCIONAL, que cria conexão e empatia com o cliente.",
+  na_dor: "Foque na DOR/necessidade do cliente e em como você resolve isso pra ele.",
+  contextualizado: "Use detalhes ESPECÍFICOS do histórico (algo que o cliente disse) pra mostrar que você lembra dele.",
+  simpatico: "Tom SIMPÁTICO, leve e acolhedor.",
+};
+
 /**
  * 3C — Follow-up com IA: resume a conversa parada e decide se vale reengajar,
  * sugerindo uma mensagem pronta. Retorna o rascunho pra revisão humana.
+ * - `tom`: estilo de escrita (ver TONS_FOLLOWUP). Opcional.
+ * - `followups_enviados`: quantos follow-ups da IA já saíram nesta conversa
+ *   (a IA é avisada pra não repetir e o card mostra o contador).
  */
 export async function sugerirFollowUpTicket(params: {
   agenciaId: string;
   ticketId: string;
-}): Promise<{ enviar: boolean; motivo: string; resumo: string; mensagem: string }> {
+  tom?: string;
+}): Promise<{ enviar: boolean; motivo: string; resumo: string; mensagem: string; followups_enviados: number }> {
   const apiKey = await getGroqKey(params.agenciaId);
   if (!apiKey) throw new Error("Groq API key não configurada");
 
@@ -233,6 +246,20 @@ export async function sugerirFollowUpTicket(params: {
   const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
   const conversa = formatConversaParaIA(msgs, contatoNome).slice(-4000);
 
+  // Quantos follow-ups da IA já foram enviados nesta conversa (metadata.follow_up_ia=true).
+  const { count: jaEnviadosCount } = await sb
+    .from("mensagens")
+    .select("id", { count: "exact", head: true })
+    .eq("ticket_id", params.ticketId)
+    .eq("agencia_id", params.agenciaId)
+    .filter("metadata->>follow_up_ia", "eq", "true");
+  const jaEnviados = jaEnviadosCount || 0;
+
+  const tomInstr = params.tom && TONS_FOLLOWUP[params.tom] ? `\nESTILO desejado: ${TONS_FOLLOWUP[params.tom]}` : "";
+  const histInstr = jaEnviados > 0
+    ? `\nIMPORTANTE: já foram enviados ${jaEnviados} follow-up(s) antes nesta conversa. NÃO repita as mesmas frases — varie a abordagem e seja mais leve/breve a cada tentativa.`
+    : "";
+
   const system = `Você é um especialista em vendas e atendimento por WhatsApp. Recebe uma conversa que está PARADA e decide se vale enviar um follow-up para reengajar o cliente.
 
 Responda APENAS um JSON válido:
@@ -241,7 +268,7 @@ Responda APENAS um JSON válido:
 - resumo: 1-2 frases do contexto e do estágio da conversa.
 - enviar: true se faz sentido um follow-up (cliente demonstrou interesse e sumiu, negociação aberta, dúvida/pagamento pendente); false se NÃO faz sentido (já comprou e foi atendido, recusou claramente, conversa irrelevante/spam, ou cliente pediu pra não receber mensagens).
 - motivo: justificativa curta da decisão.
-- mensagem: se enviar=true, o texto do follow-up PRONTO pra enviar — curto, cordial, em português do Brasil, tom de quem está retomando o papo, NUNCA robótico; use o nome do cliente se houver. Se enviar=false, retorne "".`;
+- mensagem: se enviar=true, o texto do follow-up PRONTO pra enviar — curto, cordial, em português do Brasil, tom de quem está retomando o papo, NUNCA robótico; use o nome do cliente se houver. SEMPRE termine com uma pergunta curta (padrão de follow-up, pra puxar resposta). Se enviar=false, retorne "".${tomInstr}${histInstr}`;
 
   const r = await chatComRetry({
     apiKey,
@@ -261,6 +288,7 @@ Responda APENAS um JSON válido:
     motivo: String(p.motivo || ""),
     resumo: String(p.resumo || ""),
     mensagem: String(p.mensagem || ""),
+    followups_enviados: jaEnviados,
   };
 }
 

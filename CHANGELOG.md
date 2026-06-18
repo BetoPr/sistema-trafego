@@ -7,6 +7,15 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **22:06** — **Follow-up reformulado: só "Follow-up IA" (Sequências e Fila removidas) + muito mais controle.**
+  - **Removidas as abas Sequências e Fila** — a página abre direto no Follow-up IA. O cron de sequências manuais foi desligado (no-op reversível); o follow-up automático da IA de atendimento (outro sistema) segue intacto.
+  - **Busca com presets de período:** Hoje · 7 dias · 15 dias · Período (X→Y). Acaba com o teto invisível de 30 dias que limitava a ~28 conversas. **Quantidade** configurável até 500. **Status** Abertos/Pendentes/Ambos. **Filtros** por etiqueta e por conexão.
+  - **Ritmo de IA:** campo "análises por minuto" controla o gasto/limite do Groq ao analisar em lote.
+  - **Cada conversa:** botão **olho** (balão espiando o histórico real antes de mandar), **abrir no atendimento**, **contador de follow-ups já enviados** (a IA é avisada e não repete; mensagem sempre termina com pergunta).
+  - **Regenerar com tom:** Direto · Emocional · Na dor · Contextualizado com histórico · Simpático.
+  - **Etiquetar:** balão com busca + multi-seleção animada + botão "Marcar"; cria "Em follow-up" e "Follow-up feito" se não existirem. Ao **Enviar**, marca "Em follow-up" automaticamente.
+  - **Descartar:** caixa "fechar ticket" → descarta e encerra; sem marcar → cooldown de 12h (some da busca pra não poluir a próxima leva). Migration: coluna `tickets.follow_up_ia_snooze_ate`.
+
 - **20:30** — **Filtros de atendimentos: corrigidas incoerências e o "Mostrar todos".**
   - **Badge fantasma "1 filtro ativo" no load:** o status padrão era calculado de 3 formas diferentes (carga abria só `aberto`, mas `Limpar` e o contador de filtros assumiam `aberto + pendente`). Resultado: o inbox abria escondendo Pendentes e marcando "1 filtro" sem ninguém ter filtrado. Agora abre em `aberto + pendente` (intenção original, alinhado ao resto do código) e o badge começa em 0. Deep-links `?tab=aberto|pendente|fechado` continuam abrindo só aquele status.
   - **"Mostrar todos" agora mostra todos de verdade:** antes só marcava os 3 status mas mantinha conexão/fila/usuário/etiqueta/período ainda filtrando (e exibia ✓ mesmo com a lista recortada). Agora zera todos os recortes e o ✓ só acende quando nada está filtrando.

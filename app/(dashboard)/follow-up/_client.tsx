@@ -1,119 +1,144 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Balao } from "@/components/ui/Balao";
-import { salvarSequencia, toggleSequencia, excluirSequencia, cancelarInscricao, type SequenciaInput, type MsgEtapaInput } from "./_actions";
 
-type Tipo = "texto" | "imagem" | "documento" | "audio" | "video";
-interface Msg { tipo: Tipo; conteudo?: string; midia_url?: string; midia_path?: string; midia_mime?: string; midia_filename?: string; variacoes?: string[] }
-interface Etapa { id?: string; ordem: number; apos_horas: number; mensagens: Msg[] }
-interface Sequencia { id: string; nome: string; descricao: string | null; ativo: boolean; etiqueta_gatilho_id: string | null; delay_min_seg: number; delay_max_seg: number; janela_inicio: string; janela_fim: string; teto_dia: number; etapas: Etapa[] }
 interface Etiqueta { id: string; nome: string; cor: string }
-interface FilaItem { id: string; status: string; etapa_atual: number; proximo_envio_em: string | null; criado_em: string; sequencia: { nome: string } | { nome: string }[] | null; contato: { nome: string | null; whatsapp: string | null } | { nome: string | null; whatsapp: string | null }[] | null }
+interface Canal { id: string; nome: string; status: string }
 
-const TIPOS: { v: Tipo; label: string; icon: string }[] = [
-  { v: "texto", label: "Texto", icon: "ti-message" },
-  { v: "imagem", label: "Imagem", icon: "ti-photo" },
-  { v: "documento", label: "Documento", icon: "ti-file" },
-  { v: "audio", label: "Áudio", icon: "ti-microphone" },
-  { v: "video", label: "Vídeo", icon: "ti-video" },
-];
+type Janela = "hoje" | "7d" | "15d" | "periodo";
+type StatusFiltro = "ambos" | "aberto" | "pendente";
 
-function uno<T>(v: T | T[] | null): T | null { return Array.isArray(v) ? v[0] ?? null : v; }
-const hhmm = (t: string) => (t || "").slice(0, 5);
-
-export function FollowUpClient({ sequencias, fila, etiquetas }: { sequencias: Sequencia[]; fila: FilaItem[]; etiquetas: Etiqueta[] }) {
-  const [tab, setTab] = useState<"seq" | "fila" | "ia">("seq");
-  const [editando, setEditando] = useState<SequenciaInput | null>(null);
-
-  return (
-    <>
-      <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--mk-surface)", borderRadius: 10, border: "0.5px solid var(--mk-border)", width: "fit-content", marginBottom: 16, flexWrap: "wrap" }}>
-        <TabBtn on={tab === "seq"} onClick={() => setTab("seq")} icon="ti-timeline-event">Sequências ({sequencias.length})</TabBtn>
-        <TabBtn on={tab === "fila"} onClick={() => setTab("fila")} icon="ti-users">Fila ({fila.length})</TabBtn>
-        <TabBtn on={tab === "ia"} onClick={() => setTab("ia")} icon="ti-sparkles">Follow-up IA</TabBtn>
-      </div>
-
-      {tab === "seq" && <Sequencias lista={sequencias} onNova={() => setEditando(seqVazia())} onEditar={(s) => setEditando(paraInput(s))} />}
-      {tab === "fila" && <Fila itens={fila} />}
-      {tab === "ia" && <FollowUpIA />}
-
-      {editando && <Editor inicial={editando} etiquetas={etiquetas} onClose={() => setEditando(null)} />}
-    </>
-  );
+interface Cand {
+  ticketId: string;
+  contatoId: string;
+  numero: number;
+  nome: string;
+  whatsapp: string | null;
+  ultima_mensagem_em: string | null;
+  followups_enviados: number;
+  // estado local da análise/edição
+  enviar: boolean;
+  motivo: string;
+  resumo: string;
+  mensagem: string;
+  tom: string;
+  fecharAoDescartar: boolean;
+  _sent?: boolean;
+  _busy?: boolean;
+  _pendente?: boolean;
+  _analisado?: boolean;
 }
 
-// ===== Follow-up com IA (3C) =====
-interface Cand { ticketId: string; numero: number; nome: string; whatsapp: string | null; ultima_mensagem_em: string | null; enviar: boolean; motivo: string; resumo: string; mensagem: string; _sent?: boolean; _busy?: boolean; _pendente?: boolean; _analisado?: boolean }
+const TONS: { v: string; label: string }[] = [
+  { v: "", label: "Padrão (IA decide)" },
+  { v: "direto", label: "Direto" },
+  { v: "emocional", label: "Emocional" },
+  { v: "na_dor", label: "Na dor" },
+  { v: "contextualizado", label: "Contextualizado c/ histórico" },
+  { v: "simpatico", label: "Simpático" },
+];
 
-function FollowUpIA() {
-  const [horas, setHoras] = useState(12);
-  const [limite, setLimite] = useState(40);
+const ETIQUETAS_FOLLOWUP = ["Em follow-up", "Follow-up feito"];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export function FollowUpClient({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Canal[] }) {
+  return <FollowUpIA etiquetas={etiquetas} canais={canais} />;
+}
+
+function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Canal[] }) {
+  // filtros
+  const [janela, setJanela] = useState<Janela>("7d");
+  const [de, setDe] = useState("");
+  const [ate, setAte] = useState("");
+  const [limite, setLimite] = useState(60);
+  const [status, setStatus] = useState<StatusFiltro>("ambos");
+  const [etiquetaSel, setEtiquetaSel] = useState<string[]>([]);
+  const [canalSel, setCanalSel] = useState<string[]>([]);
+  const [porMinuto, setPorMinuto] = useState(12);
   const [delayMin, setDelayMin] = useState(30);
   const [delayMax, setDelayMax] = useState(60);
+
+  // dados
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [cands, setCands] = useState<Cand[] | null>(null);
-  const [enviandoTodos, setEnviandoTodos] = useState(false);
   const [analisando, setAnalisando] = useState<{ feitos: number; total: number } | null>(null);
+  const [enviandoTodos, setEnviandoTodos] = useState(false);
+
+  // balões
+  const [espiar, setEspiar] = useState<Cand | null>(null);
+  const [etiquetar, setEtiquetar] = useState<Cand | null>(null);
+  const [now, setNow] = useState(0);
+  useEffect(() => { setNow(Date.now()); }, []);
 
   function patch(id: string, p: Partial<Cand>) { setCands((cs) => (cs || []).map((c) => (c.ticketId === id ? { ...c, ...p } : c))); }
   function remover(id: string) { setCands((cs) => (cs || []).filter((c) => c.ticketId !== id)); }
 
-  // Passo 1: só busca a lista de conversas paradas (rápido, sem IA) → mostra a quantidade
   async function buscar() {
     setLoading(true); setErro(""); setCands(null); setAnalisando(null);
     try {
-      const r = await fetch("/api/follow-up/ia/verificar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horas, limite }) });
+      const r = await fetch("/api/follow-up/ia/verificar", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ janela, de: de || undefined, ate: ate || undefined, limite, status, etiquetaIds: etiquetaSel, canalIds: canalSel }),
+      });
       const j = await r.json();
       if (!j.ok) { setErro(j.error || "Falha"); return; }
-      const lista: Cand[] = (j.candidatos || []).map((c: Cand) => ({ ...c, enviar: false, motivo: "", resumo: "", mensagem: "", _analisado: false }));
+      const lista: Cand[] = (j.candidatos || []).map((c: Omit<Cand, "enviar" | "motivo" | "resumo" | "mensagem" | "tom" | "fecharAoDescartar">) => ({
+        ...c, enviar: false, motivo: "", resumo: "", mensagem: "", tom: "", fecharAoDescartar: false, _analisado: false,
+      }));
       setCands(lista);
     } catch { setErro("Falha na busca"); } finally { setLoading(false); }
   }
 
-  // Análise da IA de UM ticket (usada no "Analisar" individual e no lote)
-  async function analisarUm(id: string) {
+  async function analisarUm(id: string, tom?: string) {
+    const c = (cands || []).find((x) => x.ticketId === id);
     patch(id, { _pendente: true });
     try {
-      const r = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id }) });
+      const r = await fetch("/api/follow-up/ia/regenerar", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ticketId: id, tom: tom ?? c?.tom ?? "" }),
+      });
       const j = await r.json();
-      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, _pendente: false, _analisado: true });
+      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, followups_enviados: j.followups_enviados ?? c?.followups_enviados ?? 0, _pendente: false, _analisado: true });
       else patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: j.error || "Falha na análise", resumo: "" });
     } catch { patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: "Erro de rede" }); }
   }
 
-  // Passo 2: analisa todos os não-analisados, 1 por vez (escala com a quantidade, sem estourar o TPM)
+  // Analisa todos os não-analisados respeitando o limite por minuto (controla gasto Groq).
   async function analisarTodas() {
-    const pend = (cands || []).filter((c) => !c._analisado);
+    const pend = (cands || []).filter((c) => !c._analisado && !c._pendente);
     if (!pend.length) return;
+    const gap = Math.max(700, Math.round(60000 / Math.max(1, porMinuto)));
     setAnalisando({ feitos: 0, total: pend.length });
     for (let i = 0; i < pend.length; i++) {
       await analisarUm(pend[i].ticketId);
       setAnalisando({ feitos: i + 1, total: pend.length });
-      if (i < pend.length - 1) await new Promise((r) => setTimeout(r, 1200));
+      if (i < pend.length - 1) await sleep(gap);
     }
     setAnalisando(null);
   }
 
-  async function regenerar(id: string) {
-    patch(id, { _busy: true });
+  async function enviar(c: Cand): Promise<boolean> {
+    patch(c.ticketId, { _busy: true });
     try {
-      const r = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id }) });
+      const r = await fetch("/api/follow-up/ia/enviar", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ticketId: c.ticketId, mensagem: c.mensagem }),
+      });
       const j = await r.json();
-      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem });
-    } finally { patch(id, { _busy: false }); }
-  }
-
-  async function enviar(id: string, mensagem: string): Promise<boolean> {
-    patch(id, { _busy: true });
-    try {
-      const r = await fetch("/api/follow-up/ia/enviar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: id, mensagem }) });
-      const j = await r.json();
-      if (j.ok) { patch(id, { _sent: true, _busy: false }); return true; }
-      patch(id, { _busy: false }); return false;
-    } catch { patch(id, { _busy: false }); return false; }
+      if (!j.ok) { patch(c.ticketId, { _busy: false }); return false; }
+      // Auto-etiqueta "Em follow-up" (cria se não existir) — marca que já está em cadência.
+      try {
+        const emFu = etiquetas.find((e) => e.nome.toLowerCase() === "em follow-up");
+        await fetch(`/api/contatos/${c.contatoId}/etiquetas`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify(emFu ? { etiquetaId: emFu.id } : { nome: "Em follow-up", cor: "#f59e0b" }),
+        });
+      } catch {}
+      patch(c.ticketId, { _sent: true, _busy: false, followups_enviados: c.followups_enviados + 1 });
+      return true;
+    } catch { patch(c.ticketId, { _busy: false }); return false; }
   }
 
   async function enviarTodos() {
@@ -122,395 +147,457 @@ function FollowUpIA() {
     setEnviandoTodos(true);
     const dmin = Math.max(0, delayMin), dmax = Math.max(dmin, delayMax);
     for (let i = 0; i < fila.length; i++) {
-      await enviar(fila[i].ticketId, fila[i].mensagem);
-      if (i < fila.length - 1) await new Promise((r) => setTimeout(r, (dmin + Math.random() * (dmax - dmin)) * 1000));
+      await enviar(fila[i]);
+      if (i < fila.length - 1) await sleep((dmin + Math.random() * (dmax - dmin)) * 1000);
     }
     setEnviandoTodos(false);
   }
 
-  const aprovados = (cands || []).filter((c) => c.enviar && !c._sent);
+  async function descartar(c: Cand) {
+    patch(c.ticketId, { _busy: true });
+    try {
+      const r = await fetch("/api/follow-up/ia/descartar", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ticketId: c.ticketId, fechar: c.fecharAoDescartar }),
+      });
+      const j = await r.json();
+      if (j.ok) remover(c.ticketId);
+      else patch(c.ticketId, { _busy: false });
+    } catch { patch(c.ticketId, { _busy: false }); }
+  }
+
   const naoAnalisados = (cands || []).filter((c) => !c._analisado).length;
+  const aprovados = (cands || []).filter((c) => c.enviar && !c._sent && c.mensagem.trim());
 
   return (
     <>
-      <div className="mk-card" style={{ padding: 14, marginBottom: 14 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
-          <Campo label="Conversas paradas há (horas)"><input type="number" min={1} value={horas} onChange={(e) => setHoras(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
-          <Campo label="Limite (quantas trazer)"><input type="number" min={1} max={200} value={limite} onChange={(e) => setLimite(Math.max(1, Math.min(200, +e.target.value)))} style={{ ...inp, width: 110 }} /></Campo>
-          <Campo label="Delay min (s)"><input type="number" min={0} value={delayMin} onChange={(e) => setDelayMin(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
-          <Campo label="Delay máx (s)"><input type="number" min={0} value={delayMax} onChange={(e) => setDelayMax(+e.target.value)} style={{ ...inp, width: 90 }} /></Campo>
+      <style>{`
+        @keyframes fu-pop { from { transform: scale(0.6); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+        @keyframes fu-spin { to { transform: rotate(360deg) } }
+        .fu-chip { transition: background .15s ease, border-color .15s ease, transform .12s ease, color .15s ease; }
+        .fu-chip:active { transform: scale(0.96); }
+        .fu-card { transition: opacity .2s ease, box-shadow .2s ease; }
+      `}</style>
+
+      {/* ===== Barra de filtros ===== */}
+      <div className="mk-card" style={{ padding: 16, marginBottom: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Período */}
+        <div>
+          <Label>Período (conversas paradas)</Label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            {([["hoje", "Hoje"], ["7d", "7 dias"], ["15d", "15 dias"], ["periodo", "Período"]] as [Janela, string][]).map(([v, l]) => (
+              <Pill key={v} on={janela === v} onClick={() => setJanela(v)} icon={v === "periodo" ? "ti-calendar" : "ti-clock"}>{l}</Pill>
+            ))}
+            {janela === "periodo" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4 }}>
+                <input type="date" value={de} onChange={(e) => setDe(e.target.value)} style={{ ...inp, width: 150 }} />
+                <span style={{ color: "var(--mk-text-muted)", fontSize: 12 }}>até</span>
+                <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} style={{ ...inp, width: 150 }} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Status + quantidade + ritmo */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "flex-end" }}>
+          <div>
+            <Label>Status</Label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {([["ambos", "Ambos"], ["aberto", "Abertos"], ["pendente", "Pendentes"]] as [StatusFiltro, string][]).map(([v, l]) => (
+                <Pill key={v} on={status === v} onClick={() => setStatus(v)}>{l}</Pill>
+              ))}
+            </div>
+          </div>
+          <Campo label="Quantidade (até 500)"><input type="number" min={1} max={500} value={limite} onChange={(e) => setLimite(Math.max(1, Math.min(500, +e.target.value)))} style={{ ...inp, width: 130 }} /></Campo>
+          <Campo label="Análises por minuto"><input type="number" min={1} max={60} value={porMinuto} onChange={(e) => setPorMinuto(Math.max(1, Math.min(60, +e.target.value)))} style={{ ...inp, width: 130 }} /></Campo>
+        </div>
+
+        {/* Filtros etiqueta + conexão + delays */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "flex-end" }}>
+          <div>
+            <Label>Etiqueta</Label>
+            <MultiDropdown
+              icon="ti-tag" placeholder="Todas"
+              options={etiquetas.map((e) => ({ id: e.id, label: e.nome, cor: e.cor }))}
+              sel={etiquetaSel} onChange={setEtiquetaSel}
+            />
+          </div>
+          <div>
+            <Label>Conexão</Label>
+            <MultiDropdown
+              icon="ti-plug" placeholder="Todas"
+              options={canais.map((c) => ({ id: c.id, label: c.nome, dot: c.status === "connected" ? "#10b981" : "#C97064" }))}
+              sel={canalSel} onChange={setCanalSel}
+            />
+          </div>
+          <Campo label="Delay envio min (s)"><input type="number" min={0} value={delayMin} onChange={(e) => setDelayMin(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
+          <Campo label="Delay envio máx (s)"><input type="number" min={0} value={delayMax} onChange={(e) => setDelayMax(+e.target.value)} style={{ ...inp, width: 110 }} /></Campo>
+        </div>
+
+        {/* Ações */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", borderTop: "0.5px solid var(--mk-border)", paddingTop: 12 }}>
           <button className="cta-btn" onClick={buscar} disabled={loading || !!analisando}>
-            <i className={`ti ${loading ? "ti-loader-2" : "ti-search"}`} /> {loading ? "Buscando…" : "Buscar conversas"}
+            <i className={`ti ${loading ? "ti-loader-2" : "ti-search"}`} style={loading ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {loading ? "Buscando…" : "Buscar conversas"}
           </button>
           {cands && cands.length > 0 && naoAnalisados > 0 && (
-            <button className="cta-btn" onClick={analisarTodas} disabled={!!analisando} style={{ fontSize: 12, background: "#9B7DBF" }}>
-              <i className={`ti ${analisando ? "ti-loader-2" : "ti-sparkles"}`} /> {analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : `Analisar ${naoAnalisados} com IA`}
+            <button className="cta-btn" onClick={analisarTodas} disabled={!!analisando} style={{ background: "#9B7DBF" }}>
+              <i className={`ti ${analisando ? "ti-loader-2" : "ti-sparkles"}`} style={analisando ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : `Analisar ${naoAnalisados} com IA`}
             </button>
           )}
           {aprovados.length > 0 && (
-            <button className="ghost-btn" onClick={enviarTodos} disabled={enviandoTodos} style={{ fontSize: 12 }}>
+            <button className="ghost-btn" onClick={enviarTodos} disabled={enviandoTodos}>
               <i className="ti ti-send" /> {enviandoTodos ? "Enviando…" : `Enviar ${aprovados.length} aprovado(s)`}
             </button>
           )}
+          {cands && (
+            <span style={{ fontSize: 12, color: "var(--mk-text)", fontWeight: 600, marginLeft: "auto" }}>
+              <i className="ti ti-message-2" style={{ color: "#9B7DBF" }} /> {cands.length} parada(s){naoAnalisados > 0 ? ` · ${naoAnalisados} sem análise` : " · todas analisadas"}
+            </span>
+          )}
         </div>
-        {cands && (
-          <div style={{ fontSize: 12, color: "var(--mk-text)", marginTop: 10, fontWeight: 600 }}>
-            <i className="ti ti-message-2" style={{ color: "#9B7DBF" }} /> {cands.length} conversa(s) em aberto parada(s){naoAnalisados > 0 ? ` · ${naoAnalisados} aguardando análise` : " · todas analisadas"}
-          </div>
-        )}
-        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 8, display: "flex", gap: 6 }}>
-          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> 1º <strong>Buscar</strong> mostra quantas conversas paradas existem. 2º <strong>Analisar</strong> a IA resume e sugere (1 por vez, usa sua chave Groq).
+        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 6, alignItems: "flex-start" }}>
+          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> 1º <strong>Buscar</strong> lista as conversas paradas no período. 2º <strong>Analisar</strong>: a IA resume e sugere (respeita o limite por minuto, usa sua chave Groq). 3º revise e <strong>Envie</strong>.
         </div>
-        {erro && <div style={{ fontSize: 11.5, color: "#C97064", marginTop: 8 }}>{erro}</div>}
+        {erro && <div style={{ fontSize: 11.5, color: "#C97064" }}>{erro}</div>}
       </div>
 
+      {/* ===== Lista ===== */}
       {cands === null ? null : cands.length === 0 ? (
-        <Empty icon="ti-mood-smile" label="Nenhuma conversa parada no período. Tudo em dia!" />
+        <Empty icon="ti-mood-smile" label="Nenhuma conversa parada nesse período/filtro. Tudo em dia!" />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {cands.map((c) => (
-            <div key={c.ticketId} className="mk-card" style={{ padding: 14, opacity: c._sent ? 0.6 : 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <strong style={{ fontSize: 13, color: "var(--mk-text)" }}>{c.nome}</strong>
-                <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>#{c.numero} · {c.whatsapp}</span>
-                {c._pendente ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}><i className="ti ti-loader-2" /> Analisando…</span>
-                  : !c._analisado ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)", marginLeft: "auto" }}>Não analisado</span>
-                  : c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}><i className="ti ti-circle-check" /> Vale follow-up</span>
-                  : <span style={{ fontSize: 10, color: "#94a3b8", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "2px 8px", marginLeft: "auto" }}>Não recomendado</span>}
-              </div>
-              {c.resumo && <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", marginBottom: 4 }}><i className="ti ti-file-text" style={{ color: "var(--mk-text-muted)" }} /> {c.resumo}</div>}
-              {c.motivo && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8, fontStyle: "italic" }}>{c.motivo}</div>}
-
-              {c._pendente ? (
-                <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}><i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite" }} /> Analisando a conversa…</div>
-              ) : !c._analisado ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", flex: 1 }}>Conversa parada — ainda não analisada pela IA.</span>
-                  <button className="ghost-btn" style={{ fontSize: 11.5 }} onClick={() => analisarUm(c.ticketId)}><i className="ti ti-sparkles" /> Analisar</button>
-                  <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} onClick={() => remover(c.ticketId)} title="Remover da lista"><i className="ti ti-x" /></button>
-                </div>
-              ) : c._sent ? (
-                <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Enviado.</div>
-              ) : c.enviar ? (
-                <>
-                  <textarea value={c.mensagem} onChange={(e) => patch(c.ticketId, { mensagem: e.target.value })} rows={3} style={{ ...inp, resize: "vertical" }} placeholder="Mensagem de follow-up…" />
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <button className="cta-btn" style={{ fontSize: 12 }} disabled={c._busy || !c.mensagem.trim()} onClick={() => enviar(c.ticketId, c.mensagem)}><i className="ti ti-send" /> Enviar</button>
-                    <button className="ghost-btn" style={{ fontSize: 12 }} disabled={c._busy} onClick={() => regenerar(c.ticketId)}><i className={`ti ${c._busy ? "ti-loader-2" : "ti-refresh"}`} /> Regenerar</button>
-                    <button className="ghost-btn" style={{ fontSize: 12, color: "#C97064", marginLeft: "auto" }} onClick={() => remover(c.ticketId)}><i className="ti ti-x" /> Descartar</button>
-                  </div>
-                </>
-              ) : (
-                <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} onClick={() => remover(c.ticketId)}><i className="ti ti-trash" /> Remover da lista</button>
-              )}
-            </div>
+            <CardCand
+              key={c.ticketId}
+              c={c} now={now}
+              onPatch={(p) => patch(c.ticketId, p)}
+              onAnalisar={() => analisarUm(c.ticketId)}
+              onRegenerar={(tom) => analisarUm(c.ticketId, tom)}
+              onEnviar={() => enviar(c)}
+              onDescartar={() => descartar(c)}
+              onEspiar={() => setEspiar(c)}
+              onEtiquetar={() => setEtiquetar(c)}
+            />
           ))}
         </div>
+      )}
+
+      {/* ===== Balão espiar conversa ===== */}
+      {espiar && <EspiarBalao cand={espiar} onClose={() => setEspiar(null)} />}
+
+      {/* ===== Balão etiquetar ===== */}
+      {etiquetar && (
+        <EtiquetarBalao
+          cand={etiquetar}
+          etiquetas={etiquetas}
+          onClose={() => setEtiquetar(null)}
+        />
       )}
     </>
   );
 }
 
-// ===== Lista de sequências =====
-function Sequencias({ lista, onNova, onEditar }: { lista: Sequencia[]; onNova: () => void; onEditar: (s: Sequencia) => void }) {
-  const router = useRouter();
-  const [, start] = useTransition();
-
+// ===== Card de candidato =====
+function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onEnviar, onDescartar, onEspiar, onEtiquetar }: {
+  c: Cand; now: number;
+  onPatch: (p: Partial<Cand>) => void;
+  onAnalisar: () => void;
+  onRegenerar: (tom: string) => void;
+  onEnviar: () => void;
+  onDescartar: () => void;
+  onEspiar: () => void;
+  onEtiquetar: () => void;
+}) {
   return (
-    <>
-      <button className="cta-btn" onClick={onNova} style={{ marginBottom: 14 }}>
-        <i className="ti ti-plus" /> Nova sequência
-      </button>
+    <div className="mk-card fu-card" style={{ padding: 14, opacity: c._sent ? 0.6 : 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+        <strong style={{ fontSize: 13, color: "var(--mk-text)" }}>{c.nome}</strong>
+        <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>#{c.numero} · {c.whatsapp || "—"}</span>
+        {now > 0 && c.ultima_mensagem_em && (
+          <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}><i className="ti ti-clock" /> parado há {tempoParado(c.ultima_mensagem_em, now)}</span>
+        )}
+        {c.followups_enviados > 0 && (
+          <span title="Follow-ups já enviados nesta conversa" style={{ fontSize: 9.5, color: "#9B7DBF", border: "0.5px solid #9B7DBF66", borderRadius: 6, padding: "1px 7px" }}>
+            <i className="ti ti-repeat" /> {c.followups_enviados} follow-up{c.followups_enviados > 1 ? "s" : ""}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        {/* Ações sempre disponíveis */}
+        <button className="ghost-btn" style={miniBtn} title="Espiar histórico da conversa" onClick={onEspiar}><i className="ti ti-eye" /></button>
+        <a className="ghost-btn" style={{ ...miniBtn, textDecoration: "none" }} title="Abrir no atendimento" href={`/atendimentos?t=${c.ticketId}`}><i className="ti ti-external-link" /></a>
+        {/* Status análise */}
+        {c._pendente ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}><i className="ti ti-loader-2" style={{ animation: "fu-spin 1s linear infinite" }} /> analisando</span>
+          : !c._analisado ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>não analisado</span>
+          : c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px" }}><i className="ti ti-circle-check" /> vale follow-up</span>
+          : <span style={{ fontSize: 10, color: "#94a3b8", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "2px 8px" }}>não recomendado</span>}
+      </div>
 
-      {lista.length === 0 ? (
-        <Empty icon="ti-timeline-event" label="Nenhuma sequência ainda. Crie uma para começar." />
+      {c.resumo && <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", marginBottom: 4 }}><i className="ti ti-file-text" style={{ color: "var(--mk-text-muted)" }} /> {c.resumo}</div>}
+      {c.motivo && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8, fontStyle: "italic" }}>{c.motivo}</div>}
+
+      {c._sent ? (
+        <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Follow-up enviado.</div>
+      ) : !c._analisado ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", flex: 1 }}>Conversa parada — ainda não analisada pela IA.</span>
+          <button className="ghost-btn" style={{ fontSize: 11.5 }} disabled={c._pendente} onClick={onAnalisar}><i className="ti ti-sparkles" /> Analisar</button>
+          <DescartarBtn c={c} onPatch={onPatch} onDescartar={onDescartar} />
+        </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-          {lista.map((s) => (
-            <div key={s.id} className="mk-card" style={{ padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.nome}</div>
-                  {s.descricao && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 2 }}>{s.descricao}</div>}
+        <>
+          {c.enviar && (
+            <>
+              <textarea value={c.mensagem} onChange={(e) => onPatch({ mensagem: e.target.value })} rows={3} style={{ ...inp, resize: "vertical" }} placeholder="Mensagem de follow-up…" />
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button className="cta-btn" style={{ fontSize: 12 }} disabled={c._busy || !c.mensagem.trim()} onClick={onEnviar}><i className="ti ti-send" /> Enviar</button>
+                {/* Regenerar com tom */}
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <select value={c.tom} onChange={(e) => onPatch({ tom: e.target.value })} style={{ ...inp, width: 180, padding: "6px 8px", fontSize: 11.5 }} title="Tom da mensagem">
+                    {TONS.map((t) => <option key={t.v} value={t.v}>{t.label}</option>)}
+                  </select>
+                  <button className="ghost-btn" style={{ fontSize: 12 }} disabled={c._pendente} onClick={() => onRegenerar(c.tom)}><i className={`ti ${c._pendente ? "ti-loader-2" : "ti-refresh"}`} style={c._pendente ? { animation: "fu-spin 1s linear infinite" } : undefined} /> Regenerar</button>
                 </div>
-                <Switch on={s.ativo} onToggle={() => start(async () => { await toggleSequencia(s.id, !s.ativo); router.refresh(); })} />
+                <button className="ghost-btn" style={{ fontSize: 12 }} onClick={onEtiquetar}><i className="ti ti-tag" /> Etiquetar</button>
+                <span style={{ flex: 1 }} />
+                <DescartarBtn c={c} onPatch={onPatch} onDescartar={onDescartar} />
               </div>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                <Chip icon="ti-timeline-event">{(s.etapas || []).length} etapa(s)</Chip>
-                <Chip icon="ti-clock">{hhmm(s.janela_inicio)}–{hhmm(s.janela_fim)}</Chip>
-                <Chip icon="ti-bolt">delay {s.delay_min_seg}–{s.delay_max_seg}s</Chip>
-                <Chip icon="ti-shield">teto {s.teto_dia}/dia</Chip>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="ghost-btn" style={{ fontSize: 12, flex: 1 }} onClick={() => onEditar(s)}><i className="ti ti-pencil" /> Editar</button>
-                <button className="ghost-btn" style={{ fontSize: 12, color: "#C97064" }} onClick={() => { if (confirm(`Excluir "${s.nome}"? As inscrições ativas serão removidas.`)) start(async () => { await excluirSequencia(s.id); router.refresh(); }); }}>
-                  <i className="ti ti-trash" />
-                </button>
-              </div>
+            </>
+          )}
+          {!c.enviar && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button className="ghost-btn" style={{ fontSize: 11.5 }} onClick={onEtiquetar}><i className="ti ti-tag" /> Etiquetar</button>
+              <button className="ghost-btn" style={{ fontSize: 11.5 }} disabled={c._pendente} onClick={() => onRegenerar(c.tom)}><i className="ti ti-refresh" /> Reanalisar</button>
+              <span style={{ flex: 1 }} />
+              <DescartarBtn c={c} onPatch={onPatch} onDescartar={onDescartar} />
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
-    </>
-  );
-}
-
-// ===== Fila =====
-function Fila({ itens }: { itens: FilaItem[] }) {
-  const router = useRouter();
-  const [, start] = useTransition();
-  const [mount, setMount] = useState(false);
-  useEffect(() => setMount(true), []);
-
-  if (itens.length === 0) return <Empty icon="ti-users" label="Ninguém na fila. Inscreva um atendimento pelo painel do contato." />;
-
-  return (
-    <div className="mk-card" style={{ padding: 0, overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ borderBottom: "0.5px solid var(--mk-border)" }}>
-            <Th>Contato</Th><Th>Sequência</Th><Th>Etapa</Th><Th>Próximo envio</Th><Th>Status</Th><Th> </Th>
-          </tr>
-        </thead>
-        <tbody>
-          {itens.map((it) => {
-            const c = uno(it.contato); const sq = uno(it.sequencia);
-            return (
-              <tr key={it.id} style={{ borderBottom: "0.5px solid var(--mk-border)" }}>
-                <Td><strong>{c?.nome || "—"}</strong><div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{c?.whatsapp}</div></Td>
-                <Td>{sq?.nome || "—"}</Td>
-                <Td>{it.etapa_atual}</Td>
-                <Td>{mount ? relativo(it.proximo_envio_em) : ""}</Td>
-                <Td><StatusBadge s={it.status} /></Td>
-                <Td><button className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }} onClick={() => start(async () => { await cancelarInscricao(it.id); router.refresh(); })}>Cancelar</button></Td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
 
-// ===== Editor (Balao) =====
-function Editor({ inicial, etiquetas, onClose }: { inicial: SequenciaInput; etiquetas: Etiqueta[]; onClose: () => void }) {
-  const router = useRouter();
-  const [s, setS] = useState<SequenciaInput>(inicial);
-  const [erro, setErro] = useState("");
-  const [saving, start] = useTransition();
+function DescartarBtn({ c, onPatch, onDescartar }: { c: Cand; onPatch: (p: Partial<Cand>) => void; onDescartar: () => void }) {
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--mk-text-muted)", cursor: "pointer" }} title="Ao descartar, encerra o ticket. Sem marcar: volta pra busca só após 12h.">
+        <input type="checkbox" checked={c.fecharAoDescartar} onChange={(e) => onPatch({ fecharAoDescartar: e.target.checked })} /> fechar ticket
+      </label>
+      <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} disabled={c._busy} onClick={onDescartar} title={c.fecharAoDescartar ? "Descartar e fechar o ticket" : "Descartar (some por 12h)"}>
+        <i className={`ti ${c._busy ? "ti-loader-2" : c.fecharAoDescartar ? "ti-circle-x" : "ti-x"}`} style={c._busy ? { animation: "fu-spin 1s linear infinite" } : undefined} /> Descartar
+      </button>
+    </div>
+  );
+}
 
-  function set<K extends keyof SequenciaInput>(k: K, v: SequenciaInput[K]) { setS((p) => ({ ...p, [k]: v })); }
+// ===== Balão: espiar histórico =====
+interface MsgEspiar { id: string; autor: string; tipo: string; conteudo: string | null; transcricao: string | null; created_at: string }
+function EspiarBalao({ cand, onClose }: { cand: Cand; onClose: () => void }) {
+  const [msgs, setMsgs] = useState<MsgEspiar[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const r = await fetch(`/api/atendimentos/${cand.ticketId}/full`);
+        const j = await r.json();
+        if (vivo) setMsgs(j.mensagens || []);
+      } catch {} finally { if (vivo) setLoading(false); }
+    })();
+    return () => { vivo = false; };
+  }, [cand.ticketId]);
 
-  function addEtapa() { if (s.etapas.length >= 3) return; setS((p) => ({ ...p, etapas: [...p.etapas, { apos_horas: 1, mensagens: [{ tipo: "texto", conteudo: "" }] }] })); }
-  function rmEtapa(i: number) { setS((p) => ({ ...p, etapas: p.etapas.filter((_, j) => j !== i) })); }
-  function setEtapa(i: number, e: { apos_horas: number; mensagens: MsgEtapaInput[] }) { setS((p) => ({ ...p, etapas: p.etapas.map((x, j) => (j === i ? e : x)) })); }
+  return (
+    <Balao open onClose={onClose} largura={560} icone="ti-eye"
+      titulo={<>Espiando — {cand.nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400, fontFamily: "monospace", fontSize: 11 }}>#{cand.numero}</span></>}>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}><i className="ti ti-loader-2" style={{ animation: "fu-spin 1s linear infinite" }} /> Carregando conversa…</div>
+      ) : msgs.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>Sem mensagens neste ticket.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {msgs.map((m) => (
+            <div key={m.id} style={{ display: "flex", justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
+              <div style={{ maxWidth: "78%", minWidth: 0, padding: "7px 11px", borderRadius: 10, background: m.autor === "cliente" ? "var(--mk-surface)" : "rgba(155,125,191,0.18)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text)", fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
+                {m.tipo === "audio" ? (
+                  <><span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-microphone" /> Áudio</span>{m.transcricao && <div style={{ marginTop: 4, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic" }}>{m.transcricao}</div>}</>
+                ) : m.tipo === "imagem" ? (
+                  <span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-photo" /> Imagem{m.conteudo ? ` — ${m.conteudo}` : ""}</span>
+                ) : (m.conteudo || m.transcricao || `[${m.tipo}]`)}
+                <div style={{ fontSize: 9, color: "var(--mk-text-muted)", marginTop: 3, textAlign: "right" }}>{new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Balao>
+  );
+}
 
-  function salvar() {
-    setErro("");
-    start(async () => {
-      const r = await salvarSequencia(s);
-      if (r?.ok) { onClose(); router.refresh(); } else setErro(r?.erro || "Falha ao salvar");
-    });
+// ===== Balão: etiquetar (busca + multi-seleção animada + Marcar) =====
+interface OpcEtq { id: string | null; nome: string; cor: string; criar?: boolean }
+function EtiquetarBalao({ cand, etiquetas, onClose }: { cand: Cand; etiquetas: Etiqueta[]; onClose: () => void }) {
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState<Set<string>>(new Set()); // chave = id ou "novo:"+nome
+  const [salvando, setSalvando] = useState(false);
+  const [feito, setFeito] = useState(0);
+
+  // Catálogo: etiquetas da agência + as 2 padrão de follow-up (criadas se não existirem).
+  const opcoes = useMemo<OpcEtq[]>(() => {
+    const base: OpcEtq[] = etiquetas.map((e) => ({ id: e.id, nome: e.nome, cor: e.cor }));
+    for (const nome of ETIQUETAS_FOLLOWUP) {
+      if (!base.some((o) => o.nome.toLowerCase() === nome.toLowerCase())) {
+        base.push({ id: null, nome, cor: nome === "Em follow-up" ? "#f59e0b" : "#10b981", criar: true });
+      }
+    }
+    return base.sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [etiquetas]);
+
+  const filtradas = opcoes.filter((o) => o.nome.toLowerCase().includes(q.trim().toLowerCase()));
+  const chave = (o: OpcEtq) => (o.id ? o.id : `novo:${o.nome}`);
+  const toggle = (o: OpcEtq) => setSel((s) => { const n = new Set(s); const k = chave(o); n.has(k) ? n.delete(k) : n.add(k); return n; });
+
+  async function marcar() {
+    const escolhidas = opcoes.filter((o) => sel.has(chave(o)));
+    if (!escolhidas.length) return;
+    setSalvando(true);
+    for (const o of escolhidas) {
+      try {
+        await fetch(`/api/contatos/${cand.contatoId}/etiquetas`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify(o.id ? { etiquetaId: o.id } : { nome: o.nome, cor: o.cor }),
+        });
+        setFeito((n) => n + 1);
+      } catch {}
+    }
+    setSalvando(false);
+    onClose();
   }
 
   return (
-    <Balao open onClose={onClose} titulo={s.id ? "Editar sequência" : "Nova sequência"} icone="ti-timeline-event" largura={560}
+    <Balao open onClose={onClose} largura={460} icone="ti-tag"
+      titulo={<>Etiquetar — {cand.nome}</>}
       footer={
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
-          {erro && <span style={{ color: "#C97064", fontSize: 11.5, marginRight: "auto", alignSelf: "center" }}>{erro}</span>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+          <span style={{ fontSize: 11, color: "var(--mk-text-muted)", marginRight: "auto" }}>{sel.size} selecionada(s)</span>
           <button className="ghost-btn" onClick={onClose}>Cancelar</button>
-          <button className="cta-btn" onClick={salvar} disabled={saving}><i className="ti ti-device-floppy" /> {saving ? "Salvando…" : "Salvar"}</button>
+          <button className="cta-btn" onClick={marcar} disabled={salvando || sel.size === 0}>
+            <i className={`ti ${salvando ? "ti-loader-2" : "ti-circle-check"}`} style={salvando ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {salvando ? `Marcando ${feito}/${sel.size}…` : "Marcar"}
+          </button>
         </div>
       }>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <Campo label="Nome"><input value={s.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex: Cobrança PIX" style={inp} /></Campo>
-        <Campo label="Descrição (opcional)"><input value={s.descricao || ""} onChange={(e) => set("descricao", e.target.value)} style={inp} /></Campo>
-
-        <Campo label="Etiqueta gatilho (opcional) — inscreve o contato ao marcar esta etiqueta">
-          <select value={s.etiqueta_gatilho_id || ""} onChange={(e) => set("etiqueta_gatilho_id", e.target.value || null)} style={inp}>
-            <option value="">— Sem gatilho (inscrição manual) —</option>
-            {etiquetas.map((et) => <option key={et.id} value={et.id}>{et.nome}</option>)}
-          </select>
-        </Campo>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Campo label="Janela início"><input type="time" value={s.janela_inicio} onChange={(e) => set("janela_inicio", e.target.value)} style={inp} /></Campo>
-          <Campo label="Janela fim"><input type="time" value={s.janela_fim} onChange={(e) => set("janela_fim", e.target.value)} style={inp} /></Campo>
-          <Campo label="Delay min (s)"><input type="number" min={0} value={s.delay_min_seg} onChange={(e) => set("delay_min_seg", +e.target.value)} style={inp} /></Campo>
-          <Campo label="Delay máx (s)"><input type="number" min={0} value={s.delay_max_seg} onChange={(e) => set("delay_max_seg", +e.target.value)} style={inp} /></Campo>
-          <Campo label="Teto/dia (agência)"><input type="number" min={1} value={s.teto_dia} onChange={(e) => set("teto_dia", +e.target.value)} style={inp} /></Campo>
-          <label style={{ display: "flex", alignItems: "flex-end", gap: 8, fontSize: 12.5, color: "var(--mk-text-secondary)", paddingBottom: 8 }}>
-            <input type="checkbox" checked={s.ativo} onChange={(e) => set("ativo", e.target.checked)} /> Ativa
-          </label>
-        </div>
-
-        <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-            <strong style={{ fontSize: 12.5, color: "var(--mk-text)" }}>Etapas ({s.etapas.length}/3)</strong>
-            <button className="ghost-btn" style={{ fontSize: 11.5, marginLeft: "auto" }} disabled={s.etapas.length >= 3} onClick={addEtapa}><i className="ti ti-plus" /> Etapa</button>
-          </div>
-          {s.etapas.map((e, i) => (
-            <EtapaEditor key={i} idx={i} etapa={e} onChange={(v) => setEtapa(i, v)} onRemove={() => rmEtapa(i)} />
-          ))}
-        </div>
-
-        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", lineHeight: 1.5, display: "flex", gap: 6 }}>
-          <i className="ti ti-shield-check" style={{ marginTop: 1, color: "#10b981" }} />
-          Pausa sozinho quando o cliente responde. Só envia dentro da janela. Delay entre mensagens evita cara de robô.
-        </div>
+      <div style={{ position: "relative", marginBottom: 10 }}>
+        <i className="ti ti-search" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--mk-text-muted)", fontSize: 13 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar etiqueta…" autoFocus style={{ ...inp, paddingLeft: 30 }} />
+      </div>
+      <div className="chat-scroll" style={{ display: "flex", flexWrap: "wrap", gap: 7, maxHeight: 320, overflowY: "auto", padding: 2 }}>
+        {filtradas.length === 0 ? (
+          <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", padding: 12 }}>Nenhuma etiqueta. Digite e crie pelas opções padrão.</div>
+        ) : filtradas.map((o) => {
+          const on = sel.has(chave(o));
+          return (
+            <button key={chave(o)} className="fu-chip" onClick={() => toggle(o)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                padding: "6px 11px", borderRadius: 999,
+                border: `1px solid ${on ? o.cor : "var(--mk-border)"}`,
+                background: on ? `${o.cor}26` : "var(--mk-surface-2)",
+                color: on ? "var(--mk-text)" : "var(--mk-text-secondary)",
+                transform: on ? "scale(1.03)" : "scale(1)",
+              }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: o.cor, flexShrink: 0 }} />
+              {o.nome}
+              {o.criar && !on && <span style={{ fontSize: 9, color: "var(--mk-text-muted)" }}>(criar)</span>}
+              {on && <i className="ti ti-check" style={{ fontSize: 14, color: o.cor, animation: "fu-pop .18s ease" }} />}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 10, display: "flex", gap: 6 }}>
+        <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> "Em follow-up" e "Follow-up feito" são criadas automaticamente se você marcar e ainda não existirem.
       </div>
     </Balao>
   );
 }
 
-function EtapaEditor({ idx, etapa, onChange, onRemove }: { idx: number; etapa: { apos_horas: number; mensagens: MsgEtapaInput[] }; onChange: (v: { apos_horas: number; mensagens: MsgEtapaInput[] }) => void; onRemove: () => void }) {
-  function setMsg(i: number, m: MsgEtapaInput) { onChange({ ...etapa, mensagens: etapa.mensagens.map((x, j) => (j === i ? m : x)) }); }
-  function addMsg() { onChange({ ...etapa, mensagens: [...etapa.mensagens, { tipo: "texto", conteudo: "" }] }); }
-  function rmMsg(i: number) { onChange({ ...etapa, mensagens: etapa.mensagens.filter((_, j) => j !== i) }); }
+// ===== Dropdown multi-seleção (filtros etiqueta/conexão) =====
+function MultiDropdown({ options, sel, onChange, placeholder, icon }: {
+  options: { id: string; label: string; cor?: string; dot?: string }[];
+  sel: string[]; onChange: (v: string[]) => void; placeholder: string; icon: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onClick(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+  const toggle = (id: string) => onChange(sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]);
+  const label = sel.length === 0 ? placeholder : `${sel.length} selecionada(s)`;
 
   return (
-    <div style={{ border: "0.5px solid var(--mk-border)", borderRadius: 8, padding: 10, marginBottom: 8, background: "var(--mk-surface)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--mk-text)" }}>Follow-up {idx + 1}</span>
-        <span style={{ fontSize: 11, color: "var(--mk-text-muted)", marginLeft: "auto", display: "flex", alignItems: "center", gap: 5 }}>
-          enviar após
-          <input type="number" min={0} step={0.5} value={etapa.apos_horas} onChange={(e) => onChange({ ...etapa, apos_horas: +e.target.value })} style={{ ...inp, width: 60, padding: "4px 6px" }} /> h
-        </span>
-        <button className="ghost-btn" style={{ fontSize: 11, color: "#C97064", padding: "2px 6px" }} onClick={onRemove}><i className="ti ti-trash" /></button>
-      </div>
-
-      {etapa.mensagens.map((m, i) => (
-        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8, paddingLeft: 8, borderLeft: "2px solid var(--mk-border)" }}>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <select value={m.tipo} onChange={(e) => setMsg(i, { ...m, tipo: e.target.value as Tipo })} style={{ ...inp, width: 130, padding: "5px 8px" }}>
-              {TIPOS.map((t) => <option key={t.v} value={t.v}>{t.label}</option>)}
-            </select>
-            {etapa.mensagens.length > 1 && <button className="ghost-btn" style={{ fontSize: 10.5, color: "#C97064", marginLeft: "auto", padding: "2px 6px" }} onClick={() => rmMsg(i)}><i className="ti ti-x" /></button>}
-          </div>
-          {m.tipo === "texto" ? (
-            <>
-              <textarea value={m.conteudo || ""} onChange={(e) => setMsg(i, { ...m, conteudo: e.target.value })} placeholder="Mensagem…" rows={2} style={{ ...inp, resize: "vertical" }} />
-              <textarea
-                value={(m.variacoes || []).join("\n")}
-                onChange={(e) => setMsg(i, { ...m, variacoes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-                placeholder="Variações anti-robô (uma por linha, opcional)"
-                rows={2}
-                style={{ ...inp, resize: "vertical", fontSize: 11, color: "var(--mk-text-secondary)" }}
-              />
-            </>
-          ) : (
-            <MediaMsg m={m} onChange={(mm) => setMsg(i, mm)} />
-          )}
+    <div ref={ref} style={{ position: "relative" }}>
+      <button onClick={() => setOpen((v) => !v)} style={{ ...inp, width: 200, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", textAlign: "left" }}>
+        <i className={`ti ${icon}`} style={{ color: "var(--mk-text-muted)" }} />
+        <span style={{ flex: 1, color: sel.length ? "var(--mk-text)" : "var(--mk-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        {sel.length > 0 && <i className="ti ti-x" onClick={(e) => { e.stopPropagation(); onChange([]); }} style={{ color: "var(--mk-text-muted)" }} />}
+        <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ color: "var(--mk-text-muted)" }} />
+      </button>
+      {open && (
+        <div className="chat-scroll" style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 50, minWidth: 220, maxHeight: 280, overflowY: "auto", background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 8, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.3)" }}>
+          {options.length === 0 ? (
+            <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", padding: 8 }}>Nada disponível.</div>
+          ) : options.map((o) => {
+            const on = sel.includes(o.id);
+            return (
+              <button key={o.id} onClick={() => toggle(o.id)} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "7px 8px", borderRadius: 6, border: 0, background: on ? "var(--mk-surface-2)" : "transparent", color: "var(--mk-text)", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
+                <i className={`ti ${on ? "ti-square-check-filled" : "ti-square"}`} style={{ fontSize: 16, color: on ? "var(--mk-accent)" : "var(--mk-text-muted)" }} />
+                {o.cor && <span style={{ width: 9, height: 9, borderRadius: "50%", background: o.cor }} />}
+                {o.dot && <span style={{ width: 8, height: 8, borderRadius: "50%", background: o.dot }} />}
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
+              </button>
+            );
+          })}
         </div>
-      ))}
-      <button className="ghost-btn" style={{ fontSize: 11, width: "100%" }} onClick={addMsg}><i className="ti ti-plus" /> Mensagem</button>
+      )}
     </div>
   );
 }
 
 // ===== helpers / UI bits =====
-function seqVazia(): SequenciaInput {
-  return { nome: "", descricao: "", ativo: true, etiqueta_gatilho_id: null, delay_min_seg: 1, delay_max_seg: 2, janela_inicio: "08:00", janela_fim: "20:00", teto_dia: 50, etapas: [{ apos_horas: 1, mensagens: [{ tipo: "texto", conteudo: "" }] }] };
-}
-function paraInput(s: Sequencia): SequenciaInput {
-  return {
-    id: s.id, nome: s.nome, descricao: s.descricao || "", ativo: s.ativo, etiqueta_gatilho_id: s.etiqueta_gatilho_id,
-    delay_min_seg: s.delay_min_seg, delay_max_seg: s.delay_max_seg,
-    janela_inicio: hhmm(s.janela_inicio), janela_fim: hhmm(s.janela_fim), teto_dia: s.teto_dia,
-    etapas: (s.etapas || []).sort((a, b) => a.ordem - b.ordem).map((e) => ({ apos_horas: Number(e.apos_horas), mensagens: (e.mensagens as MsgEtapaInput[]) || [] })),
-  };
-}
-function relativo(iso: string | null): string {
-  if (!iso) return "—";
-  const ms = new Date(iso).getTime() - Date.now();
-  if (ms <= 0) return "agora";
-  const min = Math.round(ms / 60000);
-  if (min < 60) return `em ${min}min`;
-  const h = Math.round(min / 60);
-  if (h < 24) return `em ${h}h`;
-  return `em ${Math.round(h / 24)}d`;
+function tempoParado(iso: string, now: number): string {
+  const min = Math.floor((now - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return `${Math.floor(d / 7)}sem`;
 }
 
-function TabBtn({ on, onClick, icon, children }: { on: boolean; onClick: () => void; icon: string; children: React.ReactNode }) {
-  return <button onClick={onClick} style={{ padding: "6px 14px", fontSize: 12.5, borderRadius: 7, border: 0, background: on ? "var(--mk-surface-2)" : "transparent", color: on ? "var(--mk-text)" : "var(--mk-text-muted)", fontWeight: on ? 600 : 400, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><i className={`ti ${icon}`} /> {children}</button>;
-}
-function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return <button type="button" role="switch" aria-checked={on} onClick={onToggle} style={{ width: 42, height: 24, borderRadius: 12, border: 0, cursor: "pointer", position: "relative", background: on ? "#10b981" : "var(--mk-surface-2)", flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.18s" }} /></button>;
-}
-function Chip({ icon, children }: { icon: string; children: React.ReactNode }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "var(--mk-text-muted)", background: "var(--mk-surface-2)", padding: "3px 8px", borderRadius: 6 }}><i className={`ti ${icon}`} /> {children}</span>;
-}
-function StatusBadge({ s }: { s: string }) {
-  const cor = s === "ativo" ? "#10b981" : s === "pausado" ? "#f59e0b" : "#94a3b8";
-  return <span style={{ fontSize: 10.5, color: cor, border: `0.5px solid ${cor}55`, borderRadius: 6, padding: "2px 8px" }}>{s}</span>;
+function Label({ children }: { children: React.ReactNode }) {
+  return <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", marginBottom: 6, letterSpacing: 0.3 }}>{children}</div>;
 }
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><label style={{ display: "block", fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 4 }}>{label}</label>{children}</div>;
 }
-function Th({ children }: { children: React.ReactNode }) { return <th style={{ padding: "10px 12px", textAlign: "left", fontSize: 10.5, fontWeight: 600, color: "var(--mk-text-muted)", letterSpacing: 0.3 }}>{children}</th>; }
-function Td({ children }: { children: React.ReactNode }) { return <td style={{ padding: "10px 12px", fontSize: 12, color: "var(--mk-text)" }}>{children}</td>; }
+function Pill({ on, onClick, icon, children }: { on: boolean; onClick: () => void; icon?: string; children: React.ReactNode }) {
+  return (
+    <button className="fu-chip" onClick={onClick} style={{
+      padding: "7px 13px", borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+      display: "inline-flex", alignItems: "center", gap: 5,
+      border: `1px solid ${on ? "var(--mk-accent)" : "var(--mk-border)"}`,
+      background: on ? "rgba(16,185,129,0.16)" : "var(--mk-surface-2)",
+      color: on ? "var(--mk-accent)" : "var(--mk-text-muted)",
+    }}>
+      {icon && <i className={`ti ${icon}`} />} {children}
+    </button>
+  );
+}
 function Empty({ icon, label }: { icon: string; label: string }) {
   return <div className="mk-card" style={{ textAlign: "center", padding: 50, color: "var(--mk-text-muted)" }}><i className={`ti ${icon}`} style={{ display: "block", fontSize: 32, marginBottom: 8, opacity: 0.6 }} />{label}</div>;
 }
 
-const ACCEPT: Record<string, string> = { imagem: "image/*", video: "video/*", audio: "audio/*", documento: ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" };
-
-function fileToBase64(f: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result));
-    r.onerror = reject;
-    r.readAsDataURL(f);
-  });
-}
-
-function MediaMsg({ m, onChange }: { m: MsgEtapaInput; onChange: (m: MsgEtapaInput) => void }) {
-  const [up, setUp] = useState(false);
-  const [erro, setErro] = useState("");
-  const [preview, setPreview] = useState<string | null>(null);
-  const ref = useRef<HTMLInputElement>(null);
-  const temMidia = !!(m.midia_path || m.midia_url);
-
-  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (ref.current) ref.current.value = "";
-    if (!f) return;
-    setErro(""); setUp(true);
-    try {
-      const b64 = await fileToBase64(f);
-      const r = await fetch("/api/follow-up/upload", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileBase64: b64, filename: f.name, mime: f.type }) });
-      const j = await r.json();
-      if (j.ok) { onChange({ ...m, midia_path: j.path, midia_url: undefined, midia_filename: j.filename || f.name, midia_mime: j.mime || f.type }); setPreview(j.previewUrl || null); }
-      else setErro(j.error || "Falha no upload");
-    } catch { setErro("Falha no upload"); }
-    finally { setUp(false); }
-  }
-
-  return (
-    <>
-      {temMidia ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "var(--mk-surface-2)", borderRadius: 6 }}>
-          <i className="ti ti-paperclip" style={{ color: "#10b981" }} />
-          <span style={{ fontSize: 11, color: "var(--mk-text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.midia_filename || m.midia_url || "Mídia anexada"}</span>
-          {preview && m.tipo === "imagem" && <img src={preview} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: "cover" }} />}
-          <button type="button" className="ghost-btn" style={{ fontSize: 10.5, color: "#C97064", padding: "2px 6px" }} onClick={() => { onChange({ ...m, midia_path: undefined, midia_url: undefined, midia_filename: undefined }); setPreview(null); }}><i className="ti ti-x" /></button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button type="button" className="ghost-btn" style={{ fontSize: 11 }} disabled={up} onClick={() => ref.current?.click()}>
-            <i className={`ti ${up ? "ti-loader-2" : "ti-upload"}`} /> {up ? "Enviando…" : "Enviar arquivo"}
-          </button>
-          <input ref={ref} type="file" hidden accept={ACCEPT[m.tipo] || "*"} onChange={onPick} />
-          <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>ou</span>
-          <input value={m.midia_url || ""} onChange={(e) => onChange({ ...m, midia_url: e.target.value })} placeholder="cole uma URL" style={{ ...inp, padding: "5px 8px" }} />
-        </div>
-      )}
-      <input value={m.conteudo || ""} onChange={(e) => onChange({ ...m, conteudo: e.target.value })} placeholder="Legenda (opcional)" style={inp} />
-      {erro && <span style={{ fontSize: 10.5, color: "#C97064" }}>{erro}</span>}
-    </>
-  );
-}
-
-const inp: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, fontFamily: "inherit", boxSizing: "border-box" };
+const inp: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, fontFamily: "inherit", boxSizing: "border-box", colorScheme: "dark" };
+const miniBtn: React.CSSProperties = { fontSize: 13, padding: "4px 8px", display: "inline-flex", alignItems: "center", justifyContent: "center" };
