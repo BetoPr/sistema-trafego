@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **05:38** — **Fix upload de imagem da galeria (413 ao subir fotos grandes/várias).**
+  - Causa: upload via Server Action tinha limite de 1MB (padrão Next) → fotos >1MB davam 413/400.
+  - `next.config.ts`: `experimental.serverActions.bodySizeLimit = "12mb"`.
+  - `_galeria-uploader.tsx`: **compressão no navegador** antes de subir (redimensiona p/ máx 1600px, JPEG 0.85) — fotos grandes (restauração) passam a caber. Erro claro se ainda ficar >4MB (teto da Vercel).
+
 - **05:27** — **Galeria de imagens: drag-drop com feedback + múltiplas + regra de 1ª imagem (capa).**
   - Dropzone agora destaca (borda/fundo verde + "Solte aqui") ao arrastar — antes o drag funcionava mas sem feedback, parecia que não. Texto deixa claro "uma ou VÁRIAS".
   - Múltiplas imagens já funcionavam (input multiple + loop); reforçado o hint "pode soltar várias".

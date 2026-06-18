@@ -19,6 +19,36 @@ export interface ImagemGaleria {
   signed_url?: string | null;
 }
 
+/** Redimensiona/recomprime imagem no navegador pra caber no limite de upload. */
+async function comprimirImagem(file: File): Promise<File> {
+  if (file.size <= 1.5 * 1024 * 1024) return file; // já pequena
+  const dataUrl: string = await new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result as string);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+  const img: HTMLImageElement = await new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = dataUrl;
+  });
+  const maxDim = 1600;
+  const escala = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * escala));
+  const h = Math.max(1, Math.round(img.height * escala));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.drawImage(img, 0, 0, w, h);
+  const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.85));
+  if (!blob || blob.size >= file.size) return file;
+  return new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: "image/jpeg" });
+}
+
 export default function GaleriaUploader({
   ferramentaId,
   imagens: imagensIniciais,
@@ -44,14 +74,19 @@ export default function GaleriaUploader({
           setErro(`"${f.name}" não é imagem.`);
           continue;
         }
-        if (f.size > 10 * 1024 * 1024) {
-          setErro(`"${f.name}" maior que 10MB.`);
+        // Comprime no navegador antes de subir — evita estourar o limite do
+        // servidor (Server Action / Vercel ~4.5MB). Fotos grandes (restauração)
+        // são redimensionadas; qualidade ótima pro WhatsApp.
+        let fileUp = f;
+        try { fileUp = await comprimirImagem(f); } catch { fileUp = f; }
+        if (fileUp.size > 4 * 1024 * 1024) {
+          setErro(`"${f.name}" ainda ficou grande demais (>4MB) após otimizar. Tente uma imagem menor.`);
           continue;
         }
         const fd = new FormData();
         fd.set("ferramenta_id", ferramentaId);
         fd.set("nome", f.name.replace(/\.[^/.]+$/, ""));
-        fd.set("file", f);
+        fd.set("file", fileUp);
         const r = await uploadImagemGaleria(fd);
         if (!r.ok) {
           setErro(r.error || "erro no upload");
