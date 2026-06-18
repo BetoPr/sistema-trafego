@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **06:24** — **Editor de IA reorganizado em abas (Dados / Comportamento / Ferramentas / Follow-up / Análise de Comportamento).**
+  - **"Identidade" → "Dados":** só nome do perfil, descrição, **Chave API** (alterar + testar) e checkbox de Status. O **"🧪 Modo teste — Whitelist"** foi movido pra cá.
+  - **"Modelo IA"** movido pra aba **Comportamento** (junto do prompt e ajustes de resposta).
+  - **"Envio de resumo"** movido pra aba **Ferramentas** (antes ficava em Follow-up).
+  - **"Teste" → "Análise de Comportamento":** Uso de tokens (geral) + **novo "Gasto por conversa"** (tokens in/out e custo estimado por ticket/conversa, ordenado por gasto, com total do período) + Histórico (últimas 50). Novo `carregarUsoPorTicket` em `uso-tokens.ts`.
+  - Novo perfil (ainda não salvo) mostra só Dados + Comportamento; abas de análise/ferramentas/follow-up aparecem após salvar.
+
 - **06:13** — **Galeria: estrutura de envio (texto → imagens limpas → CTA) + fix do "nao_encontrada" no chat.**
   - **Bug do display:** imagens da galeria apareciam como balões "nao_encontrada" no CRM. Causa: a msg salvava o path do bucket `ia-galeria`, mas `/api/media` (que o chat usa) só assina `crm-media` → 404. Imagens chegavam no WhatsApp normalmente; só quebravam na exibição interna. Fix: cada imagem enviada é copiada pro `crm-media` (path por ticket) e a msg aponta pra lá → chat exibe como qualquer mídia. Validado por teste seco (`test-galeria-display.ts`).
   - **Estrutura de mensagens:** a ferramenta agora manda **1) texto de abertura → 2) cada imagem como mensagem separada e SEM legenda (na ordem) → 3) texto de fechamento (CTA)**. Novos parâmetros `texto_antes`/`texto_depois` (a IA preenche por contexto; fallback configurável em `texto_antes_padrao`/`texto_depois_padrao`). Executor não duplica o texto da IA quando a ferramenta já mandou a moldura (`suprimirTextoIA`).

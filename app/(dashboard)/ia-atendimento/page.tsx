@@ -23,7 +23,8 @@ import FerramentaForm from "./_ferramenta-form";
 import { PerfilTabs, Tab } from "./_perfil-tabs";
 import ModeloPicker from "./_modelo-picker";
 import UsoTokensCard from "./_uso-tokens-card";
-import { carregarUsoTokens, type IntervaloUso, type ResumoUso } from "@/lib/ia-atendimento/uso-tokens";
+import { carregarUsoTokens, carregarUsoPorTicket, type IntervaloUso, type ResumoUso, type UsoPorTicket } from "@/lib/ia-atendimento/uso-tokens";
+import { formatarUsd } from "@/lib/ia-atendimento/precos";
 
 export const dynamic = "force-dynamic";
 
@@ -194,6 +195,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let logs: LogRow[] = [];
   let perfilEtiquetas: PerfilEtiquetaRow[] = [];
   let resumoUso: ResumoUso | null = null;
+  let usoPorTicket: UsoPorTicket[] = [];
   let galeriaPorFerramenta: Record<string, ImagemGaleria[]> = {};
   let followupSeqs: FollowupSeq[] = [];
   let followupEtapas: FollowupEtapa[] = [];
@@ -254,9 +256,12 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
       });
     } catch {}
 
-    // L2: uso de tokens
+    // L2: uso de tokens (resumo geral + por conversa/ticket)
     try {
       resumoUso = await carregarUsoTokens(editando.id, ctx.agenciaId, intervaloUso);
+    } catch {}
+    try {
+      usoPorTicket = await carregarUsoPorTicket(editando.id, ctx.agenciaId, intervaloUso);
     } catch {}
 
     // L5: resumo config
@@ -390,6 +395,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           logs={logs}
           perfilEtiquetas={perfilEtiquetas}
           resumoUso={resumoUso}
+          usoPorTicket={usoPorTicket}
           intervaloUso={intervaloUso}
           galeriaPorFerramenta={galeriaPorFerramenta}
           followupSeqs={followupSeqs}
@@ -469,7 +475,7 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
 
 function PerfilForm({
   editando, editandoId, canais, filas, etiquetas, ferramentas, templates, logs,
-  perfilEtiquetas, resumoUso, intervaloUso, galeriaPorFerramenta,
+  perfilEtiquetas, resumoUso, usoPorTicket, intervaloUso, galeriaPorFerramenta,
   followupSeqs, followupEtapas, resumoConfig,
 }: {
   editando: PerfilDetalhe | null;
@@ -482,6 +488,7 @@ function PerfilForm({
   logs: LogRow[];
   perfilEtiquetas: PerfilEtiquetaRow[];
   resumoUso: ResumoUso | null;
+  usoPorTicket: UsoPorTicket[];
   intervaloUso: IntervaloUso;
   galeriaPorFerramenta: Record<string, ImagemGaleria[]>;
   followupSeqs: FollowupSeq[];
@@ -510,24 +517,23 @@ function PerfilForm({
         tabs={
           editandoId
             ? [
-                { id: "identidade", label: "Identidade", icon: "ti-id-badge-2" },
+                { id: "dados", label: "Dados", icon: "ti-id-badge-2" },
                 { id: "comportamento", label: "Comportamento", icon: "ti-message-chatbot" },
                 { id: "ferramentas", label: "Ferramentas", icon: "ti-tools" },
                 { id: "followup", label: "Follow-up", icon: "ti-clock-bolt" },
-                { id: "teste", label: "Teste", icon: "ti-flask" },
+                { id: "analise", label: "Análise de Comportamento", icon: "ti-chart-histogram" },
               ]
             : [
-                { id: "identidade", label: "Identidade", icon: "ti-id-badge-2" },
+                { id: "dados", label: "Dados", icon: "ti-id-badge-2" },
                 { id: "comportamento", label: "Comportamento", icon: "ti-message-chatbot" },
-                { id: "teste", label: "Teste", icon: "ti-flask" },
               ]
         }
       >
       <form action={editando ? atualizarPerfilIA : criarPerfilIA} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {editandoId && <input type="hidden" name="id" value={editandoId} />}
 
-        {/* ABA: Identidade */}
-        <Tab when="identidade">
+        {/* ABA: Dados */}
+        <Tab when="dados">
         {!editando && templates.length > 0 && (
           <TemplatesPicker templates={templates} />
         )}
@@ -545,8 +551,7 @@ function PerfilForm({
         <Field label="Descrição (interno)" name="descricao" defaultValue={editando?.descricao ?? ""} />
 
         <fieldset style={fs}>
-          <legend style={legend}>Modelo IA</legend>
-          <ModeloPicker defaultProvider={provider} defaultModelo={editando?.modelo ?? undefined} />
+          <legend style={legend}>Chave API</legend>
           <div>
             <label style={lbl}>Chave API</label>
             <ApiKeyInput
@@ -568,25 +573,7 @@ function PerfilForm({
           </div>
           {editandoId && <TestarApiBtn perfilId={editandoId} />}
         </fieldset>
-        </Tab>
 
-        {/* ABA: Comportamento */}
-        <Tab when="comportamento">
-        <fieldset style={fs}>
-          <legend style={legend}>Prompt do sistema</legend>
-          <PlaceholderPicker />
-          <textarea
-            name="prompt_sistema"
-            rows={10}
-            defaultValue={editando?.prompt_sistema ?? ""}
-            style={{ ...inp, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
-            placeholder="Você é um atendente da empresa X..."
-          />
-        </fieldset>
-        </Tab>
-
-        {/* ABA: Teste (whitelist fica aqui) */}
-        <Tab when="teste">
         <fieldset style={{ ...fs, background: "rgba(245,158,11,0.06)", border: "0.5px solid rgba(245,158,11,0.3)" }}>
           <legend style={{ ...legend, color: "#f59e0b" }}>🧪 Modo teste — Whitelist</legend>
           <div>
@@ -602,6 +589,25 @@ function PerfilForm({
               Vazio = todos os contatos (produção). Cola seu número aqui pra testar sem afetar clientes.
             </div>
           </div>
+        </fieldset>
+        </Tab>
+
+        {/* ABA: Comportamento */}
+        <Tab when="comportamento">
+        <fieldset style={fs}>
+          <legend style={legend}>Modelo IA</legend>
+          <ModeloPicker defaultProvider={provider} defaultModelo={editando?.modelo ?? undefined} />
+        </fieldset>
+        <fieldset style={fs}>
+          <legend style={legend}>Prompt do sistema</legend>
+          <PlaceholderPicker />
+          <textarea
+            name="prompt_sistema"
+            rows={10}
+            defaultValue={editando?.prompt_sistema ?? ""}
+            style={{ ...inp, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+            placeholder="Você é um atendente da empresa X..."
+          />
         </fieldset>
         </Tab>
 
@@ -685,7 +691,7 @@ function PerfilForm({
         </Tab>
 
         {/* Barra de salvar — visível nas abas do formulário */}
-        <Tab when={["identidade", "comportamento", "teste"]}>
+        <Tab when={["dados", "comportamento"]}>
         <div style={{
           position: "sticky",
           bottom: 0,
@@ -714,7 +720,7 @@ function PerfilForm({
       </form>
 
 
-      {/* ABA: Ferramentas */}
+      {/* ABA: Ferramentas + envio de resumo */}
       {editandoId && (
         <Tab when="ferramentas">
         <FerramentasBloco
@@ -723,18 +729,6 @@ function PerfilForm({
           filas={filas}
           etiquetas={etiquetas}
           galeriaPorFerramenta={galeriaPorFerramenta}
-        />
-        </Tab>
-      )}
-
-      {/* ABA: Follow-up + envio de resumo */}
-      {editandoId && (
-        <Tab when="followup">
-        <FollowUpBloco
-          perfilId={editandoId}
-          sequencias={followupSeqs}
-          etapas={followupEtapas}
-          etiquetas={etiquetas}
         />
         <div style={{ marginTop: 18, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
           <h3 className="card-title" style={{ marginBottom: 6 }}>
@@ -752,12 +746,25 @@ function PerfilForm({
         </Tab>
       )}
 
-      {/* ABA: Teste — uso de tokens + logs */}
-      {editandoId && (resumoUso || logs.length > 0) && (
-        <Tab when="teste">
+      {/* ABA: Follow-up */}
+      {editandoId && (
+        <Tab when="followup">
+        <FollowUpBloco
+          perfilId={editandoId}
+          sequencias={followupSeqs}
+          etapas={followupEtapas}
+          etiquetas={etiquetas}
+        />
+        </Tab>
+      )}
+
+      {/* ABA: Análise de Comportamento — uso de tokens + por conversa + histórico */}
+      {editandoId && (resumoUso || usoPorTicket.length > 0 || logs.length > 0) && (
+        <Tab when="analise">
         {resumoUso && (
           <UsoTokensCard resumo={resumoUso} intervalo={intervaloUso} perfilId={editandoId} />
         )}
+        {usoPorTicket.length > 0 && <UsoPorTicketBloco itens={usoPorTicket} />}
         {logs.length > 0 && <LogsBloco logs={logs} />}
         </Tab>
       )}
@@ -835,6 +842,44 @@ function FerramentasBloco({
       )}
       <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 6 }}>Adicionar ferramenta</div>
       <FerramentaForm perfilId={perfilId} filas={filas} etiquetas={etiquetas} />
+    </div>
+  );
+}
+
+function UsoPorTicketBloco({ itens }: { itens: UsoPorTicket[] }) {
+  const fmtInt = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
+  const totalCusto = itens.reduce((s, i) => s + i.custo_usd, 0);
+  const totalTokens = itens.reduce((s, i) => s + i.tokens_in + i.tokens_out, 0);
+  const cols = "1fr 64px 110px 84px";
+  return (
+    <div style={{ marginTop: 18, border: "0.5px solid var(--mk-border)", borderRadius: 10, padding: 14, background: "var(--mk-surface)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+        <h3 className="card-title" style={{ margin: 0 }}>
+          <i className="ti ti-coin" style={{ color: "#C9A876", marginRight: 6 }} /> Gasto por conversa
+        </h3>
+        <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
+          {fmtInt(itens.length)} conversa(s) · {fmtInt(totalTokens)} tokens · {formatarUsd(totalCusto)}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 360, overflowY: "auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 8, fontSize: 10, color: "var(--mk-text-muted)", textTransform: "uppercase", letterSpacing: 0.5, padding: "0 10px 4px" }}>
+          <span>Conversa</span>
+          <span style={{ textAlign: "right" }}>Respostas</span>
+          <span style={{ textAlign: "right" }}>Tokens in/out</span>
+          <span style={{ textAlign: "right" }}>Custo</span>
+        </div>
+        {itens.map((t) => (
+          <div key={t.ticket_id} style={{ display: "grid", gridTemplateColumns: cols, gap: 8, alignItems: "center", padding: "7px 10px", background: "var(--mk-surface-2)", borderRadius: 6, fontSize: 11.5 }}>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.contato_nome}>{t.contato_nome}</span>
+            <span style={{ textAlign: "right", color: "var(--mk-text-secondary)" }}>{fmtInt(t.respostas)}</span>
+            <span style={{ textAlign: "right", color: "var(--mk-text-muted)", fontSize: 10.5 }}>{fmtInt(t.tokens_in)} / {fmtInt(t.tokens_out)}</span>
+            <span style={{ textAlign: "right", fontWeight: 600, color: "#C9A876" }}>{formatarUsd(t.custo_usd)}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 8 }}>
+        Custo estimado pela tabela de preços do modelo. Top {fmtInt(itens.length)} conversas por gasto no período selecionado acima.
+      </div>
     </div>
   );
 }
