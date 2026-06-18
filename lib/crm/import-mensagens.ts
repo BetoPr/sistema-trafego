@@ -73,17 +73,18 @@ export async function importarMensagensUazapi(params: {
   for (const chat of chats) {
     resumo.chats_processados++;
     const waId = chat.wa_chatid;
-    // @lid não expõe telefone real (privacidade) → não grava número falso.
-    const whatsapp = waId.endsWith("@lid") ? "" : waId.replace(/@.+$/, "");
+    // @lid não expõe telefone real (privacidade) → null (não número falso, não "").
+    const whatsapp = waId.endsWith("@lid") ? null : waId.replace(/@.+$/, "");
 
     // contato (reusa por wa_id, senão cria)
     let contatoId: string;
     const { data: existente } = await sb.from("contatos").select("id").eq("agencia_id", params.agenciaId).eq("wa_id", waId).is("deleted_at", null).maybeSingle();
     if (existente) contatoId = existente.id;
     else {
-      const nome = (chat.lead_fullName || chat.lead_name || chat.wa_contactName || chat.name || whatsapp).trim() || whatsapp;
+      const fallbackNome = whatsapp || waId.replace(/@.+$/, "");
+      const nome = (chat.lead_fullName || chat.lead_name || chat.wa_contactName || chat.name || fallbackNome).trim() || fallbackNome;
       const { data: novo, error } = await sb.from("contatos").insert({ agencia_id: params.agenciaId, wa_id: waId, whatsapp, nome, primeiro_nome: nome.split(" ")[0] || null, foto_url: chat.image || null }).select("id").single();
-      if (error || !novo) { resumo.erros.push(`contato ${whatsapp}: ${error?.message}`); continue; }
+      if (error || !novo) { resumo.erros.push(`contato ${waId}: ${error?.message}`); continue; }
       contatoId = novo.id;
     }
 

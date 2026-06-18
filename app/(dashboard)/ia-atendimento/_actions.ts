@@ -219,6 +219,13 @@ export async function alternarAtivoPerfilIA(formData: FormData) {
   redirect(`${ROUTE}?ok=alterado`);
 }
 
+/** Confirma que o perfil de IA é da agência (evita anexar config a perfil de outro tenant). */
+async function perfilDaAgencia(sb: ReturnType<typeof createServiceClient>, perfilId: string, agenciaId: string): Promise<boolean> {
+  if (!perfilId) return false;
+  const { data } = await sb.from("ia_atendimento_perfis").select("id").eq("id", perfilId).eq("agencia_id", agenciaId).maybeSingle();
+  return !!data;
+}
+
 export async function criarFerramentaIA(formData: FormData) {
   const ctx = await requireRole("admin", "super_admin");
   const sb = createServiceClient();
@@ -229,6 +236,7 @@ export async function criarFerramentaIA(formData: FormData) {
   if (!perfilId || !nome || !descricao || !acao) {
     redirect(`${ROUTE}?editar=${perfilId}&erro=campos`);
   }
+  if (!(await perfilDaAgencia(sb, perfilId, ctx.agenciaId))) redirect(`${ROUTE}?erro=permissao_negada`);
   const parametrosRaw = String(formData.get("parametros") || "{}");
   let parametros: Record<string, unknown> = {};
   try { parametros = JSON.parse(parametrosRaw); } catch { parametros = {}; }
@@ -269,6 +277,7 @@ export async function salvarEtiquetaPerfil(formData: FormData) {
   const descricaoUso = String(formData.get("descricao_uso") || "");
   const ordem = Number(formData.get("ordem") || 0);
   if (!perfilId || !etiquetaId) return;
+  if (!(await perfilDaAgencia(sb, perfilId, ctx.agenciaId))) return;
 
   const { data: etq } = await sb
     .from("etiquetas")
@@ -317,6 +326,7 @@ export async function salvarFollowUpIA(formData: FormData) {
   const mensagensRaw = String(formData.get("mensagens_json") || "[]");
   let mensagens: unknown[] = [];
   try { mensagens = JSON.parse(mensagensRaw); } catch { mensagens = []; }
+  if (!(await perfilDaAgencia(sb, perfilId, ctx.agenciaId))) redirect(`${ROUTE}?erro=permissao_negada`);
 
   await sb.from("ia_atendimento_followups").upsert(
     {
@@ -583,6 +593,7 @@ export async function criarSequenciaFollowUp(formData: FormData): Promise<{ ok: 
   const perfilId = String(formData.get("perfil_id") || "");
   const nome = String(formData.get("nome") || "").trim();
   if (!perfilId || !nome) return { ok: false, error: "perfil_id e nome obrigatorios" };
+  if (!(await perfilDaAgencia(sb, perfilId, ctx.agenciaId))) return { ok: false, error: "perfil_invalido" };
 
   const ordem = parseInt(String(formData.get("ordem_no_perfil") || "1"), 10);
   const { error } = await sb.from("ia_atendimento_followup_sequencias").insert({

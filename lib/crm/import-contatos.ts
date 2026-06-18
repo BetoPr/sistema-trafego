@@ -222,7 +222,7 @@ export async function importarContatosUazapi(params: {
   }
 
   // Cria novos contatos em lote
-  const novos: Array<{ agencia_id: string; wa_id: string; whatsapp: string; nome: string; primeiro_nome: string | null; foto_url: string | null }> = [];
+  const novos: Array<{ agencia_id: string; wa_id: string; whatsapp: string | null; nome: string; primeiro_nome: string | null; foto_url: string | null }> = [];
   const chatPorWaId = new Map<string, UazapiChat>();
   for (const c of todosChats) {
     if (c.wa_isGroup) continue;
@@ -234,8 +234,8 @@ export async function importarContatosUazapi(params: {
     novos.push({
       agencia_id: params.agenciaId,
       wa_id: c.wa_chatid,
-      // @lid não tem telefone real (privacidade) → não grava número falso.
-      whatsapp: c.wa_chatid.endsWith("@lid") ? "" : c.wa_chatid.replace(/@.+$/, ""),
+      // @lid não tem telefone real (privacidade) → null (não número falso, não "").
+      whatsapp: c.wa_chatid.endsWith("@lid") ? null : c.wa_chatid.replace(/@.+$/, ""),
       nome,
       primeiro_nome: nome.split(" ")[0] || null,
       foto_url: c.image || c.imagePreview || null,

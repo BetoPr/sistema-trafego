@@ -11,7 +11,8 @@ Base de auth/cripto/Next16 está **sólida** (getUser em tudo, AES-256-GCM, OAut
 ## Status das correções (2026-06-18, pós-auditoria)
 - **🔴 Críticos 1-6: CORRIGIDOS + deployados.** #7 (pull do schema) pendente — precisa do Supabase CLI.
 - **🟠 Altos: 9/10 CORRIGIDOS** (tool da IA, galeria, status msg, clientes RLS, conciliar deleted_at, storage cleanup, leadgen HMAC, follow-up atômico, contatos UNIQUE wa_id + guard de race). Falta nenhum crítico de confiabilidade.
-- **🟡 Médios: parcial** — feito: leak de flags em configuracoes/ia. Pendente (baixo risco, exige admin + UUID alheio): posse de `perfil_id` em 4 actions da IA; whatsapp ''vs null.
+- **🟡 Médios: CORRIGIDOS** — leak de flags em configuracoes/ia; posse de `perfil_id` nas 4 actions da IA (criarFerramenta/salvarEtiqueta/salvarFollowUp/criarSequencia); whatsapp ''→null padronizado (código + dados).
+- **#7 (schema drift):** guia pronto em `docs/GUIA-SCHEMA-PULL.md` — precisa do Supabase CLI + senha do banco (5 comandos, ~3 min, você roda).
 
 ## 🔴 CRÍTICO (corrigir antes de tudo)
 
