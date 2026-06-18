@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **05:20** — **Regra de ferramentas imperativa GLOBAL (todos os agentes/templates disparam tools).**
+  - `executor.ts`: bloco `[FERRAMENTAS / AÇÕES — OBRIGATÓRIO]` reforçado — "assim que a situação se encaixar, CHAME a função NA MESMA resposta, antes de conversar; é ação interna". Vale pra TODOS os agentes em runtime (incluindo os 5 templates e novos perfis), sem editar prompt de cada um.
+  - Validado direto na OpenAI (gpt-4.1) com prompt LIMPO (sem regra manual): "quero ensaio aniversário" → `marcar_lead_ensaio`; "quero restaurar" → `marcar_lead_restauracao`. Antes não disparava (modelo tratava etiqueta como tag de fundo).
+
 - **05:08** — **Importação do histórico recente de conversas do WhatsApp (migração).**
   - Novo `lib/uazapi/client.ts#instanceFindMessages` (POST /message/find) + `lib/crm/import-mensagens.ts`: ao importar contatos/etiquetas, também puxa as últimas ~20 mensagens dos ~60 chats mais recentes e grava no CRM. **Não passa pelo webhook → NÃO aciona a IA.**
   - Idempotente (dedup por wa_message_id — testado: 2ª rodada = 0 novas). 1 ticket por contato (reaproveita o existente; conversa recente com cliente esperando vira "pendente", resto "fechado"). Re-aponta ticket pro canal atual.

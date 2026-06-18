@@ -335,7 +335,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   // Reforço: lista as funções disponíveis pra modelos fracos (ex: gpt-4o-mini)
   // de fato CHAMAREM a ferramenta, não só responderem texto.
   const blocoFerramentas = tools.length
-    ? `[FERRAMENTAS / ACOES DISPONIVEIS]\nVoce tem estas funcoes. Quando a situacao se encaixar, CHAME a funcao correspondente (nao escreva o nome dela no texto):\n${
+    ? `[FERRAMENTAS / AÇÕES — OBRIGATÓRIO]\nVocê tem estas funções. Assim que a situação se encaixar, CHAME a função correspondente NA MESMA resposta, ANTES de conversar. É ação interna: NÃO escreva o nome da função nem comente com o cliente. Pode cumprimentar E chamar a função juntos.\n${
         tools.map((t) => `- ${t.name}: ${(t.description || "").split("\n")[0]}`).join("\n")
       }\n\n`
     : "";

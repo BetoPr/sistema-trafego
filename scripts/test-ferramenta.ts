@@ -20,6 +20,17 @@ async function main() {
   const tools = await buildToolsSchema((ferr || []) as never, { sb, agenciaId: AG });
   console.log("Modelo:", perfil.modelo, "| tools disponiveis:", tools.map((t: { name: string }) => t.name).join(", "), "\n");
 
+  // Simula o bloco genérico do executor (mesmo texto) + um prompt LIMPO sem a regra,
+  // pra validar que o bloco sozinho faz a ferramenta disparar em qualquer agente.
+  const blocoFerramentas = `[FERRAMENTAS / AÇÕES — OBRIGATÓRIO]\nVocê tem estas funções. Assim que a situação se encaixar, CHAME a função correspondente NA MESMA resposta, ANTES de conversar. É ação interna: NÃO escreva o nome da função nem comente com o cliente. Pode cumprimentar E chamar a função juntos.\n${(tools as Array<{ name: string; description?: string }>).map((t) => `- ${t.name}: ${(t.description || "").split("\n")[0]}`).join("\n")}\n\n`;
+  const promptLimpo = blocoFerramentas + "Você é a Ana, atendente simpática de um estúdio de fotos com IA (ensaios e restauração). Atenda o cliente de forma natural.";
+  console.log("--- TESTE BLOCO GENERICO (prompt limpo, sem regra) ---");
+  for (const msg of ["quero um ensaio de aniversario", "quero restaurar uma foto antiga"]) {
+    const r = await chamarIA({ provider: perfil.provider, modelo: perfil.modelo, apiKey, mensagens: [{ role: "system", content: promptLimpo }, { role: "user", content: msg }], tools, maxTokens: 300, temperatura: 0.7 });
+    console.log(`  "${msg}" -> ${r.toolCalls.length ? r.toolCalls.map((t: { name: string }) => t.name).join(", ") : "(NENHUMA)"}`);
+  }
+  console.log("");
+
   const casos: Array<{ label: string; msgs: { role: "system" | "user" | "assistant"; content: string }[] }> = [
     { label: "Turno 1: 'quero ensaio aniversario'", msgs: [{ role: "system", content: perfil.prompt_sistema }, { role: "user", content: "Oi, quero fazer um ensaio de aniversario" }] },
     { label: "Turno 2: depois de responder a pessoa", msgs: [
