@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **03:06** — **Página de IA reorganizada em abas (menos técnica, mais respirável).**
+  - Novo `_perfil-tabs.tsx`: editor do perfil dividido em **Identidade · Comportamento · Ferramentas · Follow-up · Teste**. Wrapper client com painéis em `display:none` (form único intacto — submete todos os campos mesmo de abas escondidas).
+  - Identidade: nome, status, descrição, modelo + chave. Comportamento: prompt, tempo, formato, onde atua, avançado, etiquetas. Ferramentas: galerias + tools. Follow-up: sequências + envio de resumo. Teste: whitelist + uso de tokens + logs.
+  - Nenhuma funcionalidade alterada — só agrupamento/layout. Barra de salvar visível nas abas do formulário.
+
 - **02:55** — **Bug raiz das ferramentas galeria/consultar_data + 7 galerias por situação criadas.**
   - Causa: check constraint `ia_atendimento_ferramentas_acao_check` não incluía `enviar_imagem_galeria` nem `consultar_data` — criar essas no dropdown falhava no insert, mas `criarFerramentaIA` engolia o erro e redirecionava como "criada" → ferramenta sumia. Constraint atualizada com as 9 ações; `criarFerramentaIA` agora mostra o erro real do banco.
   - Criadas 7 ferramentas-galeria no perfil Ana: ensaio_geral, ensaio_aniversario, ensaio_revista, ensaio_formatura, ensaio_gestante, ensaio_profissional, estoque_restauracao (vazias, com descrição pra IA). A IA já filtra fotos por descrição/tags via catálogo (`formatCatalogoParaIA`).

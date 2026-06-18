@@ -20,6 +20,7 @@ import { TestarApiBtn } from "./_testar-btn";
 import ApiKeyInput from "./_api-key-input";
 import PlaceholderPicker from "./_placeholder-picker";
 import FerramentaForm from "./_ferramenta-form";
+import { PerfilTabs, Tab } from "./_perfil-tabs";
 import UsoTokensCard from "./_uso-tokens-card";
 import PerfilEtiquetasEditor from "./_perfil-etiquetas";
 import { carregarUsoTokens, type IntervaloUso, type ResumoUso } from "@/lib/ia-atendimento/uso-tokens";
@@ -505,9 +506,28 @@ function PerfilForm({
           <i className="ti ti-arrow-left" /> Voltar para IAs construídas
         </Link>
       </div>
+      <PerfilTabs
+        tabs={
+          editandoId
+            ? [
+                { id: "identidade", label: "Identidade", icon: "ti-id-badge-2" },
+                { id: "comportamento", label: "Comportamento", icon: "ti-message-chatbot" },
+                { id: "ferramentas", label: "Ferramentas", icon: "ti-tools" },
+                { id: "followup", label: "Follow-up", icon: "ti-clock-bolt" },
+                { id: "teste", label: "Teste", icon: "ti-flask" },
+              ]
+            : [
+                { id: "identidade", label: "Identidade", icon: "ti-id-badge-2" },
+                { id: "comportamento", label: "Comportamento", icon: "ti-message-chatbot" },
+                { id: "teste", label: "Teste", icon: "ti-flask" },
+              ]
+        }
+      >
       <form action={editando ? atualizarPerfilIA : criarPerfilIA} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {editandoId && <input type="hidden" name="id" value={editandoId} />}
 
+        {/* ABA: Identidade */}
+        <Tab when="identidade">
         {!editando && templates.length > 0 && (
           <TemplatesPicker templates={templates} />
         )}
@@ -565,7 +585,10 @@ function PerfilForm({
           </div>
           {editandoId && <TestarApiBtn perfilId={editandoId} />}
         </fieldset>
+        </Tab>
 
+        {/* ABA: Comportamento */}
+        <Tab when="comportamento">
         <fieldset style={fs}>
           <legend style={legend}>Prompt do sistema</legend>
           <PlaceholderPicker />
@@ -577,7 +600,10 @@ function PerfilForm({
             placeholder="Você é um atendente da empresa X..."
           />
         </fieldset>
+        </Tab>
 
+        {/* ABA: Teste (whitelist fica aqui) */}
+        <Tab when="teste">
         <fieldset style={{ ...fs, background: "rgba(245,158,11,0.06)", border: "0.5px solid rgba(245,158,11,0.3)" }}>
           <legend style={{ ...legend, color: "#f59e0b" }}>🧪 Modo teste — Whitelist</legend>
           <div>
@@ -594,7 +620,10 @@ function PerfilForm({
             </div>
           </div>
         </fieldset>
+        </Tab>
 
+        {/* ABA: Comportamento (continuação) */}
+        <Tab when="comportamento">
         <fieldset style={fs}>
           <legend style={legend}>Tempo de resposta</legend>
           <div style={grid3}>
@@ -670,7 +699,10 @@ function PerfilForm({
             </select>
           </div>
         </fieldset>
+        </Tab>
 
+        {/* Barra de salvar — visível nas abas do formulário */}
+        <Tab when={["identidade", "comportamento", "teste"]}>
         <div style={{
           position: "sticky",
           bottom: 0,
@@ -695,20 +727,13 @@ function PerfilForm({
             <i className="ti ti-info-circle" /> Botao sempre acessivel
           </span>
         </div>
+        </Tab>
       </form>
 
+      {/* ABA: Comportamento — etiquetas que a IA pode aplicar */}
       {editandoId && (
-        <FerramentasBloco
-          perfilId={editandoId}
-          ferramentas={ferramentas}
-          filas={filas}
-          etiquetas={etiquetas}
-          galeriaPorFerramenta={galeriaPorFerramenta}
-        />
-      )}
-
-      {editandoId && (
-        <div style={{ marginTop: 18, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
+        <Tab when="comportamento">
+        <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
           <h3 className="card-title" style={{ marginBottom: 12 }}>
             <i className="ti ti-tag" style={{ color: "#9B7DBF", marginRight: 6 }} /> Etiquetas configuradas
           </h3>
@@ -722,18 +747,31 @@ function PerfilForm({
             configuradas={perfilEtiquetas}
           />
         </div>
+        </Tab>
       )}
 
+      {/* ABA: Ferramentas */}
       {editandoId && (
+        <Tab when="ferramentas">
+        <FerramentasBloco
+          perfilId={editandoId}
+          ferramentas={ferramentas}
+          filas={filas}
+          etiquetas={etiquetas}
+          galeriaPorFerramenta={galeriaPorFerramenta}
+        />
+        </Tab>
+      )}
+
+      {/* ABA: Follow-up + envio de resumo */}
+      {editandoId && (
+        <Tab when="followup">
         <FollowUpBloco
           perfilId={editandoId}
           sequencias={followupSeqs}
           etapas={followupEtapas}
           etiquetas={etiquetas}
         />
-      )}
-
-      {editandoId && (
         <div style={{ marginTop: 18, borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
           <h3 className="card-title" style={{ marginBottom: 6 }}>
             <i className="ti ti-message-2-share" style={{ color: "#9B7DBF", marginRight: 6 }} /> Envio de resumo
@@ -747,12 +785,19 @@ function PerfilForm({
             config={resumoConfig}
           />
         </div>
+        </Tab>
       )}
 
-      {editandoId && resumoUso && (
-        <UsoTokensCard resumo={resumoUso} intervalo={intervaloUso} perfilId={editandoId} />
+      {/* ABA: Teste — uso de tokens + logs */}
+      {editandoId && (resumoUso || logs.length > 0) && (
+        <Tab when="teste">
+        {resumoUso && (
+          <UsoTokensCard resumo={resumoUso} intervalo={intervaloUso} perfilId={editandoId} />
+        )}
+        {logs.length > 0 && <LogsBloco logs={logs} />}
+        </Tab>
       )}
-      {editandoId && logs.length > 0 && <LogsBloco logs={logs} />}
+      </PerfilTabs>
     </div>
   );
 }
