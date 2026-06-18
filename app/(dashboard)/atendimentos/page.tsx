@@ -66,7 +66,12 @@ export default async function AtendimentosPage({ searchParams }: PageProps) {
     fila: (Array.isArray(t.fila) ? t.fila[0] : t.fila) as TicketLista["fila"],
   }));
 
-  const initialTab = sp.tab === "pendente" || sp.tab === "fechado" ? sp.tab : "aberto";
+  // initialTab só quando há deep-link explícito (?tab=...). Sem param → undefined,
+  // pra lista cair no default [aberto, pendente] (inbox ativo) e o badge de filtros
+  // começar em 0. Antes era sempre "aberto": escondia pendentes e marcava "1 filtro
+  // ativo" no load sem o usuário ter filtrado nada (incoerente com limparFiltros).
+  const initialTab =
+    sp.tab === "aberto" || sp.tab === "pendente" || sp.tab === "fechado" ? sp.tab : undefined;
 
   return (
     <AtendimentosShell

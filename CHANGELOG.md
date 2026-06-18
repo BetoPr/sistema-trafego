@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **20:30** — **Filtros de atendimentos: corrigidas incoerências e o "Mostrar todos".**
+  - **Badge fantasma "1 filtro ativo" no load:** o status padrão era calculado de 3 formas diferentes (carga abria só `aberto`, mas `Limpar` e o contador de filtros assumiam `aberto + pendente`). Resultado: o inbox abria escondendo Pendentes e marcando "1 filtro" sem ninguém ter filtrado. Agora abre em `aberto + pendente` (intenção original, alinhado ao resto do código) e o badge começa em 0. Deep-links `?tab=aberto|pendente|fechado` continuam abrindo só aquele status.
+  - **"Mostrar todos" agora mostra todos de verdade:** antes só marcava os 3 status mas mantinha conexão/fila/usuário/etiqueta/período ainda filtrando (e exibia ✓ mesmo com a lista recortada). Agora zera todos os recortes e o ✓ só acende quando nada está filtrando.
+  - Conhecido (não alterado nesta leva): abas Privados/Grupos ainda não recortam a lista; counts/lista limitados aos 300 tickets mais recentes (impacta só agências grandes).
+
 - **17:52** — **Correção dos 6 bugs CRÍTICOS da auditoria (vazamento entre agências + duplicação + race da IA).**
   - **IDOR cross-tenant (vazava conversa/resumo entre clientes):** `resumo-stream` e `resumo` agora validam dono do ticket + escopam `agencia_id`; raiz `lib/crm/ia.ts` blindada (escopa `agencia_id` em fetchMensagens + selects/updates de ticket).
   - **Token Meta entre agências:** `sincronizarPagesMeta` valida que a integração é da agência antes de descriptografar/usar o token.

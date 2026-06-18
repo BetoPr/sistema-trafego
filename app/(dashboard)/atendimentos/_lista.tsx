@@ -229,6 +229,13 @@ export function ListaAtendimentos(p: Props) {
     + (somenteNaoLidos ? 1 : 0) + (inverterOrdem ? 1 : 0) + (de || ate ? 1 : 0)
     + canalFiltros.length + filaFiltros.length + usuarioFiltros.length + etiquetaFiltros.length;
 
+  // "Mostrar todos" = literalmente todos os tickets: 3 status e NENHUM outro filtro.
+  // (ordem invertida não conta — é ordenação, não recorte do que aparece.)
+  const mostrarTodosOn =
+    statusSel.length === 3 && !somenteNaoLidos && !de && !ate &&
+    canalFiltros.length === 0 && filaFiltros.length === 0 &&
+    usuarioFiltros.length === 0 && etiquetaFiltros.length === 0;
+
   const filasDisponiveis = useMemo(() => {
     const m = new Map<string, { id: string; nome: string; cor?: string | null; fixa?: boolean | null }>();
     // Filas fixas do sistema (IA Atendendo / Atendimento Humano) nao aparecem no filtro
@@ -576,7 +583,7 @@ export function ListaAtendimentos(p: Props) {
             </div>
             <div className="chat-scroll" style={{ padding: 16, overflowY: "auto", flex: 1, minHeight: 0 }}>
               {/* Toggles topo */}
-              <ChkRow on={!somenteNaoLidos && statusSel.length === 3} icon="ti-eye" label="Mostrar todos" onClick={() => { setStatusSel(["aberto", "pendente", "fechado"]); setSomenteNaoLidos(false); }} />
+              <ChkRow on={mostrarTodosOn} icon="ti-eye" label="Mostrar todos" onClick={() => { setStatusSel(["aberto", "pendente", "fechado"]); setSomenteNaoLidos(false); setDe(""); setAte(""); setCanalFiltros([]); setFilaFiltros([]); setUsuarioFiltros([]); setEtiquetaFiltros([]); }} />
               <ChkRow on={statusSel.includes("fechado")} icon="ti-mail" label="Incluir tickets fechados" onClick={() => toggleStatus("fechado")} />
               <ChkRow on={somenteNaoLidos} icon="ti-mail-opened" label="Somente não lidos" onClick={() => setSomenteNaoLidos((v) => !v)} />
               <ChkRow on={inverterOrdem} icon="ti-arrows-sort" label="Inverter ordem geral" onClick={() => setInverterOrdem((v) => !v)} />
