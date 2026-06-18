@@ -49,11 +49,15 @@ async function chamarAnthropic(p: { modelo: string; apiKey: string; mensagens: M
     temperature: p.temperatura,
     system: systemMsg?.content,
     messages: userMsgs.map((m) => ({ role: m.role, content: m.content })),
-    tools: p.tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      input_schema: t.input_schema,
-    })),
+    ...(p.tools.length
+      ? {
+          tools: p.tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            input_schema: t.input_schema,
+          })),
+        }
+      : {}),
   };
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -96,10 +100,14 @@ async function chamarOpenAI(p: { modelo: string; apiKey: string; mensagens: MsgI
     max_completion_tokens: p.maxTokens,
     temperature: p.temperatura,
     messages: p.mensagens.map((m) => ({ role: m.role, content: m.content })),
-    tools: p.tools.map((t) => ({
-      type: "function" as const,
-      function: { name: t.name, description: t.description, parameters: t.input_schema },
-    })),
+    ...(p.tools.length
+      ? {
+          tools: p.tools.map((t) => ({
+            type: "function" as const,
+            function: { name: t.name, description: t.description, parameters: t.input_schema },
+          })),
+        }
+      : {}),
   };
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -139,10 +147,14 @@ async function chamarGroq(p: { modelo: string; apiKey: string; mensagens: MsgIA[
     max_tokens: p.maxTokens,
     temperature: p.temperatura,
     messages: p.mensagens.map((m) => ({ role: m.role, content: m.content })),
-    tools: p.tools.map((t) => ({
-      type: "function" as const,
-      function: { name: t.name, description: t.description, parameters: t.input_schema },
-    })),
+    ...(p.tools.length
+      ? {
+          tools: p.tools.map((t) => ({
+            type: "function" as const,
+            function: { name: t.name, description: t.description, parameters: t.input_schema },
+          })),
+        }
+      : {}),
   };
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {

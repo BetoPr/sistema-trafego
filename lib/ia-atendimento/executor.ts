@@ -436,6 +436,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
 
   // 10. Executa tool calls (na ordem que a IA pediu)
   let encerraIA = false;
+  let respondeuCliente = false; // garante que o cliente nunca fica sem resposta
   for (const tc of resp.toolCalls) {
     const tool = tools.find((t) => t.name === tc.name);
     if (!tool) continue;
@@ -459,6 +460,8 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       metadata: { ia_perfil_id: perfil.id, tool_call: tc.name },
     });
     if (r.encerra_ia) encerraIA = true;
+    // Tools que JÁ mandam mensagem pro cliente (não deixam ele sem retorno)
+    if (r.ok && (tool.acao === "manda_biscoito" || tool.acao === "enviar_imagem_galeria")) respondeuCliente = true;
   }
 
   // 10b. Marca o perfil no ticket sempre que IA assume — isso liga o ícone de robô
@@ -468,6 +471,7 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
 
   // 11. Envia resposta texto (em blocos)
   if (resp.texto.trim()) {
+    respondeuCliente = true;
     const formato = (perfil.formato_resposta || {}) as FormatoResposta;
     const blocos = dividirEmBlocos(resp.texto, formato);
     const minSeg = perfil.delay_min_resposta_seg ?? 3;
@@ -489,6 +493,60 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
         await sleep(gapAleatorio(minSeg, maxSeg));
       }
     }
+  }
+
+  // 11b. REDE DE SEGURANÇA: cliente nunca pode ficar sem resposta.
+  // Se a IA só chamou ferramenta (ou a ferramenta falhou) e não mandou texto,
+  // e não é transferência pra humano, faz um 2º call SEM ferramentas pra gerar
+  // uma resposta natural. Último recurso: mensagem genérica.
+  if (!encerraIA && !respondeuCliente) {
+    let textoFallback = "";
+    try {
+      const resp2 = await chamarIA({
+        provider: perfil.provider,
+        modelo: perfil.modelo,
+        apiKey,
+        mensagens: [
+          ...mensagens,
+          { role: "system", content: "Responda ao cliente AGORA, em texto, de forma natural e útil. NÃO chame nenhuma ferramenta." },
+        ],
+        tools: [],
+        maxTokens: perfil.max_tokens_por_resposta,
+        temperatura: Number(perfil.temperatura),
+      });
+      textoFallback = resp2.texto.trim();
+    } catch (e) {
+      console.warn("[executor] fallback 2o call falhou:", e);
+    }
+    if (!textoFallback) {
+      textoFallback = "Recebi sua mensagem! 😊 Me dá um instante que já te ajudo com isso.";
+    }
+    const formato = (perfil.formato_resposta || {}) as FormatoResposta;
+    const blocos = dividirEmBlocos(textoFallback, formato);
+    const minSeg = perfil.delay_min_resposta_seg ?? 3;
+    const maxSeg = perfil.delay_max_resposta_seg ?? 8;
+    for (let i = 0; i < blocos.length; i++) {
+      const r = await instanceSendText({ baseUrl, token }, { number: waId, text: blocos[i] });
+      await sb.from("mensagens").insert({
+        ticket_id: b.ticket_id,
+        agencia_id: b.agencia_id,
+        autor: "bot",
+        tipo: "texto",
+        conteudo: blocos[i],
+        wa_message_id: r.id || null,
+        status: "enviada",
+        metadata: { ia_perfil_id: perfil.id, fallback: true },
+      });
+      if (i < blocos.length - 1) await sleep(gapAleatorio(minSeg, maxSeg));
+    }
+    respondeuCliente = true;
+    await sb.from("ia_atendimento_log").insert({
+      agencia_id: b.agencia_id,
+      perfil_id: b.perfil_id,
+      ticket_id: b.ticket_id,
+      evento: "resposta",
+      payload: { fallback: true, texto: textoFallback },
+    });
   }
 
   if (encerraIA) {

@@ -290,12 +290,24 @@ export async function executarTool(
       if (lista && lista.size > 0) {
         if (idRaw) {
           const idsPermitidos = new Set(Array.from(lista.values()));
-          if (!idsPermitidos.has(idRaw)) {
-            return { ok: false, resultado: `etiqueta_id "${idRaw}" nao esta na lista permitida` };
+          if (idsPermitidos.has(idRaw)) {
+            etiquetaId = idRaw;
+            const nomeEntry = Array.from(lista.entries()).find(([, id]) => id === idRaw);
+            if (nomeEntry) nomeUsado = nomeEntry[0];
+          } else {
+            // Nao esta na lista do perfil — mas se o admin configurou esse
+            // etiqueta_id na propria ferramenta (ex: marcar_lead_restauracao),
+            // permite desde que seja uma etiqueta real da agencia.
+            const { data: etq } = await ctx.sb
+              .from("etiquetas")
+              .select("id, nome")
+              .eq("id", idRaw)
+              .eq("agencia_id", ctx.agenciaId)
+              .maybeSingle();
+            if (!etq) return { ok: false, resultado: `etiqueta_id "${idRaw}" invalida` };
+            etiquetaId = idRaw;
+            nomeUsado = etq.nome;
           }
-          etiquetaId = idRaw;
-          const nomeEntry = Array.from(lista.entries()).find(([, id]) => id === idRaw);
-          if (nomeEntry) nomeUsado = nomeEntry[0];
         } else {
           const id = lista.get(nomeRaw.toLowerCase());
           if (!id) {

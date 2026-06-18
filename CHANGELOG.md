@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **03:47** — **IA: cliente nunca fica sem resposta + etiqueta configurada na ferramenta é aceita.**
+  - `aplicar_etiqueta`: se o admin configurou um `etiqueta_id` na própria ferramenta (ex: marcar_lead_restauracao) e ele não está na lista de etiquetas do perfil, agora aceita desde que seja uma etiqueta real da agência (antes rejeitava com "nao esta na lista permitida" e o cliente ficava sem resposta).
+  - Rede de segurança no executor: se a IA só chamou ferramenta (ou a tool falhou) e não mandou texto, e não é transferência, faz um 2º call SEM ferramentas pra gerar resposta natural; último recurso = mensagem genérica. Cliente sempre recebe algo.
+  - `providers.ts`: omite o campo `tools` quando vazio (OpenAI/Groq dão 400 com `tools:[]`) — necessário pro 2º call.
+
 - **03:34** — **Log de chamadas de ferramenta no histórico do chat + reforço pra IA chamar tools.**
   - Toda vez que a IA executa uma ferramenta, insere uma nota `autor=sistema` no ticket ("IA usou a ferramenta X — resultado"). `_chat.tsx` renderiza autor `sistema` como pílula central (antes ia como bolha à direita).
   - `executor.ts`: injeta bloco `[FERRAMENTAS / ACOES DISPONIVEIS]` no system prompt (gerado da lista de tools) — reforça pra modelos fracos (gpt-4o-mini) de fato CHAMAREM a função, não só responderem texto. Diagnóstico: todos os `resposta` vinham com `tool_calls:0`.
