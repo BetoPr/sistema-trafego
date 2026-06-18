@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **12:33** — **Fix: import de histórico de conversas ignorava chats `@lid` (novo id do WhatsApp).**
+  - Causa: o filtro de histórico só aceitava `@s.whatsapp.net`; hoje o WhatsApp entrega a maioria dos chats como `@lid`. No canal do Guilherme, 286 chats individuais → só 10 batiam → histórico não importava (contatos importavam porque não têm esse filtro).
+  - Fix em `lib/crm/import-mensagens.ts`: filtro aceita `@s.whatsapp.net` E `@lid` (grupos saem por `wa_isGroup`). Validado: 10 → 286 chats elegíveis.
+  - Backfill rodado pro canal do Guilherme: 197 mensagens / 16 tickets importados.
+  - Etiquetas: o import já funciona (lê `/labels`, cria e aplica). A conta do Guilherme retornou 0 labels — só vêm se o WhatsApp Business tiver etiquetas configuradas; não é bug.
+
 - **07:04** — **Fix: botão de recolher (ao lado do SONAR) não desce mais.**
   - O ajuste anterior do radar subiu a altura do header (52→64px); como o botão é centralizado na vertical, a caixa mais alta empurrava ele pra baixo.
   - Header compacto de volta (54px) + máscara do radar ajustada (some sem corte). Botão volta a alinhar ao lado do wordmark.

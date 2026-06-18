@@ -55,7 +55,10 @@ export async function importarMensagensUazapi(params: {
   try {
     const r = await instanceFindChats({ baseUrl: params.baseUrl, token: params.token }, { limit: 1000 });
     chats = r.chats
-      .filter((c) => !c.wa_isGroup && /^\d+@s\.whatsapp\.net$/.test(c.wa_chatid))
+      // Individuais: @s.whatsapp.net (telefone) E @lid (novo id do WhatsApp).
+      // Antes só pegava @s.whatsapp.net → descartava ~90% dos chats (que hoje
+      // vêm como @lid), por isso o histórico não importava. Grupos saem por wa_isGroup.
+      .filter((c) => !c.wa_isGroup && /@(s\.whatsapp\.net|lid)$/.test(c.wa_chatid))
       .sort((a, b) => (b.wa_lastMsgTimestamp || 0) - (a.wa_lastMsgTimestamp || 0))
       .slice(0, maxChats);
   } catch (e) {
