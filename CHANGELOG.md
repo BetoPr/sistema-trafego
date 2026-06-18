@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **07:04** — **Fix: botão de recolher (ao lado do SONAR) não desce mais.**
+  - O ajuste anterior do radar subiu a altura do header (52→64px); como o botão é centralizado na vertical, a caixa mais alta empurrava ele pra baixo.
+  - Header compacto de volta (54px) + máscara do radar ajustada (some sem corte). Botão volta a alinhar ao lado do wordmark.
+
 - **06:56** — **Foto de perfil do usuário (avatar) — trocar/remover em Conta → Meu Perfil.**
   - Qualquer usuário logado (inclusive admin) troca a própria foto. Sobe em `/conta`, comprime no navegador (recorta quadrado central, 400px, JPEG 0.85) e salva em bucket público `avatares`.
   - Aparece no topo (avatar do menu do usuário) e na página Conta. Sem foto = iniciais como antes.
