@@ -107,7 +107,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       wamid = r.id;
     }
   } catch (e) {
-    return NextResponse.json({ error: "uazapi_send", msg: e instanceof Error ? e.message : String(e) }, { status: 502 });
+    // Envio falhou — quase sempre instância desconectada/hibernada. Marca o canal
+    // como desconectado pra UI avisar e bloquear próximos envios até reconectar.
+    // (Mensagem recebida via webhook reverte pra connected automaticamente.)
+    await sb.from("canais").update({ status: "disconnected", updated_at: new Date().toISOString() }).eq("id", canalId);
+    return NextResponse.json(
+      { error: "uazapi_send", canal_desconectado: true, msg: e instanceof Error ? e.message : String(e) },
+      { status: 502 },
+    );
   }
 
   const { data: msgRow, error } = await sb

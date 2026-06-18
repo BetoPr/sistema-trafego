@@ -463,6 +463,10 @@ export function ChatView(props: Props) {
     setShowShortcuts(false);
   }
 
+  // Sinaliza canal caiu em runtime (envio falhou). props.canalConectado é o estado do load.
+  const [canalOff, setCanalOff] = useState(false);
+  const canalDesconectado = canalOff || !props.canalConectado;
+
   async function enviar() {
     if (!text.trim() || !props.canalId) return;
     setSending(true);
@@ -495,11 +499,18 @@ export function ChatView(props: Props) {
       });
       const j = await r.json();
       if (!r.ok) {
-        alert(`Falha ao enviar: ${j.error || j.msg || r.statusText}`);
+        // Canal caiu: mostra banner persistente em vez de só um alerta
+        if (j.canal_desconectado || j.error === "canal_desconectado" || j.error === "uazapi_send") {
+          setCanalOff(true);
+          props.onRefresh?.();
+        } else {
+          alert(`Falha ao enviar: ${j.error || j.msg || r.statusText}`);
+        }
         // rollback optimistic
         setMsgs((prev) => prev.filter((m) => m.id !== tempId));
         setText(textoEnviado);
       } else {
+        if (canalOff) setCanalOff(false);
         // Marca como enviada (server vai logo logo retornar via realtime
         // a versão definitiva com o id real e substituirá; até lá fica pendente)
         setMsgs((prev) =>
@@ -579,6 +590,18 @@ export function ChatView(props: Props) {
       </div>
 
       {/* Mensagens */}
+      {canalDesconectado && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 14px", fontSize: 12, fontWeight: 500,
+          background: "rgba(201,112,100,0.14)", color: "#E8B5AC",
+          borderBottom: "0.5px solid rgba(201,112,100,0.4)",
+        }}>
+          <i className="ti ti-plug-connected-x" style={{ fontSize: 15 }} />
+          Canal do WhatsApp desconectado — não é possível enviar mensagens. Reconecte em
+          <a href="/canais" style={{ color: "#fff", textDecoration: "underline", marginLeft: 2 }}>Canais</a>.
+        </div>
+      )}
       <div ref={scrollRef} className="chat-scroll" style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>
 
         {msgs.length === 0 ? (

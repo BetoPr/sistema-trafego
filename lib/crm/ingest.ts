@@ -113,7 +113,7 @@ export async function ingestMensagem(
   let novoTicket = false;
   const { data: ticketExistente } = await sb
     .from("tickets")
-    .select("id, numero, status")
+    .select("id, numero, status, canal_id")
     .eq("agencia_id", ctx.agenciaId)
     .eq("contato_id", contatoId)
     .in("status", ["aberto", "pendente"])
@@ -127,6 +127,13 @@ export async function ingestMensagem(
   if (ticketExistente) {
     ticketId = ticketExistente.id;
     ticketNumero = ticketExistente.numero;
+    // Continuidade ao trocar/recriar canal: o ticket antigo aponta pro canal
+    // deletado e mostra "desconectado". Re-aponta pro canal atual (que acabou de
+    // receber a mensagem) — assim o histórico continua no mesmo ticket e dá pra
+    // responder pelo canal novo.
+    if (ticketExistente.canal_id !== ctx.canalId) {
+      await sb.from("tickets").update({ canal_id: ctx.canalId }).eq("id", ticketId);
+    }
   } else {
     novoTicket = true;
     const status = m.fromMe ? "aberto" : "pendente";

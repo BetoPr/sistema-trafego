@@ -41,7 +41,7 @@ export async function POST(
 
   const { data: canal } = await sb
     .from("canais")
-    .select("id, agencia_id, fila_id, usuario_id, instance_id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .select("id, agencia_id, status, fila_id, usuario_id, instance_id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
     .eq("webhook_secret", secret)
     .maybeSingle();
 
@@ -142,6 +142,12 @@ export async function POST(
         },
         parsed,
       );
+
+      // Auto-cura status: se chegou mensagem, a instância ESTÁ conectada.
+      // Corrige status defasado (ex: ficou "disconnected" mas voltou a receber).
+      if (canal.status !== "connected") {
+        await sb.from("canais").update({ status: "connected", updated_at: new Date().toISOString() }).eq("id", canal.id);
+      }
 
       // Foto de perfil do contato: busca na 1ª mensagem (URL pps temporária do WhatsApp).
       // Também roda pra contato existente sem foto_url (backfill incremental).

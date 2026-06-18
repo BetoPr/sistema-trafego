@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **04:39** — **Conexão do canal: status real, aviso no chat e continuidade ao trocar/recriar canal.**
+  - **Auto-cura de status:** webhook marca o canal `connected` ao receber mensagem; envio que falha marca `disconnected`. Acaba o status defasado (mostrava desconectado mas recebia / mostrava conectado mas não enviava).
+  - **Aviso no chat:** banner vermelho "Canal desconectado — não é possível enviar" no topo do atendimento quando o canal cai; envio falho não some mais num alerta, fica visível.
+  - **Continuidade ao recriar canal:** `ingest` re-aponta o ticket aberto pro canal atual quando chega mensagem (antes o ticket ficava preso ao canal deletado). Histórico continua no mesmo ticket, dá pra responder pelo canal novo. Re-apontados 105 tickets abertos pro canal novo (one-off).
+  - Diagnóstico UAZAPI: servidor estava no limite de instâncias (172 criadas, 0 conectadas) → instância hibernava. Script `scripts/test-uazapi.ts` pra checar status/webhook/envio ao vivo.
+
 - **03:59** — **Auditoria das ferramentas de chamada + remoção de "Etiquetas configuradas".**
   - **Bug achado:** `transferir_para_fila`, `agendar_followup` e `enviar_template` estavam no dropdown mas SEM handler no `executarTool` (caíam no default "ação desconhecida"). 3 de 9 ações não funcionavam.
   - Implementado `transferir_para_fila` (FK-safe: valida fila antes de setar, pausa IA). `agendar_followup` e `enviar_template` removidos do dropdown (não implementados — evita criar tool quebrada).
