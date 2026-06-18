@@ -102,6 +102,13 @@ export function Topbar({ userName, userEmail, agencia, avatarUrl }: TopbarProps)
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              onClick={() => router.push("/conta")}
+              className="cursor-pointer"
+            >
+              <i className="ti ti-user-circle mr-2" style={{ fontSize: 14 }} />
+              Meu Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem
               disabled={pending}
               onClick={handleSignOut}
               className="cursor-pointer"
