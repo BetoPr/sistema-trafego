@@ -499,8 +499,16 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   for (const tc of resp.toolCalls) {
     const tool = tools.find((t) => t.name === tc.name);
     if (!tool) continue;
-    const r = await executarTool(ctxIA, tool, tc.arguments);
-    if (r.suprimirTextoIA) suprimirTextoIA = true;
+    // Tool que lança NÃO pode abortar o fluxo — senão a rede de segurança (11b)
+    // não roda e o cliente fica sem resposta. Captura, loga e segue.
+    let r: { ok: boolean; resultado: string; encerra_ia?: boolean; suprimirTextoIA?: boolean };
+    try {
+      r = await executarTool(ctxIA, tool, tc.arguments);
+    } catch (e) {
+      r = { ok: false, resultado: `erro na ferramenta: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    // Só suprime o texto da IA se a ferramenta REALMENTE entregou (ex: galeria enviou imagens).
+    if (r.ok && r.suprimirTextoIA) suprimirTextoIA = true;
     await sb.from("ia_atendimento_log").insert({
       agencia_id: b.agencia_id,
       perfil_id: b.perfil_id,

@@ -104,17 +104,20 @@ export async function limparMidiaAntiga(diasMin = 90): Promise<{ deletados: numb
 
   const { data: tickets } = await sb
     .from("tickets")
-    .select("id")
+    .select("id, agencia_id")
     .eq("status", "fechado")
     .lt("fechado_em", cutoff);
 
   if (!tickets || tickets.length === 0) return { deletados: 0 };
 
   let deletados = 0;
-  for (const t of tickets) {
-    const { data: list } = await sb.storage.from("crm-media").list(`${t.id}`);
+  for (const t of tickets as Array<{ id: string; agencia_id: string }>) {
+    // Path real do upload é <agencia_id>/<ticket_id>/... — listar só por ticket_id
+    // não achava nada (mídia nunca era apagada / vazava storage).
+    const prefixo = `${t.agencia_id}/${t.id}`;
+    const { data: list } = await sb.storage.from("crm-media").list(prefixo);
     if (!list || list.length === 0) continue;
-    const paths = list.map((f) => `${t.id}/${f.name}`);
+    const paths = list.map((f) => `${prefixo}/${f.name}`);
     const { error } = await sb.storage.from("crm-media").remove(paths);
     if (!error) deletados += paths.length;
   }

@@ -8,13 +8,14 @@ interface PageProps {
 }
 
 export default async function IAConfigPage({ searchParams }: PageProps) {
-  await requireAdmin();
+  const ctx = await requireAdmin();
   const sp = await searchParams;
   const sb = createServiceClient();
 
   const { data: cfg } = await sb
     .from("configuracoes_agencia")
     .select("groq_key_encrypted, openai_key_encrypted, anthropic_key_encrypted")
+    .eq("agencia_id", ctx.agenciaId)
     .maybeSingle();
 
   const temGroq = !!cfg?.groq_key_encrypted;

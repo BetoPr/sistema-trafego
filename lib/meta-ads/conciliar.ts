@@ -61,6 +61,7 @@ async function buscarContatoPorTelefoneOuCtwa(
         .from("contatos")
         .select("id, whatsapp, wa_id")
         .eq("id", msg.tickets.contato_id)
+        .is("deleted_at", null)
         .maybeSingle<MatchContato>();
       if (c) return c;
     }
@@ -77,6 +78,7 @@ async function buscarContatoPorTelefoneOuCtwa(
       .from("contatos")
       .select("id, whatsapp, wa_id")
       .eq("agencia_id", agenciaId)
+      .is("deleted_at", null)
       .or(`whatsapp.ilike.${p},wa_id.ilike.${p}`)
       .limit(1)
       .maybeSingle<MatchContato>();

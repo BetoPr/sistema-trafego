@@ -15,6 +15,7 @@
  */
 import { NextResponse } from "next/server";
 import { after } from "next/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   extrairLeadgenChanges,
@@ -43,9 +44,21 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const raw = await req.text();
+
+  // Valida X-Hub-Signature-256 quando META_APP_SECRET está configurado
+  // (impede forjar payload de lead). Sem o secret, mantém o comportamento atual.
+  const appSecret = process.env.META_APP_SECRET;
+  if (appSecret) {
+    const sig = req.headers.get("x-hub-signature-256") || "";
+    const esperado = "sha256=" + createHmac("sha256", appSecret).update(raw).digest("hex");
+    const ok = sig.length === esperado.length && timingSafeEqual(Buffer.from(sig), Buffer.from(esperado));
+    if (!ok) return NextResponse.json({ ok: false, error: "assinatura_invalida" }, { status: 403 });
+  }
+
   let payload: LeadgenWebhookPayload;
   try {
-    payload = (await req.json()) as LeadgenWebhookPayload;
+    payload = JSON.parse(raw) as LeadgenWebhookPayload;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }

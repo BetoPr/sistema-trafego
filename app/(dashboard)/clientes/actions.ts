@@ -96,7 +96,7 @@ export async function editarClienteAction(
     return { error: "Verifique os campos.", fieldErrors };
   }
 
-  const { supabase } = await requireUserWithAgencia();
+  const { supabase, usuario } = await requireUserWithAgencia();
 
   const { error } = await supabase
     .from("clientes")
@@ -108,6 +108,7 @@ export async function editarClienteAction(
       observacoes: parsed.data.observacoes || null,
     })
     .eq("id", clienteId)
+    .eq("agencia_id", usuario.agencia_id)
     .is("deleted_at", null);
 
   if (error) return { error: `Erro ao atualizar cliente: ${error.message}` };
@@ -125,11 +126,12 @@ export async function excluirClienteAction(formData: FormData) {
   // por handler client-side com window.confirm). Sem isso, ignora.
   if (confirm !== `delete-${id}`) return;
 
-  const { supabase } = await requireUserWithAgencia();
+  const { supabase, usuario } = await requireUserWithAgencia();
   await supabase
     .from("clientes")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("agencia_id", usuario.agencia_id);
 
   revalidatePath("/clientes");
   redirect("/clientes");

@@ -167,22 +167,16 @@ export async function processarFollowUpsIA(limite = 25): Promise<{
   if (!lockErr && Array.isArray(lockedRows)) {
     pickList = lockedRows as unknown as ProgressoRow[];
   } else {
+    // Fallback sem a RPC: UPDATE ... RETURNING é ATÔMICO — cada row 'agendado'
+    // é flipada por UM cron só. Antes era SELECT depois UPDATE (não atômico):
+    // dois crons pegavam as mesmas e enviavam a etapa em dobro.
     const { data } = await sb
       .from("ia_atendimento_followup_progresso")
-      .select("id, agencia_id, perfil_id, sequencia_id, ticket_id, contato_id, canal_id, etapa_atual, proxima_etapa, agendado_para, iniciado_em")
+      .update({ status: "executando", atualizado_em: new Date().toISOString() })
       .eq("status", "agendado")
       .lte("agendado_para", new Date().toISOString())
-      .order("agendado_para", { ascending: true })
-      .limit(limite);
+      .select("id, agencia_id, perfil_id, sequencia_id, ticket_id, contato_id, canal_id, etapa_atual, proxima_etapa, agendado_para, iniciado_em");
     pickList = (data || []) as ProgressoRow[];
-    if (pickList.length) {
-      const ids = pickList.map((p) => p.id);
-      await sb
-        .from("ia_atendimento_followup_progresso")
-        .update({ status: "executando", atualizado_em: new Date().toISOString() })
-        .in("id", ids)
-        .eq("status", "agendado");
-    }
   }
 
   for (const prog of pickList) {

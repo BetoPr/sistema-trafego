@@ -459,8 +459,9 @@ export async function executarTool(
       return {
         ok: enviadas > 0,
         resultado: `${enviadas} imagem(ns) enviada(s)` + (erros.length ? `; ${erros.length} erro(s)` : ""),
-        // Moldura (intro/CTA) ja enviada pela ferramenta → executor nao duplica resp.texto.
-        suprimirTextoIA: !!(textoAntes || textoDepois),
+        // Moldura (intro/CTA) só suprime o texto da IA se ALGUMA imagem saiu —
+        // senão (galeria falhou) o cliente receberia a intro e nada de imagem.
+        suprimirTextoIA: enviadas > 0 && !!(textoAntes || textoDepois),
       };
     }
 

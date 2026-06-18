@@ -93,7 +93,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           viewOnce: body.viewOnce || undefined,
         },
       );
-      wamid = r.id;
+      wamid = r.id ?? r.messageid; // UAZAPI às vezes devolve messageid em vez de id
       tipoMsg =
         body.media.type === "image" ? "imagem"
         : body.media.type === "video" ? "video"
@@ -104,7 +104,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       conteudoMsg = body.media.caption || `[${tipoMsg}]`;
     } else {
       const r = await instanceSendText({ baseUrl, token }, { number: waId, text: body.text!, replyid: body.replyid || undefined });
-      wamid = r.id;
+      wamid = r.id ?? r.messageid;
     }
   } catch (e) {
     // Envio falhou — quase sempre instância desconectada/hibernada. Marca o canal
