@@ -64,15 +64,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const apiKey = await getGroqKeyInline(u.agencia_id);
   if (!apiKey) return new Response("groq_nao_configurado", { status: 400 });
 
+  // Dono: ticket precisa ser da agência do usuário (evita IDOR cross-tenant).
+  const { data: dono } = await sb.from("tickets").select("id").eq("id", id).eq("agencia_id", u.agencia_id).maybeSingle();
+  if (!dono) return new Response("nao_encontrado", { status: 404 });
+
   const [{ conteudo: prompt, modelo }, { data: msgs }, { data: ticket }] = await Promise.all([
     getPromptResumo(u.agencia_id),
     sb
       .from("mensagens")
       .select("autor, conteudo, transcricao, tipo, created_at")
       .eq("ticket_id", id)
+      .eq("agencia_id", u.agencia_id)
       .order("created_at", { ascending: true })
       .limit(500),
-    sb.from("tickets").select("contato:contatos(nome)").eq("id", id).single(),
+    sb.from("tickets").select("contato:contatos(nome)").eq("id", id).eq("agencia_id", u.agencia_id).single(),
   ]);
 
   const contatoNome = (ticket?.contato as unknown as { nome?: string } | null)?.nome;
@@ -146,7 +151,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           await sb
             .from("tickets")
             .update({ resumo: resumoCompleto, resumo_atualizado_em: new Date().toISOString() })
-            .eq("id", id);
+            .eq("id", id)
+            .eq("agencia_id", u.agencia_id);
           await sb.from("ia_execucoes").insert({
             agencia_id: u.agencia_id,
             ticket_id: id,

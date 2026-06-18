@@ -7,6 +7,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **17:52** — **Correção dos 6 bugs CRÍTICOS da auditoria (vazamento entre agências + duplicação + race da IA).**
+  - **IDOR cross-tenant (vazava conversa/resumo entre clientes):** `resumo-stream` e `resumo` agora validam dono do ticket + escopam `agencia_id`; raiz `lib/crm/ia.ts` blindada (escopa `agencia_id` em fetchMensagens + selects/updates de ticket).
+  - **Token Meta entre agências:** `sincronizarPagesMeta` valida que a integração é da agência antes de descriptografar/usar o token.
+  - **Etiquetas cross-tenant:** `contatos/[id]/etiquetas` valida dono do contato (e da etiqueta) antes de inserir/remover.
+  - **Mensagem duplicada + IA re-disparada:** índice único `uq_mensagens_agencia_wamsg` + ingest idempotente (re-entrega do webhook vira no-op, não reprocessa).
+  - **Race do buffer da IA (perdia msg / respondia 2x):** `finalizarBuffer` mantém só msgs que chegaram durante o processamento (não apaga a row inteira) + preserva a trava no append (cron não pega 2x).
+  - Pendente: pull do schema (migrations) + os 🟠 altos. Detalhes em `docs/AUDITORIA-CRM.md`.
+
 - **15:02** — **Importar do WhatsApp: 1 botão faz tudo (etiquetas + contatos nome/número + conversas + dedup).**
   - O botão "Importar do WhatsApp" (em /contatos) agora roda o fluxo completo num clique: etiquetas (se houver) → contatos com **nome e número real** (via `/contacts` + resolve `@lid` por `/chat/details`) → histórico de conversas → **dedup automático** (junta o registro @lid com histórico ao da agenda, sem duplicar).
   - Nova função SQL `dedup_contatos_agencia` (migration) chamada no fim do import. Resolver de número com teto de tempo (resto continua numa 2ª importação, idempotente — avisa na tela se sobrar).

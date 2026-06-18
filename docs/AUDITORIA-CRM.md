@@ -8,6 +8,9 @@ Base de auth/cripto/Next16 está **sólida** (getUser em tudo, AES-256-GCM, OAut
 
 ---
 
+## Status das correções (2026-06-18, pós-auditoria)
+**🔴 Críticos 1-6 CORRIGIDOS + deployados** (vazamentos entre agências, duplicação de msg, race do buffer). Crítico 7 (pull do schema) pendente — precisa do Supabase CLI. 🟠 Altos: pendentes (próxima leva).
+
 ## 🔴 CRÍTICO (corrigir antes de tudo)
 
 1. **IDOR cross-tenant no resumo de conversa** — `app/api/atendimentos/[id]/resumo-stream/route.ts:70-76,146-149`

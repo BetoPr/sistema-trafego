@@ -81,12 +81,13 @@ interface MensagemRow {
   created_at: string;
 }
 
-async function fetchMensagens(ticketId: string): Promise<MensagemRow[]> {
+async function fetchMensagens(ticketId: string, agenciaId: string): Promise<MensagemRow[]> {
   const sb = createServiceClient();
   const { data } = await sb
     .from("mensagens")
     .select("autor, conteudo, transcricao, tipo, created_at")
     .eq("ticket_id", ticketId)
+    .eq("agencia_id", agenciaId)
     .order("created_at", { ascending: true });
   return (data || []) as MensagemRow[];
 }
@@ -104,7 +105,7 @@ export async function analisarSentimentoTicket(params: {
   try {
     const [{ conteudo: prompt, modelo }, msgs] = await Promise.all([
       getPrompt(params.agenciaId, "sentimento"),
-      fetchMensagens(params.ticketId),
+      fetchMensagens(params.ticketId, params.agenciaId),
     ]);
 
     // Pega nome do contato.
@@ -112,6 +113,7 @@ export async function analisarSentimentoTicket(params: {
       .from("tickets")
       .select("contato:contatos(nome)")
       .eq("id", params.ticketId)
+      .eq("agencia_id", params.agenciaId)
       .single();
     const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
 
@@ -126,7 +128,8 @@ export async function analisarSentimentoTicket(params: {
         sentimento_motivo: result.motivo,
         sentimento_atualizado_em: new Date().toISOString(),
       })
-      .eq("id", params.ticketId);
+      .eq("id", params.ticketId)
+      .eq("agencia_id", params.agenciaId);
 
     await sb.from("ia_execucoes").insert({
       agencia_id: params.agenciaId,
@@ -165,12 +168,13 @@ export async function gerarResumoTicket(params: {
   try {
     const [{ conteudo: prompt, modelo }, msgs] = await Promise.all([
       getPrompt(params.agenciaId, "resumo"),
-      fetchMensagens(params.ticketId),
+      fetchMensagens(params.ticketId, params.agenciaId),
     ]);
     const { data: ticket } = await sb
       .from("tickets")
       .select("contato:contatos(nome)")
       .eq("id", params.ticketId)
+      .eq("agencia_id", params.agenciaId)
       .single();
     const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
 
@@ -224,8 +228,8 @@ export async function sugerirFollowUpTicket(params: {
 
   const sb = createServiceClient();
   // Só as últimas mensagens — limita os tokens por chamada (evita estourar o TPM do Groq).
-  const msgs = (await fetchMensagens(params.ticketId)).slice(-25);
-  const { data: ticket } = await sb.from("tickets").select("contato:contatos(nome)").eq("id", params.ticketId).single();
+  const msgs = (await fetchMensagens(params.ticketId, params.agenciaId)).slice(-25);
+  const { data: ticket } = await sb.from("tickets").select("contato:contatos(nome)").eq("id", params.ticketId).eq("agencia_id", params.agenciaId).single();
   const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
   const conversa = formatConversaParaIA(msgs, contatoNome).slice(-4000);
 

@@ -16,16 +16,31 @@ async function getCtx(supabaseAuth: Request) {
   return { userId: auth.user.id, agenciaId: u.agencia_id, svc };
 }
 
+/** Confirma que o contato é da agência (evita vínculo cross-tenant). */
+async function contatoDaAgencia(svc: ReturnType<typeof createServiceClient>, contatoId: string, agenciaId: string): Promise<boolean> {
+  const { data } = await svc.from("contatos").select("id").eq("id", contatoId).eq("agencia_id", agenciaId).maybeSingle();
+  return !!data;
+}
+
 // POST /api/contatos/[id]/etiquetas { etiquetaId? | nome? cor? }
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: contatoId } = await params;
   const ctx = await getCtx(req);
   if (!ctx) return NextResponse.json({ error: "auth" }, { status: 401 });
 
+  if (!(await contatoDaAgencia(ctx.svc, contatoId, ctx.agenciaId))) {
+    return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
+  }
+
   const body = (await req.json().catch(() => null)) as { etiquetaId?: string; nome?: string; cor?: string; categoria?: "etiqueta" | "flag" } | null;
   if (!body || (!body.etiquetaId && !body.nome)) return NextResponse.json({ error: "body_invalido" }, { status: 400 });
 
   let etiquetaId = body.etiquetaId;
+  // etiquetaId vindo do body precisa ser da própria agência.
+  if (etiquetaId) {
+    const { data: etq } = await ctx.svc.from("etiquetas").select("id").eq("id", etiquetaId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+    if (!etq) return NextResponse.json({ error: "etiqueta_invalida" }, { status: 404 });
+  }
   if (!etiquetaId && body.nome) {
     const categoria = body.categoria === "flag" ? "flag" : "etiqueta";
     const { data: nova, error } = await ctx.svc
@@ -63,6 +78,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const url = new URL(req.url);
   const etiquetaId = url.searchParams.get("etiquetaId");
   if (!etiquetaId) return NextResponse.json({ error: "etiquetaId_obrigatorio" }, { status: 400 });
+
+  if (!(await contatoDaAgencia(ctx.svc, contatoId, ctx.agenciaId))) {
+    return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
+  }
 
   await ctx.svc
     .from("contato_etiquetas")

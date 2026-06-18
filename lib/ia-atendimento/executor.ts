@@ -17,6 +17,37 @@ import { inscreverFollowUpIA } from "./followup-worker";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Fecha o buffer após processar SEM perder mensagens que chegaram durante o
+ * processamento. Em vez de apagar a row inteira (que descartava msgs novas),
+ * mantém só as que chegaram DEPOIS do snapshot processado e re-arma o buffer
+ * (trava=false, processar_apos=agora) pra elas serem respondidas no próximo ciclo.
+ */
+async function finalizarBuffer(
+  sb: ReturnType<typeof createServiceClient>,
+  ticketId: string,
+  ultimoProcessado: string,
+): Promise<void> {
+  const { data: atual } = await sb
+    .from("ia_atendimento_buffer")
+    .select("mensagens_pendentes")
+    .eq("ticket_id", ticketId)
+    .maybeSingle();
+  if (!atual) return;
+  const novas = ((atual.mensagens_pendentes || []) as Array<{ recebido_em: string }>)
+    .filter((m) => m.recebido_em > ultimoProcessado);
+  if (!novas.length) {
+    await sb.from("ia_atendimento_buffer").delete().eq("ticket_id", ticketId);
+  } else {
+    await sb.from("ia_atendimento_buffer").update({
+      mensagens_pendentes: novas,
+      ultimo_recebido_em: novas[novas.length - 1].recebido_em,
+      processar_apos: new Date().toISOString(),
+      trava_processando: false,
+    }).eq("ticket_id", ticketId);
+  }
+}
+
+/**
  * Gera variantes BR pra um número (com e sem o "9" inicial de celular).
  * Tem números antigos no WhatsApp salvos sem o 9, então a comparação
  * precisa cobrir ambos.
@@ -98,8 +129,8 @@ export async function processarBufferIA(limite = 10): Promise<IAResultado> {
         erro: detalhe.erro,
       });
     } finally {
-      // Remove buffer (processado ou erro — em erro a próxima msg do cliente recria)
-      await sb.from("ia_atendimento_buffer").delete().eq("ticket_id", b.ticket_id);
+      // Fecha sem perder msgs que chegaram durante o processamento.
+      await finalizarBuffer(sb, b.ticket_id, b.ultimo_recebido_em);
     }
     res.detalhes.push(detalhe);
   }
@@ -631,7 +662,7 @@ export async function adicionarAoBuffer(params: {
       .select("id, canais_ativos, filas_ativas, delay_debounce_seg")
       .eq("agencia_id", params.agenciaId)
       .eq("ativo", true),
-    sb.from("ia_atendimento_buffer").select("mensagens_pendentes, ultimo_recebido_em").eq("ticket_id", params.ticketId).maybeSingle(),
+    sb.from("ia_atendimento_buffer").select("mensagens_pendentes, ultimo_recebido_em, trava_processando").eq("ticket_id", params.ticketId).maybeSingle(),
   ]);
 
   if (!ticket) return { ok: false, motivo: "ticket nao encontrado" };
@@ -672,7 +703,10 @@ export async function adicionarAoBuffer(params: {
       mensagens_pendentes: lista,
       ultimo_recebido_em: agora.toISOString(),
       processar_apos: processarApos,
-      trava_processando: false,
+      // Preserva a trava: se a IA está processando (trava=true), NÃO zera —
+      // senão o cron/after pegaria a mesma conversa de novo (resposta dupla).
+      // O finalizarBuffer reabre depois, mantendo esta msg nova.
+      trava_processando: (bufferExistente as { trava_processando?: boolean } | null)?.trava_processando ?? false,
     }, { onConflict: "ticket_id" }),
     !ticket.ia_perfil_id
       ? sb.from("tickets").update({ ia_perfil_id: perfilEscolhido.id }).eq("id", params.ticketId)
@@ -702,7 +736,7 @@ export async function processarTicket(ticketId: string, debounceMs: number): Pro
   if (!travado) return { ok: false, motivo: "buffer_nao_disponivel" };
   try {
     await processarUm(travado as unknown as BufferRow, sb);
-    await sb.from("ia_atendimento_buffer").delete().eq("ticket_id", ticketId);
+    await finalizarBuffer(sb, ticketId, travado.ultimo_recebido_em as string);
     return { ok: true };
   } catch (e) {
     const erro = e instanceof Error ? e.message : String(e);
@@ -713,7 +747,7 @@ export async function processarTicket(ticketId: string, debounceMs: number): Pro
       evento: "erro",
       erro,
     });
-    await sb.from("ia_atendimento_buffer").delete().eq("ticket_id", ticketId);
+    await finalizarBuffer(sb, ticketId, travado.ultimo_recebido_em as string);
     return { ok: false, erro };
   }
 }

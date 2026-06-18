@@ -15,6 +15,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
+  // Dono: ticket precisa ser da agência do usuário (evita IDOR cross-tenant).
+  const { data: dono } = await sb.from("tickets").select("id").eq("id", id).eq("agencia_id", u.agencia_id).maybeSingle();
+  if (!dono) return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
+
   try {
     const r = await gerarResumoTicket({ agenciaId: u.agencia_id, ticketId: id });
     return NextResponse.json({ ok: true, ...r });

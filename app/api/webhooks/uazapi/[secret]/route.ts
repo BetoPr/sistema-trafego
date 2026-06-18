@@ -143,6 +143,15 @@ export async function POST(
         parsed,
       );
 
+      // Re-entrega do UAZAPI (mesmo wa_message_id): idempotente — não reprocessa
+      // mídia/foto/IA (senão a IA responderia 2x). Só auto-cura o status.
+      if (ingest.duplicada || !ingest.mensagemId) {
+        if (canal.status !== "connected") {
+          await sb.from("canais").update({ status: "connected", updated_at: new Date().toISOString() }).eq("id", canal.id);
+        }
+        return NextResponse.json({ ok: true, duplicada: true });
+      }
+
       // Auto-cura status: se chegou mensagem, a instância ESTÁ conectada.
       // Corrige status defasado (ex: ficou "disconnected" mas voltou a receber).
       if (canal.status !== "connected") {
@@ -185,7 +194,7 @@ export async function POST(
             await baixarEUploadMidia(
               {
                 sb,
-                mensagemId: ingest.mensagemId,
+                mensagemId: ingest.mensagemId!, // guard acima garante não-null aqui
                 agenciaId: canal.agencia_id,
                 ticketId: ingest.ticketId,
                 tipo: parsed.tipo,

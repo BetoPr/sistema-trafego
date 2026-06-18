@@ -61,10 +61,12 @@ export interface IngestContext {
 export interface IngestResult {
   ticketId: string;
   ticketNumero: number;
-  mensagemId: string;
+  mensagemId: string | null;
   contatoId: string;
   novoContato: boolean;
   novoTicket: boolean;
+  /** true = mensagem já existia (re-entrega UAZAPI); não reprocessar IA. */
+  duplicada?: boolean;
 }
 
 function normalizeWaToWhatsapp(waChatId: string): string {
@@ -177,7 +179,14 @@ export async function ingestMensagem(
     })
     .select("id")
     .single();
-  if (msgErr) throw msgErr;
+  if (msgErr) {
+    // Re-entrega do UAZAPI (mesmo wa_message_id) → idempotente: não duplica nem
+    // reprocessa a IA. O índice único uq_mensagens_agencia_wamsg garante isso.
+    if (msgErr.code === "23505" || /duplicate key|uq_mensagens/i.test(msgErr.message)) {
+      return { ticketId, ticketNumero, mensagemId: null, contatoId, novoContato, novoTicket, duplicada: true };
+    }
+    throw msgErr;
+  }
 
   // 3b. Etiquetas por palavra-chave gatilho — só em mensagem recebida do cliente.
   // Se a palavra configurada aparece no texto, aplica a etiqueta no contato.

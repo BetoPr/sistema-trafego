@@ -76,6 +76,10 @@ export async function sincronizarPagesMeta(integracaoId: string): Promise<{ ok: 
     .maybeSingle<{ id: string; agencia_id: string; access_token_encrypted: unknown; metadata: Record<string, unknown> | null }>();
   if (!integ) return { ok: false, erro: "integracao nao encontrada" };
 
+  // Dono: a integração precisa ser da agência do usuário (evita usar token Meta de outro tenant).
+  const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", user.id).single();
+  if (!u || integ.agencia_id !== u.agencia_id) return { ok: false, erro: "sem permissao" };
+
   let userToken: string;
   try {
     userToken = decryptToken(byteaToBuffer(integ.access_token_encrypted as Parameters<typeof byteaToBuffer>[0]));
