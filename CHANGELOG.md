@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **05:27** — **Galeria de imagens: drag-drop com feedback + múltiplas + regra de 1ª imagem (capa).**
+  - Dropzone agora destaca (borda/fundo verde + "Solte aqui") ao arrastar — antes o drag funcionava mas sem feedback, parecia que não. Texto deixa claro "uma ou VÁRIAS".
+  - Múltiplas imagens já funcionavam (input multiple + loop); reforçado o hint "pode soltar várias".
+  - Regra de sequência: badge **"1ª · CAPA"** na primeira imagem + botão ⭐ "tornar primeira" (1 clique manda pro topo). A IA já envia na ordem definida (`carregarGaleria` ordena por `ordem`; 1ª = capa/principal).
+
 - **05:20** — **Regra de ferramentas imperativa GLOBAL (todos os agentes/templates disparam tools).**
   - `executor.ts`: bloco `[FERRAMENTAS / AÇÕES — OBRIGATÓRIO]` reforçado — "assim que a situação se encaixar, CHAME a função NA MESMA resposta, antes de conversar; é ação interna". Vale pra TODOS os agentes em runtime (incluindo os 5 templates e novos perfis), sem editar prompt de cada um.
   - Validado direto na OpenAI (gpt-4.1) com prompt LIMPO (sem regra manual): "quero ensaio aniversário" → `marcar_lead_ensaio`; "quero restaurar" → `marcar_lead_restauracao`. Antes não disparava (modelo tratava etiqueta como tag de fundo).

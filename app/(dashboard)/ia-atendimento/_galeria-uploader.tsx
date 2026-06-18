@@ -30,6 +30,7 @@ export default function GaleriaUploader({
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   async function handleFiles(files: FileList | null) {
@@ -66,7 +67,29 @@ export default function GaleriaUploader({
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
+    setDragOver(false);
     handleFiles(e.dataTransfer.files);
+  }
+
+  // Reordena de forma persistida (usado por subir/descer e "tornar primeira")
+  function aplicarOrdem(arr: ImagemGaleria[]) {
+    const reord = arr.map((im, i) => ({ ...im, ordem: i }));
+    setImagens(reord);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("ferramenta_id", ferramentaId);
+      fd.set("ordem_json", JSON.stringify(reord.map((x) => ({ id: x.id, ordem: x.ordem }))));
+      await reordenarImagemGaleria(fd);
+    });
+  }
+
+  function tornarPrimeira(id: string) {
+    const idx = imagens.findIndex((x) => x.id === id);
+    if (idx <= 0) return;
+    const arr = [...imagens];
+    const [item] = arr.splice(idx, 1);
+    arr.unshift(item);
+    aplicarOrdem(arr);
   }
 
   function atualizarCampo(id: string, campo: "nome" | "descricao" | "tags", valor: string) {
@@ -134,15 +157,18 @@ export default function GaleriaUploader({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div
-        onDragOver={(e) => e.preventDefault()}
+        onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => { e.preventDefault(); if (!dragOver) setDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
         onDrop={handleDrop}
         style={{
-          border: "2px dashed var(--mk-border)",
+          border: `2px dashed ${dragOver ? "#10b981" : "var(--mk-border)"}`,
           borderRadius: 8,
-          padding: 16,
+          padding: 18,
           textAlign: "center",
-          background: "var(--mk-surface-2)",
+          background: dragOver ? "rgba(16,185,129,0.10)" : "var(--mk-surface-2)",
           cursor: "pointer",
+          transition: "background 0.15s ease, border-color 0.15s ease",
         }}
         onClick={() => inputRef.current?.click()}
       >
@@ -154,10 +180,15 @@ export default function GaleriaUploader({
           style={{ display: "none" }}
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <i className="ti ti-cloud-upload" style={{ fontSize: 24, opacity: 0.6 }} />
-        <div style={{ fontSize: 12, marginTop: 6, color: "var(--mk-text-muted)" }}>
-          {enviando ? "Enviando..." : "Arraste imagens aqui ou clique para selecionar (max 10MB cada)"}
+        <i className={`ti ${dragOver ? "ti-photo-down" : "ti-cloud-upload"}`} style={{ fontSize: 26, color: dragOver ? "#10b981" : undefined, opacity: dragOver ? 1 : 0.6 }} />
+        <div style={{ fontSize: 12.5, marginTop: 6, fontWeight: dragOver ? 600 : 400, color: dragOver ? "#10b981" : "var(--mk-text-muted)" }}>
+          {enviando ? "Enviando..." : dragOver ? "Solte aqui pra adicionar" : "Arraste uma ou VÁRIAS imagens aqui, ou clique pra selecionar"}
         </div>
+        {!enviando && !dragOver && (
+          <div style={{ fontSize: 10.5, marginTop: 2, color: "var(--mk-text-muted)" }}>
+            Pode soltar várias de uma vez · máx 10MB cada
+          </div>
+        )}
       </div>
 
       {erro && (
@@ -172,6 +203,10 @@ export default function GaleriaUploader({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-list-numbers" style={{ color: "#10b981" }} />
+            A IA envia nesta ordem. A <strong style={{ color: "var(--mk-text)" }}>1ª é a capa/principal</strong> — use a ⭐ pra fixar qual vem primeiro.
+          </div>
           {imagens.map((im, idx) => (
             <div
               key={im.id}
@@ -184,11 +219,16 @@ export default function GaleriaUploader({
                 border: "0.5px solid var(--mk-border)",
               }}
             >
-              <div style={{ flexShrink: 0, width: 80, height: 80, overflow: "hidden", borderRadius: 4, background: "var(--mk-surface-2)" }}>
+              <div style={{ position: "relative", flexShrink: 0, width: 80, height: 80, overflow: "hidden", borderRadius: 4, background: "var(--mk-surface-2)" }}>
                 {im.signed_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={im.signed_url} alt={im.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : null}
+                {idx === 0 && (
+                  <span style={{ position: "absolute", top: 3, left: 3, fontSize: 8.5, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: "#10b981", color: "#04140d", display: "inline-flex", alignItems: "center", gap: 2 }}>
+                    <i className="ti ti-star-filled" style={{ fontSize: 9 }} /> 1ª · CAPA
+                  </span>
+                )}
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                 <input
@@ -215,6 +255,9 @@ export default function GaleriaUploader({
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <button type="button" onClick={() => tornarPrimeira(im.id)} disabled={idx === 0 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 6px", color: idx === 0 ? "var(--mk-text-muted)" : "#10b981" }} title="Tornar a 1ª (capa)">
+                  <i className="ti ti-star" />
+                </button>
                 <button type="button" onClick={() => mover(im.id, -1)} disabled={idx === 0 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 6px" }} title="subir">
                   <i className="ti ti-arrow-up" />
                 </button>
