@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **03:59** — **Auditoria das ferramentas de chamada + remoção de "Etiquetas configuradas".**
+  - **Bug achado:** `transferir_para_fila`, `agendar_followup` e `enviar_template` estavam no dropdown mas SEM handler no `executarTool` (caíam no default "ação desconhecida"). 3 de 9 ações não funcionavam.
+  - Implementado `transferir_para_fila` (FK-safe: valida fila antes de setar, pausa IA). `agendar_followup` e `enviar_template` removidos do dropdown (não implementados — evita criar tool quebrada).
+  - `transferir_para_humano` agora valida `fila_destino_id` antes de aplicar (fila deletada quebrava FK e travava a resposta).
+  - `aplicar_etiqueta` reescrito: trata `etiqueta_id` PRIMEIRO, independente da whitelist do perfil (só exige etiqueta real da agência). Assim as ferramentas `marcar_lead_*` funcionam mesmo sem etiquetas configuradas.
+  - Removida a seção "Etiquetas configuradas" da aba Comportamento — etiquetas agora só via ferramentas de chamada.
+
 - **03:47** — **IA: cliente nunca fica sem resposta + etiqueta configurada na ferramenta é aceita.**
   - `aplicar_etiqueta`: se o admin configurou um `etiqueta_id` na própria ferramenta (ex: marcar_lead_restauracao) e ele não está na lista de etiquetas do perfil, agora aceita desde que seja uma etiqueta real da agência (antes rejeitava com "nao esta na lista permitida" e o cliente ficava sem resposta).
   - Rede de segurança no executor: se a IA só chamou ferramenta (ou a tool falhou) e não mandou texto, e não é transferência, faz um 2º call SEM ferramentas pra gerar resposta natural; último recurso = mensagem genérica. Cliente sempre recebe algo.

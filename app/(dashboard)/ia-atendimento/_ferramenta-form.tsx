@@ -20,8 +20,6 @@ const ACOES: Record<string, string> = {
   aplicar_etiqueta: "Aplicar etiqueta",
   transferir_para_fila: "Transferir pra fila",
   transferir_para_humano: "Transferir pra humano",
-  agendar_followup: "Agendar follow-up",
-  enviar_template: "Enviar template",
   marcar_qualificado: "Marcar qualificado",
   criar_nota: "Criar nota interna",
   consultar_data: "Consultar data",

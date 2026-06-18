@@ -221,6 +221,12 @@ export async function executarTool(
       const statusDestino = (merged.status_destino as string | undefined) || "aberto";
       const etiquetaId = (merged.etiqueta_id as string | undefined) || undefined;
 
+      // Valida a fila configurada — fila deletada quebrava FK (tickets_fila_id_fkey)
+      if (filaDestinoId) {
+        const { data: f } = await ctx.sb
+          .from("filas").select("id").eq("id", filaDestinoId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+        if (!f) filaDestinoId = undefined;
+      }
       // Fallback: fila tipo='humano' da agência
       if (!filaDestinoId) {
         const { data: filaHumano } = await ctx.sb
@@ -286,38 +292,28 @@ export async function executarTool(
       let etiquetaId: string | null = null;
       let nomeUsado = nomeRaw;
 
-      // L2: se perfil tem etiquetas configuradas, valida e usa id quando vier
-      if (lista && lista.size > 0) {
-        if (idRaw) {
-          const idsPermitidos = new Set(Array.from(lista.values()));
-          if (idsPermitidos.has(idRaw)) {
-            etiquetaId = idRaw;
-            const nomeEntry = Array.from(lista.entries()).find(([, id]) => id === idRaw);
-            if (nomeEntry) nomeUsado = nomeEntry[0];
-          } else {
-            // Nao esta na lista do perfil — mas se o admin configurou esse
-            // etiqueta_id na propria ferramenta (ex: marcar_lead_restauracao),
-            // permite desde que seja uma etiqueta real da agencia.
-            const { data: etq } = await ctx.sb
-              .from("etiquetas")
-              .select("id, nome")
-              .eq("id", idRaw)
-              .eq("agencia_id", ctx.agenciaId)
-              .maybeSingle();
-            if (!etq) return { ok: false, resultado: `etiqueta_id "${idRaw}" invalida` };
-            etiquetaId = idRaw;
-            nomeUsado = etq.nome;
-          }
-        } else {
-          const id = lista.get(nomeRaw.toLowerCase());
-          if (!id) {
-            const nomes = Array.from(lista.keys()).join(", ");
-            return { ok: false, resultado: `Etiqueta "${nomeRaw}" nao esta disponivel. Use uma de: ${nomes}` };
-          }
-          etiquetaId = id;
+      if (idRaw) {
+        // Por ID (ferramentas tipo marcar_lead_* com etiqueta_id configurado).
+        // Independe da whitelist do perfil — só exige que seja etiqueta real da agência.
+        const { data: etq } = await ctx.sb
+          .from("etiquetas")
+          .select("id, nome")
+          .eq("id", idRaw)
+          .eq("agencia_id", ctx.agenciaId)
+          .maybeSingle();
+        if (!etq) return { ok: false, resultado: `etiqueta_id "${idRaw}" invalida` };
+        etiquetaId = idRaw;
+        nomeUsado = etq.nome;
+      } else if (lista && lista.size > 0) {
+        // Por nome, restrito à whitelist do perfil (quando existir)
+        const id = lista.get(nomeRaw.toLowerCase());
+        if (!id) {
+          const nomes = Array.from(lista.keys()).join(", ");
+          return { ok: false, resultado: `Etiqueta "${nomeRaw}" nao esta disponivel. Use uma de: ${nomes}` };
         }
+        etiquetaId = id;
       } else {
-        // Legado: busca/cria por nome
+        // Por nome livre: busca ou cria a etiqueta
         if (!nomeRaw) return { ok: false, resultado: "etiqueta_nome vazio" };
         const { data: existente } = await ctx.sb
           .from("etiquetas")
@@ -439,6 +435,40 @@ export async function executarTool(
         conteudo: `🤖 Qualificado pela IA — score ${score}: ${obs}`,
       });
       return { ok: true, resultado: `score ${score}` };
+    }
+
+    case "transferir_para_fila": {
+      const statusDestino = (merged.status_destino as string | undefined) || "aberto";
+      const etiquetaId = (merged.etiqueta_id as string | undefined) || undefined;
+      let filaDestinoId = (merged.fila_destino_id as string | undefined) || undefined;
+
+      // Valida a fila configurada (evita FK com fila deletada)
+      if (filaDestinoId) {
+        const { data: f } = await ctx.sb
+          .from("filas").select("id").eq("id", filaDestinoId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+        if (!f) filaDestinoId = undefined;
+      }
+      if (!filaDestinoId) return { ok: false, resultado: "fila_destino_id invalida ou nao configurada" };
+
+      // Mover pra fila = handoff pra humano: pausa IA
+      const patch: Record<string, unknown> = {
+        ia_pausada: true,
+        usuario_id: null,
+        status: statusDestino,
+        fila_id: filaDestinoId,
+      };
+      await ctx.sb.from("tickets").update(patch).eq("id", ctx.ticketId);
+
+      if (etiquetaId) {
+        try {
+          await ctx.sb.from("contato_etiquetas").upsert(
+            { contato_id: ctx.contatoId, etiqueta_id: etiquetaId },
+            { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true },
+          );
+        } catch { /* opcional */ }
+      }
+
+      return { ok: true, resultado: "ticket movido pra fila", encerra_ia: true };
     }
 
     default:

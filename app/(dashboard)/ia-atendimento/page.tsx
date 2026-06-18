@@ -22,7 +22,6 @@ import PlaceholderPicker from "./_placeholder-picker";
 import FerramentaForm from "./_ferramenta-form";
 import { PerfilTabs, Tab } from "./_perfil-tabs";
 import UsoTokensCard from "./_uso-tokens-card";
-import PerfilEtiquetasEditor from "./_perfil-etiquetas";
 import { carregarUsoTokens, type IntervaloUso, type ResumoUso } from "@/lib/ia-atendimento/uso-tokens";
 
 export const dynamic = "force-dynamic";
@@ -730,25 +729,6 @@ function PerfilForm({
         </Tab>
       </form>
 
-      {/* ABA: Comportamento — etiquetas que a IA pode aplicar */}
-      {editandoId && (
-        <Tab when="comportamento">
-        <div style={{ borderTop: "0.5px solid var(--mk-border)", paddingTop: 16 }}>
-          <h3 className="card-title" style={{ marginBottom: 12 }}>
-            <i className="ti ti-tag" style={{ color: "#9B7DBF", marginRight: 6 }} /> Etiquetas configuradas
-          </h3>
-          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 10 }}>
-            Selecione quais etiquetas a IA pode aplicar. A descrição vira instrução no system prompt
-            (ex: &quot;Lead Quente — cliente pediu orçamento&quot;).
-          </div>
-          <PerfilEtiquetasEditor
-            perfilId={editandoId}
-            todasEtiquetas={etiquetas}
-            configuradas={perfilEtiquetas}
-          />
-        </div>
-        </Tab>
-      )}
 
       {/* ABA: Ferramentas */}
       {editandoId && (
