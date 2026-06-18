@@ -233,7 +233,7 @@ export async function criarFerramentaIA(formData: FormData) {
   let parametros: Record<string, unknown> = {};
   try { parametros = JSON.parse(parametrosRaw); } catch { parametros = {}; }
 
-  await sb.from("ia_atendimento_ferramentas").insert({
+  const { error } = await sb.from("ia_atendimento_ferramentas").insert({
     perfil_id: perfilId,
     agencia_id: ctx.agenciaId,
     nome,
@@ -242,6 +242,9 @@ export async function criarFerramentaIA(formData: FormData) {
     parametros,
     ativo: true,
   });
+  // Não engole erro: antes, falha de constraint redirecionava como "criada" e a
+  // ferramenta sumia (ex: ação fora do check). Agora mostra o erro real.
+  if (error) redirect(`${ROUTE}?editar=${perfilId}&erro=db&msg=${encodeURIComponent(error.message)}`);
   revalidatePath(ROUTE);
   redirect(`${ROUTE}?editar=${perfilId}&ok=ferramenta_criada`);
 }

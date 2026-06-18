@@ -5,6 +5,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-18
+
+- **02:55** — **Bug raiz das ferramentas galeria/consultar_data + 7 galerias por situação criadas.**
+  - Causa: check constraint `ia_atendimento_ferramentas_acao_check` não incluía `enviar_imagem_galeria` nem `consultar_data` — criar essas no dropdown falhava no insert, mas `criarFerramentaIA` engolia o erro e redirecionava como "criada" → ferramenta sumia. Constraint atualizada com as 9 ações; `criarFerramentaIA` agora mostra o erro real do banco.
+  - Criadas 7 ferramentas-galeria no perfil Ana: ensaio_geral, ensaio_aniversario, ensaio_revista, ensaio_formatura, ensaio_gestante, ensaio_profissional, estoque_restauracao (vazias, com descrição pra IA). A IA já filtra fotos por descrição/tags via catálogo (`formatCatalogoParaIA`).
+
 ## 2026-06-17
 
 - **22:45** — **Fix: ativar IA quebrava com FK `tickets_fila_id_fkey`.**
