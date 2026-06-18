@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **06:48** — **Logo SONAR na sidebar: radar não fica mais cortado num retângulo.**
+  - Causa: `.logo-text` tinha `height:52px; overflow:hidden` → cortava o radar de fundo (520px) numa caixa retangular visível ao redor.
+  - Fix: máscara radial elíptica no `.logo-text` (fade suave nas bordas, núcleo opaco preserva o wordmark) + radar de fundo reduzido (520→220) e altura 52→64. Agora o radar esvanece em vez de cortar.
+
 - **06:24** — **Editor de IA reorganizado em abas (Dados / Comportamento / Ferramentas / Follow-up / Análise de Comportamento).**
   - **"Identidade" → "Dados":** só nome do perfil, descrição, **Chave API** (alterar + testar) e checkbox de Status. O **"🧪 Modo teste — Whitelist"** foi movido pra cá.
   - **"Modelo IA"** movido pra aba **Comportamento** (junto do prompt e ajustes de resposta).

@@ -181,7 +181,7 @@ export function AppSidebar({ role }: { role?: string } = {}) {
         <div className="mk-logo">
           <div className="logo-wrap">
             <span className="logo-text">
-              <SonarLogo fontSize={18} bgRadarOpacity={0.95} bgRadarSize={520} />
+              <SonarLogo fontSize={18} bgRadarOpacity={0.9} bgRadarSize={220} />
             </span>
           </div>
           <button
