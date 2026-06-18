@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **22:19** — **Contatos mais limpo + avisos de import (etiqueta/iOS) + validação do import.**
+  - **Removida a caixa grande "Primeiro passo"** de Contatos (texto demais e redundante — o import já vive no botão do topo e na aba Canais). Tela limpa.
+  - **Aviso de etiqueta** dentro do botão "Importar do WhatsApp" (vale em Contatos e Canais): os contatos importam 100%, mas a marcação etiqueta↔contato depende do aparelho — alguns celulares não deixam o WhatsApp exportar isso (restrição do próprio WhatsApp), então etiquetas podem vir parciais. Não é erro do sistema.
+  - **Aviso iOS** na aba Canais: quem usa iPhone deve desligar as notificações do app WhatsApp Business e deixar só as do CRM, pra não receber a notificação de sincronização do WhatsApp (chata no iOS).
+  - **Validação do import** (conexão Guilherme): 1270 contatos (1269 com número real, 0 @lid visível, 0 duplicados), histórico ligado (292 msgs/23 conversas), 7 etiquetas — confirmando que a marcação etiqueta↔contato veio parcial (4 contatos), exatamente a restrição do WhatsApp avisada agora.
+
 - **22:06** — **Follow-up reformulado: só "Follow-up IA" (Sequências e Fila removidas) + muito mais controle.**
   - **Removidas as abas Sequências e Fila** — a página abre direto no Follow-up IA. O cron de sequências manuais foi desligado (no-op reversível); o follow-up automático da IA de atendimento (outro sistema) segue intacto.
   - **Busca com presets de período:** Hoje · 7 dias · 15 dias · Período (X→Y). Acaba com o teto invisível de 30 dias que limitava a ~28 conversas. **Quantidade** configurável até 500. **Status** Abertos/Pendentes/Ambos. **Filtros** por etiqueta e por conexão.

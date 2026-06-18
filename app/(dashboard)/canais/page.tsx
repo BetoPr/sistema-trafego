@@ -69,6 +69,14 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         </Banner>
       )}
 
+      {/* Aviso iOS — notificação de sincronização do WhatsApp */}
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(91,139,166,0.10)", border: "0.5px solid rgba(91,139,166,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "var(--mk-text-secondary)", lineHeight: 1.5 }}>
+        <i className="ti ti-device-mobile-message" style={{ color: "#5B8BA6", fontSize: 16, marginTop: 1, flexShrink: 0 }} />
+        <div>
+          <strong style={{ color: "var(--mk-text)" }}>Usa iPhone/iOS?</strong> Depois de conectar, no celular <strong>desligue as notificações do app WhatsApp Business</strong> e deixe ativas só as do CRM. Assim você não recebe a notificação de “sincronização do WhatsApp” o tempo todo (chata no iOS). No Android não é necessário.
+        </div>
+      </div>
+
       {/* Lista cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginBottom: 14 }}>
         {(!canais || canais.length === 0) && !semServidor && (

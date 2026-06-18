@@ -124,6 +124,11 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
               <span>Só vem quem já <strong>conversou</strong> com seu número. Contato salvo no celular sem msg trocada → WhatsApp não expõe pela API.</span>
             </div>
 
+            <div style={{ background: "rgba(91,139,166,0.10)", border: "0.5px solid rgba(91,139,166,0.4)", borderRadius: 8, padding: "8px 12px", fontSize: 11.5, color: "var(--mk-text-secondary)", display: "flex", gap: 6 }}>
+              <i className="ti ti-tag" style={{ color: "#5B8BA6", marginTop: 1 }} />
+              <span><strong>Etiquetas:</strong> os <strong>contatos importam sempre</strong>. Já a marcação <em>etiqueta↔contato</em> depende do aparelho — alguns celulares não deixam o WhatsApp exportar isso (restrição do próprio WhatsApp), então as etiquetas podem vir <strong>parciais ou só os nomes</strong>. Não é erro do sistema.</span>
+            </div>
+
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button type="button" onClick={fechar} className="ghost-btn" style={{ fontSize: 12 }}>Cancelar</button>
               <button type="button" onClick={importar} disabled={!canalId} className="cta-btn" style={{ fontSize: 12 }}>
