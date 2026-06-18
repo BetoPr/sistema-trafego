@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **05:56** — **Galeria: número de posição editável por imagem (ordem de envio clara).**
+  - Cada imagem mostra o nº da posição (1º, 2º…) no canto + campo de número editável: digita o número e tecla Enter → vai pra aquela posição. Estrela removida (redundante: posição 1 = capa).
+  - Confirmado: a IA envia EXATAMENTE nesta ordem (`carregarGaleria` ordena por `ordem`; seleção preserva). Ordem do estoque_restauracao normalizada (1→4).
+
 - **05:38** — **Fix upload de imagem da galeria (413 ao subir fotos grandes/várias).**
   - Causa: upload via Server Action tinha limite de 1MB (padrão Next) → fotos >1MB davam 413/400.
   - `next.config.ts`: `experimental.serverActions.bodySizeLimit = "12mb"`.

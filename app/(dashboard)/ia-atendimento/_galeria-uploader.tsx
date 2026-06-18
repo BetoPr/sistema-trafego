@@ -118,12 +118,16 @@ export default function GaleriaUploader({
     });
   }
 
-  function tornarPrimeira(id: string) {
+  // Define a posição de envio digitando o número (1 = primeira/capa)
+  function definirPosicao(id: string, valor: string) {
+    const n = parseInt(valor, 10);
+    if (isNaN(n)) return;
+    const destino = Math.max(0, Math.min(imagens.length - 1, n - 1)); // 0-based, clamped
     const idx = imagens.findIndex((x) => x.id === id);
-    if (idx <= 0) return;
+    if (idx < 0 || idx === destino) return;
     const arr = [...imagens];
     const [item] = arr.splice(idx, 1);
-    arr.unshift(item);
+    arr.splice(destino, 0, item);
     aplicarOrdem(arr);
   }
 
@@ -240,7 +244,7 @@ export default function GaleriaUploader({
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontSize: 11, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
             <i className="ti ti-list-numbers" style={{ color: "#10b981" }} />
-            A IA envia nesta ordem. A <strong style={{ color: "var(--mk-text)" }}>1ª é a capa/principal</strong> — use a ⭐ pra fixar qual vem primeiro.
+            A IA envia <strong style={{ color: "var(--mk-text)" }}>nesta ordem</strong> (1ª = capa). Digite o número à direita de cada foto pra definir a posição de envio.
           </div>
           {imagens.map((im, idx) => (
             <div
@@ -259,11 +263,10 @@ export default function GaleriaUploader({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={im.signed_url} alt={im.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : null}
-                {idx === 0 && (
-                  <span style={{ position: "absolute", top: 3, left: 3, fontSize: 8.5, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: "#10b981", color: "#04140d", display: "inline-flex", alignItems: "center", gap: 2 }}>
-                    <i className="ti ti-star-filled" style={{ fontSize: 9 }} /> 1ª · CAPA
-                  </span>
-                )}
+                <span style={{ position: "absolute", top: 3, left: 3, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: idx === 0 ? "#10b981" : "rgba(0,0,0,0.7)", color: idx === 0 ? "#04140d" : "#fff", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  {idx === 0 && <i className="ti ti-star-filled" style={{ fontSize: 9 }} />}
+                  {idx + 1}º{idx === 0 ? " · CAPA" : ""}
+                </span>
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                 <input
@@ -289,17 +292,28 @@ export default function GaleriaUploader({
                   style={{ ...inp, fontSize: 11 }}
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <button type="button" onClick={() => tornarPrimeira(im.id)} disabled={idx === 0 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 6px", color: idx === 0 ? "var(--mk-text-muted)" : "#10b981" }} title="Tornar a 1ª (capa)">
-                  <i className="ti ti-star" />
-                </button>
-                <button type="button" onClick={() => mover(im.id, -1)} disabled={idx === 0 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 6px" }} title="subir">
-                  <i className="ti ti-arrow-up" />
-                </button>
-                <button type="button" onClick={() => mover(im.id, 1)} disabled={idx === imagens.length - 1 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 6px" }} title="descer">
-                  <i className="ti ti-arrow-down" />
-                </button>
-                <button type="button" onClick={() => remover(im.id)} disabled={pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 6px", color: "#C97064" }} title="remover">
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                <input
+                  type="number"
+                  key={`pos-${im.id}-${idx}`}
+                  defaultValue={idx + 1}
+                  min={1}
+                  max={imagens.length}
+                  disabled={pending}
+                  onBlur={(e) => definirPosicao(im.id, e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); definirPosicao(im.id, (e.target as HTMLInputElement).value); } }}
+                  title="Posição de envio (1 = primeira/capa). Digite e tecle Enter."
+                  style={{ width: 38, textAlign: "center", padding: "4px 2px", fontSize: 12, fontWeight: 700, border: "0.5px solid var(--mk-border)", borderRadius: 6, background: "var(--mk-surface-2)", color: "var(--mk-text)" }}
+                />
+                <div style={{ display: "flex", gap: 2 }}>
+                  <button type="button" onClick={() => mover(im.id, -1)} disabled={idx === 0 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 4px" }} title="subir">
+                    <i className="ti ti-arrow-up" />
+                  </button>
+                  <button type="button" onClick={() => mover(im.id, 1)} disabled={idx === imagens.length - 1 || pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 4px" }} title="descer">
+                    <i className="ti ti-arrow-down" />
+                  </button>
+                </div>
+                <button type="button" onClick={() => remover(im.id)} disabled={pending} className="ghost-btn" style={{ fontSize: 11, padding: "2px 8px", color: "#C97064" }} title="remover">
                   <i className="ti ti-trash" />
                 </button>
               </div>
