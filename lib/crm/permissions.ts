@@ -97,3 +97,37 @@ export const PERMISSOES_MENU = [
 ] as const;
 
 export type PermissaoMenu = (typeof PERMISSOES_MENU)[number];
+
+/**
+ * Menus REAIS do CRM (com rótulo). É a fonte única pro formulário de permissões.
+ * `soSuper: true` = só aparece quando quem está criando é super_admin
+ * (admin vê menos quadros). Mantido separado da PERMISSOES_MENU legada acima.
+ */
+export interface MenuPermissaoDef {
+  key: string;
+  label: string;
+  soSuper?: boolean;
+}
+export const MENU_PERMISSOES: MenuPermissaoDef[] = [
+  { key: "atendimentos", label: "Atendimentos" },
+  { key: "follow_up", label: "Follow-up" },
+  { key: "contatos", label: "Contatos" },
+  { key: "ia", label: "IA de Atendimento" },
+  { key: "envio_massa", label: "Envio em Massa" },
+  { key: "mensagens_rapidas", label: "Mensagens Rápidas" },
+  { key: "grupos", label: "Grupos" },
+  { key: "canais", label: "Canais (WhatsApp)" },
+  { key: "filas", label: "Filas" },
+  { key: "equipes", label: "Equipes" },
+  { key: "etiquetas", label: "Etiquetas" },
+  { key: "configuracoes", label: "Configurações" },
+  // Só super_admin pode conceder:
+  { key: "relatorios", label: "Relatórios (Ads)", soSuper: true },
+  { key: "cobrancas", label: "Cobranças", soSuper: true },
+  { key: "webhooks", label: "Webhooks", soSuper: true },
+];
+
+/** Lista de menus que quem tem esse role pode conceder a outros usuários. */
+export function menusVisiveis(role: UserRole): MenuPermissaoDef[] {
+  return MENU_PERMISSOES.filter((m) => role === "super_admin" || !m.soSuper);
+}

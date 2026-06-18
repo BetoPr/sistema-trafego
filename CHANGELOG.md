@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **13:15** — **Fix: permissões de menu (quadrados em branco) + escopo por role.**
+  - Causa: `/usuarios` renderizava a lista legada `PERMISSOES_MENU` (22 chaves antigas tipo kanban/protocolos) e só 6 tinham rótulo → resto aparecia como quadrado vazio.
+  - Nova fonte única `MENU_PERMISSOES` em `lib/crm/permissions.ts` com os menus REAIS do CRM (todos rotulados). `menusVisiveis(role)`: admin vê 12 quadros; super_admin vê 15 (Relatórios Ads, Cobranças, Webhooks só pra super). `parsePermissoes` passou a iterar a mesma lista. (Tela de Acessos do super já estava correta.)
+
 - **12:33** — **Fix: import de histórico de conversas ignorava chats `@lid` (novo id do WhatsApp).**
   - Causa: o filtro de histórico só aceitava `@s.whatsapp.net`; hoje o WhatsApp entrega a maioria dos chats como `@lid`. No canal do Guilherme, 286 chats individuais → só 10 batiam → histórico não importava (contatos importavam porque não têm esse filtro).
   - Fix em `lib/crm/import-mensagens.ts`: filtro aceita `@s.whatsapp.net` E `@lid` (grupos saem por `wa_isGroup`). Validado: 10 → 286 chats elegíveis.

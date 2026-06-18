@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin, PERMISSOES_MENU } from "@/lib/crm/permissions";
+import { requireAdmin, menusVisiveis } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { criarUsuario, atualizarUsuario, alternarAtivo, softDeleteUsuario } from "./_actions";
 import { UsuarioFormBalao } from "./_form-balao";
@@ -17,23 +17,6 @@ const DIAS = [
   { id: "sex", nome: "Sexta" },
   { id: "sab", nome: "Sábado" },
 ];
-
-// Apenas funções que existem no CRM hoje. Adicionar aqui quando criar nova função.
-const PERMS_LABEL: Record<string, string> = {
-  atendimentos: "Atendimentos",
-  contatos: "Contatos",
-  etiquetas: "Etiquetas",
-  mensagens_rapidas: "Mensagens Rápidas",
-  canais: "Canais (WhatsApp)",
-  filas: "Filas",
-  equipes: "Equipes",
-  follow_up: "Follow-up",
-  cobrancas: "Cobranças",
-  relatorios: "Relatórios",
-  ia: "IA & Prompts",
-  webhooks: "Webhooks",
-  configuracoes: "Configurações",
-};
 
 export default async function UsuariosPage({ searchParams }: PageProps) {
   const ctx = await requireAdmin();
@@ -144,11 +127,11 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
             <details open={!editando}>
               <summary style={summarySt}>Permissões de Menu</summary>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10, paddingLeft: 14 }}>
-                {PERMISSOES_MENU.map((p) => {
-                  const def = (editando?.permissoes_menu as Record<string, boolean>)?.[p] ?? true;
+                {menusVisiveis(ctx.role).map((m) => {
+                  const def = (editando?.permissoes_menu as Record<string, boolean>)?.[m.key] ?? true;
                   return (
-                    <label key={p} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11.5, color: "var(--mk-text-secondary)", padding: "6px 8px", borderRadius: 6, border: "0.5px solid var(--mk-border)" }}>
-                      <input type="checkbox" name={`perm_${p}`} defaultChecked={def} /> {PERMS_LABEL[p]}
+                    <label key={m.key} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11.5, color: "var(--mk-text-secondary)", padding: "6px 8px", borderRadius: 6, border: "0.5px solid var(--mk-border)" }}>
+                      <input type="checkbox" name={`perm_${m.key}`} defaultChecked={def} /> {m.label}
                     </label>
                   );
                 })}

@@ -5,14 +5,14 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
-import { PERMISSOES_MENU } from "@/lib/crm/permissions";
+import { MENU_PERMISSOES } from "@/lib/crm/permissions";
 
 type Role = "super_admin" | "admin" | "atendente";
 
 function parsePermissoes(formData: FormData): Record<string, boolean> {
   const out: Record<string, boolean> = {};
-  for (const p of PERMISSOES_MENU) {
-    out[p] = formData.get(`perm_${p}`) === "on";
+  for (const m of MENU_PERMISSOES) {
+    out[m.key] = formData.get(`perm_${m.key}`) === "on";
   }
   return out;
 }
