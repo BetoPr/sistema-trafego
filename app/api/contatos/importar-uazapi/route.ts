@@ -10,6 +10,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { importarContatosUazapi } from "@/lib/crm/import-contatos";
 import { importarMensagensUazapi } from "@/lib/crm/import-mensagens";
+import { resolverNumerosLid } from "@/lib/crm/resolver-lid";
 import { audit } from "@/lib/crm/audit";
 
 export const runtime = "nodejs";
@@ -80,6 +81,15 @@ export async function POST(req: Request) {
     }
   }
 
+  // Resolve número real dos contatos @lid (1 chamada /chat/details cada).
+  // Bounded pra caber no tempo — o resto pega numa próxima importação.
+  let numerosLid = null;
+  try {
+    numerosLid = await resolverNumerosLid({ sb, agenciaId: u.agencia_id, baseUrl, token, limite: 120 });
+  } catch (e) {
+    numerosLid = { erro: e instanceof Error ? e.message : String(e) };
+  }
+
   // Marca primeiro import no canal — onboarding banner some
   await sb.from("canais").update({ contatos_importados_em: new Date().toISOString() }).eq("id", canal.id);
 
@@ -92,5 +102,5 @@ export async function POST(req: Request) {
     payload: resumo as unknown as Record<string, unknown>,
   });
 
-  return NextResponse.json({ ...resumo, mensagens });
+  return NextResponse.json({ ...resumo, mensagens, numeros_lid: numerosLid });
 }

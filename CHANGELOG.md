@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **13:37** — **Resolve número real dos contatos `@lid` via `/chat/details`.**
+  - `/chat/details` traz o campo `phone` com o número real mesmo pra chats `@lid` (que `/chat/find` e `/contacts` escondem). Nova `instanceChatDetails` + `resolverNumerosLid` (1 chamada por contato, bounded).
+  - Integrado no import (resolve até 120 por vez, o resto na próxima) + backfill do Guilherme: **273/276 @lid resolvidos**.
+  - Resultado Guilherme: **1414/1417 contatos com número real** (só 3 seguem mascarados pelo próprio WhatsApp).
+
 - **13:23** — **Import de contatos puxa NÚMERO REAL via `/contacts` (resolve o `@lid`).**
   - Causa: `/chat/find` devolve `@lid` (privacidade do WhatsApp, sem telefone). O endpoint `/contacts?contactScope=all` devolve o `jid` real (`@s.whatsapp.net`).
   - `instanceListContacts` novo + passo no `importarContatosUazapi`: importa todos os contatos com número real. `@lid` (sem telefone) deixa de gravar número falso — campo fica vazio (decisão: manter contato, sem número).

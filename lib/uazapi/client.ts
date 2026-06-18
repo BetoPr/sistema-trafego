@@ -611,6 +611,37 @@ export async function instanceListContacts(
   return r.contacts ?? [];
 }
 
+export interface UazapiChatDetails {
+  wa_chatid?: string;       // jid real (@s.whatsapp.net) quando conhecido
+  wa_chatlid?: string;      // versão @lid
+  phone?: string;           // NÚMERO REAL formatado, ex: "+55 81 9159-4716"
+  name?: string;
+  wa_contactName?: string;
+  wa_name?: string;
+  image?: string;
+  wa_label?: string[];      // IDs das etiquetas aplicadas a ESTE contato
+}
+
+/**
+ * POST /chat/details — detalhes completos de UM contato. Resolve o telefone REAL
+ * mesmo pra chats @lid (campo `phone`). Use pra preencher o número de contatos @lid.
+ */
+export async function instanceChatDetails(
+  inst: UazapiInstance,
+  number: string,
+): Promise<UazapiChatDetails | null> {
+  try {
+    return (await call(inst.baseUrl, "/chat/details", {
+      method: "POST",
+      headers: { token: inst.token },
+      body: { number, preview: false },
+      timeoutMs: 20_000,
+    })) as UazapiChatDetails;
+  } catch {
+    return null;
+  }
+}
+
 export interface UazapiChat {
   id: string;
   wa_chatid: string;
