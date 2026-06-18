@@ -107,8 +107,21 @@ export async function ingestMensagem(
       })
       .select("id")
       .single();
-    if (error) throw error;
-    contatoId = novo.id;
+    if (error) {
+      // Race: outra ingestão simultânea já criou o contato (unique agencia_id+wa_id).
+      if (error.code === "23505") {
+        const { data: jaCriado } = await sb
+          .from("contatos").select("id")
+          .eq("agencia_id", ctx.agenciaId).eq("wa_id", m.waChatId).is("deleted_at", null).maybeSingle();
+        if (!jaCriado) throw error;
+        contatoId = jaCriado.id;
+        novoContato = false;
+      } else {
+        throw error;
+      }
+    } else {
+      contatoId = novo.id;
+    }
   }
 
   // 2. Localiza ticket aberto/pendente OU cria novo.
