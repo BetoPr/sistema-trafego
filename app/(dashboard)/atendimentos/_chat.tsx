@@ -584,7 +584,18 @@ export function ChatView(props: Props) {
         {msgs.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens neste ticket.</div>
         ) : (
-          msgs.map((m) => (
+          msgs.map((m) => {
+            // Nota de sistema (ex: log de uso de ferramenta pela IA) — pílula central
+            if (m.autor === "sistema") {
+              return (
+                <div key={m.id} style={{ display: "flex", justifyContent: "center", margin: "2px 0" }}>
+                  <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 999, padding: "3px 11px", display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "85%" }}>
+                    <i className="ti ti-robot" style={{ color: "#10b981" }} /> {m.conteudo}
+                  </span>
+                </div>
+              );
+            }
+            return (
             <div key={m.id} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
               <div
                 style={{
@@ -702,7 +713,8 @@ export function ChatView(props: Props) {
                 </div>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
       </div>

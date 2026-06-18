@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-18
 
+- **03:34** — **Log de chamadas de ferramenta no histórico do chat + reforço pra IA chamar tools.**
+  - Toda vez que a IA executa uma ferramenta, insere uma nota `autor=sistema` no ticket ("IA usou a ferramenta X — resultado"). `_chat.tsx` renderiza autor `sistema` como pílula central (antes ia como bolha à direita).
+  - `executor.ts`: injeta bloco `[FERRAMENTAS / ACOES DISPONIVEIS]` no system prompt (gerado da lista de tools) — reforça pra modelos fracos (gpt-4o-mini) de fato CHAMAREM a função, não só responderem texto. Diagnóstico: todos os `resposta` vinham com `tool_calls:0`.
+  - Nota: galerias vazias continuam sendo puladas (IA não enxerga até subir fotos).
+
 - **03:06** — **Página de IA reorganizada em abas (menos técnica, mais respirável).**
   - Novo `_perfil-tabs.tsx`: editor do perfil dividido em **Identidade · Comportamento · Ferramentas · Follow-up · Teste**. Wrapper client com painéis em `display:none` (form único intacto — submete todos os campos mesmo de abas escondidas).
   - Identidade: nome, status, descrição, modelo + chave. Comportamento: prompt, tempo, formato, onde atua, avançado, etiquetas. Ferramentas: galerias + tools. Follow-up: sequências + envio de resumo. Teste: whitelist + uso de tokens + logs.

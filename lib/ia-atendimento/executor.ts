@@ -331,12 +331,20 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       }\n\n`
     : "";
 
+  // Reforço: lista as funções disponíveis pra modelos fracos (ex: gpt-4o-mini)
+  // de fato CHAMAREM a ferramenta, não só responderem texto.
+  const blocoFerramentas = tools.length
+    ? `[FERRAMENTAS / ACOES DISPONIVEIS]\nVoce tem estas funcoes. Quando a situacao se encaixar, CHAME a funcao correspondente (nao escreva o nome dela no texto):\n${
+        tools.map((t) => `- ${t.name}: ${(t.description || "").split("\n")[0]}`).join("\n")
+      }\n\n`
+    : "";
+
   // Sempre prepende bloco temporal (garante baseline). Tag SEM_CONTEXTO_TEMPORAL
   // no inicio suprime.
   const suprimir = /^\s*SEM_CONTEXTO_TEMPORAL\b/i.test(promptComPlaceholders);
   const promptSistema = suprimir
     ? promptComPlaceholders.replace(/^\s*SEM_CONTEXTO_TEMPORAL\b/i, "").trimStart()
-    : `${ctxTemporal.block}\n\n${blocoEtiquetas}${promptComPlaceholders}`;
+    : `${ctxTemporal.block}\n\n${blocoFerramentas}${blocoEtiquetas}${promptComPlaceholders}`;
 
   const mensagens: MsgIA[] = [
     { role: "system", content: promptSistema },
@@ -439,6 +447,16 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       contato_id: contato.id,
       evento: "tool_call",
       payload: { tool: tc.name, args: tc.arguments, resultado: r.resultado },
+    });
+    // Nota visível no histórico do chat (autor=sistema): mostra que a IA usou a ferramenta
+    await sb.from("mensagens").insert({
+      ticket_id: b.ticket_id,
+      agencia_id: b.agencia_id,
+      autor: "sistema",
+      tipo: "texto",
+      conteudo: `IA usou a ferramenta ${tc.name}${r.resultado ? ` — ${r.resultado}` : ""}`,
+      status: "enviada",
+      metadata: { ia_perfil_id: perfil.id, tool_call: tc.name },
     });
     if (r.encerra_ia) encerraIA = true;
   }
