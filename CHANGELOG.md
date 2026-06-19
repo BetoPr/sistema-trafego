@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **13:55** — **Limpeza de UI (onda 1): atendimentos, follow-up e IA.**
+  - Removidas as abas **Privados/Grupos** do topo de Atendimentos (não recortavam nada).
+  - **Follow-up IA → "Follow-up com IA"**. O campo "Análises por minuto" virou **interno** (some da tela) — protege o teto TPM do Groq sem você precisar mexer.
+  - Painel do contato: removido **"Inscrever em sequência ativa"** (sem uso) e o **"Log do ticket"** foi pra aba **Perfil** (antes ficava em Util).
+  - IA de Atendimento: removido o banner "Modo teste ativo…" (o status **TESTE** no card já diz isso).
+
 - **12:40** — **Contatos: liberado o limite de 500 (mostrava só 500 de 1074).**
   - A página de Contatos puxava no máximo 500 registros — quem tinha mais não via o resto. Subido pra 5000 (cobre as bases atuais com folga).
   - Pra não pesar o navegador com milhares de linhas, a tabela agora renderiza em blocos de 300 com botão **"Carregar mais"**. A busca continua varrendo **todos** os contatos, não só os exibidos.

@@ -92,7 +92,6 @@ export function ListaAtendimentos(p: Props) {
   const [searchQ, setSearchQ] = useState("");
   const [searchMsgText, setSearchMsgText] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; numero: number; contato_nome: string; conteudo: string; created_at: string; ticketId: string }>>([]);
-  const [aba, setAba] = useState<"privados" | "grupos">("privados");
   const PAGE_SIZE = 20;
   const [limite, setLimite] = useState(PAGE_SIZE);
   const sentinelaRef = useRef<HTMLDivElement>(null);
@@ -104,7 +103,7 @@ export function ListaAtendimentos(p: Props) {
   // Reset paginação quando muda qualquer filtro/aba
   useEffect(() => {
     setLimite(PAGE_SIZE);
-  }, [statusSel, searchQ, somenteNaoLidos, inverterOrdem, de, ate, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, aba]);
+  }, [statusSel, searchQ, somenteNaoLidos, inverterOrdem, de, ate, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros]);
 
   // Infinite scroll: observer no sentinel — quando aparece, +20
   useEffect(() => {
@@ -315,14 +314,6 @@ export function ListaAtendimentos(p: Props) {
             <i className="ti ti-filter" /> Filtros
             {filtrosAtivos > 0 && <span style={{ fontSize: 9.5, background: "#10b981", color: "#fff", borderRadius: 8, padding: "0 5px", marginLeft: 4 }}>{filtrosAtivos}</span>}
           </button>
-        </div>
-      </div>
-
-      {/* Tabs Privados/Grupos */}
-      <div style={sep}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", padding: "6px 10px", gap: 6 }}>
-          <button onClick={() => setAba("privados")} style={tabPill(aba === "privados")}>Privados</button>
-          <button onClick={() => setAba("grupos")} style={tabPill(aba === "grupos")}>Grupos</button>
         </div>
       </div>
 
@@ -752,19 +743,6 @@ const sep: React.CSSProperties = { borderBottom: "0.5px solid var(--mk-border)" 
 const iconBtn: React.CSSProperties = { background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "5px 8px", cursor: "pointer", color: "var(--mk-text-secondary)", fontSize: 13, display: "inline-flex", alignItems: "center", justifyContent: "center" };
 const btnHdr: React.CSSProperties = { fontSize: 11, padding: "5px 10px" };
 
-function tabPill(ativo: boolean): React.CSSProperties {
-  return {
-    padding: "8px 6px",
-    borderRadius: 6,
-    border: 0,
-    cursor: "pointer",
-    fontSize: 12,
-    fontWeight: 600,
-    fontFamily: "inherit",
-    background: ativo ? "var(--mk-text)" : "transparent",
-    color: ativo ? "var(--mk-bg)" : "var(--mk-text-muted)",
-  };
-}
 
 const chipBtn: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "var(--mk-surface-2)", color: "var(--mk-text-secondary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "inherit" };
 const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "rgba(16,185,129,0.18)", color: "#10b981", border: "0.5px solid #10b981", display: "inline-flex", alignItems: "center" };

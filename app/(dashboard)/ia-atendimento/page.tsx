@@ -357,16 +357,6 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
 
-      {/* Banner MODO TESTE — perfis ativos com whitelist preenchida */}
-      {!mostrarForm && perfis.some((p) => p.ativo && perfilTemWhitelist(p)) && (
-        <div style={{ background: "rgba(251,191,36,0.10)", border: "0.5px solid rgba(251,191,36,0.4)", borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
-          <i className="ti ti-flask" style={{ fontSize: 18, color: "#FBBF24", flexShrink: 0 }} />
-          <div style={{ flex: 1, fontSize: 12 }}>
-            <strong>Modo teste ativo</strong> — IA so responde numeros na whitelist. Pra producao, edita perfil e limpa "WhatsApp autorizados".
-          </div>
-        </div>
-      )}
-
       {/* Onboarding zero — primeira vez, sem perfis */}
       {!mostrarForm && perfis.length === 0 && (
         <div style={{ background: "linear-gradient(135deg, rgba(155,125,191,0.16), transparent)", border: "1px solid rgba(155,125,191,0.4)", borderRadius: 14, padding: "22px 26px", marginBottom: 16 }}>

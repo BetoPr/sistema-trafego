@@ -55,7 +55,9 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
   const [status, setStatus] = useState<StatusFiltro>("ambos");
   const [etiquetaSel, setEtiquetaSel] = useState<string[]>([]);
   const [canalSel, setCanalSel] = useState<string[]>([]);
-  const [porMinuto, setPorMinuto] = useState(12);
+  // Limite interno de análises/min — protege contra o teto TPM do GroqCloud.
+  // Não exposto na UI (config interna). Ajuste aqui se trocar de plano/modelo.
+  const porMinuto = 12;
   const [delayMin, setDelayMin] = useState(30);
   const [delayMax, setDelayMax] = useState(60);
 
@@ -209,7 +211,6 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
             </div>
           </div>
           <Campo label="Quantidade (até 500)"><input type="number" min={1} max={500} value={limite} onChange={(e) => setLimite(Math.max(1, Math.min(500, +e.target.value)))} style={{ ...inp, width: 130 }} /></Campo>
-          <Campo label="Análises por minuto"><input type="number" min={1} max={60} value={porMinuto} onChange={(e) => setPorMinuto(Math.max(1, Math.min(60, +e.target.value)))} style={{ ...inp, width: 130 }} /></Campo>
         </div>
 
         {/* Filtros etiqueta + conexão + delays */}

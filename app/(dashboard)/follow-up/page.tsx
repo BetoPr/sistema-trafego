@@ -27,7 +27,7 @@ export default async function FollowUpPage() {
     <section className="mk-page">
       <div className="mk-page-head">
         <div className="mk-eyebrow">Atendimentos</div>
-        <h1 className="mk-page-title">Follow-up IA</h1>
+        <h1 className="mk-page-title">Follow-up com IA</h1>
         <p className="mk-page-sub">Recupera conversas paradas: a IA lê o histórico, resume e sugere a mensagem — você revisa e aprova. Pausa sozinho quando o cliente responde.</p>
       </div>
 
