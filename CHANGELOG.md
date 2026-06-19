@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **12:40** — **Contatos: liberado o limite de 500 (mostrava só 500 de 1074).**
+  - A página de Contatos puxava no máximo 500 registros — quem tinha mais não via o resto. Subido pra 5000 (cobre as bases atuais com folga).
+  - Pra não pesar o navegador com milhares de linhas, a tabela agora renderiza em blocos de 300 com botão **"Carregar mais"**. A busca continua varrendo **todos** os contatos, não só os exibidos.
+  - Confirmado na agência Teste: 1074 contatos (antes 574 ficavam escondidos).
+
 - **12:28** — **Detector de plataforma do aparelho (iOS / Android / Web) por canal.**
   - O CRM agora capta o `plataform` do UAZAPI por conexão e mostra **badge** no card do canal: 🍎 iPhone (iOS), 🤖 Android ou 💻 Web/Desktop.
   - **Aviso de notificação agora é por plataforma:** só aparece **dentro do card iOS** (desligar notificação do WhatsApp Business, deixar só a do CRM, por causa da sync chata do iOS). Android e Web não mostram nada.

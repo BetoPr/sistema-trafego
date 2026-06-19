@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { deletarContato } from "./_actions";
 
@@ -38,6 +38,13 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
     );
   }, [linhas, busca]);
 
+  // Renderiza em blocos pra não pesar o DOM com milhares de linhas.
+  // A busca varre TODOS os contatos (visiveis); só a renderização é paginada.
+  const PASSO = 300;
+  const [mostrar, setMostrar] = useState(PASSO);
+  useEffect(() => { setMostrar(PASSO); }, [busca]);
+  const exibidas = visiveis.slice(0, mostrar);
+
   return (
     <>
       <div style={{ marginBottom: 14, position: "relative" }}>
@@ -59,6 +66,7 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
             {busca ? "Nenhum contato bate com a busca." : "Sem contatos."}
           </div>
         ) : (
+          <>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12.5 }}>
             <thead>
               <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 11 }}>
@@ -71,7 +79,7 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
               </tr>
             </thead>
             <tbody>
-              {visiveis.map((c) => (
+              {exibidas.map((c) => (
                 <tr key={c.id} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
                   <td style={tdLi}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -115,6 +123,14 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
               ))}
             </tbody>
           </table>
+          {visiveis.length > mostrar && (
+            <div style={{ textAlign: "center", paddingTop: 14 }}>
+              <button onClick={() => setMostrar((m) => m + PASSO)} className="ghost-btn" style={{ fontSize: 12 }}>
+                <i className="ti ti-chevron-down" /> Carregar mais ({visiveis.length - mostrar} restantes)
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </>

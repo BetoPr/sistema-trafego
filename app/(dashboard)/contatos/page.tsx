@@ -34,7 +34,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
     .is("deleted_at", null);
 
   const [{ data: contatos }, { data: fechRows }, { data: servicosRows }, { data: agRow }, { data: etiquetasRows }] = await Promise.all([
-    q.order("nome").limit(500),
+    q.order("nome").limit(5000),
     sb
       .from("tickets")
       .select("contato_id, valor_fechado, fechado_em, metadata")
