@@ -5,6 +5,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-19
+
+- **12:28** — **Detector de plataforma do aparelho (iOS / Android / Web) por canal.**
+  - O CRM agora capta o `plataform` do UAZAPI por conexão e mostra **badge** no card do canal: 🍎 iPhone (iOS), 🤖 Android ou 💻 Web/Desktop.
+  - **Aviso de notificação agora é por plataforma:** só aparece **dentro do card iOS** (desligar notificação do WhatsApp Business, deixar só a do CRM, por causa da sync chata do iOS). Android e Web não mostram nada.
+  - Captura: no sync de status do canal + ação admin `/instance/all` (fonte confiável), disparada 1x ao abrir Canais quando algum canal conectado ainda não tem plataforma. Coluna nova `canais.wa_plataforma`.
+  - Detectado hoje: Restauração e Innova = Android Business (`smba`).
+
+---
+
 ## 2026-06-18
 
 - **22:19** — **Contatos mais limpo + avisos de import (etiqueta/iOS) + validação do import.**

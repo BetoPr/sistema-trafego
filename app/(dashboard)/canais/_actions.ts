@@ -200,6 +200,7 @@ export async function importarCanalExistente(formData: FormData) {
   let numeroConectado: string | null = null;
   let nomePerfil: string | null = null;
   let fotoPerfil: string | null = null;
+  let plataforma: string | null = null;
   try {
     const r = await instanceGetStatus({ baseUrl: servidor.baseUrl, token: instanceToken });
     instanceId = r.instance?.id || "";
@@ -207,6 +208,7 @@ export async function importarCanalExistente(formData: FormData) {
     numeroConectado = r.status?.jid?.user || null;
     nomePerfil = r.instance?.profileName || null;
     fotoPerfil = r.instance?.profilePicUrl || null;
+    plataforma = r.instance?.plataform || null;
     if (!instanceId) throw new Error("Servidor não reconheceu o token (id ausente).");
   } catch (e) {
     redirect(`/canais?erro=token_invalido&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
@@ -242,6 +244,7 @@ export async function importarCanalExistente(formData: FormData) {
       numero_conectado: numeroConectado,
       nome_perfil: nomePerfil,
       foto_perfil_url: fotoPerfil,
+      wa_plataforma: plataforma,
       padrao,
       fila_id: filaId,
       usuario_id: usuarioId,
@@ -310,6 +313,54 @@ export async function listarInstanciasDisponiveis(): Promise<Array<{ id: string;
     console.error("[canais] listarInstancias:", e);
     return [];
   }
+}
+
+/**
+ * Detecta a plataforma do aparelho (iOS/Android/Web) de cada canal da agência
+ * via /instance/all (admin) e grava em canais.wa_plataforma. Fonte confiável
+ * (o campo `plataform` vem completo nesse endpoint). Chamada pelo client da
+ * página de Canais quando algum canal conectado ainda está sem plataforma.
+ */
+export async function sincronizarPlataformaCanais(): Promise<{ ok: boolean; atualizados: number }> {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+
+  const { data: canais } = await sb
+    .from("canais")
+    .select("id, instance_id, wa_plataforma, servidor:super_admin_servidores(base_url, admin_token_encrypted)")
+    .eq("agencia_id", ctx.agenciaId);
+  if (!canais?.length) return { ok: true, atualizados: 0 };
+
+  // Agrupa por servidor → 1 chamada /instance/all por servidor.
+  const porServidor = new Map<string, { baseUrl: string; adminTokenEnc: unknown; itens: Array<{ id: string; instance_id: string; wa_plataforma: string | null }> }>();
+  for (const c of canais as Array<Record<string, unknown>>) {
+    const s = Array.isArray(c.servidor) ? c.servidor[0] : c.servidor;
+    const baseUrl = (s as { base_url?: string } | null)?.base_url;
+    const adminTokenEnc = (s as { admin_token_encrypted?: unknown } | null)?.admin_token_encrypted;
+    if (!baseUrl || !adminTokenEnc) continue;
+    if (!porServidor.has(baseUrl)) porServidor.set(baseUrl, { baseUrl, adminTokenEnc, itens: [] });
+    porServidor.get(baseUrl)!.itens.push({ id: c.id as string, instance_id: c.instance_id as string, wa_plataforma: (c.wa_plataforma as string) ?? null });
+  }
+
+  let atualizados = 0;
+  for (const grp of porServidor.values()) {
+    let adminToken: string;
+    try { adminToken = decryptToken(byteaToBuffer(grp.adminTokenEnc as Parameters<typeof byteaToBuffer>[0])); }
+    catch { continue; }
+    let todas;
+    try { todas = await adminListInstances({ baseUrl: grp.baseUrl, adminToken }); }
+    catch (e) { console.error("[canais] plataforma /instance/all:", e); continue; }
+    const porId = new Map(todas.map((i) => [i.id, i.plataform || null]));
+    for (const it of grp.itens) {
+      const plat = porId.get(it.instance_id);
+      if (plat && plat !== it.wa_plataforma) {
+        await sb.from("canais").update({ wa_plataforma: plat }).eq("id", it.id);
+        atualizados++;
+      }
+    }
+  }
+  if (atualizados) revalidatePath("/canais");
+  return { ok: true, atualizados };
 }
 
 // =========================================
@@ -504,6 +555,7 @@ export async function statusCanalJson(canalId: string): Promise<{ ok: true; conn
         numero_conectado: numero || undefined,
         nome_perfil: r?.instance?.profileName || undefined,
         foto_perfil_url: r?.instance?.profilePicUrl || undefined,
+        wa_plataforma: r?.instance?.plataform || undefined,
         qr_code_atual: connected ? null : undefined,
         updated_at: new Date().toISOString(),
       })
@@ -581,6 +633,7 @@ export async function reconectarCanal(formData: FormData) {
       await sb.from("canais").update({
         status: "connected",
         numero_conectado: st?.status?.jid?.user || undefined,
+        wa_plataforma: st?.instance?.plataform || undefined,
         qr_code_atual: null,
         updated_at: new Date().toISOString(),
       }).eq("id", id);
@@ -634,6 +687,7 @@ export async function atualizarStatusCanal(formData: FormData) {
         numero_conectado: numero || undefined,
         nome_perfil: r?.instance?.profileName || undefined,
         foto_perfil_url: r?.instance?.profilePicUrl || undefined,
+        wa_plataforma: r?.instance?.plataform || undefined,
         qr_code_atual: conectado ? null : (r?.instance?.qrcode || null),
         qr_atualizado_em: conectado ? null : new Date().toISOString(),
         updated_at: new Date().toISOString(),

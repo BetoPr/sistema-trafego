@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
+import { classificarPlataforma, type PlataformaSO } from "@/lib/uazapi/client";
 import {
   atualizarStatusCanal,
   definirPadrao,
@@ -10,6 +11,7 @@ import {
   reconectarCanal,
 } from "./_actions";
 import { CanaisAutoRefresh } from "./_auto-refresh";
+import { DetectarPlataforma } from "./_detectar-plataforma";
 import { NovoCanalBalao, VerQrButton } from "./_novo-canal";
 import { SubmitIconBtn } from "./_submit-btn";
 import { TransferirCanalBtn } from "./_transferir";
@@ -28,7 +30,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
   const [{ data: canais }, { data: filas }, { data: usuarios }, { data: servidores }] = await Promise.all([
     sb
       .from("canais")
-      .select("id, numero, nome, tipo, status, instance_id, numero_conectado, nome_perfil, foto_perfil_url, padrao, fila_id, usuario_id, qr_code_atual, qr_atualizado_em, updated_at, contatos_importados_em")
+      .select("id, numero, nome, tipo, status, instance_id, numero_conectado, nome_perfil, foto_perfil_url, padrao, fila_id, usuario_id, qr_code_atual, qr_atualizado_em, updated_at, contatos_importados_em, wa_plataforma")
       .eq("agencia_id", ctx.agenciaId)
       .order("numero"),
     sb.from("filas").select("id, nome, cor").eq("agencia_id", ctx.agenciaId).eq("ativa", true).order("nome"),
@@ -69,13 +71,9 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         </Banner>
       )}
 
-      {/* Aviso iOS — notificação de sincronização do WhatsApp */}
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "rgba(91,139,166,0.10)", border: "0.5px solid rgba(91,139,166,0.35)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "var(--mk-text-secondary)", lineHeight: 1.5 }}>
-        <i className="ti ti-device-mobile-message" style={{ color: "#5B8BA6", fontSize: 16, marginTop: 1, flexShrink: 0 }} />
-        <div>
-          <strong style={{ color: "var(--mk-text)" }}>Usa iPhone/iOS?</strong> Depois de conectar, no celular <strong>desligue as notificações do app WhatsApp Business</strong> e deixe ativas só as do CRM. Assim você não recebe a notificação de “sincronização do WhatsApp” o tempo todo (chata no iOS). No Android não é necessário.
-        </div>
-      </div>
+      {/* Detecta plataforma (iOS/Android/Web) dos canais conectados sem detecção ainda.
+          O aviso de iOS aparece dentro do card de cada canal iOS (abaixo). */}
+      {(canais || []).some((c) => c.status === "connected" && !c.wa_plataforma) && <DetectarPlataforma />}
 
       {/* Lista cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginBottom: 14 }}>
@@ -86,6 +84,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         )}
         {canais?.map((c) => {
           const conectado = c.status === "connected";
+          const so = classificarPlataforma((c as { wa_plataforma?: string | null }).wa_plataforma);
           return (
             <div key={c.id} className="mk-card mk-card-lg">
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
@@ -126,7 +125,14 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                       <div style={{ fontWeight: 500 }}>{c.nome_perfil || "—"}</div>
                       <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{c.numero_conectado || c.instance_id}</div>
                     </div>
+                    {so && <span style={{ marginLeft: "auto" }}><PlataformaBadge so={so} /></span>}
                   </div>
+                  {so === "ios" && (
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "rgba(91,139,166,0.10)", border: "0.5px solid rgba(91,139,166,0.35)", borderRadius: 8, padding: "8px 10px", marginTop: 6, fontSize: 11, color: "var(--mk-text-secondary)", lineHeight: 1.5 }}>
+                      <i className="ti ti-device-mobile-message" style={{ color: "#5B8BA6", fontSize: 15, marginTop: 1, flexShrink: 0 }} />
+                      <span><strong style={{ color: "var(--mk-text)" }}>iPhone/iOS:</strong> no celular, <strong>desligue as notificações do WhatsApp Business</strong> e deixe só as do CRM — evita a notificação de “sincronização do WhatsApp” (chata no iOS).</span>
+                    </div>
+                  )}
                   {!c.contatos_importados_em && (
                     <Link
                       href="/contatos"
@@ -225,3 +231,19 @@ function Banner({ tipo, children }: { tipo: "ok" | "erro" | "warn"; children: Re
 
 const lblSt: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
 const inpSt: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 };
+
+/** Badge da plataforma do aparelho conectado (iOS / Android / Web). */
+function PlataformaBadge({ so }: { so: PlataformaSO }) {
+  const cfg = {
+    ios: { icon: "ti-brand-apple", label: "iPhone (iOS)", cor: "#5B8BA6" },
+    android: { icon: "ti-brand-android", label: "Android", cor: "#3DDC84" },
+    web: { icon: "ti-device-desktop", label: "Web/Desktop", cor: "#9B7DBF" },
+    outro: { icon: "ti-device-mobile", label: "Aparelho", cor: "#94a3b8" },
+  }[so];
+  const bg = cfg.cor.startsWith("#") ? `${cfg.cor}1a` : "var(--mk-surface-2)";
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 999, border: `0.5px solid ${cfg.cor}`, color: cfg.cor, background: bg, whiteSpace: "nowrap" }}>
+      <i className={`ti ${cfg.icon}`} /> {cfg.label}
+    </span>
+  );
+}

@@ -89,8 +89,23 @@ export interface InstanceInfo {
   qrcode?: string;
   paircode?: string;
   jid?: { user?: string; server?: string } | null;
+  /** Plataforma do aparelho conectado: smba=Business Android, smbi=Business iOS, android/iphone, web... */
+  plataform?: string;
+  isBusiness?: boolean;
+  systemName?: string;
   adminField01?: string;
   adminField02?: string;
+}
+
+/** Sistema operacional do aparelho a partir do `plataform` do UAZAPI. */
+export type PlataformaSO = "ios" | "android" | "web" | "outro";
+export function classificarPlataforma(plataform?: string | null): PlataformaSO | null {
+  if (!plataform) return null;
+  const s = String(plataform).toLowerCase();
+  if (/(smbi|iphone|ios)/.test(s)) return "ios";
+  if (/(smba|android)/.test(s)) return "android";
+  if (/(web|desktop|mac|windows)/.test(s)) return "web";
+  return "outro";
 }
 
 export interface ConnectionStatus {
