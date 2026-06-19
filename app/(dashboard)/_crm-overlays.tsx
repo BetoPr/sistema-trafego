@@ -3,6 +3,8 @@
 import { createContext, useContext, useRef, useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
+import { inIframe } from "@/lib/embed";
+import { FloatingTabs } from "./_floating-tabs";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -58,9 +60,17 @@ export function useFollowUpRun(): FollowUpRunCtx {
   return c;
 }
 
-/** Dispara o aviso "aba X alterada" (use em qualquer página que muda dado de outra aba). */
+/**
+ * Avisa que uma aba mudou de dado. O toast SÓ aparece quando a aba está aberta
+ * como balão flutuante (iframe): aqui mandamos a mensagem pra janela-pai
+ * (Atendimentos). Numa página normal (top window) isso não dispara nada — é
+ * exatamente a regra "aviso só quando aberta como balão".
+ */
 export function avisarAbaAlterada(aba: string) {
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("crm:aba-alterada", { detail: { aba } }));
+  if (typeof window === "undefined") return;
+  if (window.parent && window.parent !== window) {
+    try { window.parent.postMessage({ __crm: "aba-alterada", aba }, window.location.origin); } catch {}
+  }
 }
 
 export function CrmOverlays({ children }: { children: React.ReactNode }) {
@@ -172,11 +182,21 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
 
   const ctx: FollowUpRunCtx = { cands, setCands, analisando, enviandoTodos, patch, remover, analisarUm, analisarTodas, enviar, enviarTodos, descartar, pararAnalise };
 
+  // Modo embed (página dentro do balão flutuante de abas): some o chrome via
+  // classe global e NÃO renderiza os overlays (evita widget/launcher aninhado).
+  const [embed] = useState(() => inIframe());
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("embed-mode", embed);
+    return () => document.documentElement.classList.remove("embed-mode");
+  }, [embed]);
+
   return (
     <Ctx.Provider value={ctx}>
       {children}
-      <FollowUpWidget />
-      <AvisosAbaAlterada />
+      {!embed && <FollowUpWidget />}
+      {!embed && <AvisosAbaAlterada />}
+      {!embed && <FloatingTabs />}
     </Ctx.Provider>
   );
 }
@@ -288,14 +308,18 @@ function AvisosAbaAlterada() {
   const idRef = useRef(1);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    function on(e: Event) {
-      const aba = (e as CustomEvent<{ aba?: string }>).detail?.aba || "uma aba";
+    // Recebe o aviso da janela-pai via postMessage (a aba mudou DENTRO do balão).
+    function on(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data as { __crm?: string; aba?: string } | null;
+      if (!d || d.__crm !== "aba-alterada") return;
+      const aba = d.aba || "uma aba";
       const id = idRef.current++;
       setAvisos((a) => [...a, { id, aba }]);
       setTimeout(() => setAvisos((a) => a.filter((x) => x.id !== id)), 6000);
     }
-    window.addEventListener("crm:aba-alterada", on as EventListener);
-    return () => window.removeEventListener("crm:aba-alterada", on as EventListener);
+    window.addEventListener("message", on);
+    return () => window.removeEventListener("message", on);
   }, []);
 
   if (!mounted || avisos.length === 0) return null;

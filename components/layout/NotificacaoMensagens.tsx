@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { inIframe } from "@/lib/embed";
 
 /**
  * Notificação de nova mensagem (estilo WhatsApp Web):
@@ -14,6 +15,8 @@ export function NotificacaoMensagens({ agenciaId }: { agenciaId: string | null |
 
   useEffect(() => {
     if (!agenciaId || typeof window === "undefined") return;
+    // Dentro do balão flutuante (iframe) não duplica som/notificação/realtime.
+    if (inIframe()) return;
 
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission().catch(() => {});

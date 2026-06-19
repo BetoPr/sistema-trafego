@@ -411,6 +411,17 @@ export function ChatView(props: Props) {
   }
   useEffect(() => () => { if (pilulaTimer.current) window.clearTimeout(pilulaTimer.current); }, []);
 
+  // "Inserir atalho no chat" vindo do balão flutuante de Mensagens Rápidas (aba D).
+  useEffect(() => {
+    function on(e: Event) {
+      const texto = (e as CustomEvent<{ texto?: string }>).detail?.texto;
+      if (!texto) return;
+      setText((t) => (t ? t + "\n" : "") + texto);
+    }
+    window.addEventListener("crm:inserir-no-chat", on as EventListener);
+    return () => window.removeEventListener("crm:inserir-no-chat", on as EventListener);
+  }, []);
+
   // Auto-scroll bottom on new msg
   useEffect(() => {
     if (scrollRef.current) {

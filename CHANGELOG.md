@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **19:42** — **D — Abas flutuantes (ON/OFF) no Atendimento.**
+  - Botão **launcher** flutuante (arrastável; no celular gruda no canto mais próximo) abre um **painel flutuante com abas**: **Mensagens Rápidas · Contatos · Grupos**. Cada aba é a **página real** embutida → todas as funções (criar/editar/excluir) funcionam dentro do balão. Minimiza pra botão, fecha, arrasta livre.
+  - **Inserir no chat:** na aba Mensagens Rápidas (dentro do balão) cada atalho ganha **"Inserir"** → joga o texto direto na barra da conversa aberta.
+  - **Aviso "aba alterada" agora SÓ aparece quando a aba está aberta como balão** (vem do próprio balão via mensagem segura pra tela do Atendimento). Mexer na página normal de Mensagens Rápidas não dispara mais o aviso.
+  - Dentro do balão o **menu lateral/topo** some e **som/notificação/heartbeat não duplicam**.
+
 - **19:20** — **Atendimentos: Nova conversa, pílula de data no scroll, menu 3-pontos limpo.**
   - **Nova conversa (avulsa):** botão de balãozinho ao lado do sino. Digita o número (com DDD; sem DDI assume Brasil +55), nome opcional e o canal (se houver mais de um conectado) → abre direto o chat. Se já existir conversa aberta com o contato, **reaproveita** o ticket. Cria o contato se não existir.
   - **Pílula de data flutuante no chat** (estilo WhatsApp): ao rolar, mostra no topo **Hoje / Ontem / dia-da-semana / dd/mm/aaaa** das mensagens à vista; aparece/some com animação e **desaparece 4s** após parar de rolar.

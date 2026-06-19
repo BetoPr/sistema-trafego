@@ -47,6 +47,17 @@
 ### #7 Aviso "aba alterada" — `ff47a7a`
 - Toast amarelo global quando Mensagens Rápidas é alterada (`crm:aba-alterada` + `AvisaAlteracao`). Portal no body.
 
+### Backlog D — Abas flutuantes (ON/OFF)
+- Launcher flutuante (arrastável; snap nos 4 cantos no mobile) abre **painel com abas Mensagens Rápidas · Contatos · Grupos**, cada uma = **iframe da página real** (CRUD completo sem duplicar código). Só aparece em `/atendimentos`.
+- **Embed mode** = página detecta que está num iframe (`lib/embed.ts` → `inIframe()`); CrmOverlays põe classe `embed-mode` (esconde sidebar/topbar via `globals.css`), não renderiza overlays aninhados, e desliga som/notificação/heartbeat. `_floating-tabs.tsx`.
+- **Inserir no chat:** atalho no balão → `postMessage` → `crm:inserir-no-chat` → ChatView joga na barra. Botão em `_inserir-atalho-btn.tsx`.
+- **Toast "aba alterada" só quando aberta como balão:** `avisarAbaAlterada` virou `postMessage` pro pai; `AvisosAbaAlterada` escuta `message`. Página normal não dispara mais.
+
+### Backlog A+B+C — `3d4abdf`
+- **A. Nova conversa (avulsa):** botão ao lado do sino → balão (número c/ DDD, nome opcional, canal se >1 conectado) → cria/reaproveita contato+ticket via `/api/atendimentos/nova-conversa` (normaliza BR, variantes com/sem 9º dígito, atribui ao usuário, status aberto) → abre o chat. Componente `_nova-conversa.tsx`.
+- **B. Pílula de data no scroll do chat** (estilo WhatsApp): Hoje/Ontem/dia-da-semana/dd-mm-aaaa das mensagens à vista; aparece/some com animação; some **4s** após parar. `data-dia` por mensagem + `onScroll` com rAF + `rotuloDia()` em `_chat.tsx`.
+- **C. Menu 3-pontinhos limpo:** removidos os placeholders disabled (Chatbot, Agendar, Mídias/links/docs, Compartilhar, Parar rolagem). Sobrou Detalhes/Transferir/Transferir Canal/Retornar/Encerrar.
+
 ### Auditoria/segurança (sessão anterior)
 - 6 críticos + 10 altos + médios CORRIGIDOS. Relatório `docs/AUDITORIA-CRM.md`.
 
@@ -56,15 +67,15 @@
 
 | # | Item | Tamanho | Detalhe |
 |---|------|---------|---------|
-| **A** | Ícone **"Nova conversa"** ao lado do sino | médio | digita número → inicia conversa avulsa |
-| **B** | **Balãozinho de data no scroll** do chat | médio | Hoje/Ontem/dia-da-semana; some 4s após parar; animação aparecer/sumir (estilo WhatsApp) |
-| **C** | Limpar **menu 3-pontinhos** do chat | pequeno | deixar só o que é usado no CRM |
-| **D** | **Floating tabs ON/OFF** | grande | abrir aba (ex: Mensagens Rápidas) como balão flutuante via botão ON/OFF; aviso "aba alterada" SÓ aparece quando essa aba está aberta como balão; launcher mobile nos 4 cantos |
+| ~~A~~ | ~~Nova conversa~~ | ✅ FEITO | `3d4abdf` |
+| ~~B~~ | ~~Pílula de data no scroll~~ | ✅ FEITO | `3d4abdf` |
+| ~~C~~ | ~~Menu 3-pontinhos limpo~~ | ✅ FEITO | `3d4abdf` |
+| ~~D~~ | ~~Floating tabs ON/OFF~~ | ✅ FEITO | Msg Rápidas + Contatos + Grupos via iframe; inserir no chat; toast só no balão; launcher 4 cantos |
 | **E** | Aba **"Links/Imagens/Docs"** no contato + **balão de mídias** | MUITO grande | balão com Links/Imagens/Docs lado a lado (enviados+recebidos), fundo embaçado. Por item: Baixar, Encaminhar, **Ir para conversa** (no ponto exato), Responder, Favoritar, Fixar, Reagir. **Zoom de imagem com scroll** (frente=aproxima, trás=afasta). "Mídias de todas as conversas" agrupado por dias (Ontem / Semana passada) + botões Pesquisar/Ordenar/Selecionar/Fechar; Selecionar → Favoritar/Download/Encaminhar. **Não é igual WhatsApp, é um balão.** Animação entrando pela esquerda. |
 | — | **#7 schema pull** (migrations) | só Roberto | `supabase db pull` — guia em `docs/GUIA-SCHEMA-PULL.md` (precisa CLI + senha do banco) |
 | — | Checar **mensagem duplicada** via Claude Chrome | opcional | precisa a extensão do Chrome conectada |
 
-Sugestão: **A + B + C** juntos (rápidos, valor visível) → depois **D** → **E** por último.
+~~A + B + C~~ ✅ (`3d4abdf`) · ~~D~~ ✅. **Falta só o E** (balão de mídias — o maior).
 
 ---
 

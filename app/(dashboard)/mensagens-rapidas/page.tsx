@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { criarMensagemRapida, atualizarMensagemRapida, deletarMensagemRapida } from "./_actions";
 import { AvisaAlteracao } from "../_avisa-alteracao";
+import { InserirAtalhoBtn } from "./_inserir-atalho-btn";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
@@ -76,6 +77,7 @@ export default async function MensagensRapidasPage({ searchParams }: PageProps) 
                 <code style={{ fontSize: 11.5, padding: "3px 8px", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", borderRadius: 5, fontFamily: "monospace" }}>{m.comando}</code>
                 <div style={{ flex: 1, fontSize: 12, color: "var(--mk-text-secondary)", whiteSpace: "pre-wrap" }}>{m.conteudo}</div>
                 {m.global && <span className="mk-badge b-purple" style={{ fontSize: 9.5 }}>GLOBAL</span>}
+                <InserirAtalhoBtn texto={m.conteudo} />
                 <Link href={`/mensagens-rapidas?editar=${m.id}`} className="ghost-btn" style={iconBtn}><i className="ti ti-edit" /></Link>
                 <form action={deletarMensagemRapida} style={{ display: "inline" }}>
                   <input type="hidden" name="id" value={m.id} />

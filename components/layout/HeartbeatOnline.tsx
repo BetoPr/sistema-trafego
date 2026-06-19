@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { inIframe } from "@/lib/embed";
 
 /**
  * Heartbeat — POST /api/usuarios/heartbeat a cada 30s enquanto a aba está
@@ -9,6 +10,7 @@ import { useEffect } from "react";
  */
 export function HeartbeatOnline() {
   useEffect(() => {
+    if (inIframe()) return; // dentro do balão flutuante não duplica heartbeat
     let alive = true;
 
     function pulse() {

@@ -1282,3 +1282,20 @@ a:focus-visible {
     transform: none !important;
   }
 }
+
+/* ===== Modo embed: página dentro do balão flutuante de abas (feature D) ===== */
+.embed-mode .mk-sidebar,
+.embed-mode .mk-topbar,
+.embed-mode .mk-nav-scrim,
+.embed-mode .mk-route-progress { display: none !important; }
+.embed-mode .layout-grid { grid-template-columns: 1fr !important; }
+.embed-mode .mk-main { padding: 0 !important; }
+.embed-mode .mk-page { padding: 12px !important; }
+.embed-mode .mk-eyebrow,
+.embed-mode .mk-page-sub { display: none !important; }
+.embed-mode .mk-page-head { margin-bottom: 10px !important; }
+
+/* Painel de abas flutuantes: esconde o rótulo textual da aba em telas estreitas */
+@media (max-width: 420px) {
+  .ft-tab-label { display: none; }
+}
