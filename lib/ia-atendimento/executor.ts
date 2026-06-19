@@ -664,13 +664,15 @@ export async function adicionarAoBuffer(params: {
     { data: ticket },
     { data: perfis },
     { data: bufferExistente },
+    { data: contatoNum },
   ] = await Promise.all([
     sb.from("tickets").select("fila_id, ia_pausada, ia_perfil_id, canal_id").eq("id", params.ticketId).maybeSingle(),
     sb.from("ia_atendimento_perfis")
-      .select("id, canais_ativos, filas_ativas, delay_debounce_seg")
+      .select("id, canais_ativos, filas_ativas, delay_debounce_seg, whatsapp_teste_lista")
       .eq("agencia_id", params.agenciaId)
       .eq("ativo", true),
     sb.from("ia_atendimento_buffer").select("mensagens_pendentes, ultimo_recebido_em, trava_processando").eq("ticket_id", params.ticketId).maybeSingle(),
+    sb.from("contatos").select("wa_id, whatsapp").eq("id", params.contatoId).maybeSingle(),
   ]);
 
   if (!ticket) return { ok: false, motivo: "ticket nao encontrado" };
@@ -685,6 +687,18 @@ export async function adicionarAoBuffer(params: {
   });
 
   if (!perfilEscolhido) return { ok: false, motivo: "nenhum perfil ativo cobre esse canal" };
+
+  // Modo teste (whitelist): se o contato NÃO está autorizado, não buffer nem
+  // carimba ia_perfil_id. Assim a IA não "aparece ativa" (toggle/ícone) pra quem
+  // ela vai ignorar de qualquer forma — antes carimbava aqui e só barrava no
+  // processamento, deixando o ícone ligado em pendentes que a IA não atende.
+  const whitelistBuffer = (perfilEscolhido.whatsapp_teste_lista || []) as string[];
+  if (whitelistBuffer.length > 0) {
+    const numeroLimpo = (contatoNum?.wa_id || contatoNum?.whatsapp || "").replace(/@.+$/, "").replace(/\D/g, "");
+    const variantes = new Set(variantesNumeroBr(numeroLimpo));
+    const autorizado = whitelistBuffer.some((w) => variantesNumeroBr(w).some((v) => variantes.has(v)));
+    if (!autorizado) return { ok: false, motivo: "fora_whitelist (modo teste)" };
+  }
 
   // Se ticket está em fila fora das filas_ativas do perfil, move agora
   const filasArr = (perfilEscolhido.filas_ativas || []) as string[];

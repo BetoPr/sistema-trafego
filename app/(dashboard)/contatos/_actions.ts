@@ -134,6 +134,36 @@ export async function atualizarContato(formData: FormData) {
   redirect("/contatos?ok=atualizado");
 }
 
+/**
+ * Edição rápida via balão (sem navegar pra /contatos). Só campos editáveis:
+ * nome + whatsapp (display). NÃO toca em wa_id — preserva o vínculo do chat
+ * importado (@lid). Retorna JSON (sem redirect) pra UI fechar o balão.
+ */
+export async function salvarContatoBasico(input: { id: string; nome: string; whatsapp: string }): Promise<{ ok: boolean; erro?: string }> {
+  const ctx = await requireAuth();
+  const nome = (input.nome || "").trim();
+  if (!nome) return { ok: false, erro: "Nome obrigatório." };
+  const whatsapp = digits(input.whatsapp || "");
+
+  const sb = createServiceClient();
+  const { error } = await sb
+    .from("contatos")
+    .update({
+      nome,
+      primeiro_nome: nome.split(" ")[0],
+      whatsapp: whatsapp || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, erro: error.message };
+
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "contato", entidadeId: input.id, payload: { via: "balao" } });
+  revalidatePath("/contatos");
+  revalidatePath("/atendimentos");
+  return { ok: true };
+}
+
 export async function deletarContato(formData: FormData) {
   const ctx = await requireAuth();
   const id = String(formData.get("id") || "");

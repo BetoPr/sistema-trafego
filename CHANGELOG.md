@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **14:10** — **Onda 2: editar contato em balão, espiar com mídia, modo teste não marca IA.**
+  - **Editar contato** (no painel de detalhes) virou **balão** (fundo embaçado) com só os campos editáveis (nome + WhatsApp) — não navega mais pra /contatos e **sem follow-up**. O follow-up também saiu do form de edição em /contatos (continua disponível em Util → "Criar follow-up nesta conversa").
+  - **Espiar** agora mostra **imagens** (com lightbox), **áudio tocável** + **transcrição** — nos 3 lugares (cards do Follow-up com IA, balão da lista e ao abrir um pendente).
+  - **Modo teste da IA:** clientes que chegam em pendentes e **não estão na whitelist** não recebem mais o carimbo da IA — não aparece "IA ativa" nem o ícone do robô pra quem a IA ignora (antes marcava e só barrava no processamento).
+
 - **13:55** — **Limpeza de UI (onda 1): atendimentos, follow-up e IA.**
   - Removidas as abas **Privados/Grupos** do topo de Atendimentos (não recortavam nada).
   - **Follow-up IA → "Follow-up com IA"**. O campo "Análises por minuto" virou **interno** (some da tela) — protege o teto TPM do Groq sem você precisar mexer.

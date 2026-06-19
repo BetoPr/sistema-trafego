@@ -6,7 +6,6 @@ import { criarContato, atualizarContato } from "./_actions";
 
 import { ContatosTabela, type LinhaContato } from "./_tabela";
 import { ImportarWhatsAppBtn } from "./_importar";
-import { FollowUpAvulsoBloco, type FollowUpAvulsoRow } from "./_followup";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
@@ -84,30 +83,6 @@ export default async function ContatosPage({ searchParams }: PageProps) {
   const mostrarForm = !!editando || sp.novo === "1";
   const fechEditando = editando ? fechPorContato.get(editando.id) : undefined;
 
-  // Follow-ups avulsos + ticket existence pro contato editado
-  let fuaAgendados: FollowUpAvulsoRow[] = [];
-  let fuaHistorico: FollowUpAvulsoRow[] = [];
-  let temConversaContato = false;
-  if (editando) {
-    const [{ data: fuaRows }, { count: ticketCount }] = await Promise.all([
-      sb
-        .from("follow_up_avulsos")
-        .select("id, agenda_em, mensagens, intervalos_seg, status, motivo, enviado_em")
-        .eq("agencia_id", ctx.agenciaId)
-        .eq("contato_id", editando.id)
-        .order("agenda_em", { ascending: false })
-        .limit(50),
-      sb
-        .from("tickets")
-        .select("id", { count: "exact", head: true })
-        .eq("agencia_id", ctx.agenciaId)
-        .eq("contato_id", editando.id),
-    ]);
-    const rows = (fuaRows || []) as FollowUpAvulsoRow[];
-    fuaAgendados = rows.filter((r) => r.status === "agendado");
-    fuaHistorico = rows.filter((r) => r.status !== "agendado");
-    temConversaContato = (ticketCount || 0) > 0;
-  }
   // Etiquetas já aplicadas no contato sendo editado (pra marcar checkbox)
   const etiquetasDoContato = new Set<string>();
   if (editando) {
@@ -279,15 +254,6 @@ export default async function ContatosPage({ searchParams }: PageProps) {
               <Link href="/contatos" className="ghost-btn">Cancelar</Link>
             </div>
           </form>
-
-          {editando && (
-            <FollowUpAvulsoBloco
-              contatoId={editando.id}
-              agendados={fuaAgendados}
-              historico={fuaHistorico}
-              temConversa={temConversaContato}
-            />
-          )}
         </div>
       )}
 

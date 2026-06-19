@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LightboxFoto } from "@/components/ui/LightboxFoto";
 import { Balao } from "@/components/ui/Balao";
+import { EditarContatoBalao } from "./_editar-contato-balao";
 
 interface Contato {
   id: string;
@@ -70,6 +71,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const [novaEtiquetaNome, setNovaEtiquetaNome] = useState("");
   const [modalLog, setModalLog] = useState<null | "ticket" | "notas">(null);
   const [fuAvulsoAberto, setFuAvulsoAberto] = useState(false);
+  const [editarAberto, setEditarAberto] = useState(false);
   const [iaPausadaLocal, setIaPausadaLocal] = useState<boolean>(!!ticket.ia_pausada);
   // Re-sincroniza quando prop muda apos navigation/refresh
   useEffect(() => {
@@ -385,9 +387,9 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
               <InfoLinha icon="ti-phone" label="Telefone" value={formatarTel(contato.whatsapp)} mono copy={contato.whatsapp} />
               <InfoLinha icon="ti-map-pin" label="Estado (DDD)" value={estadoPorDDD(contato.whatsapp) || contato.estado || "—"} noBorder />
               <div style={{ display: "flex", gap: 6, padding: "10px 12px 12px", borderTop: "0.5px solid var(--mk-border)" }}>
-                <a href={`/contatos?editar=${contato.id}`} className="ghost-btn" style={{ flex: 1, fontSize: 11, textAlign: "center" }}>
+                <button onClick={() => setEditarAberto(true)} className="ghost-btn" style={{ flex: 1, fontSize: 11, textAlign: "center", justifyContent: "center" }}>
                   <i className="ti ti-edit" /> Editar
-                </a>
+                </button>
               </div>
             </Card>
 
@@ -815,6 +817,14 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         onClose={() => setFuAvulsoAberto(false)}
         contatoId={contato.id}
         contatoNome={contato.nome}
+      />
+      <EditarContatoBalao
+        open={editarAberto}
+        onClose={() => setEditarAberto(false)}
+        contatoId={contato.id}
+        nomeAtual={contato.nome}
+        whatsappAtual={contato.whatsapp}
+        onSalvo={refresh}
       />
     </div>
   );
