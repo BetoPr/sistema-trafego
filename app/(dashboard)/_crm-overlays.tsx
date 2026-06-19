@@ -28,6 +28,10 @@ export interface Cand {
   nFollowups: number;          // 1, 2 ou 3 follow-ups (1 = só o imediato)
   d2v: number; d2u: "h" | "d"; // tempo até o 2º
   d3v: number; d3u: "h" | "d"; // tempo até o 3º
+  msg2: string;                // texto do 2º follow-up (IA sugere, editável)
+  msg3: string;                // texto do 3º follow-up (IA sugere, editável)
+  _gen2?: boolean;             // gerando sugestão do 2º
+  _gen3?: boolean;             // gerando sugestão do 3º
   _sent?: boolean;
   _busy?: boolean;
   _pendente?: boolean;
@@ -47,6 +51,8 @@ interface FollowUpRunCtx {
   remover: (id: string) => void;
   analisarUm: (id: string, tom?: string) => Promise<void>;
   analisarTodas: (porMinuto: number) => Promise<void>;
+  /** Gera a sugestão da IA pro 2º/3º follow-up (preenche msg2/msg3, editável). */
+  gerarExtra: (id: string, qual: 2 | 3, tom: string) => Promise<void>;
   enviar: (c: Cand) => Promise<boolean>;
   enviarTodos: (delayMin: number, delayMax: number) => Promise<void>;
   descartar: (c: Cand) => Promise<void>;
@@ -118,6 +124,20 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
 
   const pararAnalise = useCallback(() => { pararRef.current = true; setAnalisando(null); }, []);
 
+  const gerarExtra = useCallback(async (id: string, qual: 2 | 3, tom: string) => {
+    const flag = qual === 2 ? "_gen2" : "_gen3";
+    const campo = qual === 2 ? "msg2" : "msg3";
+    patch(id, { [flag]: true } as Partial<Cand>);
+    try {
+      const r = await fetch("/api/follow-up/ia/regenerar", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ticketId: id, tom }),
+      });
+      const j = await r.json();
+      patch(id, { [flag]: false, ...(j.ok && j.mensagem ? { [campo]: String(j.mensagem) } : {}) } as Partial<Cand>);
+    } catch { patch(id, { [flag]: false } as Partial<Cand>); }
+  }, [patch]);
+
   const enviar = useCallback(async (c: Cand): Promise<boolean> => {
     patch(c.ticketId, { _busy: true });
     try {
@@ -137,8 +157,11 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
       if (n >= 2) {
         try {
           const seg = (v: number, u: "h" | "d") => Math.max(60, Math.round((Number(v) || 1) * (u === "d" ? 86400 : 3600)));
+          // Usa os textos do 2º/3º já revisados no card; se vazio, gera na hora (fallback).
           const extras: string[] = [];
+          const editados: Record<number, string> = { 2: (c.msg2 || "").trim(), 3: (c.msg3 || "").trim() };
           for (let i = 2; i <= n; i++) {
+            if (editados[i]) { extras.push(editados[i]); continue; }
             const rr = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: c.ticketId, tom: c.tom }) });
             const jj = await rr.json();
             if (jj.ok && jj.mensagem) extras.push(String(jj.mensagem));
@@ -180,7 +203,7 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
     } catch { patch(c.ticketId, { _busy: false }); }
   }, [patch, remover]);
 
-  const ctx: FollowUpRunCtx = { cands, setCands, analisando, enviandoTodos, patch, remover, analisarUm, analisarTodas, enviar, enviarTodos, descartar, pararAnalise };
+  const ctx: FollowUpRunCtx = { cands, setCands, analisando, enviandoTodos, patch, remover, analisarUm, analisarTodas, gerarExtra, enviar, enviarTodos, descartar, pararAnalise };
 
   // Modo embed (página dentro do balão flutuante de abas): some o chrome via
   // classe global e NÃO renderiza os overlays (evita widget/launcher aninhado).

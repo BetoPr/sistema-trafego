@@ -327,19 +327,27 @@ export async function sincronizarPlataformaCanais(): Promise<{ ok: boolean; atua
 
   const { data: canais } = await sb
     .from("canais")
-    .select("id, instance_id, wa_plataforma, servidor:super_admin_servidores(base_url, admin_token_encrypted)")
+    .select("id, instance_id, wa_plataforma, numero_conectado, nome_perfil, foto_perfil_url, servidor:super_admin_servidores(base_url, admin_token_encrypted)")
     .eq("agencia_id", ctx.agenciaId);
   if (!canais?.length) return { ok: true, atualizados: 0 };
 
+  type Item = { id: string; instance_id: string; wa_plataforma: string | null; numero_conectado: string | null; nome_perfil: string | null; foto_perfil_url: string | null };
   // Agrupa por servidor → 1 chamada /instance/all por servidor.
-  const porServidor = new Map<string, { baseUrl: string; adminTokenEnc: unknown; itens: Array<{ id: string; instance_id: string; wa_plataforma: string | null }> }>();
+  const porServidor = new Map<string, { baseUrl: string; adminTokenEnc: unknown; itens: Item[] }>();
   for (const c of canais as Array<Record<string, unknown>>) {
     const s = Array.isArray(c.servidor) ? c.servidor[0] : c.servidor;
     const baseUrl = (s as { base_url?: string } | null)?.base_url;
     const adminTokenEnc = (s as { admin_token_encrypted?: unknown } | null)?.admin_token_encrypted;
     if (!baseUrl || !adminTokenEnc) continue;
     if (!porServidor.has(baseUrl)) porServidor.set(baseUrl, { baseUrl, adminTokenEnc, itens: [] });
-    porServidor.get(baseUrl)!.itens.push({ id: c.id as string, instance_id: c.instance_id as string, wa_plataforma: (c.wa_plataforma as string) ?? null });
+    porServidor.get(baseUrl)!.itens.push({
+      id: c.id as string,
+      instance_id: c.instance_id as string,
+      wa_plataforma: (c.wa_plataforma as string) ?? null,
+      numero_conectado: (c.numero_conectado as string) ?? null,
+      nome_perfil: (c.nome_perfil as string) ?? null,
+      foto_perfil_url: (c.foto_perfil_url as string) ?? null,
+    });
   }
 
   let atualizados = 0;
@@ -349,12 +357,23 @@ export async function sincronizarPlataformaCanais(): Promise<{ ok: boolean; atua
     catch { continue; }
     let todas;
     try { todas = await adminListInstances({ baseUrl: grp.baseUrl, adminToken }); }
-    catch (e) { console.error("[canais] plataforma /instance/all:", e); continue; }
-    const porId = new Map(todas.map((i) => [i.id, i.plataform || null]));
+    catch (e) { console.error("[canais] sync /instance/all:", e); continue; }
+    const porId = new Map(todas.map((i) => [i.id, i]));
     for (const it of grp.itens) {
-      const plat = porId.get(it.instance_id);
-      if (plat && plat !== it.wa_plataforma) {
-        await sb.from("canais").update({ wa_plataforma: plat }).eq("id", it.id);
+      const inst = porId.get(it.instance_id);
+      if (!inst) continue;
+      // Só grava o que veio preenchido e mudou (preserva valores já salvos).
+      const upd: Record<string, unknown> = {};
+      const plat = inst.plataform || null;
+      if (plat && plat !== it.wa_plataforma) upd.wa_plataforma = plat;
+      const numero = inst.jid?.user || null;
+      if (numero && numero !== it.numero_conectado) upd.numero_conectado = numero;
+      const nome = inst.profileName || null;
+      if (nome && nome !== it.nome_perfil) upd.nome_perfil = nome;
+      const foto = inst.profilePicUrl || null;
+      if (foto && foto !== it.foto_perfil_url) upd.foto_perfil_url = foto;
+      if (Object.keys(upd).length) {
+        await sb.from("canais").update(upd).eq("id", it.id);
         atualizados++;
       }
     }

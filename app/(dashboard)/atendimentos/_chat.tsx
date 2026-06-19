@@ -10,6 +10,23 @@ import { ChatHeader } from "./_header";
 import { InputBar } from "./_input";
 import { MsgAcoes } from "./_msg-acoes";
 
+// Fundo do chat: colagem sutil de ícones (bolha, avião, coração, etiqueta, check,
+// telefone, gráfico) em tamanhos variados — no lugar do cinza chapado. Bem leve.
+const CHAT_PATTERN = encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'>" +
+  "<g fill='none' stroke='#9aa6b2' stroke-opacity='0.06' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
+  "<g transform='translate(26,34) scale(1.6)'><path d='M2 4q0-3 3-3h22q3 0 3 3v11q0 3-3 3H13l-6 5v-5H5q-3 0-3-3z'/></g>" +
+  "<g transform='translate(214,66) scale(1.15) rotate(8)'><path d='M0 9 L22 0 L13 22 L10 12 Z'/><path d='M10 12 L22 0'/></g>" +
+  "<g transform='translate(58,206) scale(1.3)'><path d='M10 18C2 12 0 8 3 5 5 3 9 3 10 6 11 3 15 3 17 5 20 8 18 12 10 18Z'/></g>" +
+  "<g transform='translate(206,206) scale(1.2) rotate(-12)'><path d='M2 2H14L26 14L14 26L2 14Z'/><circle cx='8' cy='8' r='1.8'/></g>" +
+  "<g transform='translate(232,20) scale(0.9)'><circle cx='12' cy='12' r='10'/><path d='M7 12l3.5 3.5L18 8'/></g>" +
+  "<g transform='translate(20,140) scale(0.95)'><rect x='2' y='2' width='14' height='22' rx='3'/><path d='M7 21h4'/></g>" +
+  "<g transform='translate(132,150) scale(1.05)'><path d='M0 18V10'/><path d='M7 18V3'/><path d='M14 18V12'/><path d='M-3 19H17'/></g>" +
+  "<g transform='translate(120,250) scale(1.0)'><path d='M2 4q0-2 2-2h14q2 0 2 2v8q0 2-2 2h-8l-4 3v-3H4q-2 0-2-2z'/></g>" +
+  "</g></svg>",
+);
+const CHAT_BG = `url("data:image/svg+xml,${CHAT_PATTERN}")`;
+
 const scrollBtnStyle: React.CSSProperties = {
   width: 40,
   height: 40,
@@ -675,7 +692,7 @@ export function ChatView(props: Props) {
           <a href="/canais" style={{ color: "#fff", textDecoration: "underline", marginLeft: 2 }}>Canais</a>.
         </div>
       )}
-      <div ref={scrollRef} onScroll={onScrollChat} className="chat-scroll" style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>
+      <div ref={scrollRef} onScroll={onScrollChat} className="chat-scroll" style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, backgroundColor: "var(--mk-surface-2)", backgroundImage: CHAT_BG, backgroundSize: "300px 300px" }}>
 
         {msgs.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens neste ticket.</div>

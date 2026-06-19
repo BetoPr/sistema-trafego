@@ -71,9 +71,9 @@ export default async function CanaisPage({ searchParams }: PageProps) {
         </Banner>
       )}
 
-      {/* Detecta plataforma (iOS/Android/Web) dos canais conectados sem detecção ainda.
-          O aviso de iOS aparece dentro do card de cada canal iOS (abaixo). */}
-      {(canais || []).some((c) => c.status === "connected" && !c.wa_plataforma) && <DetectarPlataforma />}
+      {/* Sincroniza plataforma + número + nome + foto de perfil dos canais conectados
+          que ainda estão sem algum desses dados. O aviso de iOS aparece no card. */}
+      {(canais || []).some((c) => c.status === "connected" && (!c.wa_plataforma || !c.numero_conectado || !c.foto_perfil_url)) && <DetectarPlataforma />}
 
       {/* Lista cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginBottom: 14 }}>

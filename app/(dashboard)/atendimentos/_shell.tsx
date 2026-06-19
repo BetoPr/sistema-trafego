@@ -106,7 +106,8 @@ export function AtendimentosShell(p: Props) {
   }, [larguraLista]);
   const [tickets, setTickets] = useState<TicketLista[]>(p.ticketsIniciais);
   const [sel, setSel] = useState<{ ticket: TicketFull; mensagens: Mensagem[]; etiquetas: Tag[] } | null>(null);
-  const [loadingSel, setLoadingSel] = useState(false);
+  // Deep-link (?t=...): já entra em "carregando" pra NÃO piscar o "Selecione um ticket".
+  const [loadingSel, setLoadingSel] = useState(!!p.initialTicketId);
   // Começa no chat (painel de detalhes fechado); abre só ao tocar no ícone de info
   const [detalhes, setDetalhes] = useState(false);
   const selIdRef = useRef<string | null>(null);

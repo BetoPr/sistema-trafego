@@ -52,9 +52,6 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
   const [etiquetar, setEtiquetar] = useState<Cand | null>(null);
   const [now, setNow] = useState(0);
   useEffect(() => { setNow(Date.now()); }, []);
-  // Cadência "padrão" — aplica a config em todos os cards de uma vez.
-  const [masterCad, setMasterCad] = useState<CadCfg>(CADENCIA_PADRAO);
-  function aplicarCadenciaTodos() { (cands || []).forEach((c) => patch(c.ticketId, { ...masterCad })); }
 
   async function buscar() {
     setLoading(true); setErro(""); run.pararAnalise(); run.setCands(null);
@@ -66,7 +63,7 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
       const j = await r.json();
       if (!j.ok) { setErro(j.error || "Falha"); return; }
       const lista: Cand[] = (j.candidatos || []).map((c: Pick<Cand, "ticketId" | "contatoId" | "numero" | "nome" | "whatsapp" | "ultima_mensagem_em" | "followups_enviados">) => ({
-        ...c, enviar: false, motivo: "", resumo: "", mensagem: "", tom: "", fecharAoDescartar: false, ...CADENCIA_PADRAO, _analisado: false,
+        ...c, enviar: false, motivo: "", resumo: "", mensagem: "", tom: "", fecharAoDescartar: false, ...CADENCIA_PADRAO, msg2: "", msg3: "", _analisado: false,
       }));
       run.setCands(lista);
     } catch { setErro("Falha na busca"); } finally { setLoading(false); }
@@ -160,15 +157,11 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
             </span>
           )}
         </div>
-        {cands && cands.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, borderTop: "0.5px solid var(--mk-border)", paddingTop: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)" }}>Cadência padrão:</span>
-            <CadenciaControls cad={masterCad} onChange={(p) => setMasterCad((m) => ({ ...m, ...p }))} />
-            <button className="ghost-btn" style={{ fontSize: 11 }} onClick={aplicarCadenciaTodos}><i className="ti ti-checks" /> Aplicar a todos</button>
-          </div>
-        )}
-        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 6, alignItems: "flex-start" }}>
-          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> 1º <strong>Buscar</strong> lista as conversas paradas. 2º <strong>Analisar</strong> (IA resume e sugere). 3º revise, escolha a <strong>cadência</strong> e <strong>Envie</strong> — o 2º/3º são agendados e cancelam sozinhos se o cliente responder.
+        <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)", display: "flex", gap: 8, alignItems: "flex-start", lineHeight: 1.6, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", borderRadius: 8, padding: "9px 12px" }}>
+          <i className="ti ti-info-circle" style={{ marginTop: 2, color: "#9B7DBF", flexShrink: 0 }} />
+          <span>
+            <strong style={{ color: "var(--mk-text)" }}>Como funciona</strong> — <strong>1.</strong> Buscar lista as conversas paradas. <strong>2.</strong> Analisar: a IA resume e sugere a 1ª mensagem. <strong>3.</strong> Em cada card você revisa o texto, o tom e a <strong>cadência</strong> e envia. A cadência (1 a 3 follow-ups, com os tempos) fica <strong>dentro de cada card</strong> — o 2º e o 3º são gerados pela IA, ficam editáveis, são <strong>agendados</strong> e cancelam sozinhos se o cliente responder.
+          </span>
         </div>
         {erro && <div style={{ fontSize: 11.5, color: "#C97064" }}>{erro}</div>}
       </div>
@@ -185,6 +178,7 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
               onPatch={(p) => patch(c.ticketId, p)}
               onAnalisar={() => run.analisarUm(c.ticketId)}
               onRegenerar={(tom) => run.analisarUm(c.ticketId, tom)}
+              onGerar={(qual) => run.gerarExtra(c.ticketId, qual, c.tom)}
               onEnviar={() => run.enviar(c)}
               onDescartar={() => run.descartar(c)}
               onEspiar={() => setEspiar(c)}
@@ -210,11 +204,12 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
 }
 
 // ===== Card de candidato =====
-function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onEnviar, onDescartar, onEspiar, onEtiquetar }: {
+function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onGerar, onEnviar, onDescartar, onEspiar, onEtiquetar }: {
   c: Cand; now: number;
   onPatch: (p: Partial<Cand>) => void;
   onAnalisar: () => void;
   onRegenerar: (tom: string) => void;
+  onGerar: (qual: 2 | 3) => void;
   onEnviar: () => void;
   onDescartar: () => void;
   onEspiar: () => void;
@@ -273,7 +268,7 @@ function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onEnviar, onDescar
                 <span style={{ flex: 1 }} />
                 <DescartarBtn c={c} onPatch={onPatch} onDescartar={onDescartar} />
               </div>
-              <CadenciaControls cad={c} onChange={onPatch} />
+              <CadenciaControls c={c} onChange={onPatch} onGerar={onGerar} />
             </>
           )}
           {!c.enviar && (
@@ -500,36 +495,65 @@ function Empty({ icon, label }: { icon: string; label: string }) {
   return <div className="mk-card" style={{ textAlign: "center", padding: 50, color: "var(--mk-text-muted)" }}><i className={`ti ${icon}`} style={{ display: "block", fontSize: 32, marginBottom: 8, opacity: 0.6 }} />{label}</div>;
 }
 
-type CadCfg = Pick<Cand, "dividir" | "nFollowups" | "d2v" | "d2u" | "d3v" | "d3u">;
-
-/** Controles da cadência (dividir em 2 + 1/2/3 follow-ups + tempos). Usado por card e no "padrão". */
-function CadenciaControls({ cad, onChange }: { cad: CadCfg; onChange: (p: Partial<CadCfg>) => void }) {
+/**
+ * Cadência DESTE contato (no card): dividir a 1ª em 2 + escolher 1/2/3 follow-ups.
+ * Pra 2/3, a IA sugere o texto (editável) e você escolhe o tempo de cada um.
+ */
+function CadenciaControls({ c, onChange, onGerar }: { c: Cand; onChange: (p: Partial<Cand>) => void; onGerar: (qual: 2 | 3) => void }) {
+  function setN(n: number) {
+    onChange({ nFollowups: n });
+    if (n >= 2 && !c.msg2.trim() && !c._gen2) onGerar(2);
+    if (n >= 3 && !c.msg3.trim() && !c._gen3) onGerar(3);
+  }
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", marginTop: 8 }}>
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, cursor: "pointer", color: "var(--mk-text-secondary)" }} title="Quebra a mensagem em 2 (mais humano)">
-        <input type="checkbox" checked={cad.dividir} onChange={(e) => onChange({ dividir: e.target.checked })} /> Dividir em 2 msgs
-      </label>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>Follow-ups:</span>
-        {[1, 2, 3].map((n) => (
-          <button key={n} type="button" onClick={() => onChange({ nFollowups: n })} title={n === 1 ? "Só o imediato" : `${n} no total (agenda os próximos)`}
-            style={{ width: 26, height: 24, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${cad.nFollowups === n ? "var(--mk-accent)" : "var(--mk-border)"}`, background: cad.nFollowups === n ? "rgba(16,185,129,0.16)" : "transparent", color: cad.nFollowups === n ? "var(--mk-accent)" : "var(--mk-text-muted)" }}>{n}</button>
-        ))}
+    <div style={{ marginTop: 10, borderRadius: 8, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", overflow: "hidden" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, padding: "9px 12px" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-secondary)" }}><i className="ti ti-stack-2" style={{ color: "#9B7DBF" }} /> Cadência deste contato</span>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, cursor: "pointer", color: "var(--mk-text-secondary)" }} title="Quebra a 1ª mensagem em 2 envios (mais humano)">
+          <input type="checkbox" checked={c.dividir} onChange={(e) => onChange({ dividir: e.target.checked })} /> Dividir a 1ª em 2 envios
+        </label>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>Quantos follow-ups?</span>
+          {[1, 2, 3].map((n) => (
+            <button key={n} type="button" onClick={() => setN(n)} title={n === 1 ? "Só o imediato" : `${n} no total (agenda os próximos)`}
+              style={{ width: 28, height: 26, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${c.nFollowups === n ? "var(--mk-accent)" : "var(--mk-border)"}`, background: c.nFollowups === n ? "rgba(16,185,129,0.16)" : "transparent", color: c.nFollowups === n ? "var(--mk-accent)" : "var(--mk-text-muted)" }}>{n}</button>
+          ))}
+        </div>
       </div>
-      {cad.nFollowups >= 2 && <DelayInput label="2º após" v={cad.d2v} u={cad.d2u} onV={(d2v) => onChange({ d2v })} onU={(d2u) => onChange({ d2u })} />}
-      {cad.nFollowups >= 3 && <DelayInput label="3º após" v={cad.d3v} u={cad.d3u} onV={(d3v) => onChange({ d3v })} onU={(d3u) => onChange({ d3u })} />}
+      {c.nFollowups >= 2 && (
+        <ExtraFollowup ordem={2} texto={c.msg2} gerando={!!c._gen2} v={c.d2v} u={c.d2u}
+          onTexto={(msg2) => onChange({ msg2 })} onV={(d2v) => onChange({ d2v })} onU={(d2u) => onChange({ d2u })} onGerar={() => onGerar(2)} />
+      )}
+      {c.nFollowups >= 3 && (
+        <ExtraFollowup ordem={3} texto={c.msg3} gerando={!!c._gen3} v={c.d3v} u={c.d3u}
+          onTexto={(msg3) => onChange({ msg3 })} onV={(d3v) => onChange({ d3v })} onU={(d3u) => onChange({ d3u })} onGerar={() => onGerar(3)} />
+      )}
     </div>
   );
 }
-function DelayInput({ label, v, u, onV, onU }: { label: string; v: number; u: "h" | "d"; onV: (n: number) => void; onU: (u: "h" | "d") => void }) {
+
+/** Bloco do 2º/3º follow-up: tempo + texto sugerido pela IA (editável) + regenerar. */
+function ExtraFollowup({ ordem, texto, gerando, v, u, onTexto, onV, onU, onGerar }: {
+  ordem: 2 | 3; texto: string; gerando: boolean; v: number; u: "h" | "d";
+  onTexto: (s: string) => void; onV: (n: number) => void; onU: (u: "h" | "d") => void; onGerar: () => void;
+}) {
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--mk-text-muted)" }}>
-      {label}
-      <input type="number" min={1} value={v} onChange={(e) => onV(Math.max(1, +e.target.value))} style={{ ...inp, width: 46, padding: "4px 6px" }} />
-      <select value={u} onChange={(e) => onU(e.target.value as "h" | "d")} style={{ ...inp, width: 62, padding: "4px 6px" }}>
-        <option value="h">horas</option>
-        <option value="d">dias</option>
-      </select>
+    <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "9px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--mk-text)" }}>{ordem}º follow-up</span>
+        <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>enviar após</span>
+        <input type="number" min={1} value={v} onChange={(e) => onV(Math.max(1, +e.target.value))} style={{ ...inp, width: 52, padding: "4px 6px" }} />
+        <select value={u} onChange={(e) => onU(e.target.value as "h" | "d")} style={{ ...inp, width: 72, padding: "4px 6px" }}>
+          <option value="h">horas</option>
+          <option value="d">dias</option>
+        </select>
+        <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>do envio anterior</span>
+        <span style={{ flex: 1 }} />
+        <button type="button" className="ghost-btn" style={{ fontSize: 11 }} disabled={gerando} onClick={onGerar}>
+          <i className={`ti ${gerando ? "ti-loader-2" : "ti-sparkles"}`} style={gerando ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {texto ? "Regenerar" : "Gerar com IA"}
+        </button>
+      </div>
+      <textarea value={texto} onChange={(e) => onTexto(e.target.value)} rows={2} placeholder={gerando ? "Gerando sugestão da IA…" : `Mensagem do ${ordem}º follow-up — a IA sugere, você edita`} style={{ ...inp, resize: "vertical", fontSize: 12 }} />
     </div>
   );
 }

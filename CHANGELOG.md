@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **20:02** — **Ajustes (feedback): cadência por card, canais com número+foto, fundo do chat, empty-state.**
+  - **Follow-up com IA:** tirei a barra "Cadência padrão / Aplicar a todos" (confusa e não funcionava). Agora a cadência fica **dentro de cada card**: dividir a 1ª em 2 envios, escolher **1/2/3 follow-ups**, e ao escolher 2 ou 3 a **IA já sugere o texto do 2º/3º** (editável) com **Regenerar** e o **tempo de cada um**. Instruções do topo reescritas (mais legíveis, sem aquele texto apagado).
+  - **Canais:** o card agora mostra o **número conectado e a foto de perfil** do WhatsApp (sincroniza via `/instance/all` quando faltam — antes só aparecia o id da instância).
+  - **Fundo do chat:** troquei o cinza chapado por uma **colagem sutil de ícones** (bolha, avião, etiqueta, coração, gráfico…) em tamanhos variados, bem leve.
+  - **"Selecione um ticket à esquerda":** não pisca mais ao abrir uma conversa por link (`?t=`) — entra direto em "Carregando".
+
 - **19:42** — **D — Abas flutuantes (ON/OFF) no Atendimento.**
   - Botão **launcher** flutuante (arrastável; no celular gruda no canto mais próximo) abre um **painel flutuante com abas**: **Mensagens Rápidas · Contatos · Grupos**. Cada aba é a **página real** embutida → todas as funções (criar/editar/excluir) funcionam dentro do balão. Minimiza pra botão, fecha, arrasta livre.
   - **Inserir no chat:** na aba Mensagens Rápidas (dentro do balão) cada atalho ganha **"Inserir"** → joga o texto direto na barra da conversa aberta.
