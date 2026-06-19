@@ -1294,6 +1294,13 @@ a:focus-visible {
 .embed-mode .mk-eyebrow,
 .embed-mode .mk-page-sub { display: none !important; }
 .embed-mode .mk-page-head { margin-bottom: 10px !important; }
+.embed-mode .mk-card, .embed-mode .mk-card-lg { padding: 12px !important; }
+
+/* Mensagens Rápidas dentro do balão: a mensagem ocupa a linha inteira em vez de
+   ser espremida ao lado do comando + botões (que quebrava 1 letra por linha). */
+.embed-mode .mr-row { flex-wrap: wrap; row-gap: 6px; }
+.embed-mode .mr-msg { flex-basis: 100% !important; order: 9; }
+.embed-mode .mr-cmd { white-space: nowrap; }
 
 /* Painel de abas flutuantes: esconde o rótulo textual da aba em telas estreitas */
 @media (max-width: 420px) {

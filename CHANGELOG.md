@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **20:34** — **Abas flutuantes: redimensionável + conteúdo menos espremido.**
+  - O balão agora é **redimensionável** — arraste as **bordas laterais, a base ou os cantos de baixo** pra aumentar/diminuir (o topo continua sendo a barra de arrastar). Abre **maior por padrão** (460px).
+  - **Mensagens Rápidas** dentro do balão: a mensagem agora ocupa a **linha inteira** em vez de ser espremida ao lado do comando + botões (acabou aquela quebra de 1 letra por linha).
+  - Durante arrastar/redimensionar, o iframe não "engole" mais o mouse (fica fluido). Cards mais compactos dentro do balão pra Contatos/Grupos respirarem.
+
 - **20:12** — **Configurações de API (IA) unificadas + ajustes visuais no Atendimento.**
   - A tela **"Chaves IA (Groq)"** virou **"Configurações de API (IA)"** e agora tem **tudo num lugar só**: chaves (Groq/OpenAI/Anthropic) **+ a transcrição de áudio**. Sumiu o card/tela **GroqCloud** duplicado (a rota antiga redireciona pra cá).
   - **Uma única chave Groq faz tudo:** transcrição com **Whisper Large v3** e resumo/análise com **Llama 3.3 70B**. Não tem mais aquele segundo campo de chave só pra transcrever (era a mesma chave, confundia).

@@ -73,9 +73,9 @@ export default async function MensagensRapidasPage({ searchParams }: PageProps) 
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {lista.map((m) => (
-              <div key={m.id} style={{ padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <code style={{ fontSize: 11.5, padding: "3px 8px", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", borderRadius: 5, fontFamily: "monospace" }}>{m.comando}</code>
-                <div style={{ flex: 1, fontSize: 12, color: "var(--mk-text-secondary)", whiteSpace: "pre-wrap" }}>{m.conteudo}</div>
+              <div key={m.id} className="mr-row" style={{ padding: "10px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <code className="mr-cmd" style={{ fontSize: 11.5, padding: "3px 8px", background: "rgba(155,125,191,0.18)", color: "#9B7DBF", borderRadius: 5, fontFamily: "monospace" }}>{m.comando}</code>
+                <div className="mr-msg" style={{ flex: 1, fontSize: 12, color: "var(--mk-text-secondary)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{m.conteudo}</div>
                 {m.global && <span className="mk-badge b-purple" style={{ fontSize: 9.5 }}>GLOBAL</span>}
                 <InserirAtalhoBtn texto={m.conteudo} />
                 <Link href={`/mensagens-rapidas?editar=${m.id}`} className="ghost-btn" style={iconBtn}><i className="ti ti-edit" /></Link>
