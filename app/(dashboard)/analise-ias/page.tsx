@@ -6,24 +6,22 @@ import { ExportarUso } from "./_exportar";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ provider?: string; dias?: string }>;
+  searchParams: Promise<{ provider?: string; dias?: string; escopo?: string }>;
 }
 
 const nf = new Intl.NumberFormat("pt-BR");
-function usd(n: number): string {
-  return "$" + (n < 1 ? n.toFixed(4) : n.toFixed(2));
-}
-function pct(parte: number, total: number): string {
-  return total ? `${Math.round((parte / total) * 100)}%` : "—";
-}
+const usd = (n: number) => "$" + (n < 1 ? n.toFixed(4) : n.toFixed(2));
+const pct = (parte: number, total: number) => (total ? `${Math.round((parte / total) * 100)}%` : "—");
 
 export default async function AnaliseIAsPage({ searchParams }: PageProps) {
   const ctx = await requireAdmin();
+  const superAdmin = ctx.role === "super_admin";
   const sp = await searchParams;
-  const provider = sp.provider === "groq" || sp.provider === "openai" || sp.provider === "anthropic" ? sp.provider : "todos";
+  const provider = ["groq", "openai", "anthropic"].includes(sp.provider || "") ? sp.provider! : "todos";
   const dias = [1, 7, 30].includes(Number(sp.dias)) ? Number(sp.dias) : 7;
+  const escopo = (superAdmin && (sp.escopo === "todos" || sp.escopo === "tipo")) ? sp.escopo : "meu";
 
-  const d = await agregarUso(ctx.agenciaId, { provider, dias });
+  const d = await agregarUso({ provider, dias, escopo, agenciaId: ctx.agenciaId, superAdmin });
   const maxDia = Math.max(1, ...d.porDia.map((x) => x.tokens));
   const usoChatPct = Math.min(100, Math.round((d.chatGroqHoje / Math.max(1, d.limiteChatDia)) * 100));
 
@@ -33,30 +31,38 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
         <div>
           <div className="mk-eyebrow">Configuração · IA</div>
           <h1 className="mk-page-title">Análise de IAs</h1>
-          <p className="mk-page-sub">Uso de tokens, custo e desempenho das IAs — por sessão, provider, usuário e cliente.</p>
+          <p className="mk-page-sub">Uso de tokens, custo e desempenho — por sessão, provedor, admin{superAdmin ? ", cliente e tipo de cliente" : ""}.</p>
         </div>
-        <ExportarUso provider={provider} dias={dias} log={d.log} />
+        <ExportarUso provider={provider} dias={dias} escopo={escopo} log={d.log} crossCliente={escopo !== "meu"} />
       </div>
 
-      <Controles provider={provider} dias={dias} />
+      <Controles provider={provider} dias={dias} escopo={escopo} superAdmin={superAdmin} />
 
       {d.totais.chamadas === 0 ? (
         <div className="mk-card mk-card-lg" style={{ textAlign: "center", padding: 40, color: "var(--mk-text-muted)", fontSize: 13 }}>
           <i className="ti ti-chart-bar" style={{ fontSize: 30, display: "block", marginBottom: 8, opacity: 0.6 }} />
-          Nenhum uso de IA registrado nesse período/provedor ainda. Use o Follow-up, resumo ou transcrição que os dados aparecem aqui.
+          Nenhum uso de IA registrado nesse período/provedor ainda. Use Follow-up, resumo ou transcrição que os dados aparecem aqui.
         </div>
       ) : (
         <>
-          {/* Cards resumo */}
+          {/* KPIs com delta vs período anterior */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Tokens (total)" valor={nf.format(d.totais.tokens)} icone="ti-coins" cor="#9B7DBF" />
-            <Card titulo="Custo estimado" valor={usd(d.totais.custo)} icone="ti-cash" cor="#10b981" />
-            <Card titulo="Chamadas" valor={nf.format(d.totais.chamadas)} icone="ti-arrows-exchange" cor="#5B8BA6" />
+            <Card titulo="Tokens (total)" valor={nf.format(d.totais.tokens)} delta={d.delta.tokens} icone="ti-coins" cor="#9B7DBF" />
+            <Card titulo="Custo estimado" valor={usd(d.totais.custo)} delta={d.delta.custo} icone="ti-cash" cor="#10b981" />
+            <Card titulo="Chamadas" valor={nf.format(d.totais.chamadas)} delta={d.delta.chamadas} icone="ti-arrows-exchange" cor="#5B8BA6" />
             <Card titulo="Sucesso" valor={pct(d.totais.sucesso, d.totais.chamadas)} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#10b981" />
             <Card titulo="Áudio transcrito" valor={`${Math.round(d.totais.audioSeg / 60)} min`} icone="ti-microphone" cor="#C97064" />
           </div>
 
-          {/* Tokens de chat Groq hoje (TPD) */}
+          {/* Médias + eficiência */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10, marginBottom: 14 }}>
+            <Card titulo="Média por conversa" valor={`${nf.format(d.medias.porConversa)} tok`} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#9B7DBF" />
+            <Card titulo="Média por ticket" valor={`${nf.format(d.medias.porTicket)} tok`} sub={`${d.medias.tickets} ticket(s)`} icone="ti-ticket" cor="#5B8BA6" />
+            <Card titulo="Média por chamada" valor={`${nf.format(d.medias.porRequest)} tok`} icone="ti-arrow-bar-right" cor="#C97064" />
+            <Card titulo="Prompt × Resposta" valor={`${d.eficiencia.promptPct}% / ${d.eficiencia.completionPct}%`} sub="entrada / saída" icone="ti-arrows-split" cor="#10b981" />
+          </div>
+
+          {/* Limite diário de chat (Groq) */}
           <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
               <h3 className="card-title" style={{ margin: 0 }}>Limite diário de chat (Groq)</h3>
@@ -67,9 +73,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
             <div style={{ height: 10, borderRadius: 6, background: "var(--mk-surface-2)", overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${usoChatPct}%`, background: usoChatPct > 85 ? "#C97064" : "#10b981", transition: "width .3s" }} />
             </div>
-            <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
-              Resumo + Sentimento + Follow-up + Atendimento somam no teto de 100k/dia por chave Groq. Mais chaves Groq = mais limite (config em Configurações de API).
-            </div>
+            <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>Resumo + Sentimento + Follow-up + Atendimento somam no teto de 100k/dia por chave Groq. Mais chaves = mais limite.</div>
           </div>
 
           {/* Gráfico por dia */}
@@ -85,19 +89,18 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          {/* Por sessão */}
-          <Tabela titulo="Por sessão" linhas={d.porSessao} totalTokens={d.totais.tokens} />
+          <Tabela titulo="Por sessão" linhas={d.porSessao} total={d.totais.tokens} />
 
-          {/* Provider + Usuário lado a lado */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }} className="em-grid">
-            <Tabela titulo="Por provedor" linhas={d.porProvider} totalTokens={d.totais.tokens} />
-            <Tabela titulo="Por usuário / atendente" linhas={d.porUsuario} totalTokens={d.totais.tokens} />
+            <Tabela titulo="Por modelo" linhas={d.porModelo} total={d.totais.tokens} />
+            <Tabela titulo="Por provedor" linhas={d.porProvider} total={d.totais.tokens} />
           </div>
 
-          {/* Médias */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10, marginTop: 14 }}>
-            <Card titulo="Média por cliente" valor={`${nf.format(d.medias.porContato)} tok`} sub={`${d.medias.contatos} cliente(s)`} icone="ti-user" cor="#9B7DBF" />
-            <Card titulo="Média por ticket" valor={`${nf.format(d.medias.porTicket)} tok`} sub={`${d.medias.tickets} ticket(s)`} icone="ti-ticket" cor="#5B8BA6" />
+          {/* Por admin + (super-admin) cliente/tipo */}
+          <div style={{ display: "grid", gridTemplateColumns: escopo === "meu" ? "1fr" : "1fr 1fr", gap: 14, marginTop: 14 }} className="em-grid">
+            <Tabela titulo="Por Admin / usuário" linhas={d.porUsuario} total={d.totais.tokens} />
+            {escopo === "todos" && <Tabela titulo="Por cliente (agência)" linhas={d.porCliente} total={d.totais.tokens} />}
+            {escopo === "tipo" && <Tabela titulo="Por tipo de cliente" linhas={d.porTipoCliente} total={d.totais.tokens} />}
           </div>
 
           {/* Log */}
@@ -107,7 +110,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
               <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 11.5 }}>
                 <thead>
                   <tr style={{ textAlign: "left", color: "var(--mk-text-muted)", fontSize: 10.5 }}>
-                    <th style={th}>Data</th><th style={th}>Usuário</th><th style={th}>Sessão</th><th style={th}>Provedor</th><th style={th}>Modelo</th><th style={{ ...th, textAlign: "right" }}>Tokens</th><th style={{ ...th, textAlign: "right" }}>Custo</th><th style={th}>Status</th>
+                    <th style={th}>Data</th><th style={th}>Admin</th>{escopo !== "meu" && <th style={th}>Cliente</th>}<th style={th}>Sessão</th><th style={th}>Provedor</th><th style={th}>Modelo</th><th style={{ ...th, textAlign: "right" }}>Tokens</th><th style={{ ...th, textAlign: "right" }}>Custo</th><th style={th}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -115,12 +118,13 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
                     <tr key={i} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
                       <td style={{ ...td, whiteSpace: "nowrap" }}>{new Date(l.data).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
                       <td style={td}>{l.usuario}</td>
+                      {escopo !== "meu" && <td style={td}>{l.cliente}</td>}
                       <td style={td}>{l.tarefa}</td>
                       <td style={td}>{l.provider}</td>
                       <td style={{ ...td, fontFamily: "monospace", fontSize: 10.5 }}>{l.modelo}</td>
                       <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{nf.format(l.tokens)}</td>
                       <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{usd(l.custo)}</td>
-                      <td style={td}>{l.status === "ok" ? <span style={{ color: "#10b981" }}>ok</span> : l.status === "rate_limit" ? <span style={{ color: "#C97064" }}>limite</span> : <span style={{ color: "#C97064" }}>erro</span>}</td>
+                      <td style={td}>{l.status === "ok" ? <span style={{ color: "#10b981" }}>ok</span> : <span style={{ color: "#C97064" }}>{l.status === "rate_limit" ? "limite" : "erro"}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -133,20 +137,27 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
   );
 }
 
-function Card({ titulo, valor, sub, icone, cor }: { titulo: string; valor: string; sub?: string; icone: string; cor: string }) {
+function Card({ titulo, valor, sub, delta, icone, cor }: { titulo: string; valor: string; sub?: string; delta?: number; icone: string; cor: string }) {
   return (
     <div className="mk-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ width: 28, height: 28, borderRadius: 8, background: `${cor}22`, color: cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}><i className={`ti ${icone}`} /></span>
         <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>{titulo}</span>
       </div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: "var(--mk-text)" }}>{valor}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--mk-text)" }}>{valor}</div>
+        {typeof delta === "number" && (
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: delta > 0 ? "#C97064" : delta < 0 ? "#10b981" : "var(--mk-text-muted)" }}>
+            <i className={`ti ti-arrow-${delta > 0 ? "up" : delta < 0 ? "down" : "right"}`} /> {Math.abs(delta)}%
+          </span>
+        )}
+      </div>
       {sub && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
 
-function Tabela({ titulo, linhas, totalTokens }: { titulo: string; linhas: Array<{ chave: string; rotulo: string; tokens: number; custo: number; chamadas: number }>; totalTokens: number }) {
+function Tabela({ titulo, linhas, total }: { titulo: string; linhas: Array<{ chave: string; rotulo: string; tokens: number; custo: number; chamadas: number }>; total: number }) {
   return (
     <div className="mk-card mk-card-lg">
       <h3 className="card-title" style={{ marginBottom: 12 }}>{titulo}</h3>
@@ -165,7 +176,7 @@ function Tabela({ titulo, linhas, totalTokens }: { titulo: string; linhas: Array
                 <td style={td}>
                   {l.rotulo}
                   <div style={{ height: 4, borderRadius: 3, background: "var(--mk-surface-2)", marginTop: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${totalTokens ? Math.round((l.tokens / totalTokens) * 100) : 0}%`, background: "#9B7DBF" }} />
+                    <div style={{ height: "100%", width: `${total ? Math.round((l.tokens / total) * 100) : 0}%`, background: "#9B7DBF" }} />
                   </div>
                 </td>
                 <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{nf.format(l.tokens)}</td>

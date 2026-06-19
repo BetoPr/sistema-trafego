@@ -1,15 +1,24 @@
 /**
  * Agregação do uso de IA (tabela ia_uso) pro hub "Análise de IAs" e pro PDF.
  * Fonte única — a página e o export PDF leem daqui.
+ *
+ * Escopo:
+ *  - "meu"   → só a agência do usuário (o "meu CRM"). Padrão pra todo mundo.
+ *  - "todos" → todas as agências/clientes (só super-admin). Agrupa por cliente.
+ *  - "tipo"  → todas as agências, agrupado por tipo_cliente (só super-admin).
  */
 import { createServiceClient } from "@/lib/supabase/service";
 
 export interface FiltroUso {
   provider?: string; // "todos" | "groq" | "openai" | "anthropic"
   dias: number;
+  escopo: "meu" | "todos" | "tipo";
+  agenciaId: string;
+  superAdmin: boolean;
 }
 
 interface Row {
+  agencia_id: string;
   usuario_id: string | null;
   contato_id: string | null;
   ticket_id: string | null;
@@ -26,19 +35,26 @@ interface Row {
 }
 
 export interface LinhaAgg { chave: string; rotulo: string; tokens: number; custo: number; chamadas: number }
-export interface LogItem { data: string; usuario: string; tarefa: string; provider: string; modelo: string; tokens: number; custo: number; status: string }
+export interface LogItem { data: string; usuario: string; cliente: string; tarefa: string; provider: string; modelo: string; tokens: number; custo: number; status: string }
 
 export interface UsoAgregado {
   provider: string;
   dias: number;
-  totais: { tokens: number; custo: number; chamadas: number; sucesso: number; erros: number; rateLimit: number; audioSeg: number };
-  chatGroqHoje: number; // tokens de chat (groq) usados HOJE
-  limiteChatDia: number; // teto diário de chat (groq) — 100k por chave
+  escopo: string;
+  superAdmin: boolean;
+  totais: { tokens: number; custo: number; chamadas: number; sucesso: number; erros: number; rateLimit: number; audioSeg: number; promptTokens: number; completionTokens: number };
+  delta: { tokens: number; custo: number; chamadas: number }; // % vs período anterior
+  chatGroqHoje: number;
+  limiteChatDia: number;
+  medias: { porConversa: number; porTicket: number; porRequest: number; custoPorConversa: number; contatos: number; tickets: number };
+  eficiencia: { promptPct: number; completionPct: number }; // proporção prompt:completion
   porSessao: LinhaAgg[];
   porProvider: LinhaAgg[];
-  porUsuario: LinhaAgg[];
+  porModelo: LinhaAgg[];
+  porUsuario: LinhaAgg[];   // "Por Admin"
+  porCliente: LinhaAgg[];   // por agência (escopo todos/tipo)
+  porTipoCliente: LinhaAgg[];
   porDia: Array<{ dia: string; tokens: number }>;
-  medias: { porContato: number; porTicket: number; contatos: number; tickets: number };
   log: LogItem[];
 }
 
@@ -51,46 +67,49 @@ const LABEL_TAREFA: Record<string, string> = {
   outro: "Outro",
 };
 const TAREFAS_CHAT = new Set(["resumo", "sentimento", "followup", "atendimento", "outro"]);
+const diaBR = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(iso));
+const pctDelta = (atual: number, ant: number) => (ant > 0 ? Math.round(((atual - ant) / ant) * 100) : atual > 0 ? 100 : 0);
 
-function diaBR(iso: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(iso));
-}
-
-export async function agregarUso(agenciaId: string, f: FiltroUso): Promise<UsoAgregado> {
+export async function agregarUso(f: FiltroUso): Promise<UsoAgregado> {
   const sb = createServiceClient();
   const dias = Math.max(1, Math.min(90, f.dias || 7));
+  const crossCliente = f.superAdmin && (f.escopo === "todos" || f.escopo === "tipo");
   const desde = new Date(Date.now() - dias * 86400000).toISOString();
+  const desde2 = new Date(Date.now() - 2 * dias * 86400000).toISOString(); // janela anterior (delta)
 
   let q = sb
     .from("ia_uso")
-    .select("usuario_id, contato_id, ticket_id, tarefa, provider, modelo, prompt_tokens, completion_tokens, total_tokens, audio_seg, custo_usd, status, criado_em")
-    .eq("agencia_id", agenciaId)
-    .gte("criado_em", desde)
+    .select("agencia_id, usuario_id, contato_id, ticket_id, tarefa, provider, modelo, prompt_tokens, completion_tokens, total_tokens, audio_seg, custo_usd, status, criado_em")
+    .gte("criado_em", desde2)
     .order("criado_em", { ascending: false })
-    .limit(20000);
+    .limit(50000);
+  if (!crossCliente) q = q.eq("agencia_id", f.agenciaId);
   if (f.provider && f.provider !== "todos") q = q.eq("provider", f.provider);
   const { data } = await q;
-  const rows = (data || []) as Row[];
+  const todasRows = (data || []) as Row[];
+  const rows = todasRows.filter((r) => r.criado_em >= desde);
+  const rowsAnt = todasRows.filter((r) => r.criado_em < desde);
 
-  const { data: us } = await sb.from("usuarios").select("id, nome").eq("agencia_id", agenciaId);
-  const nomeUser = new Map((us || []).map((u) => [u.id as string, u.nome as string]));
+  // Mapas auxiliares (usuários + agências).
+  const uq = sb.from("usuarios").select("id, nome, agencia_id, tipo_cliente");
+  const { data: us } = await (crossCliente ? uq : uq.eq("agencia_id", f.agenciaId));
+  const userInfo = new Map((us || []).map((u) => [u.id as string, { nome: (u.nome as string) || "Usuário", tipo: (u.tipo_cliente as string) || null }]));
+  const agq = sb.from("agencias").select("id, nome");
+  const { data: ags } = await (crossCliente ? agq : agq.eq("id", f.agenciaId));
+  const nomeAgencia = new Map((ags || []).map((a) => [a.id as string, (a.nome as string) || "Cliente"]));
 
-  // Quantas chaves Groq ativas (teto diário = 100k por chave). Hoje: ia_chaves se existir, senão 1.
+  // nº chaves Groq (teto 100k/chave). Pré-Fase 2: 1.
   let nChavesGroq = 1;
   try {
-    const { count } = await sb.from("ia_chaves").select("id", { count: "exact", head: true }).eq("agencia_id", agenciaId).eq("provider", "groq").eq("ativa", true);
+    const { count } = await sb.from("ia_chaves").select("id", { count: "exact", head: true }).eq("agencia_id", f.agenciaId).eq("provider", "groq").eq("ativa", true);
     if (count && count > 0) nChavesGroq = count;
-  } catch { /* tabela ainda não existe (pré Fase 2) */ }
+  } catch { /* tabela ainda não existe */ }
 
   const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
-
-  const totais = { tokens: 0, custo: 0, chamadas: 0, sucesso: 0, erros: 0, rateLimit: 0, audioSeg: 0 };
-  const sessao = new Map<string, LinhaAgg>();
-  const prov = new Map<string, LinhaAgg>();
-  const usr = new Map<string, LinhaAgg>();
-  const dia = new Map<string, number>();
-  const contatos = new Set<string>();
-  const tickets = new Set<string>();
+  const totais = { tokens: 0, custo: 0, chamadas: 0, sucesso: 0, erros: 0, rateLimit: 0, audioSeg: 0, promptTokens: 0, completionTokens: 0 };
+  const sessao = new Map<string, LinhaAgg>(), prov = new Map<string, LinhaAgg>(), modelo = new Map<string, LinhaAgg>();
+  const usr = new Map<string, LinhaAgg>(), cli = new Map<string, LinhaAgg>(), tipo = new Map<string, LinhaAgg>();
+  const dia = new Map<string, number>(), contatos = new Set<string>(), tickets = new Set<string>();
   let chatGroqHoje = 0;
 
   const bump = (m: Map<string, LinhaAgg>, chave: string, rotulo: string, tok: number, custo: number) => {
@@ -99,16 +118,18 @@ export async function agregarUso(agenciaId: string, f: FiltroUso): Promise<UsoAg
   };
 
   for (const r of rows) {
-    const tok = r.total_tokens || 0;
-    const custo = Number(r.custo_usd) || 0;
+    const tok = r.total_tokens || 0, custo = Number(r.custo_usd) || 0;
     totais.tokens += tok; totais.custo += custo; totais.chamadas += 1; totais.audioSeg += Number(r.audio_seg) || 0;
-    if (r.status === "ok") totais.sucesso += 1;
-    else if (r.status === "rate_limit") totais.rateLimit += 1;
-    else totais.erros += 1;
+    totais.promptTokens += r.prompt_tokens || 0; totais.completionTokens += r.completion_tokens || 0;
+    if (r.status === "ok") totais.sucesso += 1; else if (r.status === "rate_limit") totais.rateLimit += 1; else totais.erros += 1;
 
     bump(sessao, r.tarefa, LABEL_TAREFA[r.tarefa] || r.tarefa, tok, custo);
     bump(prov, r.provider, r.provider, tok, custo);
-    bump(usr, r.usuario_id || "_ia", r.usuario_id ? (nomeUser.get(r.usuario_id) || "Usuário") : "IA / automático", tok, custo);
+    bump(modelo, r.modelo, r.modelo, tok, custo);
+    const uInfo = r.usuario_id ? userInfo.get(r.usuario_id) : null;
+    bump(usr, r.usuario_id || "_ia", uInfo?.nome || (r.usuario_id ? "Usuário" : "IA / automático"), tok, custo);
+    bump(cli, r.agencia_id, nomeAgencia.get(r.agencia_id) || "Cliente", tok, custo);
+    bump(tipo, uInfo?.tipo || "_sem", uInfo?.tipo || "(sem tipo / IA)", tok, custo);
 
     const d = diaBR(r.criado_em);
     dia.set(d, (dia.get(d) || 0) + tok);
@@ -117,7 +138,10 @@ export async function agregarUso(agenciaId: string, f: FiltroUso): Promise<UsoAg
     if (r.provider === "groq" && TAREFAS_CHAT.has(r.tarefa) && d === hoje) chatGroqHoje += tok;
   }
 
-  // Série dos últimos N dias (preenche zeros).
+  // Totais da janela anterior (delta).
+  let antTok = 0, antCusto = 0, antCh = 0;
+  for (const r of rowsAnt) { antTok += r.total_tokens || 0; antCusto += Number(r.custo_usd) || 0; antCh += 1; }
+
   const porDia: Array<{ dia: string; tokens: number }> = [];
   for (let i = Math.min(dias, 30) - 1; i >= 0; i--) {
     const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(Date.now() - i * 86400000));
@@ -125,34 +149,35 @@ export async function agregarUso(agenciaId: string, f: FiltroUso): Promise<UsoAg
   }
 
   const ordena = (m: Map<string, LinhaAgg>) => [...m.values()].sort((a, b) => b.tokens - a.tokens);
-
   const log: LogItem[] = rows.slice(0, 300).map((r) => ({
     data: r.criado_em,
-    usuario: r.usuario_id ? (nomeUser.get(r.usuario_id) || "Usuário") : "IA / automático",
+    usuario: r.usuario_id ? (userInfo.get(r.usuario_id)?.nome || "Usuário") : "IA / automático",
+    cliente: nomeAgencia.get(r.agencia_id) || "—",
     tarefa: LABEL_TAREFA[r.tarefa] || r.tarefa,
-    provider: r.provider,
-    modelo: r.modelo,
-    tokens: r.total_tokens || 0,
-    custo: Number(r.custo_usd) || 0,
-    status: r.status,
+    provider: r.provider, modelo: r.modelo,
+    tokens: r.total_tokens || 0, custo: Number(r.custo_usd) || 0, status: r.status,
   }));
 
+  const somaTok = totais.promptTokens + totais.completionTokens;
   return {
     provider: f.provider || "todos",
-    dias,
+    dias, escopo: f.escopo, superAdmin: f.superAdmin,
     totais,
-    chatGroqHoje,
-    limiteChatDia: 100000 * nChavesGroq,
-    porSessao: ordena(sessao),
-    porProvider: ordena(prov),
-    porUsuario: ordena(usr),
-    porDia,
+    delta: { tokens: pctDelta(totais.tokens, antTok), custo: pctDelta(totais.custo, antCusto), chamadas: pctDelta(totais.chamadas, antCh) },
+    chatGroqHoje, limiteChatDia: 100000 * nChavesGroq,
     medias: {
-      porContato: contatos.size ? Math.round(totais.tokens / contatos.size) : 0,
+      porConversa: contatos.size ? Math.round(totais.tokens / contatos.size) : 0,
       porTicket: tickets.size ? Math.round(totais.tokens / tickets.size) : 0,
-      contatos: contatos.size,
-      tickets: tickets.size,
+      porRequest: totais.chamadas ? Math.round(totais.tokens / totais.chamadas) : 0,
+      custoPorConversa: contatos.size ? totais.custo / contatos.size : 0,
+      contatos: contatos.size, tickets: tickets.size,
     },
-    log,
+    eficiencia: {
+      promptPct: somaTok ? Math.round((totais.promptTokens / somaTok) * 100) : 0,
+      completionPct: somaTok ? Math.round((totais.completionTokens / somaTok) * 100) : 0,
+    },
+    porSessao: ordena(sessao), porProvider: ordena(prov), porModelo: ordena(modelo),
+    porUsuario: ordena(usr), porCliente: ordena(cli), porTipoCliente: ordena(tipo),
+    porDia, log,
   };
 }

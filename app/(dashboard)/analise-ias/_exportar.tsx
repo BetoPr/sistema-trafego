@@ -1,20 +1,20 @@
 "use client";
 
-interface LogItem { data: string; usuario: string; tarefa: string; provider: string; modelo: string; tokens: number; custo: number; status: string }
+interface LogItem { data: string; usuario: string; cliente: string; tarefa: string; provider: string; modelo: string; tokens: number; custo: number; status: string }
 
 /** Export do log de uso: CSV (client) + PDF (rota /api/ia/uso/pdf) pra mandar pro Claude analisar. */
-export function ExportarUso({ provider, dias, log }: { provider: string; dias: number; log: LogItem[] }) {
+export function ExportarUso({ provider, dias, escopo, log, crossCliente }: { provider: string; dias: number; escopo: string; log: LogItem[]; crossCliente: boolean }) {
   function csv() {
-    const head = ["Data", "Usuario", "Sessao", "Provedor", "Modelo", "Tokens", "Custo USD", "Status"];
+    const head = ["Data", "Admin", ...(crossCliente ? ["Cliente"] : []), "Sessao", "Provedor", "Modelo", "Tokens", "Custo USD", "Status"];
     const linhas = log.map((l) => [
       new Date(l.data).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
-      l.usuario, l.tarefa, l.provider, l.modelo, String(l.tokens), l.custo.toFixed(6), l.status,
+      l.usuario, ...(crossCliente ? [l.cliente] : []), l.tarefa, l.provider, l.modelo, String(l.tokens), l.custo.toFixed(6), l.status,
     ]);
     const txt = [head, ...linhas].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + txt], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `uso-ia-${provider}-${dias}d.csv`;
+    a.download = `uso-ia-${escopo}-${provider}-${dias}d.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
@@ -24,7 +24,7 @@ export function ExportarUso({ provider, dias, log }: { provider: string; dias: n
         <i className="ti ti-file-spreadsheet" /> CSV
       </button>
       <a
-        href={`/api/ia/uso/pdf?provider=${provider}&dias=${dias}`}
+        href={`/api/ia/uso/pdf?provider=${provider}&dias=${dias}&escopo=${escopo}`}
         target="_blank"
         rel="noreferrer"
         className="cta-btn"

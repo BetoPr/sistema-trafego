@@ -55,10 +55,13 @@ function Doc({ d, provider, dias }: { d: UsoAgregado; provider: string; dias: nu
       kpi("Sucesso", d.totais.chamadas ? Math.round((d.totais.sucesso / d.totais.chamadas) * 100) + "%" : "—"),
     ]),
     e(Text, { key: "mc", style: { fontSize: 9, color: "#444", marginBottom: 4 } },
-      `Áudio transcrito: ${Math.round(d.totais.audioSeg / 60)} min · Erros: ${d.totais.erros} · Limites atingidos: ${d.totais.rateLimit} · Chat Groq hoje: ${nf.format(d.chatGroqHoje)}/${nf.format(d.limiteChatDia)} · Média/cliente: ${nf.format(d.medias.porContato)} tok · Média/ticket: ${nf.format(d.medias.porTicket)} tok`),
+      `Escopo: ${d.escopo} · Áudio: ${Math.round(d.totais.audioSeg / 60)} min · Erros: ${d.totais.erros} · Limites: ${d.totais.rateLimit} · Chat Groq hoje: ${nf.format(d.chatGroqHoje)}/${nf.format(d.limiteChatDia)} · Média/conversa: ${nf.format(d.medias.porConversa)} tok · Média/ticket: ${nf.format(d.medias.porTicket)} tok · Média/chamada: ${nf.format(d.medias.porRequest)} tok`),
     secaoTabela("Por sessão", d.porSessao),
-    secaoTabela("Por usuário / atendente", d.porUsuario),
+    secaoTabela("Por modelo", d.porModelo),
+    secaoTabela("Por Admin / usuário", d.porUsuario),
     secaoTabela("Por provedor", d.porProvider),
+    ...(d.escopo === "todos" ? [secaoTabela("Por cliente (agência)", d.porCliente)] : []),
+    ...(d.escopo === "tipo" ? [secaoTabela("Por tipo de cliente", d.porTipoCliente)] : []),
     e(Text, { key: "logh", style: s.h2 }, `Log de uso (${log.length} de ${d.log.length})`),
     e(View, { key: "logth", style: s.th }, [cell("Data", 2, false, true), cell("Usuário", 2, false, true), cell("Sessão", 2, false, true), cell("Prov.", 1, false, true), cell("Tokens", 1, true, true), cell("Custo", 1, true, true), cell("St", 1, false, true)]),
     ...log.map((l, i) =>
@@ -79,7 +82,10 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const provider = url.searchParams.get("provider") || "todos";
   const dias = Number(url.searchParams.get("dias")) || 7;
-  const d = await agregarUso(u.agencia_id as string, { provider, dias });
+  const superAdmin = (u.role as string) === "super_admin";
+  const escRaw = url.searchParams.get("escopo");
+  const escopo = (superAdmin && (escRaw === "todos" || escRaw === "tipo")) ? escRaw : "meu";
+  const d = await agregarUso({ provider, dias, escopo, agenciaId: u.agencia_id as string, superAdmin });
 
   const buffer = await renderToBuffer(e(Doc, { d, provider, dias }) as unknown as Parameters<typeof renderToBuffer>[0]);
   return new Response(new Uint8Array(buffer), {

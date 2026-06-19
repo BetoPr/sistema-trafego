@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **23:48** — **Análise de IAs v2: escopo (Meu CRM / Todos os clientes / Por tipo) + mais métricas.**
+  - **Escopo** (super-admin): **Meu CRM** (sua agência) · **Todos os clientes** (todas as agências, agrupado por cliente) · **Por tipo de cliente** (usa `usuarios.tipo_cliente`). Admin normal vê só o próprio CRM.
+  - **"Por usuário" = "Por Admin / usuário"** (Usuário = Admin). Novas tabelas: **Por modelo**, **Por cliente (agência)**, **Por tipo de cliente**.
+  - KPIs agora com **delta vs período anterior** (▲/▼ %). Médias: **por conversa** (+ custo/conversa), **por ticket**, **por chamada**. **Eficiência prompt × resposta** (proporção entrada/saída).
+  - Export CSV/PDF respeitam o escopo (PDF inclui as tabelas por cliente/tipo). Métricas escolhidas com base em pesquisa de boas práticas (Helicone/Langfuse/Portkey/FinOps).
+
 - **23:11** — **IA — Fase 4: aba "Análise de IAs" (hub de uso de tokens + export PDF/CSV).**
   - Nova aba no sidebar (**Configuração → Análise de IAs**). Dropdown de **provedor** (Todos/GroqCloud/OpenAI/Anthropic) + período (Hoje/7d/30d).
   - Cards: **tokens, custo estimado (USD), chamadas, % sucesso, áudio transcrito**. Barra **"limite diário de chat (Groq)"** = usado hoje / 100k por chave.
