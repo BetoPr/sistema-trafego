@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **18:32** — **Widget flutuante: drag livre (sem salto ao fechar).**
+  - Removido o "gruda no canto": agora arrasta e **fica exatamente onde você soltar**, com margem de 8px pra não sair da tela.
+  - Ao **minimizar/fechar** o painel vira botão **sem mudar de lugar** (ancorado pela borda direita, onde fica o X).
+
 - **18:02** — **Ajustes (feedback): widget sem "chiclete", spinners, docs, abas-ícone, ordem dos fechamentos.**
   - **Widget flutuante** agora é **portal no body** (corrige o bug de ele rolar junto com a página) e virou **botão launcher** (liga/desliga): minimiza/fecha = vira botão redondo; clique abre; **arrasta e gruda em 1 dos 4 cantos** (bom no mobile). Badge com progresso.
   - **"Carregando" com animação** que gira de verdade (fechamentos do contato + espiar) — `.anim-spin` global.

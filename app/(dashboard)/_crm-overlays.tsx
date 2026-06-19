@@ -167,28 +167,24 @@ function FollowUpWidget() {
   const H = aberto ? 160 : 56;
 
   useEffect(() => {
+    // Drag LIVRE — fica onde você soltar; só clampa pra não sair da tela (margem 8px).
     function move(e: PointerEvent) {
       if (!drag.current) return;
       if (Math.abs(e.clientX - drag.current.sx) > 4 || Math.abs(e.clientY - drag.current.sy) > 4) drag.current.moved = true;
-      setPos({ x: e.clientX - drag.current.dx, y: e.clientY - drag.current.dy });
+      const m = 8;
+      const x = Math.max(m, Math.min(window.innerWidth - W - m, e.clientX - drag.current.dx));
+      const y = Math.max(m, Math.min(window.innerHeight - H - m, e.clientY - drag.current.dy));
+      setPos({ x, y });
     }
     function up() {
       if (!drag.current) return;
       document.body.style.userSelect = "";
-      if (drag.current.moved) {
-        // Snap pro canto mais próximo (4 cantos — bom no mobile e desktop).
-        const m = 16;
-        const cx = (pos?.x ?? 0) + W / 2, cy = (pos?.y ?? 0) + H / 2;
-        const left = cx < window.innerWidth / 2;
-        const top = cy < window.innerHeight / 2;
-        setPos({ x: left ? m : window.innerWidth - W - m, y: top ? m : window.innerHeight - H - m });
-      }
       drag.current = null;
     }
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-  }, [pos, W, H]);
+  }, [W, H]);
 
   if (!mounted || !visivel) return null;
 
@@ -197,6 +193,10 @@ function FollowUpWidget() {
     drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false };
     document.body.style.userSelect = "none";
   };
+  // Colapsar/expandir mantendo a BORDA DIREITA no lugar (não "salta" ao fechar).
+  const clampX = (x: number, w: number) => Math.max(8, Math.min(window.innerWidth - w - 8, x));
+  const colapsar = () => { setPos((p) => (p ? { x: clampX(p.x + (280 - 56), 56), y: p.y } : p)); setAberto(false); };
+  const expandir = () => { setPos((p) => (p ? { x: clampX(p.x - (280 - 56), 280), y: p.y } : p)); setAberto(true); };
   const style: React.CSSProperties = pos
     ? { position: "fixed", left: Math.max(8, Math.min(window.innerWidth - W - 8, pos.x)), top: Math.max(8, Math.min(window.innerHeight - H - 8, pos.y)), zIndex: 4000 }
     : { position: "fixed", right: 18, bottom: 18, zIndex: 4000 };
@@ -205,7 +205,7 @@ function FollowUpWidget() {
   const node = !aberto ? (
     <button
       onPointerDown={onDown}
-      onPointerUp={() => { if (drag.current && !drag.current.moved) setAberto(true); }}
+      onPointerUp={() => { if (drag.current && !drag.current.moved) expandir(); }}
       title="Follow-up com IA"
       style={{ ...style, width: 56, height: 56, borderRadius: "50%", border: "1px solid var(--mk-accent)", background: "var(--mk-bg)", boxShadow: "0 10px 30px rgba(0,0,0,0.45)", cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", position: "fixed" }}
     >
@@ -222,8 +222,8 @@ function FollowUpWidget() {
       <div onPointerDown={onDown} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "rgba(155,125,191,0.18)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}>
         <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
         <strong style={{ fontSize: 11.5, flex: 1, color: "var(--mk-text)" }}>Follow-up com IA</strong>
-        <button onClick={() => setAberto(false)} title="Minimizar" style={iconBtn}><i className="ti ti-minus" /></button>
-        <button onClick={() => setAberto(false)} title="Fechar (vira botão)" style={iconBtn}><i className="ti ti-x" /></button>
+        <button onClick={colapsar} title="Minimizar" style={iconBtn}><i className="ti ti-minus" /></button>
+        <button onClick={colapsar} title="Fechar (vira botão)" style={iconBtn}><i className="ti ti-x" /></button>
       </div>
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
         {analisando ? (
