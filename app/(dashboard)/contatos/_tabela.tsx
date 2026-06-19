@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { deletarContato } from "./_actions";
+import { EditarContatoBalao } from "@/app/(dashboard)/atendimentos/_editar-contato-balao";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -28,7 +29,9 @@ function fmtWhats(n: string | null): string {
 }
 
 export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
+  const router = useRouter();
   const [busca, setBusca] = useState("");
+  const [editando, setEditando] = useState<LinhaContato | null>(null);
 
   const visiveis = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -113,7 +116,7 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
                     ) : "—"}
                   </td>
                   <td style={tdLi}>
-                    <Link href={`/contatos?editar=${c.id}`} className="ghost-btn" style={iconBtn}><i className="ti ti-edit" /></Link>
+                    <button onClick={() => setEditando(c)} className="ghost-btn" style={iconBtn} title="Editar contato"><i className="ti ti-edit" /></button>
                     <form action={deletarContato} style={{ display: "inline", marginLeft: 4 }}>
                       <input type="hidden" name="id" value={c.id} />
                       <button type="submit" className="ghost-btn" style={{ ...iconBtn, color: "#C97064" }}><i className="ti ti-trash" /></button>
@@ -133,6 +136,17 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
           </>
         )}
       </div>
+
+      {editando && (
+        <EditarContatoBalao
+          open
+          onClose={() => setEditando(null)}
+          contatoId={editando.id}
+          nomeAtual={editando.nome}
+          whatsappAtual={editando.whatsapp}
+          onSalvo={() => { setEditando(null); router.refresh(); }}
+        />
+      )}
     </>
   );
 }
