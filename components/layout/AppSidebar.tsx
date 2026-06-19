@@ -98,6 +98,7 @@ function buildSections(role?: string): NavSection[] {
       iconColor: "var(--mk-icon-blue)",
       items: [
         { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
+        { href: "/analise-ias", label: "Análise de IAs", icon: "ti-chart-histogram" },
         { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag" },
       ],

@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **23:11** — **IA — Fase 4: aba "Análise de IAs" (hub de uso de tokens + export PDF/CSV).**
+  - Nova aba no sidebar (**Configuração → Análise de IAs**). Dropdown de **provedor** (Todos/GroqCloud/OpenAI/Anthropic) + período (Hoje/7d/30d).
+  - Cards: **tokens, custo estimado (USD), chamadas, % sucesso, áudio transcrito**. Barra **"limite diário de chat (Groq)"** = usado hoje / 100k por chave.
+  - Tabelas **por sessão** (Transcrição/Resumo/Sentimento/Follow-up), **por provedor**, **por usuário/atendente** + **médias por cliente e por ticket**. Gráfico de **tokens por dia**.
+  - **Log** das últimas chamadas + **export CSV** e **export PDF** (pra mandar pro Claude analisar performance). `lib/ai/relatorio.ts` (agregação) + `/api/ia/uso/pdf`.
+
 - **22:08** — **IA — Fase 1: rastreio de uso de tokens (base do hub "Análise de IAs").**
   - Nova tabela **`ia_uso`**: cada chamada de IA registra **provider, modelo, tokens (prompt/saída/total), segundos de áudio, custo estimado (USD), status (ok/erro/limite)** e o contexto **por usuário, contato e ticket**.
   - Instrumentadas as 4 sessões: **Transcrição · Resumo · Análise de Sentimento · Follow-up com IA**. O follow-up grava **qual usuário** disparou (base pra ver uso por admin/atendente depois).
