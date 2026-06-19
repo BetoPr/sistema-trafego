@@ -151,12 +151,8 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
                 <Stat label="TOTAL" valor={BRL.format(totais.totalValor)} cor="#10b981" />
                 {totais.totalQtd > 0 && <Stat label="SERVIÇOS (QTD)" valor={String(totais.totalQtd)} />}
                 <Stat label="FECHAMENTOS" valor={String(totais.quantidadeFechamentos)} />
+                {totais.ultimo && <Stat label="ÚLTIMO" valor={new Date(totais.ultimo).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} />}
               </div>
-              {totais.ultimo && (
-                <div style={{ textAlign: "right", fontSize: 10.5, color: "var(--mk-text-muted)", marginBottom: 4 }}>
-                  Último fechamento: <strong style={{ color: "var(--mk-text-secondary)" }}>{new Date(totais.ultimo).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</strong>
-                </div>
-              )}
               <div className="chat-scroll" style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
                 {fechamentos.map((f) => (
                   <div key={f.ticketId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", border: "0.5px solid var(--mk-border)", borderRadius: 8, background: "var(--mk-surface)" }}>

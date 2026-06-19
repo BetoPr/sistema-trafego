@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
-  const body = (await req.json().catch(() => ({}))) as { ticketId?: string; mensagem?: string };
+  const body = (await req.json().catch(() => ({}))) as { ticketId?: string; mensagem?: string; dividir?: boolean };
   const texto = (body.mensagem || "").trim();
   if (!body.ticketId || !texto) return NextResponse.json({ error: "body_invalido" }, { status: 400 });
 
@@ -41,29 +41,36 @@ export async function POST(req: Request) {
   const baseUrl = servidor.base_url;
   const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted as Parameters<typeof byteaToBuffer>[0]));
 
-  let wamid: string | undefined;
-  try {
-    const r = await instanceSendText({ baseUrl, token }, { number: waId, text: texto });
-    wamid = r.id;
-  } catch (e) {
-    return NextResponse.json({ error: "uazapi_send", msg: e instanceof Error ? e.message : String(e) }, { status: 502 });
+  // "Dividir em 2": quebra o texto em 2 partes e manda como 2 mensagens (mais humano).
+  const partes = body.dividir ? dividirEm2(texto) : [texto];
+  let msgRow: { id?: string } | null = null;
+  for (let i = 0; i < partes.length; i++) {
+    let wamid: string | undefined;
+    try {
+      const r = await instanceSendText({ baseUrl, token }, { number: waId, text: partes[i] });
+      wamid = r.id;
+    } catch (e) {
+      if (i === 0) return NextResponse.json({ error: "uazapi_send", msg: e instanceof Error ? e.message : String(e) }, { status: 502 });
+      break; // 1ª já saiu — não falha o request por causa da 2ª
+    }
+    const { data: row } = await sb
+      .from("mensagens")
+      .insert({
+        ticket_id: ticket.id,
+        agencia_id: u.agencia_id,
+        autor: "atendente",
+        usuario_id: auth.user.id,
+        tipo: "texto",
+        conteudo: partes[i],
+        wa_message_id: wamid || null,
+        status: "enviada",
+        metadata: { follow_up_ia: true },
+      })
+      .select("id")
+      .single();
+    if (i === 0) msgRow = row;
+    if (i < partes.length - 1) await new Promise((r) => setTimeout(r, 2500));
   }
-
-  const { data: msgRow } = await sb
-    .from("mensagens")
-    .insert({
-      ticket_id: ticket.id,
-      agencia_id: u.agencia_id,
-      autor: "atendente",
-      usuario_id: auth.user.id,
-      tipo: "texto",
-      conteudo: texto,
-      wa_message_id: wamid || null,
-      status: "enviada",
-      metadata: { follow_up_ia: true },
-    })
-    .select("id")
-    .single();
 
   await sb
     .from("tickets")
@@ -74,4 +81,22 @@ export async function POST(req: Request) {
   void audit({ agenciaId: u.agencia_id, usuarioId: auth.user.id, acao: "send_message", entidade: "mensagem", entidadeId: msgRow?.id, payload: { ticket_id: ticket.id, follow_up_ia: true } });
 
   return NextResponse.json({ ok: true, mensagemId: msgRow?.id });
+}
+
+/** Quebra um texto em 2 mensagens, preferindo limite de frase perto do meio. */
+function dividirEm2(t: string): string[] {
+  const s = t.trim();
+  if (s.length < 40) return [s];
+  const frases = s.split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (frases.length >= 2) {
+    const meio = Math.ceil(frases.length / 2);
+    const a = frases.slice(0, meio).join(" ").trim();
+    const b = frases.slice(meio).join(" ").trim();
+    if (a && b) return [a, b];
+  }
+  const mid = Math.floor(s.length / 2);
+  const sp = s.lastIndexOf(" ", mid);
+  const cut = sp > 20 ? sp : mid;
+  const a = s.slice(0, cut).trim(), b = s.slice(cut).trim();
+  return b ? [a, b] : [a];
 }

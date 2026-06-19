@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Balao } from "@/components/ui/Balao";
 import { BolhaEspiada, type MsgEspiada } from "@/app/(dashboard)/atendimentos/_espiar-msg";
-import { useFollowUpRun, type Cand } from "@/app/(dashboard)/_crm-overlays";
+import { useFollowUpRun, type Cand, CADENCIA_PADRAO } from "@/app/(dashboard)/_crm-overlays";
 
 interface Etiqueta { id: string; nome: string; cor: string }
 interface Canal { id: string; nome: string; status: string }
@@ -52,6 +52,9 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
   const [etiquetar, setEtiquetar] = useState<Cand | null>(null);
   const [now, setNow] = useState(0);
   useEffect(() => { setNow(Date.now()); }, []);
+  // Cadência "padrão" — aplica a config em todos os cards de uma vez.
+  const [masterCad, setMasterCad] = useState<CadCfg>(CADENCIA_PADRAO);
+  function aplicarCadenciaTodos() { (cands || []).forEach((c) => patch(c.ticketId, { ...masterCad })); }
 
   async function buscar() {
     setLoading(true); setErro(""); run.pararAnalise(); run.setCands(null);
@@ -62,8 +65,8 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
       });
       const j = await r.json();
       if (!j.ok) { setErro(j.error || "Falha"); return; }
-      const lista: Cand[] = (j.candidatos || []).map((c: Omit<Cand, "enviar" | "motivo" | "resumo" | "mensagem" | "tom" | "fecharAoDescartar">) => ({
-        ...c, enviar: false, motivo: "", resumo: "", mensagem: "", tom: "", fecharAoDescartar: false, _analisado: false,
+      const lista: Cand[] = (j.candidatos || []).map((c: Pick<Cand, "ticketId" | "contatoId" | "numero" | "nome" | "whatsapp" | "ultima_mensagem_em" | "followups_enviados">) => ({
+        ...c, enviar: false, motivo: "", resumo: "", mensagem: "", tom: "", fecharAoDescartar: false, ...CADENCIA_PADRAO, _analisado: false,
       }));
       run.setCands(lista);
     } catch { setErro("Falha na busca"); } finally { setLoading(false); }
@@ -157,8 +160,15 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
             </span>
           )}
         </div>
+        {cands && cands.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, borderTop: "0.5px solid var(--mk-border)", paddingTop: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)" }}>Cadência padrão:</span>
+            <CadenciaControls cad={masterCad} onChange={(p) => setMasterCad((m) => ({ ...m, ...p }))} />
+            <button className="ghost-btn" style={{ fontSize: 11 }} onClick={aplicarCadenciaTodos}><i className="ti ti-checks" /> Aplicar a todos</button>
+          </div>
+        )}
         <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 6, alignItems: "flex-start" }}>
-          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> 1º <strong>Buscar</strong> lista as conversas paradas no período. 2º <strong>Analisar</strong>: a IA resume e sugere (respeita o limite por minuto, usa sua chave Groq). 3º revise e <strong>Envie</strong>.
+          <i className="ti ti-info-circle" style={{ marginTop: 1 }} /> 1º <strong>Buscar</strong> lista as conversas paradas. 2º <strong>Analisar</strong> (IA resume e sugere). 3º revise, escolha a <strong>cadência</strong> e <strong>Envie</strong> — o 2º/3º são agendados e cancelam sozinhos se o cliente responder.
         </div>
         {erro && <div style={{ fontSize: 11.5, color: "#C97064" }}>{erro}</div>}
       </div>
@@ -238,7 +248,7 @@ function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onEnviar, onDescar
       {c.motivo && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8, fontStyle: "italic" }}>{c.motivo}</div>}
 
       {c._sent ? (
-        <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Follow-up enviado.</div>
+        <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Follow-up enviado{c._agendados ? ` · +${c._agendados} agendado(s)` : ""}.</div>
       ) : !c._analisado ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", flex: 1 }}>Conversa parada — ainda não analisada pela IA.</span>
@@ -263,6 +273,7 @@ function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onEnviar, onDescar
                 <span style={{ flex: 1 }} />
                 <DescartarBtn c={c} onPatch={onPatch} onDescartar={onDescartar} />
               </div>
+              <CadenciaControls cad={c} onChange={onPatch} />
             </>
           )}
           {!c.enviar && (
@@ -487,6 +498,40 @@ function Pill({ on, onClick, icon, children }: { on: boolean; onClick: () => voi
 }
 function Empty({ icon, label }: { icon: string; label: string }) {
   return <div className="mk-card" style={{ textAlign: "center", padding: 50, color: "var(--mk-text-muted)" }}><i className={`ti ${icon}`} style={{ display: "block", fontSize: 32, marginBottom: 8, opacity: 0.6 }} />{label}</div>;
+}
+
+type CadCfg = Pick<Cand, "dividir" | "nFollowups" | "d2v" | "d2u" | "d3v" | "d3u">;
+
+/** Controles da cadência (dividir em 2 + 1/2/3 follow-ups + tempos). Usado por card e no "padrão". */
+function CadenciaControls({ cad, onChange }: { cad: CadCfg; onChange: (p: Partial<CadCfg>) => void }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", marginTop: 8 }}>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, cursor: "pointer", color: "var(--mk-text-secondary)" }} title="Quebra a mensagem em 2 (mais humano)">
+        <input type="checkbox" checked={cad.dividir} onChange={(e) => onChange({ dividir: e.target.checked })} /> Dividir em 2 msgs
+      </label>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>Follow-ups:</span>
+        {[1, 2, 3].map((n) => (
+          <button key={n} type="button" onClick={() => onChange({ nFollowups: n })} title={n === 1 ? "Só o imediato" : `${n} no total (agenda os próximos)`}
+            style={{ width: 26, height: 24, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${cad.nFollowups === n ? "var(--mk-accent)" : "var(--mk-border)"}`, background: cad.nFollowups === n ? "rgba(16,185,129,0.16)" : "transparent", color: cad.nFollowups === n ? "var(--mk-accent)" : "var(--mk-text-muted)" }}>{n}</button>
+        ))}
+      </div>
+      {cad.nFollowups >= 2 && <DelayInput label="2º após" v={cad.d2v} u={cad.d2u} onV={(d2v) => onChange({ d2v })} onU={(d2u) => onChange({ d2u })} />}
+      {cad.nFollowups >= 3 && <DelayInput label="3º após" v={cad.d3v} u={cad.d3u} onV={(d3v) => onChange({ d3v })} onU={(d3u) => onChange({ d3u })} />}
+    </div>
+  );
+}
+function DelayInput({ label, v, u, onV, onU }: { label: string; v: number; u: "h" | "d"; onV: (n: number) => void; onU: (u: "h" | "d") => void }) {
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--mk-text-muted)" }}>
+      {label}
+      <input type="number" min={1} value={v} onChange={(e) => onV(Math.max(1, +e.target.value))} style={{ ...inp, width: 46, padding: "4px 6px" }} />
+      <select value={u} onChange={(e) => onU(e.target.value as "h" | "d")} style={{ ...inp, width: 62, padding: "4px 6px" }}>
+        <option value="h">horas</option>
+        <option value="d">dias</option>
+      </select>
+    </div>
+  );
 }
 
 const inp: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, fontFamily: "inherit", boxSizing: "border-box", colorScheme: "dark" };

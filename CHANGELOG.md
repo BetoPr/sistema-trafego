@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **18:54** — **Follow-up com IA: cadência (1/2/3 follow-ups + tempos) + dividir em 2 mensagens.**
+  - Em cada conversa (e com **"Cadência padrão → Aplicar a todos"**): escolha **1, 2 ou 3 follow-ups**. O 1º vai na hora; o 2º/3º são **gerados pela IA e agendados** com o tempo que você definir (ex: 2º após 1h, 3º após 3 dias). Cancelam sozinhos se o cliente responder antes (reusa o follow-up avulso).
+  - **"Dividir em 2 mensagens"**: quebra a mensagem em duas e envia com intervalo (mais humano).
+  - Card mostra **"+N agendado(s)"** após enviar.
+  - Balão de editar contato: **ÚLTIMO** voltou pra dentro do quadrado verde (TOTAL · SERVIÇOS · FECHAMENTOS · ÚLTIMO).
+
 - **18:32** — **Widget flutuante: drag livre (sem salto ao fechar).**
   - Removido o "gruda no canto": agora arrasta e **fica exatamente onde você soltar**, com margem de 8px pra não sair da tela.
   - Ao **minimizar/fechar** o painel vira botão **sem mudar de lugar** (ancorado pela borda direita, onde fica o X).

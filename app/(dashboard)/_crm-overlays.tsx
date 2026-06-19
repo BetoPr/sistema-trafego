@@ -21,11 +21,20 @@ export interface Cand {
   mensagem: string;
   tom: string;
   fecharAoDescartar: boolean;
+  // cadência de envio (por card)
+  dividir: boolean;            // quebra a mensagem em 2 ao enviar
+  nFollowups: number;          // 1, 2 ou 3 follow-ups (1 = só o imediato)
+  d2v: number; d2u: "h" | "d"; // tempo até o 2º
+  d3v: number; d3u: "h" | "d"; // tempo até o 3º
   _sent?: boolean;
   _busy?: boolean;
   _pendente?: boolean;
   _analisado?: boolean;
+  _agendados?: number;         // quantos follow-ups extras foram agendados
 }
+
+/** Default da cadência (1 follow-up imediato). */
+export const CADENCIA_PADRAO = { dividir: false, nFollowups: 1, d2v: 1, d2u: "h" as const, d3v: 3, d3u: "d" as const };
 
 interface FollowUpRunCtx {
   cands: Cand[] | null;
@@ -102,14 +111,40 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
   const enviar = useCallback(async (c: Cand): Promise<boolean> => {
     patch(c.ticketId, { _busy: true });
     try {
-      const r = await fetch("/api/follow-up/ia/enviar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: c.ticketId, mensagem: c.mensagem }) });
+      // 1º follow-up (imediato). dividir=true → backend manda como 2 mensagens.
+      const r = await fetch("/api/follow-up/ia/enviar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: c.ticketId, mensagem: c.mensagem, dividir: c.dividir }) });
       const j = await r.json();
       if (!j.ok) { patch(c.ticketId, { _busy: false }); return false; }
       // Auto-etiqueta "Em follow-up" (find-or-create por nome — não duplica).
       try {
         await fetch(`/api/contatos/${c.contatoId}/etiquetas`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: "Em follow-up", cor: "#f59e0b" }) });
       } catch {}
-      patch(c.ticketId, { _sent: true, _busy: false, followups_enviados: c.followups_enviados + 1 });
+
+      // Cadência: agenda o 2º/3º follow-up (gerados pela IA) via follow-up avulso,
+      // que cancela sozinho se o cliente responder antes.
+      let agendados = 0;
+      const n = Math.min(3, Math.max(1, c.nFollowups || 1));
+      if (n >= 2) {
+        try {
+          const seg = (v: number, u: "h" | "d") => Math.max(60, Math.round((Number(v) || 1) * (u === "d" ? 86400 : 3600)));
+          const extras: string[] = [];
+          for (let i = 2; i <= n; i++) {
+            const rr = await fetch("/api/follow-up/ia/regenerar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: c.ticketId, tom: c.tom }) });
+            const jj = await rr.json();
+            if (jj.ok && jj.mensagem) extras.push(String(jj.mensagem));
+          }
+          if (extras.length) {
+            const agendaEm = new Date(Date.now() + seg(c.d2v, c.d2u) * 1000).toISOString();
+            const intervalos = n >= 3 && extras.length >= 2 ? [seg(c.d3v, c.d3u)] : [];
+            const rs = await fetch(`/api/contatos/${c.contatoId}/follow-up-avulso`, {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ agendaEm, mensagens: extras.map((t) => ({ texto: t })), intervalosSeg: intervalos }),
+            });
+            if (rs.ok) agendados = extras.length;
+          }
+        } catch {}
+      }
+      patch(c.ticketId, { _sent: true, _busy: false, followups_enviados: c.followups_enviados + 1, _agendados: agendados });
       return true;
     } catch { patch(c.ticketId, { _busy: false }); return false; }
   }, [patch]);
