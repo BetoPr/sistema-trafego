@@ -14,7 +14,6 @@ import {
   getModelo,
   MODELO_PADRAO,
   ORDEM_CATEGORIAS,
-  LABEL_CATEGORIA,
   type Provider,
   type ModeloInfo,
 } from "@/lib/ia-atendimento/modelos-catalogo";
@@ -53,11 +52,12 @@ export default function ModeloPicker({ defaultProvider, defaultModelo }: { defau
     setModelo(MODELO_PADRAO[p]);
   }
 
-  // Agrupa por categoria, respeitando a ordem; esconde avançados-escondidos salvo toggle
-  const grupos = ORDEM_CATEGORIAS.map((cat) => ({
-    cat,
-    itens: lista.filter((m) => m.categoria === cat && (mostrarAvancados || !m.avancadoEscondido)),
-  })).filter((g) => g.itens.length > 0);
+  // Lista achatada, ordenada por categoria (sem <optgroup> — o dropdown nativo no
+  // tema escuro renderizava o label do grupo como barra branca/vazia). O selo
+  // (badge) já diferencia recomendado/econômico/avançado por item.
+  const itensOrdenados = ORDEM_CATEGORIAS.flatMap((cat) =>
+    lista.filter((m) => m.categoria === cat && (mostrarAvancados || !m.avancadoEscondido)),
+  );
 
   const caro = sel && (sel.custo >= 3 || sel.experimental);
 
@@ -75,14 +75,10 @@ export default function ModeloPicker({ defaultProvider, defaultModelo }: { defau
         <div>
           <label style={lbl}>Modelo</label>
           <select name="modelo" value={modelo} onChange={(e) => setModelo(e.target.value)} style={inp}>
-            {grupos.map((g) => (
-              <optgroup key={g.cat} label={LABEL_CATEGORIA[g.cat]}>
-                {g.itens.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.displayName}{m.badge ? ` — ${m.badge}` : ""}
-                  </option>
-                ))}
-              </optgroup>
+            {itensOrdenados.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.displayName}{m.badge ? ` — ${m.badge}` : ""}
+              </option>
             ))}
           </select>
         </div>

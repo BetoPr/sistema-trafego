@@ -146,6 +146,11 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
               <i className={`ti ${analisando ? "ti-loader-2" : "ti-sparkles"}`} style={analisando ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : `Analisar ${naoAnalisados} com IA`}
             </button>
           )}
+          {analisando && (
+            <button className="ghost-btn" onClick={() => run.pararAnalise()} style={{ fontSize: 12, color: "#C97064" }} title="Parar a análise — as que faltam continuam aparecendo pra analisar depois">
+              <i className="ti ti-player-stop" /> Parar
+            </button>
+          )}
           {aprovados.length > 0 && (
             <button className="ghost-btn" onClick={() => run.enviarTodos(delayMin, delayMax)} disabled={enviandoTodos}>
               <i className="ti ti-send" /> {enviandoTodos ? "Enviando…" : `Enviar ${aprovados.length} aprovado(s)`}

@@ -8,6 +8,11 @@ import { FloatingTabs } from "./_floating-tabs";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Erro de limite diário de tokens (Groq TPD / 429). Pausa a análise em vez de cuspir o erro cru. */
+function ehLimiteDiario(msg?: string): boolean {
+  return /\b429\b|rate limit|tokens per day|TPD|too many requests|quota/i.test(msg || "");
+}
+
 // ===== Tipos compartilhados do Follow-up com IA =====
 export interface Cand {
   ticketId: string;
@@ -103,7 +108,11 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
       });
       const j = await r.json();
       if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, followups_enviados: j.followups_enviados ?? c?.followups_enviados ?? 0, _pendente: false, _analisado: true });
-      else patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: j.error || "Falha na análise", resumo: "" });
+      else if (ehLimiteDiario(j.error)) {
+        // Limite diário do Groq: pausa a fila e deixa o card como "a analisar" (não queima como falha).
+        pararRef.current = true;
+        patch(id, { _pendente: false, _analisado: false, enviar: false, resumo: "", motivo: "Limite diário de tokens do Groq atingido — pausei a análise. Tente de novo em alguns minutos, ou adicione/troque a chave em Configurações de API (IA)." });
+      } else patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: j.error || "Falha na análise", resumo: "" });
     } catch { patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: "Erro de rede" }); }
   }, [patch]);
 

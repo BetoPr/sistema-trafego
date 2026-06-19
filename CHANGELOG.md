@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **21:42** — **Follow-up: botão Parar + limite diário do Groq tratado; dropdown de modelos sem campos em branco.**
+  - **Botão "Parar"** na aba Follow-up (além do que já tinha no balãozinho). Ao parar, as conversas que faltam continuam aparecendo pra analisar depois.
+  - **Limite diário de tokens do Groq (TPD/429):** quando estoura, a análise **pausa** e o card mostra uma mensagem clara ("limite diário atingido — tente em alguns minutos ou troque/adicione chave") em vez do erro técnico 429 cru.
+  - **Dropdown de modelos (IA):** sumiram os **campos em branco** (os títulos de grupo ficavam invisíveis no tema escuro). Agora é uma lista única, ordenada, com o selo de cada modelo — todos continuam.
+
 - **20:50** — **Abas flutuantes: + Envio em Massa + layout enxuto de Contatos/Grupos.**
   - Nova aba **Envio em Massa** no balão (são 4 abas agora: Mensagens Rápidas · Contatos · Grupos · Envio em Massa).
   - **Contatos** no balão virou **lista enxuta** (avatar + nome + número + estado + total fechado + etiquetas + editar/excluir) no lugar da tabela larga que espremia tudo.
