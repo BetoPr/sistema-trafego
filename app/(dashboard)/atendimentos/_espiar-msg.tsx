@@ -1,7 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AudioPlayer } from "./_audio";
 import { MediaPreview } from "./_media";
+
+/** Link de download de documento — resolve a signed URL do bucket (ou usa a URL direta). */
+export function DocBaixar({ midiaPath, nome }: { midiaPath: string; nome: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (midiaPath.startsWith("http://") || midiaPath.startsWith("https://") || midiaPath.startsWith("data:")) { setUrl(midiaPath); return; }
+    let cancel = false;
+    fetch(`/api/media?path=${encodeURIComponent(midiaPath)}`).then((r) => r.json()).then((j) => { if (!cancel) setUrl(j.url || null); }).catch(() => {});
+    return () => { cancel = true; };
+  }, [midiaPath]);
+  if (!url) return <span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-loader-2 anim-spin" /> {nome}</span>;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" download style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#5B8BA6", textDecoration: "none" }}>
+      <i className="ti ti-file-download" /> {nome} <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>(baixar)</span>
+    </a>
+  );
+}
 
 export interface MsgEspiada {
   id: string;
@@ -40,7 +58,7 @@ export function BolhaEspiada({ m, contatoNome }: { m: MsgEspiada; contatoNome?: 
             <span style={{ color: "var(--mk-text-secondary)" }}><i className={`ti ${m.tipo === "imagem" ? "ti-photo" : "ti-video"}`} /> {legenda || `[${m.tipo}]`}</span>
           )
         ) : m.tipo === "documento" ? (
-          <span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-file" /> {legenda || "Documento"} <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)" }}>(abra a conversa pra baixar)</span></span>
+          m.midia_url ? <DocBaixar midiaPath={m.midia_url} nome={legenda || "Documento"} /> : <span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-file" /> {legenda || "[documento]"}</span>
         ) : (
           m.conteudo || m.transcricao || `[${m.tipo}]`
         )}

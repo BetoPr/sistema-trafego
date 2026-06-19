@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AudioPlayer } from "./_audio";
 import { MediaPreview } from "./_media";
+import { DocBaixar } from "./_espiar-msg";
 import { ChatHeader } from "./_header";
 import { InputBar } from "./_input";
 import { MsgAcoes } from "./_msg-acoes";
@@ -686,12 +687,7 @@ export function ChatView(props: Props) {
                   )
                 ) : m.tipo === "documento" ? (
                   m.midia_url ? (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)" }}>
-                        <i className="ti ti-file" /> [documento]
-                      </div>
-                      {m.conteudo && <div style={{ marginTop: 4 }}>{m.conteudo}</div>}
-                    </>
+                    <DocBaixar midiaPath={m.midia_url} nome={m.conteudo && !/^\[documento\]$/i.test(m.conteudo) ? m.conteudo : "Documento"} />
                   ) : (
                     <MidiaPendente mensagem={m} label="Documento" icone="ti-file" />
                   )

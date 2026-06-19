@@ -96,6 +96,19 @@ export function ListaAtendimentos(p: Props) {
   const PAGE_SIZE = 20;
   const [limite, setLimite] = useState(PAGE_SIZE);
   const sentinelaRef = useRef<HTMLDivElement>(null);
+  // Quando a coluna fica estreita (arrastando a divisória), as abas de status
+  // viram só ícone+contador pra caber as 3 (Abertos/Pendentes/Fechados).
+  const asideRef = useRef<HTMLElement>(null);
+  const [compactTabs, setCompactTabs] = useState(false);
+  useEffect(() => {
+    const el = asideRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) setCompactTabs(e.contentRect.width < 300);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [espiar, setEspiar] = useState<null | { ticketId: string; numero: number; contatoNome: string }>(null);
   const [espiarMsgs, setEspiarMsgs] = useState<MsgEspiada[]>([]);
   const [espiarLoading, setEspiarLoading] = useState(false);
@@ -300,7 +313,7 @@ export function ListaAtendimentos(p: Props) {
   }[tipoConexao];
 
   return (
-    <aside style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "var(--mk-bg)" }}>
+    <aside ref={asideRef} style={{ display: "flex", flexDirection: "column", minHeight: 0, background: "var(--mk-bg)" }}>
       {/* Header título + filtros */}
       <div style={sep}>
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 6 }}>
@@ -377,7 +390,7 @@ export function ListaAtendimentos(p: Props) {
               <button
                 key={t.id}
                 onClick={() => toggleStatus(t.id)}
-                title={ativo ? "Clique pra ocultar" : "Clique pra mostrar"}
+                title={`${t.label} — ${ativo ? "clique pra ocultar" : "clique pra mostrar"}`}
                 style={{
                   flex: 1,
                   padding: "6px 8px",
@@ -397,7 +410,7 @@ export function ListaAtendimentos(p: Props) {
                 }}
               >
                 <i className={`ti ${ativo ? (t.id === "aberto" ? "ti-message" : t.id === "pendente" ? "ti-clock" : "ti-check") : "ti-eye-off"}`} />
-                {t.label}
+                {!compactTabs && t.label}
                 <span style={{ fontSize: 9.5, background: ativo ? cor : "var(--mk-text-muted)", color: "#FFFDF8", borderRadius: 8, padding: "0 5px", marginLeft: 2 }}>{counts[t.id]}</span>
               </button>
             );
@@ -709,7 +722,7 @@ export function ListaAtendimentos(p: Props) {
         )}
       >
         {espiarLoading ? (
-          <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>Carregando conversa…</div>
+          <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}><i className="ti ti-loader-2 anim-spin" /> Carregando conversa…</div>
         ) : espiarMsgs.length === 0 ? (
           <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>Sem mensagens neste ticket.</div>
         ) : (

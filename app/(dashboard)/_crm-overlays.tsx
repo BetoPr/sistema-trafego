@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -145,72 +146,112 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ===== #6 — Widget flutuante arrastável (acompanha a análise em qualquer aba) =====
+// ===== #6 — Widget flutuante: botão launcher (liga/desliga) + painel arrastável =====
+// Renderizado via PORTAL no document.body — assim position:fixed é relativo à
+// viewport mesmo dentro de pais com transform (corrige o "chiclete" no scroll).
 function FollowUpWidget() {
   const { cands, analisando, pararAnalise } = useFollowUpRun();
   const pathname = usePathname();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [aberto, setAberto] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const [min, setMin] = useState(false);
-  const arrast = useRef<{ dx: number; dy: number } | null>(null);
+  const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
+  useEffect(() => setMounted(true), []);
 
-  // Só aparece quando há análise rodando OU resultados pendentes, e você NÃO está na tela de Follow-up.
   const naFollowUp = pathname === "/follow-up";
   const total = cands?.length || 0;
   const valem = (cands || []).filter((c) => c.enviar && !c._sent).length;
   const visivel = !naFollowUp && (!!analisando || total > 0);
+  const W = aberto ? 280 : 56;
+  const H = aberto ? 160 : 56;
 
   useEffect(() => {
     function move(e: PointerEvent) {
-      if (!arrast.current) return;
-      setPos({ x: Math.max(8, e.clientX - arrast.current.dx), y: Math.max(8, e.clientY - arrast.current.dy) });
+      if (!drag.current) return;
+      if (Math.abs(e.clientX - drag.current.sx) > 4 || Math.abs(e.clientY - drag.current.sy) > 4) drag.current.moved = true;
+      setPos({ x: e.clientX - drag.current.dx, y: e.clientY - drag.current.dy });
     }
-    function up() { arrast.current = null; document.body.style.userSelect = ""; }
+    function up() {
+      if (!drag.current) return;
+      document.body.style.userSelect = "";
+      if (drag.current.moved) {
+        // Snap pro canto mais próximo (4 cantos — bom no mobile e desktop).
+        const m = 16;
+        const cx = (pos?.x ?? 0) + W / 2, cy = (pos?.y ?? 0) + H / 2;
+        const left = cx < window.innerWidth / 2;
+        const top = cy < window.innerHeight / 2;
+        setPos({ x: left ? m : window.innerWidth - W - m, y: top ? m : window.innerHeight - H - m });
+      }
+      drag.current = null;
+    }
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-  }, []);
+  }, [pos, W, H]);
 
-  if (!visivel) return null;
+  if (!mounted || !visivel) return null;
+
+  const onDown = (e: React.PointerEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false };
+    document.body.style.userSelect = "none";
+  };
   const style: React.CSSProperties = pos
-    ? { position: "fixed", left: pos.x, top: pos.y, zIndex: 4000 }
+    ? { position: "fixed", left: Math.max(8, Math.min(window.innerWidth - W - 8, pos.x)), top: Math.max(8, Math.min(window.innerHeight - H - 8, pos.y)), zIndex: 4000 }
     : { position: "fixed", right: 18, bottom: 18, zIndex: 4000 };
 
-  return (
-    <div style={{ ...style, width: min ? 200 : 280, background: "var(--mk-bg)", border: "1px solid var(--mk-accent)", borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.45)", overflow: "hidden" }}>
-      <div
-        onPointerDown={(e) => { arrast.current = { dx: e.clientX - (pos?.x ?? (window.innerWidth - 18 - (min ? 200 : 280))), dy: e.clientY - (pos?.y ?? (window.innerHeight - 18 - 100)) }; document.body.style.userSelect = "none"; }}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "rgba(155,125,191,0.18)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}
-      >
+  // Launcher (fechado) — botão redondo com ícone da aba; arrastável; clique abre.
+  const node = !aberto ? (
+    <button
+      onPointerDown={onDown}
+      onPointerUp={() => { if (drag.current && !drag.current.moved) setAberto(true); }}
+      title="Follow-up com IA"
+      style={{ ...style, width: 56, height: 56, borderRadius: "50%", border: "1px solid var(--mk-accent)", background: "var(--mk-bg)", boxShadow: "0 10px 30px rgba(0,0,0,0.45)", cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", position: "fixed" }}
+    >
+      <i className="ti ti-sparkles" style={{ fontSize: 22, color: "#9B7DBF", animation: analisando ? "spin 1.4s linear infinite" : undefined }} />
+      {(analisando || valem > 0) && (
+        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: analisando ? "#9B7DBF" : "#10b981", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {analisando ? `${analisando.feitos}` : valem}
+        </span>
+      )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </button>
+  ) : (
+    <div style={{ ...style, width: 280, background: "var(--mk-bg)", border: "1px solid var(--mk-accent)", borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.45)", overflow: "hidden" }}>
+      <div onPointerDown={onDown} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "rgba(155,125,191,0.18)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}>
         <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
         <strong style={{ fontSize: 11.5, flex: 1, color: "var(--mk-text)" }}>Follow-up com IA</strong>
-        <button onClick={() => setMin((v) => !v)} title={min ? "Expandir" : "Minimizar"} style={iconBtn}><i className={`ti ti-${min ? "chevron-up" : "minus"}`} /></button>
+        <button onClick={() => setAberto(false)} title="Minimizar" style={iconBtn}><i className="ti ti-minus" /></button>
+        <button onClick={() => setAberto(false)} title="Fechar (vira botão)" style={iconBtn}><i className="ti ti-x" /></button>
       </div>
-      {!min && (
-        <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {analisando ? (
-            <>
-              <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite" }} /> Analisando {analisando.feitos}/{analisando.total}…</div>
-              <div style={{ height: 5, borderRadius: 3, background: "var(--mk-surface-2)", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${Math.round((analisando.feitos / Math.max(1, analisando.total)) * 100)}%`, background: "#9B7DBF", transition: "width .3s" }} />
-              </div>
-              <button onClick={pararAnalise} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}><i className="ti ti-player-stop" /> Parar</button>
-            </>
-          ) : (
-            <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-circle-check" style={{ color: "#10b981" }} /> {total} conversa(s) · {valem} valem follow-up</div>
-          )}
-          <button onClick={() => router.push("/follow-up")} className="cta-btn" style={{ fontSize: 11, justifyContent: "center" }}><i className="ti ti-arrow-right" /> Abrir Follow-up</button>
-        </div>
-      )}
+      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {analisando ? (
+          <>
+            <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite", display: "inline-block" }} /> Analisando {analisando.feitos}/{analisando.total}…</div>
+            <div style={{ height: 5, borderRadius: 3, background: "var(--mk-surface-2)", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.round((analisando.feitos / Math.max(1, analisando.total)) * 100)}%`, background: "#9B7DBF", transition: "width .3s" }} />
+            </div>
+            <button onClick={pararAnalise} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}><i className="ti ti-player-stop" /> Parar</button>
+          </>
+        ) : (
+          <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-circle-check" style={{ color: "#10b981" }} /> {total} conversa(s) · {valem} valem follow-up</div>
+        )}
+        <button onClick={() => router.push("/follow-up")} className="cta-btn" style={{ fontSize: 11, justifyContent: "center" }}><i className="ti ti-arrow-right" /> Abrir Follow-up</button>
+      </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
+
+  return createPortal(node, document.body);
 }
 
-// ===== #7 — Toast "aba X alterada" =====
+// ===== #7 — Toast "aba X alterada" (portal no body) =====
 function AvisosAbaAlterada() {
+  const [mounted, setMounted] = useState(false);
   const [avisos, setAvisos] = useState<Array<{ id: number; aba: string }>>([]);
   const idRef = useRef(1);
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
     function on(e: Event) {
       const aba = (e as CustomEvent<{ aba?: string }>).detail?.aba || "uma aba";
@@ -222,8 +263,8 @@ function AvisosAbaAlterada() {
     return () => window.removeEventListener("crm:aba-alterada", on as EventListener);
   }, []);
 
-  if (avisos.length === 0) return null;
-  return (
+  if (!mounted || avisos.length === 0) return null;
+  return createPortal(
     <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 5000, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
       {avisos.map((a) => (
         <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(245,158,11,0.16)", border: "1px solid #f59e0b", color: "var(--mk-text)", borderRadius: 10, padding: "9px 14px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.35)", animation: "aviso-in .25s ease" }}>
@@ -233,7 +274,8 @@ function AvisosAbaAlterada() {
         </div>
       ))}
       <style>{`@keyframes aviso-in { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: translateY(0) } }`}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **18:02** — **Ajustes (feedback): widget sem "chiclete", spinners, docs, abas-ícone, ordem dos fechamentos.**
+  - **Widget flutuante** agora é **portal no body** (corrige o bug de ele rolar junto com a página) e virou **botão launcher** (liga/desliga): minimiza/fecha = vira botão redondo; clique abre; **arrasta e gruda em 1 dos 4 cantos** (bom no mobile). Badge com progresso.
+  - **"Carregando" com animação** que gira de verdade (fechamentos do contato + espiar) — `.anim-spin` global.
+  - **Documentos baixáveis** no chat **e** no espiar (link de download com URL assinada).
+  - **Abas Abertos/Pendentes/Fechados** viram **só ícone + contador** quando a coluna de conversas fica estreita (as 3 cabem).
+  - **Balão de editar contato**: ordem dos totais agora **TOTAL · SERVIÇOS (QTD) · FECHAMENTOS**, e **"Último fechamento"** foi pra cima da lista, alinhado à direita.
+
 - **14:54** — **Onda 4: widget flutuante do Follow-up (entre abas) + aviso "aba alterada".**
   - **#6 — Balão flutuante arrastável (global):** o motor da análise do Follow-up com IA subiu pro layout do dashboard. Agora ao clicar "Analisar N com IA" você pode **sair pra outra aba** (Atendimentos, Contatos, Mensagens Rápidas, Grupos, Envio em Massa, etc.) que a análise **continua** — e um **widget flutuante arrastável** mostra o progresso (X/Y), "valem follow-up" e botão "Abrir Follow-up". Antes, sair cancelava.
   - **Auto-etiqueta "Em follow-up"** ao enviar agora é **find-or-create** (não duplica a etiqueta).
