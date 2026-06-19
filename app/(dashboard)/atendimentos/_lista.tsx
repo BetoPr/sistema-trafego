@@ -318,7 +318,7 @@ export function ListaAtendimentos(p: Props) {
       {/* Header título + filtros */}
       <div style={sep}>
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 6 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", flex: 1 }}>Atendimentos</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Atendimentos</h2>
           <button onClick={toggleSom} className="ghost-btn" style={btnHdr} title={somOn ? "Som de notificação ligado" : "Som mutado"}>
             <i className={`ti ${somOn ? "ti-bell" : "ti-bell-off"}`} style={{ color: somOn ? "#10b981" : "var(--mk-text-muted)" }} />
           </button>
@@ -327,7 +327,7 @@ export function ListaAtendimentos(p: Props) {
             <i className="ti ti-receipt-2" />
           </button>
           <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros">
-            <i className="ti ti-filter" /> Filtros
+            <i className="ti ti-filter" />{!compactTabs && " Filtros"}
             {filtrosAtivos > 0 && <span style={{ fontSize: 9.5, background: "#10b981", color: "#fff", borderRadius: 8, padding: "0 5px", marginLeft: 4 }}>{filtrosAtivos}</span>}
           </button>
         </div>

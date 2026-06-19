@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { salvarChavesIA, testarGroq } from "./_actions";
+import { TranscricaoCard } from "./_transcricao";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string }>;
@@ -14,13 +15,15 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
 
   const { data: cfg } = await sb
     .from("configuracoes_agencia")
-    .select("groq_key_encrypted, openai_key_encrypted, anthropic_key_encrypted")
+    .select("groq_key_encrypted, openai_key_encrypted, anthropic_key_encrypted, ia")
     .eq("agencia_id", ctx.agenciaId)
     .maybeSingle();
 
   const temGroq = !!cfg?.groq_key_encrypted;
   const temOpenai = !!cfg?.openai_key_encrypted;
   const temAnthropic = !!cfg?.anthropic_key_encrypted;
+  const t = ((cfg?.ia as Record<string, unknown> | null)?.transcricao ?? {}) as { ativa?: boolean; idioma?: string };
+  const transcricaoInicial = { ativa: t.ativa !== false, idioma: t.idioma || "pt" };
 
   return (
     <section className="mk-page">
@@ -29,10 +32,11 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
           <i className="ti ti-arrow-left" /> Voltar
         </Link>
         <div className="mk-eyebrow">Configuração · IA</div>
-        <h1 className="mk-page-title">Chaves de API IA</h1>
+        <h1 className="mk-page-title">Configurações de API (IA)</h1>
         <p className="mk-page-sub">
-          Configure as API keys para IA. Groq é usado por padrão para transcrição (Whisper),
-          resumo de conversa e análise de sentimento. As chaves ficam criptografadas at-rest (AES-256-GCM).
+          Todas as chaves de API de IA num lugar só. Com <strong>uma única chave Groq</strong> o sistema
+          transcreve áudio (Whisper Large v3) e faz resumo + análise (Llama 3.3 70B). As chaves ficam
+          criptografadas at-rest (AES-256-GCM).
         </p>
       </div>
 
@@ -103,6 +107,9 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
           </ol>
         </div>
       </div>
+
+      {/* Transcrição — usa a MESMA chave Groq acima (1 chave faz tudo) */}
+      <TranscricaoCard inicial={transcricaoInicial} />
 
       {/* OpenAI */}
       <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>

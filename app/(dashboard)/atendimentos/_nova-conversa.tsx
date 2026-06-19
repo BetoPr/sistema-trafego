@@ -157,10 +157,10 @@ const btnHdr: React.CSSProperties = {
   background: "transparent",
   border: "0.5px solid transparent",
   borderRadius: 6,
-  padding: "4px 7px",
+  padding: "5px 10px",
   cursor: "pointer",
-  color: "var(--mk-text-secondary)",
-  fontSize: 14,
+  color: "#10b981",
+  fontSize: 13,
 };
 const lbl: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };
 const inp: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 };

@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **20:12** — **Configurações de API (IA) unificadas + ajustes visuais no Atendimento.**
+  - A tela **"Chaves IA (Groq)"** virou **"Configurações de API (IA)"** e agora tem **tudo num lugar só**: chaves (Groq/OpenAI/Anthropic) **+ a transcrição de áudio**. Sumiu o card/tela **GroqCloud** duplicado (a rota antiga redireciona pra cá).
+  - **Uma única chave Groq faz tudo:** transcrição com **Whisper Large v3** e resumo/análise com **Llama 3.3 70B**. Não tem mais aquele segundo campo de chave só pra transcrever (era a mesma chave, confundia).
+  - **Atendimento — Filtros não vaza mais:** quando você encolhe a coluna de conversas, o botão **Filtros vira só ícone** (igual as abas), e o título corta com "…" em vez de empurrar.
+  - **Ícone "Nova conversa"** agora é **verde**, igual os outros do cabeçalho.
+
 - **20:02** — **Ajustes (feedback): cadência por card, canais com número+foto, fundo do chat, empty-state.**
   - **Follow-up com IA:** tirei a barra "Cadência padrão / Aplicar a todos" (confusa e não funcionava). Agora a cadência fica **dentro de cada card**: dividir a 1ª em 2 envios, escolher **1/2/3 follow-ups**, e ao escolher 2 ou 3 a **IA já sugere o texto do 2º/3º** (editável) com **Regenerar** e o **tempo de cada um**. Instruções do topo reescritas (mais legíveis, sem aquele texto apagado).
   - **Canais:** o card agora mostra o **número conectado e a foto de perfil** do WhatsApp (sincroniza via `/instance/all` quando faltam — antes só aparecia o id da instância).

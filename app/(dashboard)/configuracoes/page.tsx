@@ -5,8 +5,7 @@ import { AgenciaForm } from "./_components/AgenciaForm";
 import { ConfigToggles } from "./_components/ConfigToggles";
 
 const ATALHOS = [
-  { href: "/configuracoes/ia", label: "Chaves IA (Groq)", icon: "ti-key", cor: "#9B7DBF", desc: "API keys dos provedores de IA" },
-  { href: "/configuracoes/groqcloud", label: "GroqCloud", icon: "ti-cpu", cor: "#F55036", desc: "Transcrição de áudio (Whisper)" },
+  { href: "/configuracoes/ia", label: "Configurações de API (IA)", icon: "ti-key", cor: "#9B7DBF", desc: "Chaves de IA + transcrição de áudio (1 chave Groq faz tudo)" },
   { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles", cor: "#9B7DBF", desc: "Personalize resumo, sentimento e reescrita" },
   { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card", cor: "#5B8BA6", desc: "Cobranças PIX e cartão" },
   { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook", cor: "#10b981", desc: "Notifique sistemas externos" },
