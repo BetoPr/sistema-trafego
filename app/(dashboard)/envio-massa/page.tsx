@@ -41,7 +41,7 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
         </div>
 
         <form action={enviarTextoEmMassa} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
+          <div className="em-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
             <div>
               <Label>Canal</Label>
               <select name="canal_id" required style={inp}>

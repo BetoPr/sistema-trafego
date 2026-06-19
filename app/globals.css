@@ -1302,6 +1302,10 @@ a:focus-visible {
 .embed-mode .mr-msg { flex-basis: 100% !important; order: 9; }
 .embed-mode .mr-cmd { white-space: nowrap; }
 
+/* Grupos / Envio em Massa no balão: selects/grid empilham e o JID longo quebra */
+.embed-mode .gr-grid, .embed-mode .em-grid { grid-template-columns: 1fr !important; }
+.embed-mode .gr-jid { word-break: break-all; }
+
 /* Painel de abas flutuantes: esconde o rótulo textual da aba em telas estreitas */
 @media (max-width: 420px) {
   .ft-tab-label { display: none; }

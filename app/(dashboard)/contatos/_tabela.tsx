@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { deletarContato } from "./_actions";
 import { EditarContatoBalao } from "@/app/(dashboard)/atendimentos/_editar-contato-balao";
+import { inIframe } from "@/lib/embed";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -32,6 +33,9 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<LinhaContato | null>(null);
+  // No balão flutuante (iframe) usa uma lista enxuta no lugar da tabela larga.
+  const [embed, setEmbed] = useState(false);
+  useEffect(() => setEmbed(inIframe()), []);
 
   const visiveis = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -68,6 +72,42 @@ export function ContatosTabela({ linhas }: { linhas: LinhaContato[] }) {
           <div style={{ padding: 24, textAlign: "center", color: "var(--mk-text-muted)", fontSize: 13 }}>
             {busca ? "Nenhum contato bate com a busca." : "Sem contatos."}
           </div>
+        ) : embed ? (
+          <>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {exibidas.map((c) => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: "0.5px solid var(--mk-border)" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(155,125,191,0.2)", color: "#9B7DBF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+                    {c.nome.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</div>
+                    <div style={{ fontSize: 11, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{fmtWhats(c.whatsapp)}{c.estado && c.estado !== "—" ? ` · ${c.estado}` : ""}</div>
+                    {c.fech && <div style={{ fontSize: 10.5, color: "#10b981", marginTop: 1 }}>{BRL.format(c.fech.total)} · {c.fech.fechamentos}× fechamento{c.fech.fechamentos === 1 ? "" : "s"}</div>}
+                    {c.tags.length > 0 && (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
+                        {c.tags.slice(0, 4).map((t) => (
+                          <span key={t.id} style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 4, background: `${t.cor}33`, color: t.cor, border: `0.5px solid ${t.cor}` }}>{t.nome}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => setEditando(c)} className="ghost-btn" style={iconBtn} title="Editar contato"><i className="ti ti-edit" /></button>
+                  <form action={deletarContato} style={{ display: "inline" }}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <button type="submit" className="ghost-btn" style={{ ...iconBtn, color: "#C97064" }}><i className="ti ti-trash" /></button>
+                  </form>
+                </div>
+              ))}
+            </div>
+            {visiveis.length > mostrar && (
+              <div style={{ textAlign: "center", paddingTop: 14 }}>
+                <button onClick={() => setMostrar((m) => m + PASSO)} className="ghost-btn" style={{ fontSize: 12 }}>
+                  <i className="ti ti-chevron-down" /> Carregar mais ({visiveis.length - mostrar} restantes)
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12.5 }}>

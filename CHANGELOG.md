@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **20:50** — **Abas flutuantes: + Envio em Massa + layout enxuto de Contatos/Grupos.**
+  - Nova aba **Envio em Massa** no balão (são 4 abas agora: Mensagens Rápidas · Contatos · Grupos · Envio em Massa).
+  - **Contatos** no balão virou **lista enxuta** (avatar + nome + número + estado + total fechado + etiquetas + editar/excluir) no lugar da tabela larga que espremia tudo.
+  - **Grupos** e **Envio em Massa** no balão: os campos lado a lado **empilham** (1 coluna) e o ID longo do grupo (JID) quebra direito — nada vaza.
+
 - **20:34** — **Abas flutuantes: redimensionável + conteúdo menos espremido.**
   - O balão agora é **redimensionável** — arraste as **bordas laterais, a base ou os cantos de baixo** pra aumentar/diminuir (o topo continua sendo a barra de arrastar). Abre **maior por padrão** (460px).
   - **Mensagens Rápidas** dentro do balão: a mensagem agora ocupa a **linha inteira** em vez de ser espremida ao lado do comando + botões (acabou aquela quebra de 1 letra por linha).

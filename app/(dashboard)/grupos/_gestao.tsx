@@ -108,7 +108,7 @@ export function GestaoGrupos({ canais }: { canais: Canal[] }) {
 
       <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 10 }}>Listar Participantes</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+      <div className="gr-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
         <div>
           <label style={lbl}>Conexão</label>
           <select value={canalSel} onChange={(e) => onTrocarCanal(e.target.value)} style={inp}>
@@ -167,7 +167,7 @@ export function GestaoGrupos({ canais }: { canais: Canal[] }) {
             <tbody>
               {resultado.grupos.map((g) => (
                 <tr key={g.jid} style={{ borderTop: "0.5px solid var(--mk-border)" }}>
-                  <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{g.jid}</td>
+                  <td className="gr-jid" style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{g.jid}</td>
                   <td style={td}>{g.nome}</td>
                   <td style={{ ...td, textAlign: "right" }}>{g.membros ?? "—"}</td>
                 </tr>

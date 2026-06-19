@@ -23,6 +23,7 @@ const ABAS: Aba[] = [
   { id: "mr", titulo: "Mensagens Rápidas", icone: "ti-message-bolt", rota: "/mensagens-rapidas" },
   { id: "ct", titulo: "Contatos", icone: "ti-users", rota: "/contatos" },
   { id: "gr", titulo: "Grupos", icone: "ti-users-group", rota: "/grupos" },
+  { id: "em", titulo: "Envio em Massa", icone: "ti-send", rota: "/envio-massa" },
 ];
 
 const LW = 56;          // launcher
