@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **14:54** — **Onda 4: widget flutuante do Follow-up (entre abas) + aviso "aba alterada".**
+  - **#6 — Balão flutuante arrastável (global):** o motor da análise do Follow-up com IA subiu pro layout do dashboard. Agora ao clicar "Analisar N com IA" você pode **sair pra outra aba** (Atendimentos, Contatos, Mensagens Rápidas, Grupos, Envio em Massa, etc.) que a análise **continua** — e um **widget flutuante arrastável** mostra o progresso (X/Y), "valem follow-up" e botão "Abrir Follow-up". Antes, sair cancelava.
+  - **Auto-etiqueta "Em follow-up"** ao enviar agora é **find-or-create** (não duplica a etiqueta).
+  - **#7 — Aviso "aba alterada":** ao adicionar/remover uma **Mensagem Rápida**, aparece um balãozinho amarelo no topo avisando pra atualizar Atendimentos (que carrega esses dados uma vez no load). Mecanismo global, dá pra estender pra outras abas.
+
 - **14:20** — **Onda 3: divisória de conversas redimensionável (estilo WhatsApp desktop).**
   - Em Atendimentos, dá pra **arrastar a linha** entre a lista de conversas e o chat pra aumentar/diminuir cada lado. Largura salva no navegador (volta igual). 2 cliques na linha = reset (340px).
 

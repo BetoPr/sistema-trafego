@@ -8,6 +8,7 @@ import { AudioGlobalProvider } from "@/components/providers/AudioGlobalProvider"
 import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
+import { CrmOverlays } from "./_crm-overlays";
 import { requireUserWithAgencia } from "@/lib/auth";
 import type { Plataforma } from "@/lib/platform";
 
@@ -50,7 +51,7 @@ export default async function DashboardLayout({
             <CommandPalette role={usuario.role} />
             <NotificacaoMensagens agenciaId={usuario.agencia_id} />
             <HeartbeatOnline />
-            {children}
+            <CrmOverlays>{children}</CrmOverlays>
           </main>
         </AppShell>
         </AudioGlobalProvider>

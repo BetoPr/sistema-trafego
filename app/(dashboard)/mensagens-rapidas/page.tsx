@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { criarMensagemRapida, atualizarMensagemRapida, deletarMensagemRapida } from "./_actions";
+import { AvisaAlteracao } from "../_avisa-alteracao";
 
 interface PageProps {
   searchParams: Promise<{ ok?: string; erro?: string; msg?: string; editar?: string; novo?: string }>;
@@ -39,6 +40,7 @@ export default async function MensagensRapidasPage({ searchParams }: PageProps) 
 
       {sp.ok && <Banner tipo="ok">{labelOk(sp.ok)}</Banner>}
       {sp.erro && <Banner tipo="erro">{labelErr(sp.erro)} {sp.msg && `— ${decodeURIComponent(sp.msg)}`}</Banner>}
+      <AvisaAlteracao aba="Mensagens Rápidas" ativo={!!sp.ok} />
 
       {mostrarForm && (
         <div className="mk-card mk-card-lg" style={{ marginBottom: 14 }}>

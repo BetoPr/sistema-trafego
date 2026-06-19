@@ -3,33 +3,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Balao } from "@/components/ui/Balao";
 import { BolhaEspiada, type MsgEspiada } from "@/app/(dashboard)/atendimentos/_espiar-msg";
+import { useFollowUpRun, type Cand } from "@/app/(dashboard)/_crm-overlays";
 
 interface Etiqueta { id: string; nome: string; cor: string }
 interface Canal { id: string; nome: string; status: string }
 
 type Janela = "hoje" | "7d" | "15d" | "periodo";
 type StatusFiltro = "ambos" | "aberto" | "pendente";
-
-interface Cand {
-  ticketId: string;
-  contatoId: string;
-  numero: number;
-  nome: string;
-  whatsapp: string | null;
-  ultima_mensagem_em: string | null;
-  followups_enviados: number;
-  // estado local da análise/edição
-  enviar: boolean;
-  motivo: string;
-  resumo: string;
-  mensagem: string;
-  tom: string;
-  fecharAoDescartar: boolean;
-  _sent?: boolean;
-  _busy?: boolean;
-  _pendente?: boolean;
-  _analisado?: boolean;
-}
 
 const TONS: { v: string; label: string }[] = [
   { v: "", label: "Padrão (IA decide)" },
@@ -41,7 +21,6 @@ const TONS: { v: string; label: string }[] = [
 ];
 
 const ETIQUETAS_FOLLOWUP = ["Em follow-up", "Follow-up feito"];
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function FollowUpClient({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Canal[] }) {
   return <FollowUpIA etiquetas={etiquetas} canais={canais} />;
@@ -62,12 +41,11 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
   const [delayMin, setDelayMin] = useState(30);
   const [delayMax, setDelayMax] = useState(60);
 
-  // dados
+  // dados — vivem no provider GLOBAL (sobrevivem à navegação + alimentam o widget flutuante)
+  const run = useFollowUpRun();
+  const { cands, analisando, enviandoTodos, patch } = run;
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
-  const [cands, setCands] = useState<Cand[] | null>(null);
-  const [analisando, setAnalisando] = useState<{ feitos: number; total: number } | null>(null);
-  const [enviandoTodos, setEnviandoTodos] = useState(false);
 
   // balões
   const [espiar, setEspiar] = useState<Cand | null>(null);
@@ -75,11 +53,8 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
   const [now, setNow] = useState(0);
   useEffect(() => { setNow(Date.now()); }, []);
 
-  function patch(id: string, p: Partial<Cand>) { setCands((cs) => (cs || []).map((c) => (c.ticketId === id ? { ...c, ...p } : c))); }
-  function remover(id: string) { setCands((cs) => (cs || []).filter((c) => c.ticketId !== id)); }
-
   async function buscar() {
-    setLoading(true); setErro(""); setCands(null); setAnalisando(null);
+    setLoading(true); setErro(""); run.pararAnalise(); run.setCands(null);
     try {
       const r = await fetch("/api/follow-up/ia/verificar", {
         method: "POST", headers: { "content-type": "application/json" },
@@ -90,83 +65,8 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
       const lista: Cand[] = (j.candidatos || []).map((c: Omit<Cand, "enviar" | "motivo" | "resumo" | "mensagem" | "tom" | "fecharAoDescartar">) => ({
         ...c, enviar: false, motivo: "", resumo: "", mensagem: "", tom: "", fecharAoDescartar: false, _analisado: false,
       }));
-      setCands(lista);
+      run.setCands(lista);
     } catch { setErro("Falha na busca"); } finally { setLoading(false); }
-  }
-
-  async function analisarUm(id: string, tom?: string) {
-    const c = (cands || []).find((x) => x.ticketId === id);
-    patch(id, { _pendente: true });
-    try {
-      const r = await fetch("/api/follow-up/ia/regenerar", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId: id, tom: tom ?? c?.tom ?? "" }),
-      });
-      const j = await r.json();
-      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, followups_enviados: j.followups_enviados ?? c?.followups_enviados ?? 0, _pendente: false, _analisado: true });
-      else patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: j.error || "Falha na análise", resumo: "" });
-    } catch { patch(id, { _pendente: false, _analisado: true, enviar: false, motivo: "Erro de rede" }); }
-  }
-
-  // Analisa todos os não-analisados respeitando o limite por minuto (controla gasto Groq).
-  async function analisarTodas() {
-    const pend = (cands || []).filter((c) => !c._analisado && !c._pendente);
-    if (!pend.length) return;
-    const gap = Math.max(700, Math.round(60000 / Math.max(1, porMinuto)));
-    setAnalisando({ feitos: 0, total: pend.length });
-    for (let i = 0; i < pend.length; i++) {
-      await analisarUm(pend[i].ticketId);
-      setAnalisando({ feitos: i + 1, total: pend.length });
-      if (i < pend.length - 1) await sleep(gap);
-    }
-    setAnalisando(null);
-  }
-
-  async function enviar(c: Cand): Promise<boolean> {
-    patch(c.ticketId, { _busy: true });
-    try {
-      const r = await fetch("/api/follow-up/ia/enviar", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId: c.ticketId, mensagem: c.mensagem }),
-      });
-      const j = await r.json();
-      if (!j.ok) { patch(c.ticketId, { _busy: false }); return false; }
-      // Auto-etiqueta "Em follow-up" (cria se não existir) — marca que já está em cadência.
-      try {
-        const emFu = etiquetas.find((e) => e.nome.toLowerCase() === "em follow-up");
-        await fetch(`/api/contatos/${c.contatoId}/etiquetas`, {
-          method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify(emFu ? { etiquetaId: emFu.id } : { nome: "Em follow-up", cor: "#f59e0b" }),
-        });
-      } catch {}
-      patch(c.ticketId, { _sent: true, _busy: false, followups_enviados: c.followups_enviados + 1 });
-      return true;
-    } catch { patch(c.ticketId, { _busy: false }); return false; }
-  }
-
-  async function enviarTodos() {
-    const fila = (cands || []).filter((c) => c.enviar && !c._sent && c.mensagem.trim());
-    if (!fila.length) return;
-    setEnviandoTodos(true);
-    const dmin = Math.max(0, delayMin), dmax = Math.max(dmin, delayMax);
-    for (let i = 0; i < fila.length; i++) {
-      await enviar(fila[i]);
-      if (i < fila.length - 1) await sleep((dmin + Math.random() * (dmax - dmin)) * 1000);
-    }
-    setEnviandoTodos(false);
-  }
-
-  async function descartar(c: Cand) {
-    patch(c.ticketId, { _busy: true });
-    try {
-      const r = await fetch("/api/follow-up/ia/descartar", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId: c.ticketId, fechar: c.fecharAoDescartar }),
-      });
-      const j = await r.json();
-      if (j.ok) remover(c.ticketId);
-      else patch(c.ticketId, { _busy: false });
-    } catch { patch(c.ticketId, { _busy: false }); }
   }
 
   const naoAnalisados = (cands || []).filter((c) => !c._analisado).length;
@@ -242,12 +142,12 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
             <i className={`ti ${loading ? "ti-loader-2" : "ti-search"}`} style={loading ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {loading ? "Buscando…" : "Buscar conversas"}
           </button>
           {cands && cands.length > 0 && naoAnalisados > 0 && (
-            <button className="cta-btn" onClick={analisarTodas} disabled={!!analisando} style={{ background: "#9B7DBF" }}>
+            <button className="cta-btn" onClick={() => run.analisarTodas(porMinuto)} disabled={!!analisando} style={{ background: "#9B7DBF" }}>
               <i className={`ti ${analisando ? "ti-loader-2" : "ti-sparkles"}`} style={analisando ? { animation: "fu-spin 1s linear infinite" } : undefined} /> {analisando ? `Analisando ${analisando.feitos}/${analisando.total}…` : `Analisar ${naoAnalisados} com IA`}
             </button>
           )}
           {aprovados.length > 0 && (
-            <button className="ghost-btn" onClick={enviarTodos} disabled={enviandoTodos}>
+            <button className="ghost-btn" onClick={() => run.enviarTodos(delayMin, delayMax)} disabled={enviandoTodos}>
               <i className="ti ti-send" /> {enviandoTodos ? "Enviando…" : `Enviar ${aprovados.length} aprovado(s)`}
             </button>
           )}
@@ -273,10 +173,10 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
               key={c.ticketId}
               c={c} now={now}
               onPatch={(p) => patch(c.ticketId, p)}
-              onAnalisar={() => analisarUm(c.ticketId)}
-              onRegenerar={(tom) => analisarUm(c.ticketId, tom)}
-              onEnviar={() => enviar(c)}
-              onDescartar={() => descartar(c)}
+              onAnalisar={() => run.analisarUm(c.ticketId)}
+              onRegenerar={(tom) => run.analisarUm(c.ticketId, tom)}
+              onEnviar={() => run.enviar(c)}
+              onDescartar={() => run.descartar(c)}
               onEspiar={() => setEspiar(c)}
               onEtiquetar={() => setEtiquetar(c)}
             />

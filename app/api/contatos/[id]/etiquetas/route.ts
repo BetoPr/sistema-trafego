@@ -42,14 +42,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!etq) return NextResponse.json({ error: "etiqueta_invalida" }, { status: 404 });
   }
   if (!etiquetaId && body.nome) {
+    const nome = body.nome.trim();
     const categoria = body.categoria === "flag" ? "flag" : "etiqueta";
-    const { data: nova, error } = await ctx.svc
-      .from("etiquetas")
-      .insert({ agencia_id: ctx.agenciaId, nome: body.nome.trim(), cor: body.cor || "#10b981", categoria })
-      .select("id")
-      .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    etiquetaId = nova.id;
+    // Find-or-create: nao duplica etiqueta com o mesmo nome na agencia
+    // (ex: "Em follow-up" auto-aplicada no envio do Follow-up com IA).
+    const { data: existentes } = await ctx.svc
+      .from("etiquetas").select("id").eq("agencia_id", ctx.agenciaId).ilike("nome", nome).limit(1);
+    if (existentes && existentes.length) {
+      etiquetaId = existentes[0].id as string;
+    } else {
+      const { data: nova, error } = await ctx.svc
+        .from("etiquetas")
+        .insert({ agencia_id: ctx.agenciaId, nome, cor: body.cor || "#10b981", categoria })
+        .select("id")
+        .single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      etiquetaId = nova.id;
+    }
   }
 
   const { error } = await ctx.svc
