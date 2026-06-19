@@ -79,6 +79,31 @@ interface Props {
 
 export function AtendimentosShell(p: Props) {
   const mobile = useIsMobile();
+  // Largura da coluna de conversas — arrastável (estilo WhatsApp), persistida.
+  const sectionRef = useRef<HTMLElement>(null);
+  const [larguraLista, setLarguraLista] = useState(340);
+  const arrastando = useRef(false);
+  useEffect(() => {
+    const s = localStorage.getItem("atend_largura_lista");
+    if (s) setLarguraLista(Math.min(620, Math.max(260, parseInt(s, 10) || 340)));
+  }, []);
+  useEffect(() => {
+    function move(e: PointerEvent) {
+      if (!arrastando.current || !sectionRef.current) return;
+      const rect = sectionRef.current.getBoundingClientRect();
+      setLarguraLista(Math.min(620, Math.max(260, e.clientX - rect.left)));
+    }
+    function up() {
+      if (!arrastando.current) return;
+      arrastando.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      try { localStorage.setItem("atend_largura_lista", String(Math.round(larguraLista))); } catch {}
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  }, [larguraLista]);
   const [tickets, setTickets] = useState<TicketLista[]>(p.ticketsIniciais);
   const [sel, setSel] = useState<{ ticket: TicketFull; mensagens: Mensagem[]; etiquetas: Tag[] } | null>(null);
   const [loadingSel, setLoadingSel] = useState(false);
@@ -142,7 +167,18 @@ export function AtendimentosShell(p: Props) {
   const userNome = sel?.ticket.usuario_id ? p.userNomeMap[sel.ticket.usuario_id] ?? null : null;
 
   return (
-    <section style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "340px 1fr", height: "calc(100vh - 60px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden", margin: mobile ? "-12px -14px -24px" : "-12px -28px -30px", border: "0.5px solid var(--mk-border)" }}>
+    <section ref={sectionRef} style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : `${larguraLista}px 1fr`, height: "calc(100vh - 60px)", minHeight: 0, gap: 0, background: "var(--mk-bg)", position: "relative", overflow: "hidden", margin: mobile ? "-12px -14px -24px" : "-12px -28px -30px", border: "0.5px solid var(--mk-border)" }}>
+      {/* Divisória arrastável conversas ↔ chat (desktop) */}
+      {!mobile && (
+        <div
+          onPointerDown={(e) => { arrastando.current = true; e.preventDefault(); document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none"; }}
+          onDoubleClick={() => { setLarguraLista(340); try { localStorage.setItem("atend_largura_lista", "340"); } catch {} }}
+          title="Arraste pra redimensionar (2 cliques: reset)"
+          className="resizer-conversas"
+          style={{ position: "absolute", top: 0, bottom: 0, left: larguraLista - 3, width: 6, cursor: "col-resize", zIndex: 30 }}
+        />
+      )}
+      <style>{`.resizer-conversas:hover, .resizer-conversas:active { background: var(--mk-accent); opacity: 0.35; }`}</style>
       {/* COLUNA 1 — Lista (no mobile some quando um ticket está aberto) */}
       <div style={{ borderRight: mobile ? "none" : "0.5px solid var(--mk-border)", display: mobile && sel ? "none" : "flex", flexDirection: "column", minHeight: 0 }}>
         <ListaAtendimentos

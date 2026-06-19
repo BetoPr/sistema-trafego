@@ -7,6 +7,9 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **14:20** — **Onda 3: divisória de conversas redimensionável (estilo WhatsApp desktop).**
+  - Em Atendimentos, dá pra **arrastar a linha** entre a lista de conversas e o chat pra aumentar/diminuir cada lado. Largura salva no navegador (volta igual). 2 cliques na linha = reset (340px).
+
 - **14:10** — **Onda 2: editar contato em balão, espiar com mídia, modo teste não marca IA.**
   - **Editar contato** (no painel de detalhes) virou **balão** (fundo embaçado) com só os campos editáveis (nome + WhatsApp) — não navega mais pra /contatos e **sem follow-up**. O follow-up também saiu do form de edição em /contatos (continua disponível em Util → "Criar follow-up nesta conversa").
   - **Espiar** agora mostra **imagens** (com lightbox), **áudio tocável** + **transcrição** — nos 3 lugares (cards do Follow-up com IA, balão da lista e ao abrir um pendente).
