@@ -5,6 +5,7 @@ import { Balao } from "@/components/ui/Balao";
 import { LightboxFoto } from "@/components/ui/LightboxFoto";
 import { AtenderBotao } from "./_atender-btn";
 import { BolhaEspiada, type MsgEspiada } from "./_espiar-msg";
+import { NovaConversa } from "./_nova-conversa";
 
 export interface TicketLista {
   id: string;
@@ -321,6 +322,7 @@ export function ListaAtendimentos(p: Props) {
           <button onClick={toggleSom} className="ghost-btn" style={btnHdr} title={somOn ? "Som de notificação ligado" : "Som mutado"}>
             <i className={`ti ${somOn ? "ti-bell" : "ti-bell-off"}`} style={{ color: somOn ? "#10b981" : "var(--mk-text-muted)" }} />
           </button>
+          <NovaConversa canais={p.canais} />
           <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos">
             <i className="ti ti-receipt-2" />
           </button>

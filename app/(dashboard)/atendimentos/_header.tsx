@@ -163,13 +163,7 @@ export function ChatHeader(props: Props) {
               <MenuItem icon="ti-info-circle" onClick={() => { setShowMenu(false); props.onToggleDetalhes(); }}>{props.detalhesAbertos ? "Fechar detalhes" : "Ver detalhes do contato"}</MenuItem>
               <MenuSep />
               <MenuItem icon="ti-arrows-exchange" onClick={() => { setShowMenu(false); setModal("transferir"); }}>Transferir</MenuItem>
-              <MenuItem icon="ti-robot" disabled>Transferir p/ Chatbot</MenuItem>
               <MenuItem icon="ti-broadcast" onClick={() => { setShowMenu(false); setModal("transferir-canal"); }}>Transferir Canal</MenuItem>
-              <MenuSep />
-              <MenuItem icon="ti-clock" disabled>Agendar mensagem</MenuItem>
-              <MenuItem icon="ti-photo" disabled>Mídias, links e docs</MenuItem>
-              <MenuItem icon="ti-share" disabled>Compartilhar ticket</MenuItem>
-              <MenuItem icon="ti-arrow-down" disabled>Parar rolagem automática</MenuItem>
               <MenuSep />
               <MenuItem icon="ti-arrow-back-up" onClick={() => { setShowMenu(false); retornarFila(); }}>Retornar à fila</MenuItem>
               <MenuItem icon="ti-x" onClick={() => { setShowMenu(false); encerrar(); }} color="#C97064">Encerrar atendimento</MenuItem>

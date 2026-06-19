@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **19:20** — **Atendimentos: Nova conversa, pílula de data no scroll, menu 3-pontos limpo.**
+  - **Nova conversa (avulsa):** botão de balãozinho ao lado do sino. Digita o número (com DDD; sem DDI assume Brasil +55), nome opcional e o canal (se houver mais de um conectado) → abre direto o chat. Se já existir conversa aberta com o contato, **reaproveita** o ticket. Cria o contato se não existir.
+  - **Pílula de data flutuante no chat** (estilo WhatsApp): ao rolar, mostra no topo **Hoje / Ontem / dia-da-semana / dd/mm/aaaa** das mensagens à vista; aparece/some com animação e **desaparece 4s** após parar de rolar.
+  - **Menu 3-pontinhos do chat limpo:** removidos os itens que não fazem nada ainda (Transferir p/ Chatbot, Agendar mensagem, Mídias/links/docs, Compartilhar ticket, Parar rolagem automática). Sobrou só o que funciona: Detalhes, Transferir, Transferir Canal, Retornar à fila, Encerrar.
+
 - **18:54** — **Follow-up com IA: cadência (1/2/3 follow-ups + tempos) + dividir em 2 mensagens.**
   - Em cada conversa (e com **"Cadência padrão → Aplicar a todos"**): escolha **1, 2 ou 3 follow-ups**. O 1º vai na hora; o 2º/3º são **gerados pela IA e agendados** com o tempo que você definir (ex: 2º após 1h, 3º após 3 dias). Cancelam sozinhos se o cliente responder antes (reusa o follow-up avulso).
   - **"Dividir em 2 mensagens"**: quebra a mensagem em duas e envia com intervalo (mais humano).

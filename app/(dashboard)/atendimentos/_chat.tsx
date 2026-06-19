@@ -272,6 +272,24 @@ interface MensagemRapida {
   conteudo: string;
 }
 
+/** Rótulo de dia estilo WhatsApp pra pílula flutuante (fuso BR). */
+function rotuloDia(iso: string): string {
+  const tz = "America/Sao_Paulo";
+  const key = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: tz }); // YYYY-MM-DD
+  const dMsg = new Date(iso);
+  const hoje = new Date();
+  const kMsg = key(dMsg);
+  const kHoje = key(hoje);
+  if (kMsg === kHoje) return "Hoje";
+  if (kMsg === key(new Date(hoje.getTime() - 86400000))) return "Ontem";
+  const diff = Math.floor((Date.parse(kHoje) - Date.parse(kMsg)) / 86400000);
+  if (diff > 1 && diff < 7) {
+    const wd = dMsg.toLocaleDateString("pt-BR", { weekday: "long", timeZone: tz });
+    return wd.charAt(0).toUpperCase() + wd.slice(1);
+  }
+  return dMsg.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: tz });
+}
+
 interface Props {
   ticketId: string;
   ticketNumero: number;
@@ -365,6 +383,33 @@ export function ChatView(props: Props) {
   const acharCitada = (wamid?: string | null) => (wamid ? msgs.find((x) => x.wa_message_id === wamid) || null : null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Pílula de data flutuante (estilo WhatsApp): mostra o dia das mensagens no
+  // topo da viewport enquanto rola; some ~4s depois que para.
+  const [pilula, setPilula] = useState<{ texto: string; on: boolean }>({ texto: "", on: false });
+  const pilulaTimer = useRef<number | null>(null);
+  const rafPend = useRef(false);
+
+  function atualizarPilula() {
+    rafPend.current = false;
+    const cont = scrollRef.current;
+    if (!cont) return;
+    const topo = cont.getBoundingClientRect().top;
+    let texto = "";
+    for (const el of Array.from(cont.querySelectorAll<HTMLElement>("[data-dia]"))) {
+      if (el.getBoundingClientRect().bottom > topo + 6) { texto = el.dataset.dia || ""; break; }
+    }
+    if (!texto) return;
+    setPilula((p) => (p.texto === texto && p.on ? p : { texto, on: true }));
+    if (pilulaTimer.current) window.clearTimeout(pilulaTimer.current);
+    pilulaTimer.current = window.setTimeout(() => setPilula((p) => ({ ...p, on: false })), 4000);
+  }
+  function onScrollChat() {
+    if (rafPend.current) return;
+    rafPend.current = true;
+    requestAnimationFrame(atualizarPilula);
+  }
+  useEffect(() => () => { if (pilulaTimer.current) window.clearTimeout(pilulaTimer.current); }, []);
 
   // Auto-scroll bottom on new msg
   useEffect(() => {
@@ -570,6 +615,22 @@ export function ChatView(props: Props) {
       {/* Wrapper relativo pros botões fixos */}
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", minHeight: 0 }}>
 
+      {/* Pílula de data flutuante (some 4s após parar de rolar) */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", top: 8, left: "50%",
+          transform: `translateX(-50%) translateY(${pilula.on ? 0 : -8}px)`,
+          opacity: pilula.on ? 1 : 0,
+          transition: "opacity 0.25s ease, transform 0.25s ease",
+          pointerEvents: "none", zIndex: 12,
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-secondary)", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 999, padding: "4px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.22)" }}>
+          {pilula.texto}
+        </span>
+      </div>
+
       {/* Botões scroll up/down — fixos no canto, não rolam com mensagens */}
       <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: 8, zIndex: 10, pointerEvents: "auto" }}>
         <button
@@ -603,7 +664,7 @@ export function ChatView(props: Props) {
           <a href="/canais" style={{ color: "#fff", textDecoration: "underline", marginLeft: 2 }}>Canais</a>.
         </div>
       )}
-      <div ref={scrollRef} className="chat-scroll" style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>
+      <div ref={scrollRef} onScroll={onScrollChat} className="chat-scroll" style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: "var(--mk-surface-2)" }}>
 
         {msgs.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens neste ticket.</div>
@@ -612,7 +673,7 @@ export function ChatView(props: Props) {
             // Nota de sistema (ex: log de uso de ferramenta pela IA) — pílula central
             if (m.autor === "sistema") {
               return (
-                <div key={m.id} style={{ display: "flex", justifyContent: "center", margin: "2px 0" }}>
+                <div key={m.id} data-dia={rotuloDia(m.created_at)} style={{ display: "flex", justifyContent: "center", margin: "2px 0" }}>
                   <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 999, padding: "3px 11px", display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "85%" }}>
                     <i className="ti ti-robot" style={{ color: "#10b981" }} /> {m.conteudo}
                   </span>
@@ -620,7 +681,7 @@ export function ChatView(props: Props) {
               );
             }
             return (
-            <div key={m.id} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
+            <div key={m.id} data-dia={rotuloDia(m.created_at)} className="msg-row" style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
               <div
                 style={{
                   maxWidth: "72%",
