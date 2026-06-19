@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   if (!tk) return NextResponse.json({ error: "ticket_nao_encontrado" }, { status: 404 });
 
   try {
-    const s = await sugerirFollowUpTicket({ agenciaId: u.agencia_id, ticketId: body.ticketId, tom: body.tom });
+    const s = await sugerirFollowUpTicket({ agenciaId: u.agencia_id, ticketId: body.ticketId, tom: body.tom, usuarioId: auth.user.id });
     return NextResponse.json({ ok: true, ...s });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

@@ -118,7 +118,7 @@ export async function analisarSentimentoTicket(params: {
     const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
 
     const conversa = formatConversaParaIA(msgs, contatoNome);
-    const result = await _analisar({ apiKey, prompt, conversa, model: modelo || undefined });
+    const result = await _analisar({ apiKey, prompt, conversa, model: modelo || undefined, uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "sentimento" } });
 
     await sb
       .from("tickets")
@@ -179,7 +179,7 @@ export async function gerarResumoTicket(params: {
     const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
 
     const conversa = formatConversaParaIA(msgs, contatoNome);
-    const result = await _resumo({ apiKey, prompt, conversa, model: modelo || undefined });
+    const result = await _resumo({ apiKey, prompt, conversa, model: modelo || undefined, uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "resumo" } });
 
     await sb
       .from("tickets")
@@ -235,6 +235,7 @@ export async function sugerirFollowUpTicket(params: {
   agenciaId: string;
   ticketId: string;
   tom?: string;
+  usuarioId?: string | null;
 }): Promise<{ enviar: boolean; motivo: string; resumo: string; mensagem: string; followups_enviados: number }> {
   const apiKey = await getGroqKey(params.agenciaId);
   if (!apiKey) throw new Error("Groq API key não configurada");
@@ -272,6 +273,7 @@ Responda APENAS um JSON válido:
 
   const r = await chatComRetry({
     apiKey,
+    uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "followup", usuarioId: params.usuarioId ?? null },
     responseFormat: "json_object",
     temperature: 0.5,
     maxTokens: 400,
@@ -319,6 +321,7 @@ export async function transcreverMensagemAudio(params: {
   try {
     const r = await transcribeAudio({
       apiKey,
+      uso: { agenciaId: params.agenciaId },
       audioUrl: params.audioUrl,
       language: tcfg.idioma || "pt",
       model: (tcfg.modelo as WhisperModel) || "whisper-large-v3",

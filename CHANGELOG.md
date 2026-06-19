@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-19
 
+- **22:08** — **IA — Fase 1: rastreio de uso de tokens (base do hub "Análise de IAs").**
+  - Nova tabela **`ia_uso`**: cada chamada de IA registra **provider, modelo, tokens (prompt/saída/total), segundos de áudio, custo estimado (USD), status (ok/erro/limite)** e o contexto **por usuário, contato e ticket**.
+  - Instrumentadas as 4 sessões: **Transcrição · Resumo · Análise de Sentimento · Follow-up com IA**. O follow-up grava **qual usuário** disparou (base pra ver uso por admin/atendente depois).
+  - Logger **fire-and-forget** (`lib/ai/uso.ts`) — nunca quebra o fluxo. Limites reais do Groq confirmados: **TPM 12k · TPD 100k** (chat) / **20 RPM · 28.800s áudio/dia** (Whisper); não há limite semanal/mensal (vou projetar ×7/×30).
+  - **Próximo:** Fase 2 (várias chaves Groq + botão "usar OpenAI em tudo") · Fase 3 (limites TPM/TPD + 80/dia) · Fase 4 (aba **Análise de IAs** com gráficos, por usuário/atendente/cliente/ticket + **export PDF**).
+
 - **21:42** — **Follow-up: botão Parar + limite diário do Groq tratado; dropdown de modelos sem campos em branco.**
   - **Botão "Parar"** na aba Follow-up (além do que já tinha no balãozinho). Ao parar, as conversas que faltam continuam aparecendo pra analisar depois.
   - **Limite diário de tokens do Groq (TPD/429):** quando estoura, a análise **pausa** e o card mostra uma mensagem clara ("limite diário atingido — tente em alguns minutos ou troque/adicione chave") em vez do erro técnico 429 cru.

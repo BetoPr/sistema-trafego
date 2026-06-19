@@ -6,6 +6,7 @@
  *
  * Endpoint: POST https://api.groq.com/openai/v1/chat/completions
  */
+import { registrarUsoIA, type UsoLog } from "@/lib/ai/uso";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -19,6 +20,8 @@ export interface ChatParams {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: "text" | "json_object";
+  /** Contexto pra registrar o uso de tokens (quem/onde/qual tarefa). */
+  uso?: UsoLog;
 }
 
 export interface ChatResult {
@@ -59,7 +62,18 @@ export async function chat(p: ChatParams): Promise<ChatResult> {
   };
 
   if (!res.ok) {
-    throw new Error(`Groq chat ${res.status}: ${json.error?.message || res.statusText}`);
+    const msg = json.error?.message || res.statusText;
+    if (p.uso) registrarUsoIA({ ...p.uso, provider: "groq", modelo: model, status: /\b429\b|rate limit|tokens per day|TPD|quota|too many/i.test(msg) ? "rate_limit" : "erro", erro: `${res.status}: ${msg}` });
+    throw new Error(`Groq chat ${res.status}: ${msg}`);
+  }
+
+  if (p.uso) {
+    registrarUsoIA({
+      ...p.uso, provider: "groq", modelo: model,
+      promptTokens: json.usage?.prompt_tokens,
+      completionTokens: json.usage?.completion_tokens,
+      totalTokens: json.usage?.total_tokens,
+    });
   }
 
   return {
@@ -87,10 +101,12 @@ export async function analisarSentimento(params: {
   prompt: string; // do ia_prompts.conteudo
   conversa: string; // texto da conversa formatado
   model?: string;
+  uso?: UsoLog;
 }): Promise<SentimentoResult> {
   const r = await chat({
     apiKey: params.apiKey,
     model: params.model,
+    uso: params.uso,
     responseFormat: "json_object",
     temperature: 0.1,
     messages: [
@@ -124,10 +140,12 @@ export async function gerarResumo(params: {
   prompt: string;
   conversa: string;
   model?: string;
+  uso?: UsoLog;
 }): Promise<{ resumo: string; modelo: string }> {
   const r = await chat({
     apiKey: params.apiKey,
     model: params.model,
+    uso: params.uso,
     temperature: 0.3,
     maxTokens: 800,
     messages: [

@@ -7,6 +7,7 @@
  *
  * Free tier suficiente pra MVP.
  */
+import { registrarUsoIA, type UsoLog } from "@/lib/ai/uso";
 
 export type WhisperModel =
   | "whisper-large-v3"
@@ -23,6 +24,8 @@ export interface TranscribeParams {
   audioUrl?: string;
   audioBlob?: Blob;
   audioFilename?: string;
+  /** Contexto pra registrar o uso (quem/onde). tarefa é sempre "transcricao". */
+  uso?: Omit<UsoLog, "tarefa">;
 }
 
 export interface TranscribeResult {
@@ -88,8 +91,12 @@ export async function transcribeAudio(p: TranscribeParams): Promise<TranscribeRe
   };
 
   if (!res.ok) {
-    throw new Error(`Groq transcribe ${res.status}: ${json.error?.message || res.statusText}`);
+    const msg = json.error?.message || res.statusText;
+    if (p.uso) registrarUsoIA({ ...p.uso, tarefa: "transcricao", provider: "groq", modelo: model, status: /\b429\b|rate limit|too many|quota/i.test(msg) ? "rate_limit" : "erro", erro: `${res.status}: ${msg}` });
+    throw new Error(`Groq transcribe ${res.status}: ${msg}`);
   }
+
+  if (p.uso) registrarUsoIA({ ...p.uso, tarefa: "transcricao", provider: "groq", modelo: model, audioSeg: json.duration ?? 0 });
 
   return {
     text: json.text ?? "",
