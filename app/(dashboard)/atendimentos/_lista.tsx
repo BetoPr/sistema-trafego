@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Balao } from "@/components/ui/Balao";
 import { LightboxFoto } from "@/components/ui/LightboxFoto";
 import { AtenderBotao } from "./_atender-btn";
+import { BolhaEspiada, type MsgEspiada } from "./_espiar-msg";
 
 export interface TicketLista {
   id: string;
@@ -96,7 +97,7 @@ export function ListaAtendimentos(p: Props) {
   const [limite, setLimite] = useState(PAGE_SIZE);
   const sentinelaRef = useRef<HTMLDivElement>(null);
   const [espiar, setEspiar] = useState<null | { ticketId: string; numero: number; contatoNome: string }>(null);
-  const [espiarMsgs, setEspiarMsgs] = useState<Array<{ id: string; autor: string; tipo: string; conteudo: string | null; transcricao: string | null; created_at: string }>>([]);
+  const [espiarMsgs, setEspiarMsgs] = useState<MsgEspiada[]>([]);
   const [espiarLoading, setEspiarLoading] = useState(false);
   const canaisRef = useRef<HTMLDivElement>(null);
 
@@ -713,25 +714,7 @@ export function ListaAtendimentos(p: Props) {
           <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>Sem mensagens neste ticket.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {espiarMsgs.map((m) => (
-              <div key={m.id} style={{ display: "flex", justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
-                <div style={{ maxWidth: "78%", minWidth: 0, padding: "7px 11px", borderRadius: 10, background: m.autor === "cliente" ? "var(--mk-surface)" : "rgba(155,125,191,0.18)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text)", fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
-                  {m.tipo === "audio" ? (
-                    <>
-                      <span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-microphone" /> Áudio</span>
-                      {m.transcricao && <div style={{ marginTop: 4, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic" }}>{m.transcricao}</div>}
-                    </>
-                  ) : m.tipo === "imagem" ? (
-                    <span style={{ color: "var(--mk-text-secondary)" }}><i className="ti ti-photo" /> Imagem{m.conteudo ? ` — ${m.conteudo}` : ""}</span>
-                  ) : (
-                    m.conteudo || m.transcricao || `[${m.tipo}]`
-                  )}
-                  <div style={{ fontSize: 9, color: "var(--mk-text-muted)", marginTop: 3, textAlign: "right" }}>
-                    {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
-                  </div>
-                </div>
-              </div>
-            ))}
+            {espiarMsgs.map((m) => <BolhaEspiada key={m.id} m={m} contatoNome={espiar?.contatoNome} />)}
           </div>
         )}
       </Balao>

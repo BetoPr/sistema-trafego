@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Balao } from "@/components/ui/Balao";
 import { ListaAtendimentos, type TicketLista } from "./_lista";
+import { BolhaEspiada } from "./_espiar-msg";
 import { ChatView } from "./_chat";
 import { PainelDireito } from "./_painel";
 import { AtenderBotao } from "./_atender-btn";
@@ -288,48 +289,7 @@ function PendingView({ ticketId, mensagens, contatoNome, onBack }: { ticketId: s
         {mensagens.length === 0 ? (
           <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 40 }}>Sem mensagens.</div>
         ) : (
-          mensagens.map((m) => (
-            <div key={m.id} style={{ display: "flex", justifyContent: m.autor === "cliente" ? "flex-start" : "flex-end" }}>
-              <div
-                style={{
-                  maxWidth: "72%",
-                  minWidth: 0,
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  background: m.autor === "cliente" ? "var(--mk-surface)" : "rgba(155,125,191,0.18)",
-                  border: "0.5px solid var(--mk-border)",
-                  color: "var(--mk-text)",
-                  fontSize: 12.5,
-                  lineHeight: 1.5,
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "anywhere",
-                  wordBreak: "break-word",
-                }}
-              >
-                <div style={{ fontSize: 9.5, fontWeight: 600, color: m.autor === "cliente" ? "#9B7DBF" : "#5B8BA6", marginBottom: 3 }}>
-                  {m.autor === "cliente" ? contatoNome : "Atendente"}
-                </div>
-                {m.tipo === "audio" ? (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mk-text-secondary)", fontSize: 12 }}>
-                      <i className="ti ti-microphone" /> Áudio
-                    </div>
-                    {m.transcricao && (
-                      <div style={{ marginTop: 6, fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", borderLeft: "2px solid var(--mk-accent)", paddingLeft: 6 }}>
-                        <div style={{ fontSize: 9.5, color: "var(--mk-accent)", fontWeight: 600, letterSpacing: 0.5, marginBottom: 2 }}>📝 TRANSCRIÇÃO</div>
-                        {m.transcricao}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  m.conteudo || m.transcricao || `[${m.tipo}]`
-                )}
-                <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", marginTop: 4, textAlign: "right" }}>
-                  {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
-                </div>
-              </div>
-            </div>
-          ))
+          mensagens.map((m) => <BolhaEspiada key={m.id} m={m} contatoNome={contatoNome} />)
         )}
       </div>
     </div>
