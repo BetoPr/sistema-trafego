@@ -5,6 +5,15 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-20
+
+- **00:53** — **IA — Fase 2: várias chaves Groq (rotação) + fallback OpenAI + botão "usar OpenAI em tudo".**
+  - Nova tabela **`ia_chaves`**: dá pra cadastrar **várias chaves por provider**. Com 3 chaves Groq o sistema reveza entre elas → **~300 mil tokens/dia** (cada chave = ~100k/dia). Chaves antigas migradas automaticamente.
+  - **Rotação + fallback automático:** quando uma chave Groq bate o limite (429), pula pra próxima; esgotadas as Groq, **cai pro OpenAI** sozinho (se houver chave). Vale pra **resumo, sentimento, follow-up e transcrição**.
+  - **Botão "usar OpenAI em tudo"** (e "voltar tudo pro Groq") na tela **Configurações de API (IA)** — troca o provider de chat + transcrição num clique. Dá pra escolher provider **por tarefa** também (chat e transcrição separados).
+  - Modelos OpenAI: chat **gpt-4o-mini**, transcrição **gpt-4o-transcribe**. Tela de chaves redesenhada (gerenciador add/remover por provider, criptografia AES-256-GCM mantida). O hub **Análise de IAs** já reflete o nº de chaves no limite diário.
+  - **Próximo:** Fase 3 (teto por chave TPM 12k / TPD 100k + ~80 follow-ups/dia/chave configurável + cadência) · streaming do resumo e "reescrever" ainda usam 1 chave (migrar pro gateway depois).
+
 ## 2026-06-19
 
 - **23:48** — **Análise de IAs v2: escopo (Meu CRM / Todos os clientes / Por tipo) + mais métricas.**

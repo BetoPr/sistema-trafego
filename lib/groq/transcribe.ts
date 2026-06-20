@@ -7,7 +7,7 @@
  *
  * Free tier suficiente pra MVP.
  */
-import { registrarUsoIA, type UsoLog } from "@/lib/ai/uso";
+import { registrarUsoIA, type UsoLog, type ProviderIA } from "@/lib/ai/uso";
 
 export type WhisperModel =
   | "whisper-large-v3"
@@ -16,7 +16,8 @@ export type WhisperModel =
 
 export interface TranscribeParams {
   apiKey: string;
-  model?: WhisperModel;
+  /** Groq: whisper-*. OpenAI: gpt-4o-transcribe / whisper-1. */
+  model?: WhisperModel | string;
   language?: string; // ex: "pt"
   prompt?: string;
   temperature?: number;
@@ -26,17 +27,23 @@ export interface TranscribeParams {
   audioFilename?: string;
   /** Contexto pra registrar o uso (quem/onde). tarefa é sempre "transcricao". */
   uso?: Omit<UsoLog, "tarefa">;
+  /** Base URL OpenAI-compatible. Default Groq. OpenAI = https://api.openai.com/v1 */
+  baseUrl?: string;
+  /** Provider, só pra logar o uso certo. Default "groq". */
+  provider?: ProviderIA;
 }
 
 export interface TranscribeResult {
   text: string;
   duration?: number;
   language?: string;
-  modelo: WhisperModel;
+  modelo: WhisperModel | string;
 }
 
 export async function transcribeAudio(p: TranscribeParams): Promise<TranscribeResult> {
   const model = p.model ?? "whisper-large-v3-turbo";
+  const baseUrl = p.baseUrl ?? "https://api.groq.com/openai/v1";
+  const provider = p.provider ?? "groq";
 
   let blob: Blob;
   let filename: string;
@@ -75,7 +82,7 @@ export async function transcribeAudio(p: TranscribeParams): Promise<TranscribeRe
   if (typeof p.temperature === "number") form.append("temperature", String(p.temperature));
   form.append("response_format", "json");
 
-  const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+  const res = await fetch(`${baseUrl}/audio/transcriptions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${p.apiKey}`,
@@ -92,11 +99,11 @@ export async function transcribeAudio(p: TranscribeParams): Promise<TranscribeRe
 
   if (!res.ok) {
     const msg = json.error?.message || res.statusText;
-    if (p.uso) registrarUsoIA({ ...p.uso, tarefa: "transcricao", provider: "groq", modelo: model, status: /\b429\b|rate limit|too many|quota/i.test(msg) ? "rate_limit" : "erro", erro: `${res.status}: ${msg}` });
-    throw new Error(`Groq transcribe ${res.status}: ${msg}`);
+    if (p.uso) registrarUsoIA({ ...p.uso, tarefa: "transcricao", provider, modelo: model, status: /\b429\b|rate limit|too many|quota|insufficient_quota/i.test(msg) ? "rate_limit" : "erro", erro: `${res.status}: ${msg}` });
+    throw new Error(`${provider} transcribe ${res.status}: ${msg}`);
   }
 
-  if (p.uso) registrarUsoIA({ ...p.uso, tarefa: "transcricao", provider: "groq", modelo: model, audioSeg: json.duration ?? 0 });
+  if (p.uso) registrarUsoIA({ ...p.uso, tarefa: "transcricao", provider, modelo: model, audioSeg: json.duration ?? 0 });
 
   return {
     text: json.text ?? "",

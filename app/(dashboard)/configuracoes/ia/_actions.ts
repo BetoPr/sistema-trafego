@@ -56,23 +56,17 @@ export async function salvarChavesIA(formData: FormData) {
 
 export async function testarGroq() {
   const ctx = await requireAdmin();
-  const sb = createServiceClient();
 
-  const { data } = await sb
-    .from("configuracoes_agencia")
-    .select("groq_key_encrypted")
-    .eq("agencia_id", ctx.agenciaId)
-    .maybeSingle();
+  const { resolverChaves } = await import("@/lib/ai/keys");
+  const chaves = await resolverChaves(ctx.agenciaId);
+  const apiKey = chaves.groq[0];
 
-  if (!data?.groq_key_encrypted) {
+  if (!apiKey) {
     redirect("/configuracoes/ia?erro=sem_chave");
   }
 
   let resultado: { ok: true; reply: string } | { ok: false; msg: string };
   try {
-    const { decryptToken, byteaToBuffer } = await import("@/lib/crypto/tokens");
-    const apiKey = decryptToken(byteaToBuffer(data.groq_key_encrypted));
-
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -98,4 +92,117 @@ export async function testarGroq() {
   } else {
     redirect(`/configuracoes/ia?erro=teste_falhou&msg=${encodeURIComponent(resultado.msg)}`);
   }
+}
+
+// =========================================
+// FASE 2 — Multi-chave (ia_chaves) + provider
+// =========================================
+
+const PROVIDERS_OK = ["groq", "openai", "anthropic"];
+
+/** Adiciona uma chave de IA (rotação). ordem = última + 1. */
+export async function adicionarChaveIA(formData: FormData) {
+  const ctx = await requireAdmin();
+  const provider = String(formData.get("provider") || "");
+  const rotuloRaw = String(formData.get("rotulo") || "").trim();
+  const key = String(formData.get("key") || "").trim();
+
+  if (!PROVIDERS_OK.includes(provider) || !key) {
+    redirect(`/configuracoes/ia?erro=${encodeURIComponent("Provider ou chave inválidos.")}`);
+  }
+
+  const sb = createServiceClient();
+  const { data: ult } = await sb
+    .from("ia_chaves")
+    .select("ordem")
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("provider", provider)
+    .order("ordem", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ordem = ((ult?.ordem as number | undefined) ?? -1) + 1;
+
+  await sb.from("ia_chaves").insert({
+    agencia_id: ctx.agenciaId,
+    provider,
+    rotulo: rotuloRaw || `Chave ${ordem + 1}`,
+    key_encrypted: bufferToBytea(encryptToken(key)),
+    ordem,
+  });
+
+  await audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "config_change",
+    entidade: "ia_chaves",
+    payload: { acao: "adicionar", provider },
+  });
+
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=chave_add");
+}
+
+/** Remove uma chave de IA (só da própria agência). */
+export async function removerChaveIA(formData: FormData) {
+  const ctx = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) redirect("/configuracoes/ia");
+
+  const sb = createServiceClient();
+  await sb.from("ia_chaves").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
+
+  await audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "config_change",
+    entidade: "ia_chaves",
+    payload: { acao: "remover", id },
+  });
+
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=chave_rm");
+}
+
+/** Merge no jsonb `ia` sem clobberar transcricao/outras chaves. */
+async function patchIaConfig(agenciaId: string, patch: Record<string, unknown>) {
+  const sb = createServiceClient();
+  const { data } = await sb
+    .from("configuracoes_agencia")
+    .select("id, ia")
+    .eq("agencia_id", agenciaId)
+    .maybeSingle();
+  const ia = { ...((data?.ia as Record<string, unknown> | null) ?? {}), ...patch };
+  if (data?.id) {
+    await sb.from("configuracoes_agencia").update({ ia, updated_at: new Date().toISOString() }).eq("id", data.id);
+  } else {
+    await sb.from("configuracoes_agencia").insert({ agencia_id: agenciaId, ia });
+  }
+}
+
+/** Define provider preferido de chat e transcrição. */
+export async function definirProviderIA(formData: FormData) {
+  const ctx = await requireAdmin();
+  const chat = String(formData.get("provider_chat") || "groq") === "openai" ? "openai" : "groq";
+  const tr = String(formData.get("provider_transcricao") || "groq") === "openai" ? "openai" : "groq";
+  await patchIaConfig(ctx.agenciaId, { provider_chat: chat, provider_transcricao: tr });
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=provider");
+}
+
+/** Um botão: troca TUDO (chat + transcrição) pra OpenAI. */
+export async function usarOpenaiEmTudo() {
+  const ctx = await requireAdmin();
+  await patchIaConfig(ctx.agenciaId, { provider_chat: "openai", provider_transcricao: "openai" });
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "config_change", entidade: "ia_provider", payload: { provider: "openai", escopo: "tudo" } });
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=openai_tudo");
+}
+
+/** Um botão: volta TUDO pro Groq. */
+export async function voltarParaGroq() {
+  const ctx = await requireAdmin();
+  await patchIaConfig(ctx.agenciaId, { provider_chat: "groq", provider_transcricao: "groq" });
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "config_change", entidade: "ia_provider", payload: { provider: "groq", escopo: "tudo" } });
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=groq_tudo");
 }

@@ -4,33 +4,14 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
-import { transcribeAudio, type WhisperModel } from "@/lib/groq/transcribe";
-import {
-  analisarSentimento as _analisar,
-  gerarResumo as _resumo,
-  formatConversaParaIA,
-  chat,
-} from "@/lib/groq/llm";
+import { formatConversaParaIA } from "@/lib/groq/llm";
+import { analisarSentimentoGW, gerarResumoGW, chatGateway, transcreverGW } from "@/lib/ai/gateway";
 
 /**
  * Carrega API key Groq da agência (preferida) ou cai pro env.
+ * Mantida pro /api/ia/reescrever e resumo-stream (single-key). O resto usa o
+ * gateway (lib/ai/gateway) com rotação + fallback OpenAI.
  */
-/** chat() com retry no rate limit (429) do Groq, respeitando o "try again in Xms/Xs". */
-async function chatComRetry(p: Parameters<typeof chat>[0], tentativas = 4): Promise<Awaited<ReturnType<typeof chat>>> {
-  for (let i = 0; ; i++) {
-    try {
-      return await chat(p);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (i >= tentativas - 1 || !/429|rate.?limit/i.test(msg)) throw e;
-      const m = msg.match(/try again in ([\d.]+)\s*(ms|s)\b/i);
-      let wait = 2500;
-      if (m) wait = m[2].toLowerCase() === "s" ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
-      await new Promise((res) => setTimeout(res, Math.min(12000, Math.max(600, wait + 400))));
-    }
-  }
-}
-
 export async function getGroqKey(agenciaId: string): Promise<string | null> {
   const sb = createServiceClient();
   const { data } = await sb
@@ -96,9 +77,6 @@ export async function analisarSentimentoTicket(params: {
   agenciaId: string;
   ticketId: string;
 }): Promise<{ sentimento: "ruim" | "bom" | "muito_bom"; confianca: number; motivo: string }> {
-  const apiKey = await getGroqKey(params.agenciaId);
-  if (!apiKey) throw new Error("Groq API key não configurada");
-
   const sb = createServiceClient();
   const t0 = Date.now();
 
@@ -118,7 +96,7 @@ export async function analisarSentimentoTicket(params: {
     const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
 
     const conversa = formatConversaParaIA(msgs, contatoNome);
-    const result = await _analisar({ apiKey, prompt, conversa, model: modelo || undefined, uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "sentimento" } });
+    const result = await analisarSentimentoGW({ agenciaId: params.agenciaId, prompt, conversa, modelGroq: modelo || undefined, uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "sentimento" } });
 
     await sb
       .from("tickets")
@@ -159,9 +137,6 @@ export async function gerarResumoTicket(params: {
   agenciaId: string;
   ticketId: string;
 }): Promise<{ resumo: string; modelo: string }> {
-  const apiKey = await getGroqKey(params.agenciaId);
-  if (!apiKey) throw new Error("Groq API key não configurada");
-
   const sb = createServiceClient();
   const t0 = Date.now();
 
@@ -179,7 +154,7 @@ export async function gerarResumoTicket(params: {
     const contatoNome = (ticket as { contato?: { nome?: string } } | null)?.contato?.nome;
 
     const conversa = formatConversaParaIA(msgs, contatoNome);
-    const result = await _resumo({ apiKey, prompt, conversa, model: modelo || undefined, uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "resumo" } });
+    const result = await gerarResumoGW({ agenciaId: params.agenciaId, prompt, conversa, modelGroq: modelo || undefined, uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "resumo" } });
 
     await sb
       .from("tickets")
@@ -237,9 +212,6 @@ export async function sugerirFollowUpTicket(params: {
   tom?: string;
   usuarioId?: string | null;
 }): Promise<{ enviar: boolean; motivo: string; resumo: string; mensagem: string; followups_enviados: number }> {
-  const apiKey = await getGroqKey(params.agenciaId);
-  if (!apiKey) throw new Error("Groq API key não configurada");
-
   const sb = createServiceClient();
   // Só as últimas mensagens — limita os tokens por chamada (evita estourar o TPM do Groq).
   const msgs = (await fetchMensagens(params.ticketId, params.agenciaId)).slice(-25);
@@ -271,8 +243,8 @@ Responda APENAS um JSON válido:
 - motivo: justificativa curta da decisão.
 - mensagem: se enviar=true, o texto do follow-up PRONTO pra enviar — curto, cordial, em português do Brasil, tom de quem está retomando o papo, NUNCA robótico; use o nome do cliente se houver. SEMPRE termine com uma pergunta curta (padrão de follow-up, pra puxar resposta). Se enviar=false, retorne "".${tomInstr}${histInstr}`;
 
-  const r = await chatComRetry({
-    apiKey,
+  const r = await chatGateway({
+    agenciaId: params.agenciaId,
     uso: { agenciaId: params.agenciaId, ticketId: params.ticketId, tarefa: "followup", usuarioId: params.usuarioId ?? null },
     responseFormat: "json_object",
     temperature: 0.5,
@@ -313,18 +285,15 @@ export async function transcreverMensagemAudio(params: {
     return { texto: "", modelo: "desativado" };
   }
 
-  const apiKey = await getGroqKey(params.agenciaId);
-  if (!apiKey) throw new Error("Groq API key não configurada");
-
   const t0 = Date.now();
 
   try {
-    const r = await transcribeAudio({
-      apiKey,
+    const r = await transcreverGW({
+      agenciaId: params.agenciaId,
       uso: { agenciaId: params.agenciaId },
       audioUrl: params.audioUrl,
       language: tcfg.idioma || "pt",
-      model: (tcfg.modelo as WhisperModel) || "whisper-large-v3",
+      modelGroq: tcfg.modelo || "whisper-large-v3",
     });
     await sb
       .from("mensagens")

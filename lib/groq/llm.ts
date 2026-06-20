@@ -6,7 +6,7 @@
  *
  * Endpoint: POST https://api.groq.com/openai/v1/chat/completions
  */
-import { registrarUsoIA, type UsoLog } from "@/lib/ai/uso";
+import { registrarUsoIA, type UsoLog, type ProviderIA } from "@/lib/ai/uso";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -22,6 +22,10 @@ export interface ChatParams {
   responseFormat?: "text" | "json_object";
   /** Contexto pra registrar o uso de tokens (quem/onde/qual tarefa). */
   uso?: UsoLog;
+  /** Base URL OpenAI-compatible. Default Groq. OpenAI = https://api.openai.com/v1 */
+  baseUrl?: string;
+  /** Provider, só pra logar o uso certo. Default "groq". */
+  provider?: ProviderIA;
 }
 
 export interface ChatResult {
@@ -35,6 +39,8 @@ export interface ChatResult {
 
 export async function chat(p: ChatParams): Promise<ChatResult> {
   const model = p.model ?? "llama-3.3-70b-versatile";
+  const baseUrl = p.baseUrl ?? "https://api.groq.com/openai/v1";
+  const provider = p.provider ?? "groq";
 
   const body: Record<string, unknown> = {
     model,
@@ -46,7 +52,7 @@ export async function chat(p: ChatParams): Promise<ChatResult> {
     body.response_format = { type: "json_object" };
   }
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -63,13 +69,13 @@ export async function chat(p: ChatParams): Promise<ChatResult> {
 
   if (!res.ok) {
     const msg = json.error?.message || res.statusText;
-    if (p.uso) registrarUsoIA({ ...p.uso, provider: "groq", modelo: model, status: /\b429\b|rate limit|tokens per day|TPD|quota|too many/i.test(msg) ? "rate_limit" : "erro", erro: `${res.status}: ${msg}` });
-    throw new Error(`Groq chat ${res.status}: ${msg}`);
+    if (p.uso) registrarUsoIA({ ...p.uso, provider, modelo: model, status: /\b429\b|rate limit|tokens per day|TPD|quota|too many|insufficient_quota/i.test(msg) ? "rate_limit" : "erro", erro: `${res.status}: ${msg}` });
+    throw new Error(`${provider} chat ${res.status}: ${msg}`);
   }
 
   if (p.uso) {
     registrarUsoIA({
-      ...p.uso, provider: "groq", modelo: model,
+      ...p.uso, provider, modelo: model,
       promptTokens: json.usage?.prompt_tokens,
       completionTokens: json.usage?.completion_tokens,
       totalTokens: json.usage?.total_tokens,
