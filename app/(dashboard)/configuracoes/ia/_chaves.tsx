@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { adicionarChaveIA, removerChaveIA } from "./_actions";
+import { adicionarChaveIA, removerChaveIA, atualizarLimiteChaveIA } from "./_actions";
 
 export interface ChaveItem {
   id: string;
   rotulo: string | null;
   criado_em: string;
+  /** Limite de follow-ups/dia desta chave (Fase 3). 0 = sem limite. */
+  limiteFollowupDia?: number;
 }
 
 const inp: React.CSSProperties = {
@@ -87,6 +89,18 @@ export function ChavesManager({
                     </button>
                   </form>
                 </div>
+                {provider === "groq" && (
+                  <form action={atualizarLimiteChaveIA} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 10.5, color: "var(--mk-text-muted)", flexWrap: "wrap" }}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <i className="ti ti-shield-half" /> Máx. follow-ups/dia:
+                    <input
+                      type="number" name="limite_followup_dia" min={0} max={100000} defaultValue={c.limiteFollowupDia ?? 80}
+                      style={{ width: 72, padding: "3px 6px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-bg)", color: "var(--mk-text)", fontSize: 11, fontFamily: "inherit" }}
+                    />
+                    <button type="submit" className="ghost-btn" style={{ fontSize: 10.5, padding: "3px 8px" }}>Salvar</button>
+                    <span style={{ opacity: 0.7 }}>0 = sem limite · bate o teto → cai pra próxima chave/OpenAI</span>
+                  </form>
+                )}
                 {t && !t.loading && (
                   <div style={{ marginTop: 6, fontSize: 11, color: t.ok ? "#10b981" : "#C97064", display: "flex", alignItems: "center", gap: 5 }}>
                     <i className={`ti ${t.ok ? "ti-circle-check" : "ti-alert-triangle"}`} /> {t.msg}

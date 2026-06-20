@@ -1,10 +1,10 @@
 /**
- * Resolver de chaves de IA (Fase 2) — multi-chave + preferência de provider.
+ * Resolver de chaves de IA (Fase 2 + 3) — multi-chave + preferência + limites.
  *
  * Fonte da verdade: tabela `ia_chaves` (várias chaves por provider, ordenadas
- * por `ordem`, só `ativa`). Fallback legado: colunas single em
- * `configuracoes_agencia` (groq/openai/anthropic_key_encrypted) e, por último,
- * env GROQ_API_KEY/OPENAI_API_KEY. Tudo decriptado aqui (AES-256-GCM).
+ * por `ordem`, só `ativa`, com limites por chave). Fallback legado: colunas
+ * single em `configuracoes_agencia` (groq/openai/anthropic_key_encrypted) e, por
+ * último, env GROQ_API_KEY/OPENAI_API_KEY. Tudo decriptado aqui (AES-256-GCM).
  *
  * Lê `configuracoes_agencia` UMA vez (chaves legadas + prefs do jsonb `ia`),
  * pra o gateway não precisar de outro round-trip.
@@ -15,15 +15,29 @@ import type { ProviderIA } from "@/lib/ai/uso";
 
 export type ProviderChat = "groq" | "openai";
 
+/** Uma chave decriptada + seus limites (Fase 3). id=null → chave legada/env. */
+export interface ChaveResolvida {
+  id: string | null;
+  key: string;
+  limiteTpd: number;
+  limiteTpm: number;
+  /** Máximo de análises de follow-up/dia por esta chave. 0 = sem limite. */
+  limiteFollowupDia: number;
+}
+
 export interface ChavesResolvidas {
-  groq: string[];
-  openai: string[];
-  anthropic: string[];
+  groq: ChaveResolvida[];
+  openai: ChaveResolvida[];
+  anthropic: ChaveResolvida[];
   /** Provider preferido pra chat (resumo/sentimento/follow-up). */
   providerChat: ProviderChat;
   /** Provider preferido pra transcrição de áudio. */
   providerTranscricao: ProviderChat;
 }
+
+// Limites default das chaves legadas/env (1 chave só, sem cap de follow-up —
+// não temos como rastrear uso por chave sem id, então o gateway não as limita).
+const LIMITE_LEGADO = { limiteTpd: 100000, limiteTpm: 12000, limiteFollowupDia: 0 };
 
 function tentaDecrypt(raw: unknown): string | null {
   if (!raw) return null;
@@ -32,6 +46,15 @@ function tentaDecrypt(raw: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+interface ChaveRow {
+  id: string;
+  provider: ProviderIA;
+  key_encrypted: unknown;
+  limite_tpd: number | null;
+  limite_tpm: number | null;
+  limite_followup_dia: number | null;
 }
 
 /**
@@ -44,7 +67,7 @@ export async function resolverChaves(agenciaId: string): Promise<ChavesResolvida
   const [{ data: chaves }, { data: cfg }] = await Promise.all([
     sb
       .from("ia_chaves")
-      .select("provider, key_encrypted, ordem")
+      .select("id, provider, key_encrypted, ordem, limite_tpd, limite_tpm, limite_followup_dia")
       .eq("agencia_id", agenciaId)
       .eq("ativa", true)
       .order("provider", { ascending: true })
@@ -56,33 +79,39 @@ export async function resolverChaves(agenciaId: string): Promise<ChavesResolvida
       .maybeSingle(),
   ]);
 
-  const groq: string[] = [];
-  const openai: string[] = [];
-  const anthropic: string[] = [];
+  const groq: ChaveResolvida[] = [];
+  const openai: ChaveResolvida[] = [];
+  const anthropic: ChaveResolvida[] = [];
 
-  for (const row of chaves || []) {
-    const k = tentaDecrypt((row as { key_encrypted: unknown }).key_encrypted);
+  for (const r of (chaves || []) as ChaveRow[]) {
+    const k = tentaDecrypt(r.key_encrypted);
     if (!k) continue;
-    const prov = (row as { provider: ProviderIA }).provider;
-    if (prov === "groq") groq.push(k);
-    else if (prov === "openai") openai.push(k);
-    else if (prov === "anthropic") anthropic.push(k);
+    const ch: ChaveResolvida = {
+      id: r.id,
+      key: k,
+      limiteTpd: r.limite_tpd ?? 100000,
+      limiteTpm: r.limite_tpm ?? 12000,
+      limiteFollowupDia: r.limite_followup_dia ?? 0,
+    };
+    if (r.provider === "groq") groq.push(ch);
+    else if (r.provider === "openai") openai.push(ch);
+    else if (r.provider === "anthropic") anthropic.push(ch);
   }
 
   // Fallback legado (só se não houver chave da nova tabela pro provider).
   if (groq.length === 0) {
     const legado = tentaDecrypt(cfg?.groq_key_encrypted);
-    if (legado) groq.push(legado);
-    else if (process.env.GROQ_API_KEY) groq.push(process.env.GROQ_API_KEY);
+    if (legado) groq.push({ id: null, key: legado, ...LIMITE_LEGADO });
+    else if (process.env.GROQ_API_KEY) groq.push({ id: null, key: process.env.GROQ_API_KEY, ...LIMITE_LEGADO });
   }
   if (openai.length === 0) {
     const legado = tentaDecrypt(cfg?.openai_key_encrypted);
-    if (legado) openai.push(legado);
-    else if (process.env.OPENAI_API_KEY) openai.push(process.env.OPENAI_API_KEY);
+    if (legado) openai.push({ id: null, key: legado, ...LIMITE_LEGADO });
+    else if (process.env.OPENAI_API_KEY) openai.push({ id: null, key: process.env.OPENAI_API_KEY, ...LIMITE_LEGADO });
   }
   if (anthropic.length === 0) {
     const legado = tentaDecrypt(cfg?.anthropic_key_encrypted);
-    if (legado) anthropic.push(legado);
+    if (legado) anthropic.push({ id: null, key: legado, ...LIMITE_LEGADO });
   }
 
   const ia = (cfg?.ia as Record<string, unknown> | null) ?? {};

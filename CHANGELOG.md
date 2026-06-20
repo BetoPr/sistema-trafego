@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **15:27** — **IA — Fase 3: limites por chave (TPD + follow-ups/dia) + skip proativo + rastreio por chave.**
+  - **Migration** `ia_limites_por_chave`: `ia_uso += chave_id` (registra QUAL chave foi usada em cada chamada) + `ia_chaves += limite_tpd (100k) / limite_tpm (12k) / limite_followup_dia (80)`.
+  - **`lib/ai/limites.ts`** (`usoHojePorChave`): soma o uso de hoje (fuso SP) por chave a partir de `ia_uso`.
+  - **Gateway** (`lib/ai/gateway.ts`): antes de tentar, **pula proativamente** as chaves Groq que já bateram o teto diário de tokens (TPD) ou o limite de follow-ups/dia → vai pra próxima chave → OpenAI. O 429 do Groq segue como rede de segurança. Cada tentativa loga o `chave_id` usado. Quando todas as chaves Groq estouram, lança mensagem amigável com "(TPD)" — a UI do Follow-up já detecta e pausa com aviso (não cospe erro cru).
+  - **`keys.ts`** resolve as chaves como objetos (`id` + limites), não mais só strings. Chaves legadas/env (sem id) não são limitadas proativamente.
+  - **UI** (Configurações de API → Groq): cada chave Groq tem campo **"Máx. follow-ups/dia"** editável (0 = sem limite), com explicação de que ao bater o teto cai pra próxima chave/OpenAI.
+
 - **01:43** — **Teste por chave de IA + filtros em tempo real no Follow-up + descarte configurável.**
   - **Botão "Testar" em cada chave** (Configurações de API → IA): valida uma de cada vez (Groq/OpenAI/Anthropic via `/models`, sem gastar token) e mostra ✓/✗ com a mensagem — dá pra achar logo qual chave está com problema.
   - **Follow-up — filtros em tempo real** (sobre a lista já buscada, sem rebuscar): por **recomendação** (Vale follow-up / Não recomendado / Sem análise) e por **nº de follow-ups já enviados** (Todos/0/1/2/3/4/5+). Cada filtro mostra a **contagem** ao lado e a lista + o total no topo respeitam o filtro. Assim dá pra esconder quem já recebeu, ou focar só nos recomendados (ou eliminar os não-recomendados).

@@ -19,6 +19,8 @@ export interface UsoLog {
   contatoId?: string | null;
   ticketId?: string | null;
   tarefa: TarefaIA;
+  /** Qual chave (ia_chaves.id) foi usada — o gateway preenche por tentativa. */
+  chaveId?: string | null;
 }
 
 export interface RegistroUso extends UsoLog {
@@ -68,6 +70,7 @@ export function registrarUsoIA(r: RegistroUso): void {
         usuario_id: r.usuarioId ?? null,
         contato_id: r.contatoId ?? null,
         ticket_id: r.ticketId ?? null,
+        chave_id: r.chaveId ?? null,
         tarefa: r.tarefa,
         provider: r.provider,
         modelo: r.modelo,

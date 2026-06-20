@@ -18,6 +18,7 @@ const OK_MSG: Record<string, string> = {
   provider: "Preferência de provider salva.",
   openai_tudo: "Agora tudo usa OpenAI.",
   groq_tudo: "Tudo voltou pro Groq.",
+  limite_set: "Limite da chave atualizado.",
 };
 
 export default async function IAConfigPage({ searchParams }: PageProps) {
@@ -33,7 +34,7 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
       .maybeSingle(),
     sb
       .from("ia_chaves")
-      .select("id, provider, rotulo, criado_em, ordem")
+      .select("id, provider, rotulo, criado_em, ordem, limite_followup_dia")
       .eq("agencia_id", ctx.agenciaId)
       .eq("ativa", true)
       .order("provider", { ascending: true })
@@ -41,7 +42,7 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
   ]);
 
   const porProvider = (p: string): ChaveItem[] =>
-    (chavesRows || []).filter((c) => c.provider === p).map((c) => ({ id: c.id as string, rotulo: c.rotulo as string | null, criado_em: c.criado_em as string }));
+    (chavesRows || []).filter((c) => c.provider === p).map((c) => ({ id: c.id as string, rotulo: c.rotulo as string | null, criado_em: c.criado_em as string, limiteFollowupDia: (c.limite_followup_dia as number | null) ?? 80 }));
   const groq = porProvider("groq");
   const openai = porProvider("openai");
   const anthropic = porProvider("anthropic");

@@ -142,6 +142,20 @@ export async function adicionarChaveIA(formData: FormData) {
   redirect("/configuracoes/ia?ok=chave_add");
 }
 
+/** Fase 3 — atualiza o limite de follow-ups/dia de uma chave (0 = sem limite). */
+export async function atualizarLimiteChaveIA(formData: FormData) {
+  const ctx = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) redirect("/configuracoes/ia");
+  const limite = Math.max(0, Math.min(100000, Math.round(Number(formData.get("limite_followup_dia")) || 0)));
+
+  const sb = createServiceClient();
+  await sb.from("ia_chaves").update({ limite_followup_dia: limite }).eq("id", id).eq("agencia_id", ctx.agenciaId);
+
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=limite_set");
+}
+
 /** Remove uma chave de IA (só da própria agência). */
 export async function removerChaveIA(formData: FormData) {
   const ctx = await requireAdmin();
