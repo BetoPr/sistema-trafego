@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **17:09** — **🔴 FIX CRÍTICO — follow-up avulso reenviando em loop (cliente recebeu 12 msgs).**
+  - **Causa:** o worker (`lib/crm/follow-up-avulso.ts`) enviava as mensagens e **só depois** marcava `enviado`. Com envio lento (UAZAPI), a função serverless estourava o `maxDuration` (60s) **antes** de marcar → a linha ficava `agendado` → o cron (1×/min) reprocessava e **reenviava a mesma mensagem em loop**. 1 contato (final 8320) recebeu 12 mensagens.
+  - **Correção:** **claim atômico** — o worker move a linha `agendado → enviando` num UPDATE rápido **antes** de enviar; só processa quem conseguiu claimar. Se o envio depois falhar/timeoutar, a linha já saiu de `agendado` e **nunca é reprocessada**. `marcar()` agora nunca lança (erro só loga, não aborta o lote). Novo status `enviando` no CHECK (migration `fua_status_enviando`).
+  - **Mitigação aplicada:** cron pausado, **31 follow-ups agendados pendentes cancelados** em massa, depois cron religado já com o fix.
+
 - **15:27** — **IA — Fase 3: limites por chave (TPD + follow-ups/dia) + skip proativo + rastreio por chave.**
   - **Migration** `ia_limites_por_chave`: `ia_uso += chave_id` (registra QUAL chave foi usada em cada chamada) + `ia_chaves += limite_tpd (100k) / limite_tpm (12k) / limite_followup_dia (80)`.
   - **`lib/ai/limites.ts`** (`usoHojePorChave`): soma o uso de hoje (fuso SP) por chave a partir de `ia_uso`.

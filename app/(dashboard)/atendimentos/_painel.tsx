@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LightboxFoto } from "@/components/ui/LightboxFoto";
 import { Balao } from "@/components/ui/Balao";
 import { EditarContatoBalao } from "./_editar-contato-balao";
+import { MidiasContato } from "./_midias-contato";
 
 interface Contato {
   id: string;
@@ -61,7 +62,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const router = useRouter();
   // SPA mode: onRefresh refaz fetch do bundle; fallback router.refresh pro modo server
   const refresh = () => (onRefresh ? onRefresh() : router.refresh());
-  const [tab, setTab] = useState<"perfil" | "atend" | "util">("perfil");
+  const [tab, setTab] = useState<"perfil" | "atend" | "util" | "midias">("perfil");
   const [lightboxFoto, setLightboxFoto] = useState(false);
   const [loadingResumo, setLoadingResumo] = useState(false);
   const [loadingSent, setLoadingSent] = useState(false);
@@ -340,6 +341,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         {[
           { id: "perfil", label: "Perfil" },
           { id: "atend", label: "Atend." },
+          { id: "midias", label: "Mídias" },
           { id: "util", label: "Util." },
         ].map((t) => (
           <button
@@ -648,6 +650,8 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             </Card>
           </>
         )}
+
+        {tab === "midias" && <MidiasContato contatoId={contato.id} />}
 
         {tab === "util" && (
           <>
