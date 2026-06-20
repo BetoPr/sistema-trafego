@@ -23,21 +23,13 @@
 ### IA — infra (Fases 1 e 4 do plano de IA)
 - **Fase 1 — Rastreio** (`879b1b4`): tabela **`ia_uso`** (migration `20260619220000`) + `lib/ai/uso.ts` (`registrarUsoIA` fire-and-forget + `custoUsd`). Instrumentadas as 4 sessões (transcrição/resumo/sentimento/follow-up); follow-up grava **usuario_id** (qual admin).
 - **Fase 4 — Hub "Análise de IAs"** (`/analise-ias`, sidebar → Configuração) + **v2** (`de34367`): escopo **Meu CRM / Todos os clientes / Por tipo de cliente** (super-admin, cross-agência); **Por Admin/usuário · Por modelo · Por cliente · Por sessão · Por provedor**; KPIs com **delta** vs período anterior; médias **por conversa/ticket/chamada**; **eficiência prompt×resposta**; gráfico por dia; barra de limite diário Groq; **log + export CSV/PDF** (`/api/ia/uso/pdf`, @react-pdf/renderer). Agregação: `lib/ai/relatorio.ts`.
+- **Fase 2 — Multi-chave + troca OpenAI** (`3cb66d3`): tabela **`ia_chaves`** (migration `20260620000500`, várias chaves/provider + backfill das legadas). `lib/ai/keys.ts` (resolver `ia_chaves`→legacy→env + prefs). `lib/ai/gateway.ts` (**rotação de chaves Groq → fallback OpenAI no 429**, loga uso) usado por sentimento/resumo/follow-up/transcrição em `lib/crm/ia.ts`. `chat()`/`transcribeAudio` generalizados (`baseUrl`/`provider`). UI **Configurações de API (IA)** redesenhada: gerenciador add/remover por provider + toggles + **botão "usar OpenAI em tudo"** (`_chaves.tsx`, `_provider.tsx`). Modelos OpenAI: chat **gpt-4o-mini**, transcr **gpt-4o-transcribe**. ⚠️ streaming do resumo (`resumo-stream`) e `/api/ia/reescrever` ainda em 1 chave (`getGroqKey`) — migrar depois.
 
 ---
 
 ## ⏳ PENDENTE (ordem)
 
-### IA — Fase 2 (multi-chave + troca OpenAI)  ← PRÓXIMO
-- Tabela **`ia_chaves`** (agencia_id, provider, rotulo, key_encrypted, ativa, ordem). Permitir **várias chaves Groq** (3 = 300k/dia) + 1 OpenAI.
-- `lib/ai/keys.ts` — resolver `{ groqKeys: string[], openaiKey }` (decripta, ordena).
-- `lib/ai/gateway.ts` — 1 função pra chat: lê preferência (`configuracoes_agencia.ia.provider_chat` = "groq"|"openai"); **rotaciona chaves Groq** com fallback no 429 → cai pra **OpenAI**; loga via `registrarUsoIA`. Idem transcrição (`ia.provider_transcricao`).
-- Generalizar `lib/groq/llm.ts chat()` com `baseUrl` (Groq é OpenAI-compatible → OpenAI = `https://api.openai.com/v1`). Criar transcrição OpenAI (`gpt-4o-transcribe`).
-- **Botão "usar OpenAI em tudo"** na tela Configurações de API (IA); transcrição fica Groq por padrão, com **opção** OpenAI.
-- Migrar os callers de `lib/crm/ia.ts` (que hoje usam `getGroqKey` + chat direto) pra usar o gateway.
-- **Modelos decididos:** chat = **gpt-4o-mini**; transcrição OpenAI = **gpt-4o-transcribe**.
-
-### IA — Fase 3 (limites)
+### IA — Fase 3 (limites)  ← PRÓXIMO
 - Teto por chave **TPM 12k / TPD 100k** (Groq) + **80 follow-ups/dia** por chave (config) + cadência confortável (porMinuto configurável). Whisper: 20 RPM / 28.800s áudio/dia. **Sem limite semanal/mensal** (projetar ×7/×30).
 - Quando bate teto → próxima chave → OpenAI → se acabar, pausa com aviso (já tem o 429-graceful + Parar).
 
