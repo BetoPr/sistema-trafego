@@ -17,7 +17,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText } from "@/lib/uazapi/client";
-import { automacaoExcedeuTeto } from "@/lib/crm/anti-flood";
+import { automacaoExcedeuTeto, clienteFoiOUltimoAResponder } from "@/lib/crm/anti-flood";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -113,6 +113,13 @@ export async function processarFollowUpsAvulsosDevidos(limite = 25): Promise<Fol
           res.respondidos++;
           continue;
         }
+      }
+
+      // Regra: não faz follow-up pra quem já interagiu (última msg do ticket é do cliente).
+      if (await clienteFoiOUltimoAResponder(sb, fua.ticket_id)) {
+        await marcar("respondido", "cliente já interagiu — follow-up dispensado");
+        res.respondidos++;
+        continue;
       }
 
       // Rede de segurança anti-flood: não envia se o ticket já recebeu msgs automáticas demais.

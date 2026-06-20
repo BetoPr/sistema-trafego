@@ -36,3 +36,31 @@ export async function automacaoExcedeuTeto(
     return false;
   }
 }
+
+/**
+ * "Já interagiu": a ÚLTIMA mensagem do ticket é do cliente?
+ *
+ * Regra de negócio: não se faz follow-up pra quem já interagiu (o cliente
+ * respondeu / está aguardando atendimento humano). Follow-up é só pra conversa
+ * parada em que NÓS falamos por último e o cliente sumiu.
+ * Não lança — em erro retorna false (não bloqueia indevidamente).
+ */
+export async function clienteFoiOUltimoAResponder(
+  sb: SupabaseClient,
+  ticketId: string | null | undefined,
+): Promise<boolean> {
+  if (!ticketId) return false;
+  try {
+    const { data } = await sb
+      .from("mensagens")
+      .select("autor")
+      .eq("ticket_id", ticketId)
+      .is("deleted_em", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return (data as { autor?: string } | null)?.autor === "cliente";
+  } catch {
+    return false;
+  }
+}

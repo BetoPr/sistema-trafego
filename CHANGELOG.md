@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **17:53** — **Regra: contato que já interagiu não recebe follow-up.**
+  - Se a **última mensagem do ticket for do cliente** (ele respondeu / está aguardando atendimento), o follow-up **não é enviado**. Vale pros 2 workers (avulso + sequências, status `respondido`) e pro **envio imediato** (rota retorna 409 "cliente já interagiu"). Helper `clienteFoiOUltimoAResponder` em `lib/crm/anti-flood.ts`.
+  - Complementa o opt-out que já existia (cancelava se o cliente respondesse depois do agendamento) — agora cobre também quem já estava com a bola do nosso lado.
+
 - **17:18** — **Blindagem sistêmica anti-reenvio (depois do incidente do avulso).**
   - **Auditei todos os workers que enviam WhatsApp por cron.** Achei o **mesmo bug** em `lib/crm/follow-up.ts` (sequências por etiqueta-gatilho, cron 1×/min ativo): enviava a etapa e só depois avançava `proximo_envio_em` → timeout reenviaria a etapa em loop. **Corrigido com claim atômico** (`ativo → processando` antes de enviar; todos os caminhos resetam o status; migration `fui_status_processando`). Hoje tinha 0 inscrições, então nunca chegou a estourar — mas era bomba latente.
   - `lib/ia-atendimento/followup-worker.ts` (follow-up da IA de atendimento) **já era seguro** (claim atômico via `UPDATE…RETURNING`). `lib/super-admin/cobrancas.ts` é **idempotente por mês** (cron diário) — baixo risco.

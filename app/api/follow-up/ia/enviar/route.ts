@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText } from "@/lib/uazapi/client";
 import { audit } from "@/lib/crm/audit";
+import { clienteFoiOUltimoAResponder } from "@/lib/crm/anti-flood";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,11 @@ export async function POST(req: Request) {
     .eq("agencia_id", u.agencia_id)
     .single();
   if (!ticket) return NextResponse.json({ error: "ticket_nao_encontrado" }, { status: 404 });
+
+  // Regra: não faz follow-up pra quem já interagiu (última msg do ticket é do cliente).
+  if (await clienteFoiOUltimoAResponder(sb, ticket.id)) {
+    return NextResponse.json({ error: "cliente_ja_interagiu", msg: "Cliente já respondeu — follow-up não enviado." }, { status: 409 });
+  }
 
   const contato = (Array.isArray(ticket.contato) ? ticket.contato[0] : ticket.contato) as { wa_id?: string; whatsapp?: string } | null;
   const canal = (Array.isArray(ticket.canal) ? ticket.canal[0] : ticket.canal) as { id: string; status: string; instance_token_encrypted: unknown; servidor: { base_url: string } | { base_url: string }[] } | null;
