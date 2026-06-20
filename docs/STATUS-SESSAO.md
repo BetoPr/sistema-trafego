@@ -1,114 +1,71 @@
 # STATUS DA SESSÃO — Sonar CRM (sistema-trafego)
 
-> Handoff pra retomar depois do `/compact`. Atualizado: **19/06/2026 ~19h BR**.
-> Tudo abaixo já está **deployado em produção** (auto-push → Vercel), salvo o que estiver em ⏳ PENDENTE.
+> Handoff pra retomar depois do `/compact`. Atualizado: **19/06/2026 ~23h55 BR**.
+> Tudo em ✅ FEITO está **deployado em produção** (auto-push → Vercel). Login teste: `jj.rroberto2010@gmail.com` (super_admin). Agência "Teste" (canal Innova & AI Studio).
 
 ---
 
 ## ✅ FEITO (esta sessão)
 
-### Filtros de Atendimentos — `aeb12b4`
-- Badge fantasma "1 filtro" no load corrigido (default `[aberto, pendente]`).
-- "Mostrar todos" agora limpa TODOS os recortes (status + conexão/fila/usuário/etiqueta/período).
+### Backlog A–D
+- **A. Nova conversa avulsa** (`3d4abdf`) — botão ao lado do sino (ícone **verde**, `f6111fd`); número → cria/reaproveita contato+ticket (`/api/atendimentos/nova-conversa`) → abre chat.
+- **B. Pílula de data no scroll** do chat (`3d4abdf`).
+- **C. Menu 3-pontinhos** do chat limpo (`3d4abdf`).
+- **D. Abas flutuantes ON/OFF** (`ba236a7`, `35fae95`, `3762bf8`) — launcher arrastável (snap 4 cantos mobile) → painel **redimensionável** (bordas/cantos) com **4 abas: Mensagens Rápidas · Contatos · Grupos · Envio em Massa**, cada uma = **iframe da página real** (modo `embed` via `lib/embed.ts inIframe()` + classe `embed-mode` em globals.css). Inserir atalho no chat (postMessage). Toast "aba alterada" só no balão. **Contatos lean** + Grupos/Envio empilham no embed.
 
-### Follow-up com IA — reformulado (`65a1240`, `ff47a7a`, `277e04f`, `35d6910`, `f60aa0e`)
-- **Só "Follow-up com IA"** (abas Sequências/Fila removidas; cron manual desligado, reversível; NÃO mexe no follow-up automático da IA de atendimento).
-- Busca por **preset**: Hoje · 7 dias · 15 dias · Período (X→Y). Acabou o teto de 30d (trazia ~28; agora ~108). Quantidade até 500. Status Abertos/Pendentes/Ambos. Filtro por **etiqueta** e **conexão**.
-- **Limite de análises/min** interno (teto TPM Groq) — não exposto na UI.
-- Card: **👁️ olho** (espia histórico), **🔗 abrir no atendimento**, **contador de follow-ups enviados** (IA é avisada, não repete, fecha com pergunta).
-- **Regenerar com tom**: Direto · Emocional · Na dor · Contextualizado · Simpático.
-- **Etiquetar** (balão busca + multi + "Marcar") — cria "Em follow-up"/"Follow-up feito" se faltarem (find-or-create, não duplica). Enviar auto-marca "Em follow-up".
-- **Descartar**: checkbox "fechar ticket" → encerra; sem marcar → cooldown 12h (`tickets.follow_up_ia_snooze_ate`).
-- **Widget flutuante GLOBAL**: o motor da análise subiu pro layout (`_crm-overlays.tsx`). Roda em qualquer aba sem cancelar. Botão launcher liga/desliga, **portal no body** (não rola junto com a página), **drag livre** com margem (sem snap), colapsa sem saltar.
-- **Cadência** (`f60aa0e`): por card ou "Cadência padrão → Aplicar a todos": **1/2/3 follow-ups** com tempos (2º após Xh, 3º após Yd) — 2º/3º gerados pela IA e agendados via `follow_up_avulsos` (cancela se cliente responder). **Dividir em 2 mensagens** (checkbox).
+### Ajustes de feedback
+- **Follow-up com IA** (`e5e8419`): cadência **por card** (1/2/3 follow-ups; 2º/3º **gerados pela IA, editáveis** + tempo; dividir em 2); tirada a barra global confusa; instruções legíveis. **Botão Parar** na aba + **429/TPD tratado** (`965c4eb`).
+- **Canais** (`e5e8419`): número + foto de perfil sincronizam via `/instance/all` (sincronizarPlataformaCanais).
+- **Fundo do chat** (`e5e8419`): colagem de ícones SVG.
+- **Configurações de API (IA)** (`f6111fd`): "Chaves IA (Groq)" → **"Configurações de API (IA)"**, juntou chaves + transcrição numa tela; GroqCloud duplicado removido (rota redireciona); 1 chave Groq faz tudo. **Dropdown de modelos sem campos em branco** (`965c4eb`).
+- **Filtros vira ícone** quando a coluna encolhe (`f6111fd`).
 
-### Contatos — `5e90caa`, `f5f96e9`, `e1db8e3`, `f60aa0e`
-- Limite **500 → 5000** + paginação no client (blocos de 300, "Carregar mais"; busca varre todos). Tinha 1074, mostrava 500.
-- Banner grande "Primeiro passo" removido. Avisos de import (etiqueta pode não subir / iOS) junto do botão.
-- **Editar contato = BALÃO** (fundo embaçado, não navega): nome + WhatsApp + etiquetas ao vivo + **log de fechamentos** (TOTAL · SERVIÇOS(QTD) · FECHAMENTOS · ÚLTIMO no quadrado verde, + lista com serviço/qtd/data/valor). Vale no painel E na tabela de contatos.
-
-### Canais — `d987162`
-- **Detector de plataforma** (iOS/Android/Web) via campo `plataform` do UAZAPI (`smba`=Android Business, `smbi`=iOS Business). Badge no card; **aviso de notificação só no card iOS** (Android/Web nada). Coluna `canais.wa_plataforma`.
-
-### Espiar — `7d323c6`, `35d6910`
-- Imagem (lightbox) + **áudio tocável** + transcrição + **documentos baixáveis** + "Carregando" animado. Nos 3 espiar (follow-up, lista, pendentes). Componente `_espiar-msg.tsx` (`BolhaEspiada`, `DocBaixar`).
-- Docs baixáveis também no **chat** aberto.
-
-### Atendimentos UI — `61a2a92`, `ce18416`, `35d6910`
-- Abas **Privados/Grupos removidas**.
-- **Divisória conversas↔chat redimensionável** (arrasta, salva no localStorage, 2-cliques reseta).
-- Abas Abertos/Pendentes/Fechados viram **ícone+contador** quando a coluna fica < 300px.
-
-### IA de Atendimento + Painel — `61a2a92`, `dbb4f25`
-- **Modo teste não marca IA** em pendentes fora da whitelist (não acende toggle/ícone do robô). Fix no `executor.adicionarAoBuffer`.
-- Banner "Modo teste ativo" removido (selo TESTE já indica).
-- Painel: "Inscrever em sequência ativa" removido; "Log do ticket" movido pra aba **Perfil**.
-
-### #7 Aviso "aba alterada" — `ff47a7a`
-- Toast amarelo global quando Mensagens Rápidas é alterada (`crm:aba-alterada` + `AvisaAlteracao`). Portal no body.
-
-### Backlog D — Abas flutuantes (ON/OFF)
-- Launcher flutuante (arrastável; snap nos 4 cantos no mobile) abre **painel com abas Mensagens Rápidas · Contatos · Grupos**, cada uma = **iframe da página real** (CRUD completo sem duplicar código). Só aparece em `/atendimentos`.
-- **Embed mode** = página detecta que está num iframe (`lib/embed.ts` → `inIframe()`); CrmOverlays põe classe `embed-mode` (esconde sidebar/topbar via `globals.css`), não renderiza overlays aninhados, e desliga som/notificação/heartbeat. `_floating-tabs.tsx`.
-- **Inserir no chat:** atalho no balão → `postMessage` → `crm:inserir-no-chat` → ChatView joga na barra. Botão em `_inserir-atalho-btn.tsx`.
-- **Toast "aba alterada" só quando aberta como balão:** `avisarAbaAlterada` virou `postMessage` pro pai; `AvisosAbaAlterada` escuta `message`. Página normal não dispara mais.
-
-### Backlog A+B+C — `3d4abdf`
-- **A. Nova conversa (avulsa):** botão ao lado do sino → balão (número c/ DDD, nome opcional, canal se >1 conectado) → cria/reaproveita contato+ticket via `/api/atendimentos/nova-conversa` (normaliza BR, variantes com/sem 9º dígito, atribui ao usuário, status aberto) → abre o chat. Componente `_nova-conversa.tsx`.
-- **B. Pílula de data no scroll do chat** (estilo WhatsApp): Hoje/Ontem/dia-da-semana/dd-mm-aaaa das mensagens à vista; aparece/some com animação; some **4s** após parar. `data-dia` por mensagem + `onScroll` com rAF + `rotuloDia()` em `_chat.tsx`.
-- **C. Menu 3-pontinhos limpo:** removidos os placeholders disabled (Chatbot, Agendar, Mídias/links/docs, Compartilhar, Parar rolagem). Sobrou Detalhes/Transferir/Transferir Canal/Retornar/Encerrar.
-
-### Auditoria/segurança (sessão anterior)
-- 6 críticos + 10 altos + médios CORRIGIDOS. Relatório `docs/AUDITORIA-CRM.md`.
+### IA — infra (Fases 1 e 4 do plano de IA)
+- **Fase 1 — Rastreio** (`879b1b4`): tabela **`ia_uso`** (migration `20260619220000`) + `lib/ai/uso.ts` (`registrarUsoIA` fire-and-forget + `custoUsd`). Instrumentadas as 4 sessões (transcrição/resumo/sentimento/follow-up); follow-up grava **usuario_id** (qual admin).
+- **Fase 4 — Hub "Análise de IAs"** (`/analise-ias`, sidebar → Configuração) + **v2** (`de34367`): escopo **Meu CRM / Todos os clientes / Por tipo de cliente** (super-admin, cross-agência); **Por Admin/usuário · Por modelo · Por cliente · Por sessão · Por provedor**; KPIs com **delta** vs período anterior; médias **por conversa/ticket/chamada**; **eficiência prompt×resposta**; gráfico por dia; barra de limite diário Groq; **log + export CSV/PDF** (`/api/ia/uso/pdf`, @react-pdf/renderer). Agregação: `lib/ai/relatorio.ts`.
 
 ---
 
-## ⏳ PENDENTE (backlog, ordem sugerida)
+## ⏳ PENDENTE (ordem)
 
-| # | Item | Tamanho | Detalhe |
-|---|------|---------|---------|
-| ~~A~~ | ~~Nova conversa~~ | ✅ FEITO | `3d4abdf` |
-| ~~B~~ | ~~Pílula de data no scroll~~ | ✅ FEITO | `3d4abdf` |
-| ~~C~~ | ~~Menu 3-pontinhos limpo~~ | ✅ FEITO | `3d4abdf` |
-| ~~D~~ | ~~Floating tabs ON/OFF~~ | ✅ FEITO | Msg Rápidas + Contatos + Grupos via iframe; inserir no chat; toast só no balão; launcher 4 cantos |
-| **E** | Aba **"Links/Imagens/Docs"** no contato + **balão de mídias** | MUITO grande | balão com Links/Imagens/Docs lado a lado (enviados+recebidos), fundo embaçado. Por item: Baixar, Encaminhar, **Ir para conversa** (no ponto exato), Responder, Favoritar, Fixar, Reagir. **Zoom de imagem com scroll** (frente=aproxima, trás=afasta). "Mídias de todas as conversas" agrupado por dias (Ontem / Semana passada) + botões Pesquisar/Ordenar/Selecionar/Fechar; Selecionar → Favoritar/Download/Encaminhar. **Não é igual WhatsApp, é um balão.** Animação entrando pela esquerda. |
-| — | **#7 schema pull** (migrations) | só Roberto | `supabase db pull` — guia em `docs/GUIA-SCHEMA-PULL.md` (precisa CLI + senha do banco) |
-| — | Checar **mensagem duplicada** via Claude Chrome | opcional | precisa a extensão do Chrome conectada |
+### IA — Fase 2 (multi-chave + troca OpenAI)  ← PRÓXIMO
+- Tabela **`ia_chaves`** (agencia_id, provider, rotulo, key_encrypted, ativa, ordem). Permitir **várias chaves Groq** (3 = 300k/dia) + 1 OpenAI.
+- `lib/ai/keys.ts` — resolver `{ groqKeys: string[], openaiKey }` (decripta, ordena).
+- `lib/ai/gateway.ts` — 1 função pra chat: lê preferência (`configuracoes_agencia.ia.provider_chat` = "groq"|"openai"); **rotaciona chaves Groq** com fallback no 429 → cai pra **OpenAI**; loga via `registrarUsoIA`. Idem transcrição (`ia.provider_transcricao`).
+- Generalizar `lib/groq/llm.ts chat()` com `baseUrl` (Groq é OpenAI-compatible → OpenAI = `https://api.openai.com/v1`). Criar transcrição OpenAI (`gpt-4o-transcribe`).
+- **Botão "usar OpenAI em tudo"** na tela Configurações de API (IA); transcrição fica Groq por padrão, com **opção** OpenAI.
+- Migrar os callers de `lib/crm/ia.ts` (que hoje usam `getGroqKey` + chat direto) pra usar o gateway.
+- **Modelos decididos:** chat = **gpt-4o-mini**; transcrição OpenAI = **gpt-4o-transcribe**.
 
-~~A + B + C~~ ✅ (`3d4abdf`) · ~~D~~ ✅. **Falta só o E** (balão de mídias — o maior).
+### IA — Fase 3 (limites)
+- Teto por chave **TPM 12k / TPD 100k** (Groq) + **80 follow-ups/dia** por chave (config) + cadência confortável (porMinuto configurável). Whisper: 20 RPM / 28.800s áudio/dia. **Sem limite semanal/mensal** (projetar ×7/×30).
+- Quando bate teto → próxima chave → OpenAI → se acabar, pausa com aviso (já tem o 429-graceful + Parar).
 
----
-
-## 🧭 CONTEXTO TÉCNICO (onde mexer)
-
-- **Provider global** (motor follow-up + widget + avisos): `app/(dashboard)/_crm-overlays.tsx` — exporta `Cand`, `CADENCIA_PADRAO`, `useFollowUpRun`, `avisarAbaAlterada`, `CrmOverlays`. Montado em `app/(dashboard)/layout.tsx`.
-- **Follow-up UI**: `app/(dashboard)/follow-up/_client.tsx` (consome o provider; filtros locais) + `page.tsx`.
-- **Follow-up API**: `app/api/follow-up/ia/{verificar,regenerar,enviar,descartar}/route.ts`. `enviar` aceita `dividir`. `regenerar` aceita `tom`. Lib: `lib/crm/ia.ts` (`sugerirFollowUpTicket` com `tom`).
-- **Cadência extras** agendados via `app/api/contatos/[id]/follow-up-avulso` (tabela `follow_up_avulsos`, worker `lib/crm/follow-up.ts`... wait: avulso tem worker próprio).
-- **Espiar**: `app/(dashboard)/atendimentos/_espiar-msg.tsx` (`BolhaEspiada`, `DocBaixar`). Mídia: `_media.tsx` (`MediaPreview`, resolve `/api/media?path=`), `_audio.tsx` (`AudioPlayer`).
-- **Editar contato balão**: `_editar-contato-balao.tsx` + `app/api/contatos/[id]/ficha/route.ts`.
-- **Painel direito**: `_painel.tsx`. **Shell/resize**: `_shell.tsx`. **Lista/abas/espiar**: `_lista.tsx`. **Chat**: `_chat.tsx` (aqui entra B, C, e onde checar duplicata).
-- **Aviso "aba alterada"**: `app/(dashboard)/_avisa-alteracao.tsx` (dispara `avisarAbaAlterada`).
-- **Plataforma do canal**: `lib/uazapi/client.ts` (`classificarPlataforma`) + `app/(dashboard)/canais/_actions.ts` (`sincronizarPlataformaCanais`).
-- **Migrations novas**: `tickets.follow_up_ia_snooze_ate`, `canais.wa_plataforma` (em `supabase/migrations/`).
+### Outros pendentes
+- **E — Balão de mídias** (aba Links/Imagens/Docs no contato + balão com download/encaminhar/ir-pra-conversa/zoom/reagir). MUITO grande.
+- **"Selecione um ticket à esquerda"** no rodapé — confirmar se ainda aparece no deploy novo (código só renderiza sem ticket; fix do flash deep-link aplicado).
+- **#7 schema pull** (`supabase db pull`) — só Roberto (CLI + senha).
+- Opcional: tiers formais por agência (`agencias.plan_tier`) em vez do `usuarios.tipo_cliente` (rótulo livre) pra "por tipo de cliente".
 
 ---
 
-## ⚠️ REGRAS DO PROJETO (não esquecer)
-- **Build antes de cada commit** (`npm run build` na pasta do projeto). Commit dispara **auto-push → Vercel** (hook). NÃO desativar o hook.
-- **CHANGELOG.md**: prepender entrada **datada (dia+hora BR)** a cada commit (mais recente no topo).
-- **Next 16**: `proxy.ts` (não middleware); `cookies()/headers()/params` são **async**; Recharts só client.
-- **Supabase**: `getUser()/getClaims()` pra auth (nunca `getSession()`); `service_role` nunca no browser; multi-tenant por `agencia_id`.
-- **Cripto** tokens: `lib/crypto/tokens.ts` (AES-256-GCM), nunca pgcrypto.
-- **Modais** = componente `Balao` (`components/ui/Balao.tsx`) — já portaleia no body.
-- **Errors em PT-BR**. Login Roberto: jj.rroberto2010@gmail.com / SonarRR2026!Trade. Agência de teste = "Teste" (canal Innova & AI Studio).
-- NUNCA: imprimir conteúdo de chaves; commitar `.env.local`; sugerir sincronizar pasta de credenciais com nuvem.
+## 🧭 CONTEXTO TÉCNICO (IA — pra Fase 2/3)
+- **Chaves hoje:** `configuracoes_agencia.groq_key_encrypted` (1 só), `openai_key_encrypted`, `anthropic_key_encrypted`. Resolver atual: `getGroqKey(agenciaId)` em `lib/crm/ia.ts`.
+- **Call sites de IA:** `lib/groq/llm.ts` (`chat`/`gerarResumo`/`analisarSentimento` — já aceitam `uso?: UsoLog`), `lib/groq/transcribe.ts` (aceita `uso`). Alto nível em `lib/crm/ia.ts`: `analisarSentimentoTicket`, `gerarResumoTicket`, `sugerirFollowUpTicket` (aceita `usuarioId`), `transcreverMensagemAudio`.
+- **Rastreio:** `lib/ai/uso.ts` (`registrarUsoIA`, `custoUsd`, tabela `ia_uso`). Agregação: `lib/ai/relatorio.ts` (`agregarUso(filtro)`).
+- **Cripto:** `lib/crypto/tokens.ts` (AES-256-GCM) — usar pra `ia_chaves.key_encrypted`.
+- **Super-admin / cliente:** roles em `usuarios.role` (super_admin|admin|atendente). `requireSuperAdmin()`/`isSuperAdmin()` em `lib/crm/permissions.ts`. Cross-agência = service client (bypassa RLS). "tipo de cliente" = `usuarios.tipo_cliente`. agências em `agencias` (id, nome, valor_mensal, vencimento_em…).
+- **Limites Groq (confirmados nas docs):** llama-3.3-70b → 30 RPM / 1000 RPD / 12k TPM / 100k TPD. whisper-large-v3 → 20 RPM / 28.800s áudio/dia. Sem semanal/mensal.
 
 ---
 
-## ✅ COMO TESTAR (rápido)
-1. **Follow-up com IA**: `/follow-up` → 15 dias · Ambos · 120 → Buscar (~108) → Analisar → num que "vale": tom + Regenerar, olho 👁️, Etiquetar, **Cadência (2 follow-ups, 2º após 1h)** → Enviar → chega 1º + agenda 2º.
-2. **Widget**: dispara Analisar, sai pra Atendimentos → bolinha flutuante; arrasta (fica onde soltar); abre/fecha.
-3. **Editar contato**: Contatos (ou painel) → lápis → balão com etiquetas + log de fechamentos.
-4. **Canais**: badge 🤖 Android (Innova/Restauração); sem aviso iOS.
-5. Onboarding completo em `docs/ONBOARDING-TESTE.md`.
+## ⚠️ REGRAS DO PROJETO
+- **Build antes de cada commit** (`npm run build` em `/c/Users/ADM/Desktop/sistema-trafego` — o cwd reseta, sempre `cd` antes). Commit dispara **auto-push → Vercel** (hook). NÃO desativar.
+- **CHANGELOG.md**: prepender entrada **datada (dia+hora BR)** a cada commit.
+- **Next 16**: `proxy.ts` (não middleware); `cookies()/headers()/params` async.
+- **Supabase**: `getUser()/getClaims()` (nunca getSession); `service_role` nunca no browser; multi-tenant por `agencia_id`. Migrations em `supabase/migrations/` + aplicar via MCP (projeto `nnswiakwjvoqwcjscbqq`).
+- **Cripto** tokens: `lib/crypto/tokens.ts` (AES-256-GCM), nunca pgcrypto. Modais = `components/ui/Balao.tsx`. Errors em PT-BR.
+
+## ✅ COMO TESTAR
+- Checklist completo em **`docs/CHECKLIST-TESTE.md`** (8 áreas).
+- Hub: rode uma análise de **Follow-up** (ou resumo/transcrição) → abra **`/analise-ias`** → o uso aparece (escopo, métricas, export PDF/CSV).
