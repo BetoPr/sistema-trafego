@@ -24,11 +24,9 @@ export function Controles({ provider, dias, escopo, superAdmin }: { provider: st
           {ESCOPOS.map(([v, l]) => <button key={v} onClick={() => ir({ escopo: v })} style={pill(escopo === v)}>{l}</button>)}
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         <span style={{ fontSize: 11, color: "var(--mk-text-muted)", fontWeight: 600 }}>Provedor</span>
-        <select value={provider} onChange={(e) => ir({ provider: e.target.value })} style={{ padding: "6px 10px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }}>
-          {PROVIDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
+        {PROVIDERS.map(([v, l]) => <button key={v} onClick={() => ir({ provider: v })} style={pill(provider === v)}>{l}</button>)}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ fontSize: 11, color: "var(--mk-text-muted)", fontWeight: 600 }}>Período</span>

@@ -47,7 +47,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
         <>
           {/* KPIs com delta vs período anterior */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Tokens (total)" valor={nf.format(d.totais.tokens)} delta={d.delta.tokens} icone="ti-coins" cor="#9B7DBF" />
+            <Card titulo="Tokens (total)" valor={nf.format(d.totais.tokens)} delta={d.delta.tokens} icone="ti-coins" cor="#10b981" />
             <Card titulo="Custo estimado" valor={usd(d.totais.custo)} delta={d.delta.custo} icone="ti-cash" cor="#10b981" />
             <Card titulo="Chamadas" valor={nf.format(d.totais.chamadas)} delta={d.delta.chamadas} icone="ti-arrows-exchange" cor="#5B8BA6" />
             <Card titulo="Sucesso" valor={pct(d.totais.sucesso, d.totais.chamadas)} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#10b981" />
@@ -56,7 +56,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
 
           {/* Médias + eficiência */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Média por conversa" valor={`${nf.format(d.medias.porConversa)} tok`} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#9B7DBF" />
+            <Card titulo="Média por conversa" valor={`${nf.format(d.medias.porConversa)} tok`} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#10b981" />
             <Card titulo="Média por ticket" valor={`${nf.format(d.medias.porTicket)} tok`} sub={`${d.medias.tickets} ticket(s)`} icone="ti-ticket" cor="#5B8BA6" />
             <Card titulo="Média por chamada" valor={`${nf.format(d.medias.porRequest)} tok`} icone="ti-arrow-bar-right" cor="#C97064" />
             <Card titulo="Prompt × Resposta" valor={`${d.eficiencia.promptPct}% / ${d.eficiencia.completionPct}%`} sub="entrada / saída" icone="ti-arrows-split" cor="#10b981" />
@@ -82,7 +82,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
             <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 120 }}>
               {d.porDia.map((x) => (
                 <div key={x.dia} title={`${x.dia}: ${nf.format(x.tokens)} tokens`} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
-                  <div style={{ width: "100%", maxWidth: 26, height: `${Math.round((x.tokens / maxDia) * 100)}%`, minHeight: x.tokens ? 2 : 0, background: "linear-gradient(180deg,#9B7DBF,#5B8BA6)", borderRadius: "4px 4px 0 0" }} />
+                  <div style={{ width: "100%", maxWidth: 26, height: `${Math.round((x.tokens / maxDia) * 100)}%`, minHeight: x.tokens ? 2 : 0, background: "linear-gradient(180deg,#10b981,#0d9488)", borderRadius: "4px 4px 0 0" }} />
                   <span style={{ fontSize: 8.5, color: "var(--mk-text-muted)", marginTop: 3, whiteSpace: "nowrap" }}>{x.dia.slice(5)}</span>
                 </div>
               ))}
@@ -176,7 +176,7 @@ function Tabela({ titulo, linhas, total }: { titulo: string; linhas: Array<{ cha
                 <td style={td}>
                   {l.rotulo}
                   <div style={{ height: 4, borderRadius: 3, background: "var(--mk-surface-2)", marginTop: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${total ? Math.round((l.tokens / total) * 100) : 0}%`, background: "#9B7DBF" }} />
+                    <div style={{ height: "100%", width: `${total ? Math.round((l.tokens / total) * 100) : 0}%`, background: "#10b981" }} />
                   </div>
                 </td>
                 <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{nf.format(l.tokens)}</td>

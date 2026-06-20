@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **23:49** — **Análise de IAs: Provedor vira botões + cores verdes do CRM.**
+  - O seletor de **Provedor** (Todos / GroqCloud / OpenAI / Anthropic) agora são **botões** (pills), iguais ao Escopo e Período — clica e filtra na hora. (Antes era dropdown; como todo o uso é Groq, parecia que "não fazia nada" — agora fica óbvio. OpenAI/Anthropic ficam vazios só porque ainda não há uso nesses provedores.)
+  - Trocadas as **cores roxas por verde do CRM** (#10b981) no hub: barras das tabelas, gráfico "Tokens por dia" e cards.
+
 - **22:25** — **Análise de IAs: "Todos os clientes" e "Por tipo de cliente" passam a mostrar o roster completo.**
   - Antes só apareciam clientes/tipos que tinham uso de IA — como só o super-admin usou IA, os botões pareciam "não funcionar". Agora, no modo cross-cliente (super-admin), **semeia TODOS** os clientes (agências), admins e **tipos de cliente** mesmo com **0 uso**, lendo dos acessos.
   - Assim o super-admin vê **todos os tipos de cliente que preencheu** (ex: "Empreendedor"), mesmo sem uso de IA. A tabela "Por Admin / usuário" agora mostra o tipo junto do nome (ex: "Guilherme Paulo · Empreendedor"). Vale também no PDF (mesma fonte).
