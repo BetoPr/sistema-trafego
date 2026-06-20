@@ -22,6 +22,29 @@ const TONS: { v: string; label: string }[] = [
 
 const ETIQUETAS_FOLLOWUP = ["Em follow-up", "Follow-up feito"];
 
+// Ao descartar: por quanto tempo a conversa some da lista (some = cooldown).
+const DESCARTE_OPCOES: { v: string; label: string; horas?: number; nunca?: boolean }[] = [
+  { v: "1h", label: "1 hora", horas: 1 },
+  { v: "6h", label: "6 horas", horas: 6 },
+  { v: "12h", label: "12 horas", horas: 12 },
+  { v: "24h", label: "24 horas", horas: 24 },
+  { v: "3d", label: "3 dias", horas: 72 },
+  { v: "nunca", label: "Não volta", nunca: true },
+];
+
+type FiltroRec = "todos" | "vale" | "nao" | "sem";
+type FiltroFu = "todos" | "0" | "1" | "2" | "3" | "4" | "5+";
+const REC_OPCOES: { v: FiltroRec; label: string; cor: string }[] = [
+  { v: "todos", label: "Todos", cor: "var(--mk-text-muted)" },
+  { v: "vale", label: "Vale follow-up", cor: "#10b981" },
+  { v: "nao", label: "Não recomendado", cor: "#94a3b8" },
+  { v: "sem", label: "Sem análise", cor: "var(--mk-text-muted)" },
+];
+const FU_OPCOES: { v: FiltroFu; label: string }[] = [
+  { v: "todos", label: "Todos" }, { v: "0", label: "0" }, { v: "1", label: "1" },
+  { v: "2", label: "2" }, { v: "3", label: "3" }, { v: "4", label: "4" }, { v: "5+", label: "5+" },
+];
+
 export function FollowUpClient({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Canal[] }) {
   return <FollowUpIA etiquetas={etiquetas} canais={canais} />;
 }
@@ -35,6 +58,11 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
   const [status, setStatus] = useState<StatusFiltro>("ambos");
   const [etiquetaSel, setEtiquetaSel] = useState<string[]>([]);
   const [canalSel, setCanalSel] = useState<string[]>([]);
+  // Filtros em tempo real (client-side, sobre a lista já buscada)
+  const [filtroRec, setFiltroRec] = useState<FiltroRec>("todos");
+  const [filtroFu, setFiltroFu] = useState<FiltroFu>("todos");
+  // Ao descartar: por quanto tempo some (default 12h)
+  const [descarteModo, setDescarteModo] = useState("12h");
   // Limite interno de análises/min — protege contra o teto TPM do GroqCloud.
   // Não exposto na UI (config interna). Ajuste aqui se trocar de plano/modelo.
   const porMinuto = 12;
@@ -71,6 +99,34 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
 
   const naoAnalisados = (cands || []).filter((c) => !c._analisado).length;
   const aprovados = (cands || []).filter((c) => c.enviar && !c._sent && c.mensagem.trim());
+
+  // ---- Filtros em tempo real (sobre a lista buscada) ----
+  const matchFu = (c: Cand): boolean => {
+    if (filtroFu === "todos") return true;
+    if (filtroFu === "5+") return c.followups_enviados >= 5;
+    return c.followups_enviados === Number(filtroFu);
+  };
+  const matchRec = (c: Cand): boolean => {
+    if (filtroRec === "todos") return true;
+    if (filtroRec === "sem") return !c._analisado;
+    if (filtroRec === "vale") return !!c._analisado && c.enviar;
+    return !!c._analisado && !c.enviar; // "nao"
+  };
+  const visiveis = (cands || []).filter((c) => matchFu(c) && matchRec(c));
+
+  const tallyRec = useMemo(() => {
+    const t = { todos: 0, vale: 0, nao: 0, sem: 0 } as Record<FiltroRec, number>;
+    for (const c of cands || []) { t.todos++; if (!c._analisado) t.sem++; else if (c.enviar) t.vale++; else t.nao++; }
+    return t;
+  }, [cands]);
+  const tallyFu = useMemo(() => {
+    const t = { todos: 0, "0": 0, "1": 0, "2": 0, "3": 0, "4": 0, "5+": 0 } as Record<FiltroFu, number>;
+    for (const c of cands || []) { t.todos++; const k = (c.followups_enviados >= 5 ? "5+" : String(c.followups_enviados)) as FiltroFu; t[k] = (t[k] || 0) + 1; }
+    return t;
+  }, [cands]);
+
+  const descOpt = DESCARTE_OPCOES.find((o) => o.v === descarteModo);
+  const descarteOpts = { horas: descOpt?.horas, nunca: descOpt?.nunca };
 
   return (
     <>
@@ -156,9 +212,17 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
               <i className="ti ti-send" /> {enviandoTodos ? "Enviando…" : `Enviar ${aprovados.length} aprovado(s)`}
             </button>
           )}
+          {cands && cands.length > 0 && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--mk-text-muted)", marginLeft: "auto" }} title="Ao descartar uma conversa, por quanto tempo ela some da lista (volta depois, a menos que 'Não volta')">
+              <i className="ti ti-clock-pause" /> Ao descartar, some por
+              <select value={descarteModo} onChange={(e) => setDescarteModo(e.target.value)} style={{ ...inp, width: 120, padding: "5px 8px", fontSize: 11.5 }}>
+                {DESCARTE_OPCOES.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+              </select>
+            </label>
+          )}
           {cands && (
-            <span style={{ fontSize: 12, color: "var(--mk-text)", fontWeight: 600, marginLeft: "auto" }}>
-              <i className="ti ti-message-2" style={{ color: "#9B7DBF" }} /> {cands.length} parada(s){naoAnalisados > 0 ? ` · ${naoAnalisados} sem análise` : " · todas analisadas"}
+            <span style={{ fontSize: 12, color: "var(--mk-text)", fontWeight: 600 }}>
+              <i className="ti ti-message-2" style={{ color: "#9B7DBF" }} /> {visiveis.length === cands.length ? `${cands.length} parada(s)` : `${visiveis.length} de ${cands.length}`}{naoAnalisados > 0 ? ` · ${naoAnalisados} sem análise` : cands.length ? " · todas analisadas" : ""}
             </span>
           )}
         </div>
@@ -171,12 +235,35 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
         {erro && <div style={{ fontSize: 11.5, color: "#C97064" }}>{erro}</div>}
       </div>
 
+      {/* ===== Filtros em tempo real (recomendação + nº de follow-ups) ===== */}
+      {cands && cands.length > 0 && (
+        <div className="mk-card" style={{ padding: "10px 14px", marginBottom: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+          <FiltroLinha
+            label="Recomendação"
+            opcoes={REC_OPCOES.map((o) => ({ v: o.v, label: o.label, n: tallyRec[o.v], cor: o.cor }))}
+            sel={filtroRec} onSel={(v) => setFiltroRec(v as FiltroRec)}
+          />
+          <FiltroLinha
+            label="Follow-ups já enviados"
+            opcoes={FU_OPCOES.map((o) => ({ v: o.v, label: o.label, n: tallyFu[o.v] }))}
+            sel={filtroFu} onSel={(v) => setFiltroFu(v as FiltroFu)}
+          />
+          {(filtroRec !== "todos" || filtroFu !== "todos") && (
+            <button onClick={() => { setFiltroRec("todos"); setFiltroFu("todos"); }} className="ghost-btn" style={{ fontSize: 11, alignSelf: "flex-start" }}>
+              <i className="ti ti-filter-off" /> Limpar filtros
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ===== Lista ===== */}
       {cands === null ? null : cands.length === 0 ? (
         <Empty icon="ti-mood-smile" label="Nenhuma conversa parada nesse período/filtro. Tudo em dia!" />
+      ) : visiveis.length === 0 ? (
+        <Empty icon="ti-filter-off" label="Nenhuma conversa com esse filtro. Ajuste os filtros acima." />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {cands.map((c) => (
+          {visiveis.map((c) => (
             <CardCand
               key={c.ticketId}
               c={c} now={now}
@@ -185,7 +272,7 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
               onRegenerar={(tom) => run.analisarUm(c.ticketId, tom)}
               onGerar={(qual) => run.gerarExtra(c.ticketId, qual, c.tom)}
               onEnviar={() => run.enviar(c)}
-              onDescartar={() => run.descartar(c)}
+              onDescartar={() => run.descartar(c, descarteOpts)}
               onEspiar={() => setEspiar(c)}
               onEtiquetar={() => setEtiquetar(c)}
             />
@@ -293,10 +380,10 @@ function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onGerar, onEnviar,
 function DescartarBtn({ c, onPatch, onDescartar }: { c: Cand; onPatch: (p: Partial<Cand>) => void; onDescartar: () => void }) {
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--mk-text-muted)", cursor: "pointer" }} title="Ao descartar, encerra o ticket. Sem marcar: volta pra busca só após 12h.">
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--mk-text-muted)", cursor: "pointer" }} title="Ao descartar, encerra o ticket de vez. Sem marcar: some pelo tempo escolhido em 'Ao descartar, some por'.">
         <input type="checkbox" checked={c.fecharAoDescartar} onChange={(e) => onPatch({ fecharAoDescartar: e.target.checked })} /> fechar ticket
       </label>
-      <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} disabled={c._busy} onClick={onDescartar} title={c.fecharAoDescartar ? "Descartar e fechar o ticket" : "Descartar (some por 12h)"}>
+      <button className="ghost-btn" style={{ fontSize: 11.5, color: "#C97064" }} disabled={c._busy} onClick={onDescartar} title={c.fecharAoDescartar ? "Descartar e fechar o ticket" : "Descartar (some pelo tempo escolhido acima)"}>
         <i className={`ti ${c._busy ? "ti-loader-2" : c.fecharAoDescartar ? "ti-circle-x" : "ti-x"}`} style={c._busy ? { animation: "fu-spin 1s linear infinite" } : undefined} /> Descartar
       </button>
     </div>
@@ -498,6 +585,36 @@ function Pill({ on, onClick, icon, children }: { on: boolean; onClick: () => voi
 }
 function Empty({ icon, label }: { icon: string; label: string }) {
   return <div className="mk-card" style={{ textAlign: "center", padding: 50, color: "var(--mk-text-muted)" }}><i className={`ti ${icon}`} style={{ display: "block", fontSize: 32, marginBottom: 8, opacity: 0.6 }} />{label}</div>;
+}
+
+/** Linha de filtro: chips clicáveis com badge de contagem (atualiza em tempo real). */
+function FiltroLinha({ label, opcoes, sel, onSel }: {
+  label: string;
+  opcoes: { v: string; label: string; n: number; cor?: string }[];
+  sel: string; onSel: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-muted)", minWidth: 130 }}>{label}</span>
+      {opcoes.map((o) => {
+        const on = sel === o.v;
+        const temCor = !!o.cor && o.cor.startsWith("#");
+        return (
+          <button key={o.v} className="fu-chip" onClick={() => onSel(o.v)} style={{
+            display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+            padding: "5px 10px", borderRadius: 999,
+            border: `1px solid ${on ? (temCor ? o.cor : "var(--mk-accent)") : "var(--mk-border)"}`,
+            background: on ? (temCor ? `${o.cor}22` : "rgba(16,185,129,0.16)") : "var(--mk-surface-2)",
+            color: on ? "var(--mk-text)" : "var(--mk-text-muted)",
+          }}>
+            {temCor && <span style={{ width: 8, height: 8, borderRadius: "50%", background: o.cor }} />}
+            {o.label}
+            <span style={{ fontSize: 10, opacity: 0.9, background: "var(--mk-bg)", borderRadius: 999, padding: "0 6px", minWidth: 16, textAlign: "center" }}>{o.n}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /**

@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **01:43** — **Teste por chave de IA + filtros em tempo real no Follow-up + descarte configurável.**
+  - **Botão "Testar" em cada chave** (Configurações de API → IA): valida uma de cada vez (Groq/OpenAI/Anthropic via `/models`, sem gastar token) e mostra ✓/✗ com a mensagem — dá pra achar logo qual chave está com problema.
+  - **Follow-up — filtros em tempo real** (sobre a lista já buscada, sem rebuscar): por **recomendação** (Vale follow-up / Não recomendado / Sem análise) e por **nº de follow-ups já enviados** (Todos/0/1/2/3/4/5+). Cada filtro mostra a **contagem** ao lado e a lista + o total no topo respeitam o filtro. Assim dá pra esconder quem já recebeu, ou focar só nos recomendados (ou eliminar os não-recomendados).
+  - **Descarte configurável:** seletor **"Ao descartar, some por"** (1h/6h/12h/24h/3 dias/**Não volta**). Antes era fixo em 12h. "Não volta" mantém fora da lista até o cliente mandar mensagem nova. "Fechar ticket" continua encerrando de vez.
+
 - **00:53** — **IA — Fase 2: várias chaves Groq (rotação) + fallback OpenAI + botão "usar OpenAI em tudo".**
   - Nova tabela **`ia_chaves`**: dá pra cadastrar **várias chaves por provider**. Com 3 chaves Groq o sistema reveza entre elas → **~300 mil tokens/dia** (cada chave = ~100k/dia). Chaves antigas migradas automaticamente.
   - **Rotação + fallback automático:** quando uma chave Groq bate o limite (429), pula pra próxima; esgotadas as Groq, **cai pro OpenAI** sozinho (se houver chave). Vale pra **resumo, sentimento, follow-up e transcrição**.

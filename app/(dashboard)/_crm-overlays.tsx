@@ -60,7 +60,7 @@ interface FollowUpRunCtx {
   gerarExtra: (id: string, qual: 2 | 3, tom: string) => Promise<void>;
   enviar: (c: Cand) => Promise<boolean>;
   enviarTodos: (delayMin: number, delayMax: number) => Promise<void>;
-  descartar: (c: Cand) => Promise<void>;
+  descartar: (c: Cand, opts?: { horas?: number; nunca?: boolean }) => Promise<void>;
   pararAnalise: () => void;
 }
 
@@ -203,10 +203,10 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
     setEnviandoTodos(false);
   }, [enviar]);
 
-  const descartar = useCallback(async (c: Cand) => {
+  const descartar = useCallback(async (c: Cand, opts?: { horas?: number; nunca?: boolean }) => {
     patch(c.ticketId, { _busy: true });
     try {
-      const r = await fetch("/api/follow-up/ia/descartar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: c.ticketId, fechar: c.fecharAoDescartar }) });
+      const r = await fetch("/api/follow-up/ia/descartar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: c.ticketId, fechar: c.fecharAoDescartar, horas: opts?.horas, nunca: opts?.nunca }) });
       const j = await r.json();
       if (j.ok) remover(c.ticketId); else patch(c.ticketId, { _busy: false });
     } catch { patch(c.ticketId, { _busy: false }); }

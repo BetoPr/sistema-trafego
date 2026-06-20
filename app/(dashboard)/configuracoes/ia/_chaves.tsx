@@ -32,6 +32,18 @@ export function ChavesManager({
   rotacao?: boolean;
 }) {
   const [aberto, setAberto] = useState(chaves.length === 0);
+  const [testes, setTestes] = useState<Record<string, { loading?: boolean; ok?: boolean; msg?: string }>>({});
+
+  async function testar(id: string) {
+    setTestes((t) => ({ ...t, [id]: { loading: true } }));
+    try {
+      const r = await fetch("/api/ia/testar-chave", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+      const j = await r.json();
+      setTestes((t) => ({ ...t, [id]: { ok: !!j.ok, msg: String(j.msg || (j.ok ? "OK" : "Falhou")) } }));
+    } catch {
+      setTestes((t) => ({ ...t, [id]: { ok: false, msg: "Falha de rede" } }));
+    }
+  }
 
   return (
     <div className="mk-card mk-card-lg" style={{ marginBottom: 14, borderLeft: cor ? `3px solid ${cor}` : undefined }}>
@@ -50,26 +62,39 @@ export function ChavesManager({
         </p>
       )}
 
-      {/* Lista de chaves */}
+      {/* Lista de chaves — cada uma com teste individual */}
       {chaves.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-          {chaves.map((c, i) => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "var(--mk-surface-2)", borderRadius: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: cor || "var(--mk-accent)", minWidth: 18 }}>#{i + 1}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, color: "var(--mk-text)", fontWeight: 600 }}>{c.rotulo || `Chave ${i + 1}`}</div>
-                <div style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
-                  •••••••••• · add {new Date(c.criado_em).toLocaleDateString("pt-BR")}
+          {chaves.map((c, i) => {
+            const t = testes[c.id];
+            return (
+              <div key={c.id} style={{ background: "var(--mk-surface-2)", borderRadius: 8, padding: "8px 10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: cor || "var(--mk-accent)", minWidth: 18 }}>#{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, color: "var(--mk-text)", fontWeight: 600 }}>{c.rotulo || `Chave ${i + 1}`}</div>
+                    <div style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
+                      •••••••••• · add {new Date(c.criado_em).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => testar(c.id)} disabled={t?.loading} className="ghost-btn" style={{ fontSize: 11, padding: "4px 9px" }} title="Testar só esta chave">
+                    <i className="ti ti-plug-connected" /> {t?.loading ? "Testando…" : "Testar"}
+                  </button>
+                  <form action={removerChaveIA} onSubmit={(e) => { if (!confirm(`Remover "${c.rotulo || `Chave ${i + 1}`}"? Essa chave deixa de ser usada.`)) e.preventDefault(); }}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <button type="submit" className="ghost-btn" style={{ fontSize: 11, color: "#C97064", padding: "4px 8px" }} title="Remover">
+                      <i className="ti ti-trash" />
+                    </button>
+                  </form>
                 </div>
+                {t && !t.loading && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: t.ok ? "#10b981" : "#C97064", display: "flex", alignItems: "center", gap: 5 }}>
+                    <i className={`ti ${t.ok ? "ti-circle-check" : "ti-alert-triangle"}`} /> {t.msg}
+                  </div>
+                )}
               </div>
-              <form action={removerChaveIA} onSubmit={(e) => { if (!confirm(`Remover "${c.rotulo || `Chave ${i + 1}`}"? Essa chave deixa de ser usada.`)) e.preventDefault(); }}>
-                <input type="hidden" name="id" value={c.id} />
-                <button type="submit" className="ghost-btn" style={{ fontSize: 11, color: "#C97064", padding: "4px 8px" }} title="Remover">
-                  <i className="ti ti-trash" />
-                </button>
-              </form>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
