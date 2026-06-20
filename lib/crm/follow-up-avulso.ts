@@ -17,6 +17,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText } from "@/lib/uazapi/client";
+import { automacaoExcedeuTeto } from "@/lib/crm/anti-flood";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -112,6 +113,13 @@ export async function processarFollowUpsAvulsosDevidos(limite = 25): Promise<Fol
           res.respondidos++;
           continue;
         }
+      }
+
+      // Rede de segurança anti-flood: não envia se o ticket já recebeu msgs automáticas demais.
+      if (await automacaoExcedeuTeto(sb, fua.ticket_id, fua.agencia_id)) {
+        await marcar("falha", "teto anti-flood (msgs automáticas/24h) atingido");
+        res.falhas++;
+        continue;
       }
 
       if (!canal || canal.status !== "connected" || !canal.instance_token_encrypted) {

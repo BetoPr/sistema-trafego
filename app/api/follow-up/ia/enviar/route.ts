@@ -64,7 +64,8 @@ export async function POST(req: Request) {
         conteudo: partes[i],
         wa_message_id: wamid || null,
         status: "enviada",
-        metadata: { follow_up_ia: true },
+        // Só a 1ª parte conta como follow-up (dividir-em-2 = 1 follow-up lógico, não 2).
+        metadata: i === 0 ? { follow_up_ia: true } : { follow_up_ia_continuacao: true },
       })
       .select("id")
       .single();

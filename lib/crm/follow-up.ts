@@ -13,6 +13,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { getSignedUrl } from "@/lib/crm/storage";
+import { automacaoExcedeuTeto } from "@/lib/crm/anti-flood";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -142,6 +143,16 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
     .limit(limite);
 
   for (const insc of devidos || []) {
+    // CLAIM ATÔMICO: flipa ativo -> processando ANTES de qualquer envio. Se 0 linhas,
+    // outro cron já pegou (ou status mudou). Evita o reenvio em loop por timeout.
+    const { data: claim } = await sb
+      .from("follow_up_inscricoes")
+      .update({ status: "processando", atualizado_em: new Date().toISOString() })
+      .eq("id", insc.id)
+      .eq("status", "ativo")
+      .select("id");
+    if (!claim || claim.length === 0) continue;
+
     res.processados++;
     const seq = (Array.isArray(insc.sequencia) ? insc.sequencia[0] : insc.sequencia) as
       | { ativo: boolean; delay_min_seg: number; delay_max_seg: number; janela_inicio: string; janela_fim: string; teto_dia: number }
@@ -152,7 +163,7 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
       | null;
 
     const reagendar = async (mins: number) => {
-      await sb.from("follow_up_inscricoes").update({ proximo_envio_em: new Date(agora.getTime() + mins * 60000).toISOString(), atualizado_em: agora.toISOString() }).eq("id", insc.id);
+      await sb.from("follow_up_inscricoes").update({ status: "ativo", proximo_envio_em: new Date(agora.getTime() + mins * 60000).toISOString(), atualizado_em: agora.toISOString() }).eq("id", insc.id);
       res.reagendados++;
     };
     const encerrar = async (status: string, motivo: string) => {
@@ -179,6 +190,13 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
         .gt("created_at", insc.criado_em)
         .limit(1);
       if (respondeu && respondeu.length) { await encerrar("respondido", "cliente respondeu"); res.respondidos++; continue; }
+
+      // Rede de segurança anti-flood: pausa se o ticket já recebeu msgs automáticas demais (24h).
+      if (await automacaoExcedeuTeto(sb, insc.ticket_id, insc.agencia_id)) {
+        await encerrar("pausado", "teto anti-flood (msgs automáticas/24h) atingido");
+        res.falhas++;
+        continue;
+      }
 
       // Teto/dia por agência
       const inicioDia = new Date(agora); inicioDia.setHours(0, 0, 0, 0);
@@ -264,6 +282,7 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
         .maybeSingle();
       if (prox) {
         await sb.from("follow_up_inscricoes").update({
+          status: "ativo",
           etapa_atual: insc.etapa_atual + 1,
           proximo_envio_em: new Date(agora.getTime() + Number(prox.apos_horas) * 3600000).toISOString(),
           atualizado_em: agora.toISOString(),
@@ -275,8 +294,8 @@ export async function processarFollowUpsDevidos(limite = 25): Promise<FollowUpRe
     } catch (e) {
       res.falhas++;
       await sb.from("follow_up_envios").insert({ agencia_id: insc.agencia_id, inscricao_id: insc.id, status: "falha", erro: e instanceof Error ? e.message : String(e) });
-      // retry em 30min
-      await sb.from("follow_up_inscricoes").update({ proximo_envio_em: new Date(agora.getTime() + 30 * 60000).toISOString(), atualizado_em: agora.toISOString() }).eq("id", insc.id);
+      // retry em 30min (volta a 'ativo' — saiu de 'processando' pelo claim)
+      await sb.from("follow_up_inscricoes").update({ status: "ativo", proximo_envio_em: new Date(agora.getTime() + 30 * 60000).toISOString(), atualizado_em: agora.toISOString() }).eq("id", insc.id);
     }
   }
 

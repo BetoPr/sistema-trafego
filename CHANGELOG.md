@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **17:18** — **Blindagem sistêmica anti-reenvio (depois do incidente do avulso).**
+  - **Auditei todos os workers que enviam WhatsApp por cron.** Achei o **mesmo bug** em `lib/crm/follow-up.ts` (sequências por etiqueta-gatilho, cron 1×/min ativo): enviava a etapa e só depois avançava `proximo_envio_em` → timeout reenviaria a etapa em loop. **Corrigido com claim atômico** (`ativo → processando` antes de enviar; todos os caminhos resetam o status; migration `fui_status_processando`). Hoje tinha 0 inscrições, então nunca chegou a estourar — mas era bomba latente.
+  - `lib/ia-atendimento/followup-worker.ts` (follow-up da IA de atendimento) **já era seguro** (claim atômico via `UPDATE…RETURNING`). `lib/super-admin/cobrancas.ts` é **idempotente por mês** (cron diário) — baixo risco.
+  - **Rede de segurança permanente (`lib/crm/anti-flood.ts`):** antes de QUALQUER envio automático de follow-up, conta as mensagens automáticas já enviadas ao ticket nas últimas 24h; acima de **10**, pula. Limita o estrago de qualquer reenvio futuro, mesmo que escape do claim. Aplicado nos 2 workers de follow-up.
+  - **Contagem de follow-up corrigida:** "dividir em 2" marcava as 2 partes como follow-up → o card mostrava "2" pra 1 follow-up. Agora só a 1ª parte conta (1 follow-up lógico = 1 na contagem).
+
 - **17:09** — **🔴 FIX CRÍTICO — follow-up avulso reenviando em loop (cliente recebeu 12 msgs).**
   - **Causa:** o worker (`lib/crm/follow-up-avulso.ts`) enviava as mensagens e **só depois** marcava `enviado`. Com envio lento (UAZAPI), a função serverless estourava o `maxDuration` (60s) **antes** de marcar → a linha ficava `agendado` → o cron (1×/min) reprocessava e **reenviava a mesma mensagem em loop**. 1 contato (final 8320) recebeu 12 mensagens.
   - **Correção:** **claim atômico** — o worker move a linha `agendado → enviando` num UPDATE rápido **antes** de enviar; só processa quem conseguiu claimar. Se o envio depois falhar/timeoutar, a linha já saiu de `agendado` e **nunca é reprocessada**. `marcar()` agora nunca lança (erro só loga, não aborta o lote). Novo status `enviando` no CHECK (migration `fua_status_enviando`).
