@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **22:25** — **Análise de IAs: "Todos os clientes" e "Por tipo de cliente" passam a mostrar o roster completo.**
+  - Antes só apareciam clientes/tipos que tinham uso de IA — como só o super-admin usou IA, os botões pareciam "não funcionar". Agora, no modo cross-cliente (super-admin), **semeia TODOS** os clientes (agências), admins e **tipos de cliente** mesmo com **0 uso**, lendo dos acessos.
+  - Assim o super-admin vê **todos os tipos de cliente que preencheu** (ex: "Empreendedor"), mesmo sem uso de IA. A tabela "Por Admin / usuário" agora mostra o tipo junto do nome (ex: "Guilherme Paulo · Empreendedor"). Vale também no PDF (mesma fonte).
+  - Confirmado: a visão cross-cliente continua **exclusiva do super-admin**.
+
 - **18:11** — **Horário comercial + almoço no Follow-up (não envia fora do expediente).**
   - **Header do Follow-up com IA** (canto direito): 2 dropdowns de **horário comercial** (início × fim) + checkbox **"Horário de almoço"** que revela 2 dropdowns (início × volta). Salva por agência em `configuracoes_agencia.ia.followup_janela`. Componente `_janela-comercial.tsx` + action `salvarJanelaComercial`.
   - **Worker** (`lib/crm/janela-comercial.ts` + avulso): se o follow-up agendado cair **fora do comercial** ou **dentro do almoço**, **não envia — adia** (reagenda) pro próximo instante válido: antes de abrir → na abertura de hoje; no almoço → na volta; depois de fechar → abertura de amanhã. Fuso SP. Sem janela configurada = envia a qualquer hora (compatível com o atual).

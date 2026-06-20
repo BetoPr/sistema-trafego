@@ -91,7 +91,7 @@ export async function agregarUso(f: FiltroUso): Promise<UsoAgregado> {
   const rowsAnt = todasRows.filter((r) => r.criado_em < desde);
 
   // Mapas auxiliares (usuários + agências).
-  const uq = sb.from("usuarios").select("id, nome, agencia_id, tipo_cliente");
+  const uq = sb.from("usuarios").select("id, nome, agencia_id, tipo_cliente, role");
   const { data: us } = await (crossCliente ? uq : uq.eq("agencia_id", f.agenciaId));
   const userInfo = new Map((us || []).map((u) => [u.id as string, { nome: (u.nome as string) || "Usuário", tipo: (u.tipo_cliente as string) || null }]));
   const agq = sb.from("agencias").select("id, nome");
@@ -127,7 +127,10 @@ export async function agregarUso(f: FiltroUso): Promise<UsoAgregado> {
     bump(prov, r.provider, r.provider, tok, custo);
     bump(modelo, r.modelo, r.modelo, tok, custo);
     const uInfo = r.usuario_id ? userInfo.get(r.usuario_id) : null;
-    bump(usr, r.usuario_id || "_ia", uInfo?.nome || (r.usuario_id ? "Usuário" : "IA / automático"), tok, custo);
+    const rotuloUsr = r.usuario_id
+      ? (uInfo?.nome || "Usuário") + (crossCliente && uInfo?.tipo ? ` · ${uInfo.tipo}` : "")
+      : "IA / automático";
+    bump(usr, r.usuario_id || "_ia", rotuloUsr, tok, custo);
     bump(cli, r.agencia_id, nomeAgencia.get(r.agencia_id) || "Cliente", tok, custo);
     bump(tipo, uInfo?.tipo || "_sem", uInfo?.tipo || "(sem tipo / IA)", tok, custo);
 
@@ -136,6 +139,21 @@ export async function agregarUso(f: FiltroUso): Promise<UsoAgregado> {
     if (r.contato_id) contatos.add(r.contato_id);
     if (r.ticket_id) tickets.add(r.ticket_id);
     if (r.provider === "groq" && TAREFAS_CHAT.has(r.tarefa) && d === hoje) chatGroqHoje += tok;
+  }
+
+  // Cross-cliente (super-admin): semeia TODOS os clientes/admins/tipos, mesmo com 0 uso de IA,
+  // pra o roster aparecer completo (ex: tipos de cliente que o super-admin preencheu nos acessos).
+  if (crossCliente) {
+    for (const [aid, nome] of nomeAgencia) {
+      if (!cli.has(aid)) cli.set(aid, { chave: aid, rotulo: nome, tokens: 0, custo: 0, chamadas: 0 });
+    }
+    for (const u of (us || []) as Array<{ id: string; nome: string | null; tipo_cliente: string | null; role: string | null }>) {
+      const t = (u.tipo_cliente || "").trim();
+      if (t && !tipo.has(t)) tipo.set(t, { chave: t, rotulo: t, tokens: 0, custo: 0, chamadas: 0 });
+      if ((u.role === "admin" || u.role === "super_admin") && !usr.has(u.id)) {
+        usr.set(u.id, { chave: u.id, rotulo: (u.nome || "Usuário") + (t ? ` · ${t}` : ""), tokens: 0, custo: 0, chamadas: 0 });
+      }
+    }
   }
 
   // Totais da janela anterior (delta).
