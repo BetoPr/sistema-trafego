@@ -32,6 +32,31 @@ export interface SequenciaInput {
   etapas: EtapaInput[];
 }
 
+/** Salva a janela de horário comercial (+ almoço) do follow-up, em configuracoes_agencia.ia. */
+export async function salvarJanelaComercial(formData: FormData) {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+  const hhmm = (k: string, d: string) => {
+    const s = String(formData.get(k) || "").trim();
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : d;
+  };
+  const janela = {
+    inicio: hhmm("inicio", "08:00"),
+    fim: hhmm("fim", "18:00"),
+    almoco_ativo: ["on", "true", "1"].includes(String(formData.get("almoco_ativo") || "").toLowerCase()),
+    almoco_inicio: hhmm("almoco_inicio", "12:00"),
+    almoco_fim: hhmm("almoco_fim", "13:00"),
+  };
+
+  const { data } = await sb.from("configuracoes_agencia").select("id, ia").eq("agencia_id", ctx.agenciaId).maybeSingle();
+  const ia = { ...((data?.ia as Record<string, unknown> | null) ?? {}), followup_janela: janela };
+  if (data?.id) await sb.from("configuracoes_agencia").update({ ia, updated_at: new Date().toISOString() }).eq("id", data.id);
+  else await sb.from("configuracoes_agencia").insert({ agencia_id: ctx.agenciaId, ia });
+
+  void audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "config_change", entidade: "follow_up_janela", payload: janela });
+  return { ok: true };
+}
+
 export async function salvarSequencia(data: SequenciaInput) {
   const ctx = await requireAdmin();
   const sb = createServiceClient();

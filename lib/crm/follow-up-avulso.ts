@@ -18,8 +18,22 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { instanceSendText } from "@/lib/uazapi/client";
 import { automacaoExcedeuTeto, clienteFoiOUltimoAResponder } from "@/lib/crm/anti-flood";
+import { parseJanela, proximoEnvioValido, type JanelaComercial } from "@/lib/crm/janela-comercial";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Janela comercial da agência (cache por execução do worker). */
+async function getJanela(
+  sb: ReturnType<typeof createServiceClient>,
+  agenciaId: string,
+  cache: Map<string, JanelaComercial | null>,
+): Promise<JanelaComercial | null> {
+  if (cache.has(agenciaId)) return cache.get(agenciaId) ?? null;
+  const { data } = await sb.from("configuracoes_agencia").select("ia").eq("agencia_id", agenciaId).maybeSingle();
+  const j = parseJanela(data?.ia);
+  cache.set(agenciaId, j);
+  return j;
+}
 
 interface MsgAvulsa {
   texto: string;
@@ -31,12 +45,14 @@ export interface FollowUpAvulsoResultado {
   respondidos: number;
   falhas: number;
   pulados: number;
+  adiados: number;
 }
 
 export async function processarFollowUpsAvulsosDevidos(limite = 25): Promise<FollowUpAvulsoResultado> {
   const sb = createServiceClient();
   const agora = new Date();
-  const res: FollowUpAvulsoResultado = { processados: 0, enviados: 0, respondidos: 0, falhas: 0, pulados: 0 };
+  const res: FollowUpAvulsoResultado = { processados: 0, enviados: 0, respondidos: 0, falhas: 0, pulados: 0, adiados: 0 };
+  const janelaCache = new Map<string, JanelaComercial | null>();
 
   const { data: devidos, error: selErr } = await sb
     .from("follow_up_avulsos")
@@ -99,6 +115,15 @@ export async function processarFollowUpsAvulsosDevidos(limite = 25): Promise<Fol
       | null;
 
     try {
+      // Janela comercial: fora do horário comercial/almoço → ADIA (reagenda, não envia)
+      const janela = await getJanela(sb, fua.agencia_id, janelaCache);
+      const proximo = proximoEnvioValido(janela, agora);
+      if (proximo) {
+        await sb.from("follow_up_avulsos").update({ status: "agendado", agenda_em: proximo.toISOString(), atualizado_em: new Date().toISOString() }).eq("id", fua.id);
+        res.adiados++;
+        continue;
+      }
+
       // Opt-out: cliente respondeu desde o agendamento → cancela (não envia)
       if (fua.ticket_id) {
         const { data: respondeu } = await sb

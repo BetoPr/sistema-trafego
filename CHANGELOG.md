@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-20
 
+- **18:11** — **Horário comercial + almoço no Follow-up (não envia fora do expediente).**
+  - **Header do Follow-up com IA** (canto direito): 2 dropdowns de **horário comercial** (início × fim) + checkbox **"Horário de almoço"** que revela 2 dropdowns (início × volta). Salva por agência em `configuracoes_agencia.ia.followup_janela`. Componente `_janela-comercial.tsx` + action `salvarJanelaComercial`.
+  - **Worker** (`lib/crm/janela-comercial.ts` + avulso): se o follow-up agendado cair **fora do comercial** ou **dentro do almoço**, **não envia — adia** (reagenda) pro próximo instante válido: antes de abrir → na abertura de hoje; no almoço → na volta; depois de fechar → abertura de amanhã. Fuso SP. Sem janela configurada = envia a qualquer hora (compatível com o atual).
+  - Ex.: comercial 08:00–18:00, almoço 12:00→13:00. Follow-up que cairia 12:30 sai às 13:00; o que cairia 22:00 sai amanhã 08:00.
+
 - **17:53** — **Regra: contato que já interagiu não recebe follow-up.**
   - Se a **última mensagem do ticket for do cliente** (ele respondeu / está aguardando atendimento), o follow-up **não é enviado**. Vale pros 2 workers (avulso + sequências, status `respondido`) e pro **envio imediato** (rota retorna 409 "cliente já interagiu"). Helper `clienteFoiOUltimoAResponder` em `lib/crm/anti-flood.ts`.
   - Complementa o opt-out que já existia (cancelava se o cliente respondesse depois do agendamento) — agora cobre também quem já estava com a bola do nosso lado.
