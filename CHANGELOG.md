@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **03:39** — **Pixel & Vendas (build 1): fix do `ctwa_clid` + migration `capi_eventos`.**
+  - Corrigida a chave do click-id na conciliação (`ctwa_clid` → `ctwaClid`, camelCase) — a atribuição por CTWA voltou a casar (estava falhando calada). `lib/meta-ads/conciliar.ts`.
+  - Migration `capi_eventos` (ledger dos eventos enviados ao Meta) + colunas `pixel_id`/`pixel_nome` em `integracoes`. Aplicada em produção via MCP.
+
 - **03:06** — **Plano de implementação do "Pixel & Vendas" escrito.**
   - Plano detalhado (11 tasks, com código real) em `docs/superpowers/plans/2026-06-20-pixel-e-vendas.md`. Ainda **sem código de produção**. Cobre: parquear os 9 itens, fix do bug `ctwa_clid` (camelCase), migration `capi_eventos` + pixel no `integracoes`, cliente CAPI (`enviarPurchase`), worker com **claim atômico + reaper**, cron, hook no Fechamento (`after()`), OAuth `ads_management` + descoberta de pixel, painel KPIs + tabela campanha→conjunto + feed + conectar.
 

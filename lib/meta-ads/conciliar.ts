@@ -47,13 +47,14 @@ async function buscarContatoPorTelefoneOuCtwa(
   telefoneNorm: string | null,
   ctwaClid: string | null,
 ): Promise<MatchContato | null> {
-  // Match por ctwa_clid via mensagens.metadata.ad_referral.ctwa_clid
+  // Match por ctwa_clid via mensagens.metadata.ad_referral.ctwaClid
+  // (o parser grava a chave em camelCase — ver webhook-parser.ts).
   if (ctwaClid) {
     const { data: msg } = await sb
       .from("mensagens")
       .select("ticket_id, tickets!inner(contato_id, agencia_id)")
       .eq("agencia_id", agenciaId)
-      .filter("metadata->ad_referral->>ctwa_clid", "eq", ctwaClid)
+      .filter("metadata->ad_referral->>ctwaClid", "eq", ctwaClid)
       .limit(1)
       .maybeSingle<{ tickets: { contato_id: string; agencia_id: string } }>();
     if (msg?.tickets?.contato_id) {
