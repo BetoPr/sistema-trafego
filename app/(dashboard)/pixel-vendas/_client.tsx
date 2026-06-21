@@ -4,6 +4,13 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Balao } from "@/components/ui/Balao";
 import type { LinhaCampanha, EventoRow, ClientePixel, Saude, Onboarding } from "./page";
+import { salvarConfigEventos } from "./_eventos-actions";
+
+interface EventosConfigShape {
+  addtocart_ativo: boolean;
+  addtocart_palavras: string[];
+  lead_ativo: boolean;
+}
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PERIODOS: [string, string][] = [["7d", "7 dias"], ["14d", "14 dias"], ["30d", "30 dias"], ["90d", "90 dias"]];
@@ -25,9 +32,9 @@ const inp: React.CSSProperties = {
 interface Kpis { gasto: number; bruto: number; liquido: number; roas: number | null; matchClid: number; vendas: number }
 
 export function PixelVendasClient({
-  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel, saude, onboarding,
+  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel, saude, onboarding, eventosConfig,
 }: {
-  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude; onboarding: Onboarding;
+  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude; onboarding: Onboarding; eventosConfig: EventosConfigShape;
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
@@ -122,6 +129,8 @@ export function PixelVendasClient({
         ))}
       </div>
 
+      <CardEventosAutomaticos config={eventosConfig} />
+
       <DiagEvento evento={diagEvento} onClose={() => setDiagEvento(null)} />
     </div>
   );
@@ -202,6 +211,92 @@ function diagnosticar(e: EventoRow): PassoDiag[] {
   });
 
   return passos;
+}
+
+function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
+  const [leadAtivo, setLeadAtivo] = useState(config.lead_ativo);
+  const [addAtivo, setAddAtivo] = useState(config.addtocart_ativo);
+  const [palavras, setPalavras] = useState<string[]>(config.addtocart_palavras);
+  const [nova, setNova] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  function adicionar() {
+    const p = nova.trim().toLowerCase();
+    if (!p) return;
+    if (palavras.includes(p)) { setNova(""); return; }
+    setPalavras([...palavras, p]);
+    setNova("");
+  }
+  function remover(p: string) {
+    setPalavras(palavras.filter((x) => x !== p));
+  }
+  async function salvar() {
+    setSalvando(true);
+    try {
+      const fd = new FormData();
+      fd.set("palavras", palavras.join(","));
+      fd.set("lead_ativo", leadAtivo ? "1" : "0");
+      fd.set("addtocart_ativo", addAtivo ? "1" : "0");
+      const r = await salvarConfigEventos(fd);
+      if (!r.ok) alert(r.error || "Erro ao salvar");
+    } finally { setSalvando(false); }
+  }
+
+  return (
+    <div className="mk-card" style={{ padding: 16, marginTop: 16, borderRadius: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <i className="ti ti-target-arrow" style={{ fontSize: 16, color: "var(--mk-accent)" }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--mk-text)" }}>Eventos automáticos pro Meta</span>
+      </div>
+
+      <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+        Manda eventos extras pro Meta otimizar os anúncios pra perfis mais quentes — sem você fazer nada manual.
+      </p>
+
+      {/* Lead toggle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 8 }}>
+        <input type="checkbox" checked={leadAtivo} onChange={(e) => setLeadAtivo(e.target.checked)} id="cap_lead" />
+        <label htmlFor="cap_lead" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
+          <b>Lead</b> — manda quando contato envia 1ª mensagem com click-id de anúncio (contato chegou)
+        </label>
+      </div>
+
+      {/* AddToCart toggle + palavras */}
+      <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <input type="checkbox" checked={addAtivo} onChange={(e) => setAddAtivo(e.target.checked)} id="cap_atc" />
+          <label htmlFor="cap_atc" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
+            <b>AddToCart</b> — manda quando mensagem do cliente bate uma das palavras abaixo (demonstrou intenção)
+          </label>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8, paddingLeft: 24 }}>
+          {palavras.map((p) => (
+            <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 8px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 6, fontSize: 11 }}>
+              {p}
+              <button type="button" onClick={() => remover(p)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--mk-text-muted)", padding: 0, fontSize: 13, lineHeight: 1 }} aria-label={`Remover ${p}`}>×</button>
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, paddingLeft: 24 }}>
+          <input
+            type="text"
+            value={nova}
+            onChange={(e) => setNova(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionar(); } }}
+            placeholder="Adicionar palavra-chave (Enter)"
+            style={{ flex: 1, padding: "5px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", color: "var(--mk-text)", fontSize: 11.5 }}
+          />
+          <button type="button" onClick={adicionar} disabled={!nova.trim()} className="ghost-btn" style={{ fontSize: 11 }}>+ Adicionar</button>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={salvar} disabled={salvando} className="ghost-btn" style={{ fontSize: 11.5 }}>
+          {salvando ? "Salvando…" : "Salvar configuração"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function DiagEvento({ evento, onClose }: { evento: EventoRow | null; onClose: () => void }) {

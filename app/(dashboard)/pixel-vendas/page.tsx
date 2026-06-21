@@ -239,6 +239,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     tudoPronto: passos.length > 0 && passos.every((p) => p.pixel_id && p.temVenda),
   };
 
+  // Config de eventos automáticos (Lead/AddToCart)
+  const { getCapiConfig } = await import("@/lib/crm/capi-palavras");
+  const eventosConfig = await getCapiConfig(ctx.agenciaId);
+
   // Banner de saúde (só token + eventos com erro — pixel pendente vai pro Onboarding)
   const agora = Date.now();
   const saude: Saude = {
@@ -283,6 +287,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       clientesPixel={clientesPixel}
       saude={saude}
       onboarding={onboarding}
+      eventosConfig={eventosConfig}
     />
   );
 }

@@ -201,6 +201,27 @@ export async function ingestMensagem(
     throw msgErr;
   }
 
+  // 3a-bis. CAPI Lead/AddToCart automaticos — so em mensagem recebida do cliente.
+  if (autor === "cliente" && m.conteudo) {
+    void (async () => {
+      try {
+        const { enfileirarLead, enfileirarAddToCart } = await import("@/lib/crm/capi-eventos");
+        const { getCapiConfig, matchPalavraChave } = await import("@/lib/crm/capi-palavras");
+        const cfg = await getCapiConfig(ctx.agenciaId);
+        // Lead: sempre tenta — a propria fn faz dedup por contato e ignora se nao tem ctwa_clid.
+        if (cfg.lead_ativo) {
+          await enfileirarLead({ agenciaId: ctx.agenciaId, contatoId });
+        }
+        // AddToCart: so se palavra-chave bater.
+        if (cfg.addtocart_ativo && matchPalavraChave(m.conteudo!, cfg.addtocart_palavras)) {
+          await enfileirarAddToCart({ agenciaId: ctx.agenciaId, ticketId, contatoId });
+        }
+      } catch (e) {
+        console.error("[ingest] CAPI auto falhou:", e instanceof Error ? e.message : String(e));
+      }
+    })();
+  }
+
   // 3b. Etiquetas por palavra-chave gatilho — só em mensagem recebida do cliente.
   // Se a palavra configurada aparece no texto, aplica a etiqueta no contato.
   // Quando aplica pela 1ª vez E a etiqueta tem mensagem_resposta, dispara

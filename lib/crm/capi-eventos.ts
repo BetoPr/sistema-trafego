@@ -183,6 +183,92 @@ export async function cancelarPurchasePorFechamento(ticketId: string): Promise<v
   });
 }
 
+/**
+ * Lead automatico — 1a vez que um contato manda mensagem com ctwa_clid.
+ * Dedup por event_id=lead:contato:{contatoId} (1 unico Lead pra sempre).
+ * Nunca lanca.
+ */
+export async function enfileirarLead(args: {
+  agenciaId: string; contatoId: string;
+}): Promise<void> {
+  const sb = createServiceClient();
+  const eventId = `lead:contato:${args.contatoId}`;
+  const { data: existe } = await sb
+    .from("capi_eventos")
+    .select("id")
+    .eq("agencia_id", args.agenciaId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (existe) return;
+
+  const atrib = await acharAtribuicao(sb, args.agenciaId, args.contatoId);
+  if (!atrib?.ctwaClid) return; // Sem clid nao tem o que mandar
+  const anr = atrib.sourceId ? await resolverAnuncio(sb, args.agenciaId, atrib.sourceId) : null;
+
+  await sb.from("capi_eventos").insert({
+    agencia_id: args.agenciaId,
+    cliente_id: anr?.clienteId ?? null,
+    integracao_id: anr?.integracaoId ?? null,
+    pixel_id: null,
+    ticket_id: null,
+    contato_id: args.contatoId,
+    event_id: eventId,
+    event_name: "Lead",
+    valor: 0,
+    moeda: "BRL",
+    ctwa_clid: atrib.ctwaClid,
+    source_id: atrib.sourceId,
+    anuncio_id: anr?.anuncioId ?? null,
+    conjunto_id: anr?.conjuntoId ?? null,
+    campanha_id: anr?.campanhaId ?? null,
+    status: anr ? "pendente" : "sem_atribuicao",
+    tentativas: 0,
+  });
+}
+
+/**
+ * AddToCart — cliente perguntou preco/valor (matched palavras-chave configuradas).
+ * Dedup por dia: 1 AddToCart por contato por dia (evita spam).
+ * Nunca lanca.
+ */
+export async function enfileirarAddToCart(args: {
+  agenciaId: string; ticketId: string; contatoId: string;
+}): Promise<void> {
+  const sb = createServiceClient();
+  const hoje = new Date().toISOString().slice(0, 10);
+  const eventId = `atc:contato:${args.contatoId}:${hoje}`;
+  const { data: existe } = await sb
+    .from("capi_eventos")
+    .select("id")
+    .eq("agencia_id", args.agenciaId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (existe) return;
+
+  const atrib = await acharAtribuicao(sb, args.agenciaId, args.contatoId);
+  const anr = atrib?.sourceId ? await resolverAnuncio(sb, args.agenciaId, atrib.sourceId) : null;
+
+  await sb.from("capi_eventos").insert({
+    agencia_id: args.agenciaId,
+    cliente_id: anr?.clienteId ?? null,
+    integracao_id: anr?.integracaoId ?? null,
+    pixel_id: null,
+    ticket_id: args.ticketId,
+    contato_id: args.contatoId,
+    event_id: eventId,
+    event_name: "AddToCart",
+    valor: 0,
+    moeda: "BRL",
+    ctwa_clid: atrib?.ctwaClid ?? null,
+    source_id: atrib?.sourceId ?? null,
+    anuncio_id: anr?.anuncioId ?? null,
+    conjunto_id: anr?.conjuntoId ?? null,
+    campanha_id: anr?.campanhaId ?? null,
+    status: anr ? "pendente" : "sem_atribuicao",
+    tentativas: 0,
+  });
+}
+
 export interface ProcessamentoResult {
   processados: number;
   enviados: number;

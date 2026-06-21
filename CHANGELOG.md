@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **22:12** — **Pixel & Vendas (refino #3): Lead + AddToCart automáticos.**
+  - **Lead** dispara na 1ª mensagem do contato com `ctwa_clid` (chegou). Dedup 1 vez/contato pra sempre.
+  - **AddToCart** dispara quando msg do cliente bate palavra-chave da lista editável (default: preço, quanto, valor, pix, pacote, cobrança, orçamento). Dedup 1/contato/dia.
+  - **UI no Pixel & Vendas**: card "Eventos automáticos pro Meta" com 2 toggles + chips editáveis das palavras (adiciona/remove + salvar). Salvo em `configuracoes_agencia.ia.capi`.
+  - Combinação: **Lead** (chegou) + **AddToCart** (perguntou preço) + **Purchase** (Fechamento). Meta otimiza muito melhor com 3 sinais.
+
 - **18:20** — **CAPI: ao excluir um Fechamento, cancela e estorna no Meta.**
   - Quando você exclui um Fechamento (rota DELETE), o `capi_eventos` original é marcado como `cancelado` E um evento **Refund** é enfileirado pro Meta (se o Purchase original já tinha sido enviado). Dedup por `event_id=refund:fechamento:{ticket_id}` — reexcluir não duplica.
   - `enviarPurchase` ganhou `eventName` customizável; worker lê `event_name` do banco. Mesma rota CAPI serve Purchase/Refund/Lead/AddToCart no futuro.
