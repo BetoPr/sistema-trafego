@@ -42,7 +42,7 @@ export async function kpiResumo(
 
   const { data: metricas, error: errMet } = await supabase
     .from("metricas_diarias")
-    .select("gasto, receita, leads, conversoes, impressoes, cliques")
+    .select("gasto, leads, conversoes, impressoes, cliques")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim);
@@ -50,19 +50,31 @@ export async function kpiResumo(
   if (errMet) throw new Error(`kpiResumo metricas: ${errMet.message}`);
 
   let investido = 0;
-  let faturamento = 0;
   let leads = 0;
   let conversoes = 0;
   let impressoes = 0;
   let cliques = 0;
   for (const m of metricas || []) {
     investido += Number(m.gasto) || 0;
-    faturamento += Number(m.receita) || 0;
     leads += Number(m.leads) || 0;
     conversoes += Number(m.conversoes) || 0;
     impressoes += Number(m.impressoes) || 0;
     cliques += Number(m.cliques) || 0;
   }
+
+  // Faturamento = soma dos fechamentos do CRM no período.
+  // (metricas_diarias.receita vem 0 do Meta — Meta não retorna receita direto.)
+  const inicioTs = new Date(inicio + "T00:00:00.000Z").toISOString();
+  const fimTs = new Date(fim + "T23:59:59.999Z").toISOString();
+  const { data: ticks } = await supabase
+    .from("tickets")
+    .select("valor_fechado")
+    .eq("agencia_id", agenciaId)
+    .not("valor_fechado", "is", null)
+    .gte("fechado_em", inicioTs)
+    .lte("fechado_em", fimTs);
+  let faturamento = 0;
+  for (const t of ticks || []) faturamento += Number(t.valor_fechado) || 0;
 
   const { count: campanhasAtivas, error: errCamp } = await supabase
     .from("campanhas")
@@ -102,7 +114,7 @@ export async function serieDiaria(
 
   const { data, error } = await supabase
     .from("metricas_diarias")
-    .select("data, gasto, receita, leads")
+    .select("data, gasto, leads")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim)
@@ -114,11 +126,28 @@ export async function serieDiaria(
   for (const r of data || []) {
     const cur = acc.get(r.data) ?? { data: r.data, gasto: 0, receita: 0, leads: 0 };
     cur.gasto += Number(r.gasto) || 0;
-    cur.receita += Number(r.receita) || 0;
     cur.leads += Number(r.leads) || 0;
     acc.set(r.data, cur);
   }
-  return Array.from(acc.values());
+
+  // Receita por dia = soma de tickets.valor_fechado por data de fechamento (CRM real).
+  const inicioTs = new Date(inicio + "T00:00:00.000Z").toISOString();
+  const fimTs = new Date(fim + "T23:59:59.999Z").toISOString();
+  const { data: ticks } = await supabase
+    .from("tickets")
+    .select("valor_fechado, fechado_em")
+    .eq("agencia_id", agenciaId)
+    .not("valor_fechado", "is", null)
+    .gte("fechado_em", inicioTs)
+    .lte("fechado_em", fimTs);
+  for (const t of (ticks || []) as Array<{ valor_fechado: number | string; fechado_em: string }>) {
+    const dia = String(t.fechado_em).slice(0, 10);
+    const cur = acc.get(dia) ?? { data: dia, gasto: 0, receita: 0, leads: 0 };
+    cur.receita += Number(t.valor_fechado) || 0;
+    acc.set(dia, cur);
+  }
+
+  return Array.from(acc.values()).sort((a, b) => a.data.localeCompare(b.data));
 }
 
 export interface TopCampanha {

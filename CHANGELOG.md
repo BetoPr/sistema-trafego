@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **05:18** — **Dashboard / Campanhas: faturamento real (sem KPI falso).**
+  - FATURAMENTO e ROAS agora vêm de `tickets.valor_fechado` (fechamentos reais do CRM) em vez de `metricas_diarias.receita` (Meta retorna zerado — KPI estava sempre R$ 0,00 / 0x). Mesma fonte usada pelo Dashboard de Atendimentos — agora os números batem.
+  - Vale tanto pros KPIs quanto pra curva diária "Investido × Faturamento".
+  - **Importante:** Faturamento aqui é **macro** (todos fechamentos do período). Para faturamento **atribuído por campanha** (cadeia CTWA→venda), a fonte continua sendo o Pixel & Vendas — sem redundância.
+
 - **05:13** — **Brief de design para o Dashboard / Campanhas.**
   - Documento [docs/design-briefs/2026-06-20-dashboard-campanhas.md](docs/design-briefs/2026-06-21-dashboard-campanhas.md) com propósito (visão MACRO, faturamento real do CRM, sem redundância com Pixel & Vendas), paleta CSS vars light+dark, tipografia/espaçamento, inventário de dados, KPIs propostos, constraints técnicos e critérios de aceite — pronto pra mandar pra uma IA de Design produzir mockups.
 
