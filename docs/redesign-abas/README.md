@@ -8,15 +8,9 @@ Documentação técnica de cada aba pra mandar pra IA de Design (Claude Design) 
 docs/redesign-abas/
   README.md            ← este arquivo
   tokens.md            ← paleta + tipografia + componentes (referência única)
-  sessao-1/            ← P5 — Atendimentos + Follow-up (core day-to-day, bugadas mobile)
-    aba-atendimentos/
-      prompt.md
-      desktop.png      ← você cola
-      mobile.png       ← você cola
-    aba-follow-up/
-      prompt.md
-      desktop.png
-      mobile.png
+  sessao-1/            ← P5 — Atendimentos + Follow-up
+    aba-atendimentos/prompt.md
+    aba-follow-up/prompt.md
   sessao-2/            ← P5/P4 — Contatos + Pixel & Vendas
   sessao-3/            ← P4 — Campanhas + Canais
   sessao-4/            ← P3 — IA + Envio em Massa
@@ -26,10 +20,9 @@ docs/redesign-abas/
 
 ## Como usar
 
-1. Abre cada aba do CRM no desktop (1920×1080) → print full-screen → salva como `desktop.png` na pasta da aba.
-2. Abre no mobile (375×800, ou DevTools → device toolbar) → print → salva como `mobile.png`.
-3. Manda pra IA de Design **3 arquivos por aba** + o `tokens.md` global.
-4. IA volta com mockups → você ou eu copiamos pro código.
+1. Copia o `prompt.md` da aba + `tokens.md`.
+2. Manda pra IA de Design (Claude Design) junto com prints feitos por você (desktop + mobile, avulso).
+3. IA volta com mockups → copia pro código.
 
 ## Ordem de prioridade
 
