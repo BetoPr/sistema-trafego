@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **13:16** — **Dashboard / Campanhas — redesign (lote C): mapa de contatos por estado.**
+  - Nova seção **"Contatos por estado"** abaixo do TOP 5: mapa do Brasil com bolhas proporcionais (hover destaca + mostra tooltip), ranking Top 10 com barras e %, distribuição por região (marimekko), card-resumo total/maior concentração.
+  - Localização derivada do DDD do telefone — 185 dos 221 contatos da base entram no mapa hoje (84%); `contatos.estado` quando preenchido manualmente tem prioridade.
+  - Empty state quando 0 contatos com geo. Layout inspirado no mockup IA.
+
 - **13:08** — **Dashboard / Campanhas — redesign (lote A+B): geo helpers + KPIs + charts conforme mockup IA.**
   - **Geo helpers:** `lib/geo/brasil.ts` (contorno + 27 UFs + projeção) e `lib/geo/ddd-estado.ts` (mapeamento DDD→UF e helpers); `lib/crm/contatos-geo.ts` agrega contatos por UF priorizando `contatos.estado` manual e caindo no DDD do whatsapp/wa_id/telefone.
   - **KPIs reescritos:** 2 grupos — financeiro (Investido com top-border laranja, Faturamento, **Lucro Bruto destacado em verde/vermelho**, ROAS Bruto) + tráfego menor (Impressões/Cliques/CPL/CAC). Layout do mockup IA.

@@ -14,6 +14,7 @@ import { DashboardKPIs } from "./_components/DashboardKPIs";
 import { GastoReceitaChart, StatusDonut, TopCampanhasChart } from "./_components/DashboardCharts";
 import { PeriodoToggle, ViewToggle } from "./_components/PeriodoToggle";
 import { AtendimentosLive } from "./_components/AtendimentosLive";
+import { MapaContatosEstado } from "./_components/MapaContatosEstado";
 
 function parsePeriodo(p: string | undefined): Periodo {
   if (p === "hoje" || p === "7d" || p === "30d") return p;
@@ -151,13 +152,14 @@ async function ViewCampanhas({
   return (
     <>
       <DashboardKPIs kpi={kpi} periodoLabel={periodoLabel} />
-      <div className="dash-2col" style={{ marginTop: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 14, marginTop: 14 }}>
         <GastoReceitaChart data={serie} />
         <StatusDonut data={status} />
       </div>
       <div style={{ marginTop: 14 }}>
         <TopCampanhasChart data={top} />
       </div>
+      <MapaContatosEstado supabase={supabase} agenciaId={agenciaId} />
     </>
   );
 }
