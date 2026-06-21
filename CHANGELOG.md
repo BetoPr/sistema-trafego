@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **18:20** — **CAPI: ao excluir um Fechamento, cancela e estorna no Meta.**
+  - Quando você exclui um Fechamento (rota DELETE), o `capi_eventos` original é marcado como `cancelado` E um evento **Refund** é enfileirado pro Meta (se o Purchase original já tinha sido enviado). Dedup por `event_id=refund:fechamento:{ticket_id}` — reexcluir não duplica.
+  - `enviarPurchase` ganhou `eventName` customizável; worker lê `event_name` do banco. Mesma rota CAPI serve Purchase/Refund/Lead/AddToCart no futuro.
+  - Migration `capi_eventos_status_check` aceita `cancelado`.
+
 - **13:26** — **Mapa: filtra só contatos com ticket ativo (Aberto / Pendente / Fechado).**
   - Mapa "Contatos por estado" agora ignora base fria e mostra apenas contatos com pelo menos 1 ticket em (aberto / pendente / fechado). Antes contava todos os 221; agora 8 contatos relevantes (3 abertos + 5 pendentes hoje).
   - Mesma regra do CRM — quem não interagiu via ticket some do mapa.

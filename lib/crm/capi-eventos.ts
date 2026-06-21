@@ -116,6 +116,73 @@ export async function enfileirarPurchase(ticketId: string): Promise<void> {
   });
 }
 
+/**
+ * Cancela o Purchase associado a um Fechamento que foi excluido:
+ *  - marca o capi_eventos original como 'cancelado'
+ *  - enfileira um Refund (event_name='Refund') com a mesma cadeia de atribuicao,
+ *    pra estornar a venda no Meta (so se o original ja tinha sido enviado).
+ * Idempotente: se ja existe um Refund pra esse ticket, nao duplica.
+ * Nunca lanca.
+ */
+export async function cancelarPurchasePorFechamento(ticketId: string): Promise<void> {
+  const sb = createServiceClient();
+  const eventId = `fechamento:${ticketId}`;
+  const { data: orig } = await sb
+    .from("capi_eventos")
+    .select("id, agencia_id, cliente_id, integracao_id, pixel_id, contato_id, valor, moeda, servico, quantidade, fechado_em, ctwa_clid, source_id, anuncio_id, conjunto_id, campanha_id, status")
+    .eq("event_id", eventId)
+    .maybeSingle<{
+      id: string; agencia_id: string; cliente_id: string | null; integracao_id: string | null;
+      pixel_id: string | null; contato_id: string | null; valor: number; moeda: string;
+      servico: string | null; quantidade: number | null; fechado_em: string | null;
+      ctwa_clid: string | null; source_id: string | null; anuncio_id: string | null;
+      conjunto_id: string | null; campanha_id: string | null; status: string;
+    }>();
+  if (!orig) return;
+
+  // Marca o original como cancelado (some do feed normal).
+  await sb
+    .from("capi_eventos")
+    .update({ status: "cancelado", atualizado_em: new Date().toISOString() })
+    .eq("id", orig.id);
+
+  // Sem o Purchase enviado nao tem o que estornar no Meta — para aqui.
+  if (orig.status !== "enviado") return;
+
+  // Idempotente: se ja existe o refund, nao duplica.
+  const refundEventId = `refund:${eventId}`;
+  const { data: jaExiste } = await sb
+    .from("capi_eventos")
+    .select("id")
+    .eq("agencia_id", orig.agencia_id)
+    .eq("event_id", refundEventId)
+    .maybeSingle();
+  if (jaExiste) return;
+
+  await sb.from("capi_eventos").insert({
+    agencia_id: orig.agencia_id,
+    cliente_id: orig.cliente_id,
+    integracao_id: orig.integracao_id,
+    pixel_id: orig.pixel_id,
+    ticket_id: ticketId,
+    contato_id: orig.contato_id,
+    event_id: refundEventId,
+    event_name: "Refund",
+    valor: orig.valor,
+    moeda: orig.moeda,
+    servico: orig.servico,
+    quantidade: orig.quantidade,
+    fechado_em: orig.fechado_em,
+    ctwa_clid: orig.ctwa_clid,
+    source_id: orig.source_id,
+    anuncio_id: orig.anuncio_id,
+    conjunto_id: orig.conjunto_id,
+    campanha_id: orig.campanha_id,
+    status: orig.integracao_id ? "pendente" : "sem_atribuicao",
+    tentativas: 0,
+  });
+}
+
 export interface ProcessamentoResult {
   processados: number;
   enviados: number;
@@ -140,7 +207,7 @@ export async function processarCapiEventosPendentes(): Promise<ProcessamentoResu
 
   const { data: pendentes } = await sb
     .from("capi_eventos")
-    .select("id, agencia_id, integracao_id, ticket_id, contato_id, event_id, valor, moeda, servico, quantidade, fechado_em, ctwa_clid, created_at, tentativas")
+    .select("id, agencia_id, integracao_id, ticket_id, contato_id, event_id, event_name, valor, moeda, servico, quantidade, fechado_em, ctwa_clid, created_at, tentativas")
     .eq("status", "pendente")
     .lt("tentativas", 5)
     .limit(50);
@@ -201,6 +268,7 @@ export async function processarCapiEventosPendentes(): Promise<ProcessamentoResu
       pixelId: integ.pixel_id,
       accessToken: token,
       eventId: ev.event_id as string,
+      eventName: (ev.event_name as string) || "Purchase",
       eventTimeMs: Date.parse((ev.fechado_em as string) || (ev.created_at as string)),
       value: ev.valor as number,
       currency: (ev.moeda as string) || "BRL",

@@ -7,7 +7,7 @@ import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
-import { enfileirarPurchase } from "@/lib/crm/capi-eventos";
+import { enfileirarPurchase, cancelarPurchasePorFechamento } from "@/lib/crm/capi-eventos";
 
 export const runtime = "nodejs";
 
@@ -112,6 +112,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Cancela o Purchase no CAPI + enfileira Refund pro Meta (se ja tinha enviado).
+  after(async () => {
+    try {
+      await cancelarPurchasePorFechamento(id);
+    } catch (e) {
+      console.error("[fechamento DELETE] cancelar CAPI falhou:", e instanceof Error ? e.message : String(e));
+    }
+  });
 
   void audit({
     agenciaId: u.agencia_id,

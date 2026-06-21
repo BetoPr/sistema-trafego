@@ -22,6 +22,8 @@ export interface PurchaseInput {
   contentName?: string | null;
   numItems?: number | null;
   testEventCode?: string | null;
+  /** Override do nome do evento. Default "Purchase". Aceita "Refund", "Lead", "AddToCart" etc. */
+  eventName?: string;
 }
 
 export interface CapiResult {
@@ -56,7 +58,7 @@ export async function enviarPurchase(p: PurchaseInput): Promise<CapiResult> {
   const body: Record<string, unknown> = {
     data: [
       {
-        event_name: "Purchase",
+        event_name: p.eventName || "Purchase",
         event_time: Math.floor(p.eventTimeMs / 1000),
         action_source: "business_messaging",
         messaging_channel: "whatsapp",
