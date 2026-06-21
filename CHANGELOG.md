@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **04:49** — **Fix Dashboard TOP 5 + tabela Pixel & Vendas.**
+  - **TOP 5 Campanhas** mostrava 2 quando havia 3 com gasto. Causa: o chart usa `nome` no eixo Y e o Meta permite 2 campanhas com **mesmo nome** — o Recharts colapsava as duplicatas em 1 barra. Agora desambigua com sufixo (`· #1`, `· #2`). YAxis também ganhou largura (120→160) pra acomodar nomes longos.
+  - **Tabela "Desempenho por campanha"** (Pixel & Vendas) com colunas grudadas na borda do card: criada classe utilitária `mk-table-card` no globals.css (padding lateral interno) e aplicada na tabela. Indentação do conjunto subiu pra 32px.
+
 - **04:43** — **Dashboard: removido badge "BREVE" da aba Campanhas.**
 
 - **04:33** — **Fix Dashboard: investido/gasto vinha incompleto (sync só puxava 7 dias).**

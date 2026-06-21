@@ -778,6 +778,11 @@ select option { background: #ffffff; color: #111111; }
 }
 .mk-table tbody td .name { font-weight: 500; color: var(--mk-text); }
 
+/* Tabela dentro de mk-card com padding:0 — dá respiro lateral nas células */
+.mk-table-card th, .mk-table-card td { padding-left: 14px; padding-right: 14px; }
+.mk-table-card th:first-child, .mk-table-card td:first-child { padding-left: 16px; }
+.mk-table-card th:last-child, .mk-table-card td:last-child { padding-right: 16px; }
+
 .row-avatar {
   width: 30px; height: 30px; border-radius: 50%;
   color: #FFFDF8; display: flex; align-items: center;

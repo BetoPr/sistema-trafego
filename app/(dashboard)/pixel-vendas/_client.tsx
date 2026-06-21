@@ -80,7 +80,7 @@ export function PixelVendasClient({
 
       <div className="mk-card" style={{ padding: 0, marginBottom: 16, overflow: "hidden" }}>
         <div style={{ padding: "12px 14px", fontWeight: 600, borderBottom: "1px solid var(--mk-border)" }}>Desempenho por campanha</div>
-        <table className="mk-table" style={{ width: "100%" }}>
+        <table className="mk-table mk-table-card" style={{ width: "100%" }}>
           <thead>
             <tr><th>Campanha / Conjunto</th><th>Gasto</th><th>Bruto</th><th>Líquido</th><th>ROAS</th><th>Vendas</th></tr>
           </thead>
@@ -127,7 +127,7 @@ function FragmentLinha({ linha, open, temConj, onToggle, BRL, roasTxt }: { linha
       </tr>
       {open && linha.conjuntos.map((cj) => (
         <tr key={cj.conjunto_id} style={{ opacity: 0.8 }}>
-          <td style={{ paddingLeft: 28 }}>· {cj.nome}</td>
+          <td style={{ paddingLeft: 32 }}>· {cj.nome}</td>
           <td>{BRL.format(cj.gasto)}</td>
           <td>{BRL.format(cj.bruto)}</td>
           <td>{BRL.format(cj.liquido)}</td>

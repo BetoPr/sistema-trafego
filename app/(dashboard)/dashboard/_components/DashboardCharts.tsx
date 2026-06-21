@@ -90,7 +90,7 @@ export function TopCampanhasChart({ data }: { data: TopCampanha[] }) {
           <BarChart data={data} layout="vertical" margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" horizontal={false} />
             <XAxis type="number" stroke="var(--mk-text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => fmtBRL(v)} />
-            <YAxis type="category" dataKey="nome" stroke="var(--mk-text-muted)" fontSize={10.5} tickLine={false} axisLine={false} width={120} />
+            <YAxis type="category" dataKey="nome" stroke="var(--mk-text-muted)" fontSize={10.5} tickLine={false} axisLine={false} width={160} interval={0} />
             <Tooltip
               contentStyle={{ background: "var(--mk-surface-2)", border: "1px solid var(--mk-border)", borderRadius: 8, fontSize: 12 }}
               formatter={(v) => [fmtBRL(Number(v)), "Gasto"]}

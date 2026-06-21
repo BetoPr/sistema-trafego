@@ -170,9 +170,24 @@ export async function topCampanhas(
     acc.set(r.campanha_id, cur);
   }
 
-  return Array.from(acc.values())
+  const top = Array.from(acc.values())
     .sort((a, b) => b.gasto - a.gasto)
     .slice(0, limit);
+
+  // Desambigua nomes duplicados (Meta permite 2 campanhas com mesmo nome).
+  // Sem isso, o YAxis do Recharts colapsa visualmente as barras de mesmo label.
+  const ocorr = new Map<string, number>();
+  for (const t of top) ocorr.set(t.nome, (ocorr.get(t.nome) || 0) + 1);
+  const repetidos = new Set(Array.from(ocorr.entries()).filter(([, n]) => n > 1).map(([k]) => k));
+  const contador = new Map<string, number>();
+  for (const t of top) {
+    if (repetidos.has(t.nome)) {
+      const n = (contador.get(t.nome) || 0) + 1;
+      contador.set(t.nome, n);
+      t.nome = `${t.nome} · #${n}`;
+    }
+  }
+  return top;
 }
 
 export interface DistribStatus {
