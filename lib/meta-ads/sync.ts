@@ -226,10 +226,11 @@ export async function syncMetaIntegracao(integracaoId: string): Promise<SyncResu
     const adMap = new Map<string, { id: string; conjunto_id: string }>();
     for (const a of adDb || []) adMap.set(a.external_id, { id: a.id, conjunto_id: a.conjunto_id });
 
-    // 5. Fetch daily insights (últimos 7 dias)
+    // 5. Fetch daily insights (últimos 30 dias — cobre o filtro de 30d do Dashboard;
+    // com last_7d o Dashboard mostrava só ~7 dias de gasto, divergindo do Meta).
     let insights: MetaInsightRow[] = [];
     try {
-      insights = await listDailyInsights(accessToken, adAccountId, "last_7d");
+      insights = await listDailyInsights(accessToken, adAccountId, "last_30d");
     } catch (e) {
       // Insights pode falhar se conta nunca rodou; não bloqueia sync das estruturas
       console.warn(`Meta insights falhou: ${(e as Error).message}`);
