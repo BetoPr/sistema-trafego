@@ -7,6 +7,9 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **05:13** — **Brief de design para o Dashboard / Campanhas.**
+  - Documento [docs/design-briefs/2026-06-20-dashboard-campanhas.md](docs/design-briefs/2026-06-21-dashboard-campanhas.md) com propósito (visão MACRO, faturamento real do CRM, sem redundância com Pixel & Vendas), paleta CSS vars light+dark, tipografia/espaçamento, inventário de dados, KPIs propostos, constraints técnicos e critérios de aceite — pronto pra mandar pra uma IA de Design produzir mockups.
+
 - **05:04** — **Pixel & Vendas (refino #1): visibilidade + diagnóstico.**
   - **Banner de saúde** no topo (verde "Tudo conectado" ou laranja com os pontos a ajustar): pixel faltando por cliente, token Meta expirando (≤7d) ou expirado, contagem de eventos com erro/sem atribuição.
   - **Botão "Por quê?"** em cada Purchase do feed → abre balão que destrincha a cadeia de atribuição em 4 passos (CTWA → anúncio sincronizado → pixel conectado → resposta do Meta) com ✓/✗ e a explicação de cada falha.
