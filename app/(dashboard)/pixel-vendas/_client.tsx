@@ -150,11 +150,33 @@ function BannerSaude({ saude }: { saude: Saude }) {
   if (saude.tokenExpirando.length) itens.push(`🟡 Token expira em breve: ${saude.tokenExpirando.map((t) => `${t.cliente_nome} (${t.dias}d)`).join(", ")}.`);
   if (saude.eventosErro) itens.push(`🔴 ${saude.eventosErro} evento(s) com erro — abre cada um em "Por quê?".`);
   if (saude.eventosSemAtribuicao) itens.push(`⚪ ${saude.eventosSemAtribuicao} venda(s) sem atribuição (sem click-id ou anúncio não sincronizado).`);
-  if (itens.length === 0) return null;
+  const semNada = itens.length === 0 && saude.alarmes.length === 0;
+  if (semNada) return null;
+  const temDanger = saude.alarmes.some((a) => a.severidade === "danger") || saude.tokenExpirado.length > 0 || saude.eventosErro > 0;
   return (
-    <div className="mk-card" style={{ padding: "10px 14px", marginBottom: 14, borderColor: "rgba(240,163,94,0.5)", background: "rgba(240,163,94,0.06)", display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>Tem coisa pra ajustar:</div>
-      {itens.map((t, i) => <div key={i}>{t}</div>)}
+    <div className="mk-card" style={{ padding: "12px 14px", marginBottom: 14, borderColor: temDanger ? "rgba(251,113,133,0.5)" : "rgba(240,163,94,0.5)", background: temDanger ? "rgba(251,113,133,0.06)" : "rgba(240,163,94,0.06)", display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+      {itens.length > 0 && (
+        <>
+          <div style={{ fontWeight: 600 }}>Tem coisa pra ajustar:</div>
+          {itens.map((t, i) => <div key={i}>{t}</div>)}
+        </>
+      )}
+      {saude.alarmes.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: itens.length ? 4 : 0 }}>
+          {itens.length > 0 && <div style={{ height: 1, background: "var(--mk-border)", margin: "2px 0" }} />}
+          <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-bell-ringing" style={{ fontSize: 14 }} /> Alarmes:
+          </div>
+          {saude.alarmes.map((a, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 8px", borderRadius: 6, background: a.severidade === "danger" ? "rgba(251,113,133,0.08)" : "rgba(240,163,94,0.08)" }}>
+              <div style={{ fontWeight: 600, fontSize: 12.5 }}>
+                {a.severidade === "danger" ? "🔴" : "🟡"} {a.titulo}
+              </div>
+              <div style={{ fontSize: 11.5, opacity: 0.85 }}>{a.descricao}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

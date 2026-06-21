@@ -7,6 +7,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **22:20** — **Pixel & Vendas (refino #4): alarmes acionáveis.**
+  - Banner de saúde agora calcula alarmes comparando período atual vs anterior (mesma janela imediatamente antes):
+    - 🔴/🟡 **ROAS caiu >30%** vs período anterior (>50% = danger).
+    - 🔴 **Período sem vendas** — gastou em ads mas nenhum Fechamento.
+    - 🟡 **Campanha gastou >20% do total sem vender** — sugestão de pausa/ajuste.
+    - 🟡 **Taxa de match de click-id <50%** com ≥5 vendas — investiga atribuição.
+  - Alarmes vêm com descrição acionável (cor laranja se warn, vermelho se danger).
+
 - **22:12** — **Pixel & Vendas (refino #3): Lead + AddToCart automáticos.**
   - **Lead** dispara na 1ª mensagem do contato com `ctwa_clid` (chegou). Dedup 1 vez/contato pra sempre.
   - **AddToCart** dispara quando msg do cliente bate palavra-chave da lista editável (default: preço, quanto, valor, pix, pacote, cobrança, orçamento). Dedup 1/contato/dia.
