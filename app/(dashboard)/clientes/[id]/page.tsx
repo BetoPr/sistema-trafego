@@ -378,14 +378,17 @@ async function kpiResumoClient(
   return {
     investido,
     faturamento,
+    lucro: faturamento - investido,
     roas: investido > 0 ? faturamento / investido : null,
     leads,
     cpl: leads > 0 ? investido / leads : null,
     cac: conversoes > 0 ? investido / conversoes : null,
     conversoes,
     impressoes,
+    alcance: 0,
     cliques,
     ctr: impressoes > 0 ? cliques / impressoes : null,
     campanhas_ativas: campanhasAtivas ?? 0,
+    vendas: 0,
   };
 }

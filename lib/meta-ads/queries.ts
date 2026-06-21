@@ -22,15 +22,18 @@ export function rangeDe(periodo: Periodo): PeriodoRange {
 export interface KpiResumo {
   investido: number;
   faturamento: number;
+  lucro: number;
   roas: number | null;
   leads: number;
   cpl: number | null;
   cac: number | null;
   conversoes: number;
   impressoes: number;
+  alcance: number;
   cliques: number;
   ctr: number | null;
   campanhas_ativas: number;
+  vendas: number;
 }
 
 export async function kpiResumo(
@@ -42,7 +45,7 @@ export async function kpiResumo(
 
   const { data: metricas, error: errMet } = await supabase
     .from("metricas_diarias")
-    .select("gasto, leads, conversoes, impressoes, cliques")
+    .select("gasto, leads, conversoes, impressoes, alcance, cliques")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim);
@@ -53,12 +56,14 @@ export async function kpiResumo(
   let leads = 0;
   let conversoes = 0;
   let impressoes = 0;
+  let alcance = 0;
   let cliques = 0;
   for (const m of metricas || []) {
     investido += Number(m.gasto) || 0;
     leads += Number(m.leads) || 0;
     conversoes += Number(m.conversoes) || 0;
     impressoes += Number(m.impressoes) || 0;
+    alcance += Number(m.alcance) || 0;
     cliques += Number(m.cliques) || 0;
   }
 
@@ -74,7 +79,11 @@ export async function kpiResumo(
     .gte("fechado_em", inicioTs)
     .lte("fechado_em", fimTs);
   let faturamento = 0;
-  for (const t of ticks || []) faturamento += Number(t.valor_fechado) || 0;
+  let vendas = 0;
+  for (const t of ticks || []) {
+    faturamento += Number(t.valor_fechado) || 0;
+    vendas++;
+  }
 
   const { count: campanhasAtivas, error: errCamp } = await supabase
     .from("campanhas")
@@ -86,15 +95,18 @@ export async function kpiResumo(
   return {
     investido,
     faturamento,
+    lucro: faturamento - investido,
     roas: investido > 0 ? faturamento / investido : null,
     leads,
     cpl: leads > 0 ? investido / leads : null,
     cac: conversoes > 0 ? investido / conversoes : null,
     conversoes,
     impressoes,
+    alcance,
     cliques,
     ctr: impressoes > 0 ? cliques / impressoes : null,
     campanhas_ativas: campanhasAtivas ?? 0,
+    vendas,
   };
 }
 

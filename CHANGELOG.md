@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **13:08** — **Dashboard / Campanhas — redesign (lote A+B): geo helpers + KPIs + charts conforme mockup IA.**
+  - **Geo helpers:** `lib/geo/brasil.ts` (contorno + 27 UFs + projeção) e `lib/geo/ddd-estado.ts` (mapeamento DDD→UF e helpers); `lib/crm/contatos-geo.ts` agrega contatos por UF priorizando `contatos.estado` manual e caindo no DDD do whatsapp/wa_id/telefone.
+  - **KPIs reescritos:** 2 grupos — financeiro (Investido com top-border laranja, Faturamento, **Lucro Bruto destacado em verde/vermelho**, ROAS Bruto) + tráfego menor (Impressões/Cliques/CPL/CAC). Layout do mockup IA.
+  - **Charts refinados:** Área dupla `Investido × Faturamento` com cores laranja `#F0A35E` + verde `#10B981` e legenda; Top 5 reescrito com barras gradient teal→verde e valor dentro da barra; Donut Status com nº no centro e cores `#34D399`/`#FBBF24`.
+
 - **05:53** — **Pixel & Vendas (refino #2): onboarding zero-fricção.**
   - Card "Setup" no topo lista cada cliente Meta com checklist visual: **✓ Meta conectado · ✓/⏳ Pixel escolhido · ✓/⏳ 1ª venda enviada**. CTA contextual ("Escolher pixel" pra quem não tem, dica de fluxo pra quem só falta a 1ª venda).
   - Some quando tudo está 100% configurado (não polui mais a tela).
