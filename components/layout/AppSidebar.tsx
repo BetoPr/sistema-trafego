@@ -66,15 +66,7 @@ function buildSections(role?: string): NavSection[] {
             icon: "ti-speakerphone",
             iconColor: "var(--mk-icon-purple)",
             items: [
-              { href: "/leads-meta", label: "Leads Meta", icon: "ti-target-arrow" },
-              { href: "/campanhas", label: "Campanhas", icon: "ti-speakerphone", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/funil", label: "Funil", icon: "ti-filter", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/criativos", label: "Criativos", icon: "ti-photo-square-rounded", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/publico", label: "Público", icon: "ti-users-group", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/relatorios", label: "Relatórios", icon: "ti-file-analytics", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/ia-insights", label: "Insights IA", icon: "ti-brain", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", badge: { text: "BREVE", variant: "amber" as const } },
-              { href: "/clientes", label: "Clientes (Ads)", icon: "ti-briefcase" },
+              { href: "/pixel-vendas", label: "Pixel & Vendas", icon: "ti-target-arrow" },
             ],
           } as NavSection,
         ]

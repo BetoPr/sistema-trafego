@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **04:22** — **Pixel & Vendas (build 4): aba no ar + Tráfego (Ads) enxuto.**
+  - Página `/pixel-vendas` (super_admin): KPIs **Gasto / Bruto / Líquido / ROAS**, tabela **campanha→conjunto** (expansível, com busca e filtro de cliente/período), feed de **Purchases** (status + reenviar) e card **Conectar Pixel** (OAuth + escolher pixel).
+  - **Tráfego (Ads) agora mostra só Pixel & Vendas** — os 9 itens antigos saíram do menu (rotas preservadas; ver `docs/parking-trafego.md`).
+  - ⚠️ Pra enviar venda ao Meta: reconectar a integração Meta (novo scope `ads_management`) e escolher o Pixel na aba. `ads_management` precisa de App Review pra clientes não-tester.
+
 - **04:04** — **Pixel & Vendas (build 3): cron + hook no Fechamento + endpoints.**
   - Rota cron `/api/cron/capi-eventos` (Bearer CRON_SECRET) processa a fila de Purchase.
   - Hook no Fechamento: ao gravar `valor_fechado`, dispara `enfileirarPurchase` via `after()` do Next 16 (não bloqueia a resposta, idempotente por ticket). DELETE intacto.
