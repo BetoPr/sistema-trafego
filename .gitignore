@@ -39,6 +39,9 @@ yarn-error.log*
 *.sh
 .fix-env*
 
+# brainstorm visual companion (mockups descartáveis)
+.superpowers/
+
 # vercel
 .vercel
 
