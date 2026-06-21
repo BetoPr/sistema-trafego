@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { LinhaCampanha, EventoRow, ClientePixel } from "./page";
+import { Balao } from "@/components/ui/Balao";
+import type { LinhaCampanha, EventoRow, ClientePixel, Saude } from "./page";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PERIODOS: [string, string][] = [["7d", "7 dias"], ["14d", "14 dias"], ["30d", "30 dias"], ["90d", "90 dias"]];
@@ -24,13 +25,14 @@ const inp: React.CSSProperties = {
 interface Kpis { gasto: number; bruto: number; liquido: number; roas: number | null; matchClid: number; vendas: number }
 
 export function PixelVendasClient({
-  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel,
+  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel, saude,
 }: {
-  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[];
+  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude;
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
   const [aberta, setAberta] = useState<Record<string, boolean>>({});
+  const [diagEvento, setDiagEvento] = useState<EventoRow | null>(null);
 
   const ir = (p: { periodo?: string; cliente?: string }) => {
     const q = new URLSearchParams();
@@ -71,6 +73,8 @@ export function PixelVendasClient({
         </div>
       </div>
 
+      <BannerSaude saude={saude} />
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <Kpi titulo="Gasto em ads" valor={BRL.format(kpis.gasto)} sub="investido no período" cor="#f0a35e" />
         <Kpi titulo="Faturamento bruto" valor={BRL.format(kpis.bruto)} sub={`${kpis.vendas} vendas atribuídas`} />
@@ -102,15 +106,128 @@ export function PixelVendasClient({
         <div style={{ padding: "12px 14px", fontWeight: 600, borderBottom: "1px solid var(--mk-border)" }}>Vendas enviadas ao Meta (Purchase)</div>
         {feed.length === 0 && <div style={{ padding: 16, opacity: 0.6 }}>Nenhum evento ainda.</div>}
         {feed.map((e) => (
-          <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderTop: "1px solid var(--mk-border)", fontSize: 13 }}>
+          <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 14px", borderTop: "1px solid var(--mk-border)", fontSize: 13 }}>
             <div>{e.contato_nome || "Contato"} · <b>{BRL.format(e.valor)}</b> · {e.campanha_nome || (e.ctwa_clid ? "—" : "sem click-id")} · {new Date(e.created_at).toLocaleString("pt-BR")}</div>
-            <StatusEvento status={e.status} onReenviar={() => reenviar(e.id)} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setDiagEvento(e)}
+                title="Por quê?"
+                style={{ background: "transparent", border: "1px solid var(--mk-border)", color: "var(--mk-text-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
+              >Por quê?</button>
+              <StatusEvento status={e.status} onReenviar={() => reenviar(e.id)} />
+            </div>
           </div>
         ))}
       </div>
 
       <ConectarPixel clientes={clientesPixel} />
+
+      <DiagEvento evento={diagEvento} onClose={() => setDiagEvento(null)} />
     </div>
+  );
+}
+
+function BannerSaude({ saude }: { saude: Saude }) {
+  if (saude.tudoOk) {
+    return (
+      <div className="mk-card" style={{ padding: "10px 14px", marginBottom: 14, borderColor: "var(--mk-accent)", background: "rgba(16,185,129,0.06)", display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+        <span style={{ color: "var(--mk-accent)" }}>✓</span>
+        <span><b>Tudo conectado.</b> Pixels OK, tokens válidos, sem erros nos últimos eventos.</span>
+      </div>
+    );
+  }
+  const itens: string[] = [];
+  if (saude.tokenExpirado.length) itens.push(`🔴 Token expirado: ${saude.tokenExpirado.map((t) => t.cliente_nome).join(", ")} — reconectar em Integrações.`);
+  if (saude.tokenExpirando.length) itens.push(`🟡 Token expira em breve: ${saude.tokenExpirando.map((t) => `${t.cliente_nome} (${t.dias}d)`).join(", ")}.`);
+  if (saude.pixelFaltando.length) itens.push(`🟡 Falta escolher o Pixel: ${saude.pixelFaltando.map((p) => p.cliente_nome).join(", ")}.`);
+  if (saude.eventosErro) itens.push(`🔴 ${saude.eventosErro} evento(s) com erro — abre cada um em "Por quê?".`);
+  if (saude.eventosSemAtribuicao) itens.push(`⚪ ${saude.eventosSemAtribuicao} venda(s) sem atribuição (sem click-id ou anúncio não sincronizado).`);
+  return (
+    <div className="mk-card" style={{ padding: "10px 14px", marginBottom: 14, borderColor: "rgba(240,163,94,0.5)", background: "rgba(240,163,94,0.06)", display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
+      <div style={{ fontWeight: 600, marginBottom: 2 }}>Tem coisa pra ajustar:</div>
+      {itens.map((t, i) => <div key={i}>{t}</div>)}
+    </div>
+  );
+}
+
+interface PassoDiag { ok: boolean; titulo: string; descricao: string }
+
+function diagnosticar(e: EventoRow): PassoDiag[] {
+  const passos: PassoDiag[] = [];
+  const temClid = !!e.ctwa_clid;
+  const temAnuncio = !!e.anuncio_id;
+  const temIntegracao = !!e.integracao_id;
+  const temPixel = !!e.pixel_id;
+
+  passos.push({
+    ok: temClid,
+    titulo: "Contato veio de anúncio (CTWA)",
+    descricao: temClid
+      ? `click-id capturado: ${e.ctwa_clid?.slice(0, 16)}…`
+      : "Sem click-id no histórico do contato. Provavelmente entrou organicamente, por link direto ou via importação. Sem isso o Meta não atribui à campanha.",
+  });
+
+  passos.push({
+    ok: temAnuncio,
+    titulo: "Anúncio do clique está sincronizado",
+    descricao: temAnuncio
+      ? `anúncio resolvido (campanha + conjunto identificados)`
+      : temClid
+        ? `O ad_id do referral (${e.source_id || "—"}) não casou com nenhum anúncio sincronizado. Clica "Sincronizar agora" no Dashboard pra puxar a hierarquia do Meta.`
+        : "Pulado — sem click-id não há anúncio pra casar.",
+  });
+
+  passos.push({
+    ok: temIntegracao && temPixel,
+    titulo: "Pixel está conectado no cliente",
+    descricao: !temIntegracao
+      ? "Sem integração Meta associada (consequência das etapas anteriores)."
+      : temPixel
+        ? `Pixel: ${e.pixel_nome || e.pixel_id}`
+        : "A integração existe mas falta escolher o Pixel. Card 'Conectar Pixel (Meta)' embaixo → 'Escolher pixel'.",
+  });
+
+  passos.push({
+    ok: e.status === "enviado",
+    titulo: "Resultado do envio ao Meta",
+    descricao: e.status === "enviado"
+      ? "✓ Meta aceitou o evento. Deve aparecer no Events Manager com o ctwa_clid."
+      : e.status === "sem_atribuicao"
+        ? "Não enviado — sem cadeia completa de atribuição. Corrige as etapas acima e clica Reenviar."
+        : e.status === "erro"
+          ? `Erro do Meta (${e.tentativas} tentativa(s)): ${e.erro || "—"}`
+          : e.status === "pendente"
+            ? `Aguardando próximo ciclo do cron. ${e.erro ? `Última msg: ${e.erro}` : ""}`
+            : `Status atual: ${e.status}`,
+  });
+
+  return passos;
+}
+
+function DiagEvento({ evento, onClose }: { evento: EventoRow | null; onClose: () => void }) {
+  const passos = evento ? diagnosticar(evento) : [];
+  return (
+    <Balao open={!!evento} onClose={onClose} titulo="Por que essa venda foi (ou não foi) atribuída?" icone="ti-target-arrow" largura={520}>
+      {evento && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
+          <div style={{ padding: "8px 10px", background: "var(--mk-surface-2)", border: "1px solid var(--mk-border)", borderRadius: 8, fontSize: 12 }}>
+            <b>{evento.contato_nome || "Contato"}</b> · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(evento.valor)} · {new Date(evento.created_at).toLocaleString("pt-BR")}
+            <br />
+            Campanha: {evento.campanha_nome || "—"}
+          </div>
+          {passos.map((p, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--mk-border)", background: p.ok ? "rgba(16,185,129,0.05)" : "rgba(240,163,94,0.05)" }}>
+              <div style={{ fontSize: 16, color: p.ok ? "var(--mk-accent)" : "#f0a35e", lineHeight: 1 }}>{p.ok ? "✓" : "✗"}</div>
+              <div>
+                <div style={{ fontWeight: 600 }}>{p.titulo}</div>
+                <div style={{ opacity: 0.75, marginTop: 2 }}>{p.descricao}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Balao>
   );
 }
 

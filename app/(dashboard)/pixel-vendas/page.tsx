@@ -33,6 +33,15 @@ export interface EventoRow {
   ctwa_clid: string | null;
   status: string;
   created_at: string;
+  // Diagnóstico (#1 Visibilidade)
+  source_id: string | null;
+  anuncio_id: string | null;
+  campanha_id: string | null;
+  integracao_id: string | null;
+  pixel_id: string | null;
+  pixel_nome: string | null;
+  erro: string | null;
+  tentativas: number;
 }
 export interface ClientePixel {
   cliente_id: string;
@@ -40,6 +49,14 @@ export interface ClientePixel {
   integracao_id: string;
   pixel_id: string | null;
   pixel_nome: string | null;
+}
+export interface Saude {
+  pixelFaltando: { cliente_nome: string }[];
+  tokenExpirando: { cliente_nome: string; dias: number }[];
+  tokenExpirado: { cliente_nome: string }[];
+  eventosErro: number;
+  eventosSemAtribuicao: number;
+  tudoOk: boolean;
 }
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ periodo?: string; cliente?: string }> }) {
@@ -69,7 +86,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
 
   let eq = sb
     .from("capi_eventos")
-    .select("id, valor, campanha_id, conjunto_id, ctwa_clid, status, created_at, cliente_id, contato_id, servico")
+    .select("id, valor, campanha_id, conjunto_id, ctwa_clid, status, created_at, cliente_id, contato_id, servico, source_id, anuncio_id, integracao_id, pixel_id, erro, tentativas")
     .eq("agencia_id", ctx.agenciaId)
     .gte("created_at", desdeISO)
     .order("created_at", { ascending: false })
@@ -146,19 +163,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     ? await sb.from("contatos").select("id, nome").in("id", contatoIds)
     : { data: [] as { id: string; nome: string | null }[] };
   const nomeContato = new Map((contatos || []).map((c) => [c.id, c.nome]));
-  const feed: EventoRow[] = (eventos || []).slice(0, 50).map((e) => ({
-    id: e.id,
-    contato_nome: nomeContato.get(e.contato_id as string) || null,
-    valor: Number(e.valor || 0),
-    campanha_nome: e.campanha_id ? nomeCamp.get(e.campanha_id) || null : null,
-    ctwa_clid: e.ctwa_clid,
-    status: e.status,
-    created_at: e.created_at,
-  }));
-
   const { data: integs } = await sb
     .from("integracoes")
-    .select("id, cliente_id, pixel_id, pixel_nome, clientes!inner(nome)")
+    .select("id, cliente_id, pixel_id, pixel_nome, token_expires_at, status, clientes!inner(nome)")
     .eq("agencia_id", ctx.agenciaId)
     .eq("plataforma", "meta_ads");
   const clientesPixel: ClientePixel[] = (integs || []).map((i) => ({
@@ -168,6 +175,70 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     pixel_id: (i as { pixel_id: string | null }).pixel_id,
     pixel_nome: (i as { pixel_nome: string | null }).pixel_nome,
   }));
+  const nomePixelPorIntegracao = new Map(
+    (integs || []).map((i) => [
+      i.id as string,
+      (i as { pixel_nome: string | null }).pixel_nome,
+    ]),
+  );
+
+  const feed: EventoRow[] = (eventos || []).slice(0, 50).map((e) => ({
+    id: e.id,
+    contato_nome: nomeContato.get(e.contato_id as string) || null,
+    valor: Number(e.valor || 0),
+    campanha_nome: e.campanha_id ? nomeCamp.get(e.campanha_id) || null : null,
+    ctwa_clid: e.ctwa_clid,
+    status: e.status,
+    created_at: e.created_at,
+    source_id: (e as { source_id: string | null }).source_id ?? null,
+    anuncio_id: (e as { anuncio_id: string | null }).anuncio_id ?? null,
+    campanha_id: e.campanha_id ?? null,
+    integracao_id: (e as { integracao_id: string | null }).integracao_id ?? null,
+    pixel_id: (e as { pixel_id: string | null }).pixel_id ?? null,
+    pixel_nome: (e as { integracao_id: string | null }).integracao_id
+      ? nomePixelPorIntegracao.get((e as { integracao_id: string }).integracao_id) ?? null
+      : null,
+    erro: (e as { erro: string | null }).erro ?? null,
+    tentativas: (e as { tentativas: number | null }).tentativas ?? 0,
+  }));
+
+  // Banner de saúde
+  const agora = Date.now();
+  const saude: Saude = {
+    pixelFaltando: clientesPixel
+      .filter((c) => !c.pixel_id)
+      .map((c) => ({ cliente_nome: c.cliente_nome })),
+    tokenExpirando: (integs || [])
+      .filter((i) => {
+        const exp = (i as { token_expires_at: string | null }).token_expires_at;
+        if (!exp) return false;
+        const dias = Math.floor((Date.parse(exp) - agora) / 86400000);
+        return dias >= 0 && dias <= 7;
+      })
+      .map((i) => {
+        const exp = (i as { token_expires_at: string }).token_expires_at;
+        return {
+          cliente_nome: (i as { clientes?: { nome?: string } }).clientes?.nome || "—",
+          dias: Math.floor((Date.parse(exp) - agora) / 86400000),
+        };
+      }),
+    tokenExpirado: (integs || [])
+      .filter((i) => {
+        const exp = (i as { token_expires_at: string | null }).token_expires_at;
+        return exp && Date.parse(exp) < agora;
+      })
+      .map((i) => ({
+        cliente_nome: (i as { clientes?: { nome?: string } }).clientes?.nome || "—",
+      })),
+    eventosErro: (eventos || []).filter((e) => e.status === "erro").length,
+    eventosSemAtribuicao: (eventos || []).filter((e) => e.status === "sem_atribuicao").length,
+    tudoOk: false,
+  };
+  saude.tudoOk =
+    saude.pixelFaltando.length === 0 &&
+    saude.tokenExpirando.length === 0 &&
+    saude.tokenExpirado.length === 0 &&
+    saude.eventosErro === 0;
 
   return (
     <PixelVendasClient
@@ -177,6 +248,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       linhas={linhas}
       feed={feed}
       clientesPixel={clientesPixel}
+      saude={saude}
     />
   );
 }
