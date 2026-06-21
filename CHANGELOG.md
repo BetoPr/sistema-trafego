@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **13:26** — **Mapa: filtra só contatos com ticket ativo (Aberto / Pendente / Fechado).**
+  - Mapa "Contatos por estado" agora ignora base fria e mostra apenas contatos com pelo menos 1 ticket em (aberto / pendente / fechado). Antes contava todos os 221; agora 8 contatos relevantes (3 abertos + 5 pendentes hoje).
+  - Mesma regra do CRM — quem não interagiu via ticket some do mapa.
+
 - **13:16** — **Dashboard / Campanhas — redesign (lote C): mapa de contatos por estado.**
   - Nova seção **"Contatos por estado"** abaixo do TOP 5: mapa do Brasil com bolhas proporcionais (hover destaca + mostra tooltip), ranking Top 10 com barras e %, distribuição por região (marimekko), card-resumo total/maior concentração.
   - Localização derivada do DDD do telefone — 185 dos 221 contatos da base entram no mapa hoje (84%); `contatos.estado` quando preenchido manualmente tem prioridade.
