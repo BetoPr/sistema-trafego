@@ -110,13 +110,10 @@ export function buildAuthorizeUrl(params: { redirectUri: string; state: string }
   url.searchParams.set("redirect_uri", params.redirectUri);
   url.searchParams.set("state", params.state);
   url.searchParams.set("response_type", "code");
-  // Apenas ads_read — escopo mínimo pra leitura de campanhas/insights/ads.
-  // business_management foi removido em 2026-05-24 pq exigia Business Manager
-  // selecionado no popup Meta; usuários sem Business Manager (ou com app não
-  // vinculado a um Business) viam o dialog cancelar sozinho com
-  // action=reentry_finish + selected_business_id vazio. ads_read sozinho
-  // permite listar ad accounts pessoais + sync de campanhas/insights.
-  url.searchParams.set("scope", "ads_read");
+  // ads_read (leitura) + ads_management (escrever eventos no Pixel via CAPI).
+  // NAO usar business_management (causou o popup de Business Manager que
+  // cancelava sozinho). ads_management exige Advanced Access (App Review).
+  url.searchParams.set("scope", "ads_read,ads_management");
   return url.toString();
 }
 
@@ -241,4 +238,21 @@ export function redirectUri(): string {
   const base = process.env.NEXT_PUBLIC_APP_URL;
   if (!base) throw new Error("NEXT_PUBLIC_APP_URL ausente");
   return `${base.replace(/\/$/, "")}/oauth/meta/callback`;
+}
+
+/**
+ * Lista os Pixels (datasets) de uma ad account.
+ * `adAccountId` pode vir como "123" (numérico) ou "act_123"; normaliza pra "act_".
+ */
+export async function listPixels(token: string, adAccountId: string): Promise<{ id: string; name: string }[]> {
+  const acct = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
+  const u = new URL(graphUrl(`/${acct}/adspixels`));
+  u.searchParams.set("fields", "id,name");
+  u.searchParams.set("access_token", token);
+  const res = await fetch(u.toString(), { cache: "no-store" });
+  const json = await res.json();
+  if (!res.ok || json.error) {
+    throw new Error(`Meta adspixels falhou: ${json.error?.message || res.statusText}`);
+  }
+  return ((json.data as { id: string; name?: string }[]) || []).map((p) => ({ id: p.id, name: p.name || p.id }));
 }

@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **03:53** — **Pixel & Vendas (build 2): libs da Conversions API.**
+  - `lib/meta-ads/capi.ts` — `enviarPurchase()` (evento Purchase: `action_source=business_messaging`, `ctwa_clid` cru + telefone com hash SHA-256, `value`/moeda, dedup por `event_id`) + `hashSHA256`.
+  - `lib/meta-ads/api.ts` — scope OAuth subiu pra `ads_read,ads_management` + `listPixels()` (descobre o Pixel da ad account).
+  - `lib/crm/capi-eventos.ts` — atribuição (contato → `ctwa_clid`/anúncio → campanha → integração/pixel) + `enfileirarPurchase` (dedup por ticket) + worker `processarCapiEventosPendentes` (claim atômico + reaper; estoura 5 tentativas → `erro` reenviável).
+
 - **03:39** — **Pixel & Vendas (build 1): fix do `ctwa_clid` + migration `capi_eventos`.**
   - Corrigida a chave do click-id na conciliação (`ctwa_clid` → `ctwaClid`, camelCase) — a atribuição por CTWA voltou a casar (estava falhando calada). `lib/meta-ads/conciliar.ts`.
   - Migration `capi_eventos` (ledger dos eventos enviados ao Meta) + colunas `pixel_id`/`pixel_nome` em `integracoes`. Aplicada em produção via MCP.
