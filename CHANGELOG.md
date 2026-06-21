@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **04:43** — **Dashboard: removido badge "BREVE" da aba Campanhas.**
+
 - **04:33** — **Fix Dashboard: investido/gasto vinha incompleto (sync só puxava 7 dias).**
   - O sync de insights do Meta puxava `last_7d` ([sync.ts](lib/meta-ads/sync.ts)), então o Dashboard no filtro **"30 dias"** mostrava só ~7 dias de gasto (ex.: **R$ 266,56** em vez dos **R$ 414,06** que o Meta reporta no período). Passou pra **`last_30d`**.
   - ⚠️ Pra corrigir os dados **já gravados**: clicar **"Sincronizar agora"** no Dashboard — não há cron de sync-meta (é manual), então o backfill dos 30 dias só acontece no próximo sync.
