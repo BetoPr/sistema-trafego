@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **04:04** — **Pixel & Vendas (build 3): cron + hook no Fechamento + endpoints.**
+  - Rota cron `/api/cron/capi-eventos` (Bearer CRON_SECRET) processa a fila de Purchase.
+  - Hook no Fechamento: ao gravar `valor_fechado`, dispara `enfileirarPurchase` via `after()` do Next 16 (não bloqueia a resposta, idempotente por ticket). DELETE intacto.
+  - Endpoints `/api/integracoes/meta/pixels` (listar/salvar o Pixel do cliente) + `/api/pixel-vendas/reenviar`. Helper `requireSuperAdminApi` (retorna JSON 401/403 em rotas de API, não redirect).
+
 - **03:53** — **Pixel & Vendas (build 2): libs da Conversions API.**
   - `lib/meta-ads/capi.ts` — `enviarPurchase()` (evento Purchase: `action_source=business_messaging`, `ctwa_clid` cru + telefone com hash SHA-256, `value`/moeda, dedup por `event_id`) + `hashSHA256`.
   - `lib/meta-ads/api.ts` — scope OAuth subiu pra `ads_read,ads_management` + `listPixels()` (descobre o Pixel da ad account).

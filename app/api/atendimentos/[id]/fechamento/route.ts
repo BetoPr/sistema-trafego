@@ -3,10 +3,11 @@
  * Body: { valor: number|null, servico: string|null, quantidade: number|null }
  * Atualiza tickets.valor_fechado + metadata.servico + metadata.quantidade.
  */
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
+import { enfileirarPurchase } from "@/lib/crm/capi-eventos";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Enfileira o Purchase pro Meta (CAPI) — assíncrono, não bloqueia a resposta.
+  // Só quando há valor (fechamento real). Idempotente por event_id (dedup).
+  if (body.valor != null) {
+    after(async () => {
+      try {
+        await enfileirarPurchase(id);
+      } catch (e) {
+        console.error("[fechamento] enfileirar CAPI falhou:", e instanceof Error ? e.message : String(e));
+      }
+    });
+  }
 
   void audit({
     agenciaId: u.agencia_id,
