@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **22:55** — **Redesign docs sessão 1 (Atendimentos + Follow-up) + tokens globais.**
+  - `docs/redesign-abas/tokens.md` — paleta light+dark, tipografia, espaçamento, classes mk-*, ícones Tabler. Referência única.
+  - `docs/redesign-abas/sessao-1/aba-atendimentos/prompt.md` — inventário técnico (estrutura 3-col, dados por elemento, estados, filtros, deep-links, componentes). 9.6KB, exhaustivo.
+  - `docs/redesign-abas/sessao-1/aba-follow-up/prompt.md` — inventário técnico (barra de filtros, cards de candidato, IA, cadência). 11.1KB.
+  - README com ordem de prioridades (6 sessões). Placeholders pra prints (Roberto cola desktop.png+mobile.png).
+
 - **22:20** — **Pixel & Vendas (refino #4): alarmes acionáveis.**
   - Banner de saúde agora calcula alarmes comparando período atual vs anterior (mesma janela imediatamente antes):
     - 🔴/🟡 **ROAS caiu >30%** vs período anterior (>50% = danger).
