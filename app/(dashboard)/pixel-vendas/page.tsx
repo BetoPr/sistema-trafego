@@ -51,12 +51,25 @@ export interface ClientePixel {
   pixel_nome: string | null;
 }
 export interface Saude {
-  pixelFaltando: { cliente_nome: string }[];
   tokenExpirando: { cliente_nome: string; dias: number }[];
   tokenExpirado: { cliente_nome: string }[];
   eventosErro: number;
   eventosSemAtribuicao: number;
   tudoOk: boolean;
+}
+
+export interface PassosCliente {
+  cliente_id: string;
+  cliente_nome: string;
+  integracao_id: string;
+  pixel_id: string | null;
+  pixel_nome: string | null;
+  temVenda: boolean;
+}
+export interface Onboarding {
+  passos: PassosCliente[];
+  semIntegracao: boolean;
+  tudoPronto: boolean;
 }
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ periodo?: string; cliente?: string }> }) {
@@ -202,12 +215,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     tentativas: (e as { tentativas: number | null }).tentativas ?? 0,
   }));
 
-  // Banner de saúde
+  // Onboarding (passos por cliente)
+  const { data: vendasOk } = await sb
+    .from("capi_eventos")
+    .select("cliente_id")
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("status", "enviado")
+    .not("cliente_id", "is", null);
+  const clientesComVenda = new Set(
+    (vendasOk || []).map((v) => v.cliente_id as string),
+  );
+  const passos: PassosCliente[] = clientesPixel.map((c) => ({
+    cliente_id: c.cliente_id,
+    cliente_nome: c.cliente_nome,
+    integracao_id: c.integracao_id,
+    pixel_id: c.pixel_id,
+    pixel_nome: c.pixel_nome,
+    temVenda: clientesComVenda.has(c.cliente_id),
+  }));
+  const onboarding: Onboarding = {
+    passos,
+    semIntegracao: clientesPixel.length === 0,
+    tudoPronto: passos.length > 0 && passos.every((p) => p.pixel_id && p.temVenda),
+  };
+
+  // Banner de saúde (só token + eventos com erro — pixel pendente vai pro Onboarding)
   const agora = Date.now();
   const saude: Saude = {
-    pixelFaltando: clientesPixel
-      .filter((c) => !c.pixel_id)
-      .map((c) => ({ cliente_nome: c.cliente_nome })),
     tokenExpirando: (integs || [])
       .filter((i) => {
         const exp = (i as { token_expires_at: string | null }).token_expires_at;
@@ -235,7 +269,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     tudoOk: false,
   };
   saude.tudoOk =
-    saude.pixelFaltando.length === 0 &&
     saude.tokenExpirando.length === 0 &&
     saude.tokenExpirado.length === 0 &&
     saude.eventosErro === 0;
@@ -249,6 +282,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       feed={feed}
       clientesPixel={clientesPixel}
       saude={saude}
+      onboarding={onboarding}
     />
   );
 }

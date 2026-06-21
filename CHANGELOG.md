@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **05:53** — **Pixel & Vendas (refino #2): onboarding zero-fricção.**
+  - Card "Setup" no topo lista cada cliente Meta com checklist visual: **✓ Meta conectado · ✓/⏳ Pixel escolhido · ✓/⏳ 1ª venda enviada**. CTA contextual ("Escolher pixel" pra quem não tem, dica de fluxo pra quem só falta a 1ª venda).
+  - Some quando tudo está 100% configurado (não polui mais a tela).
+  - Empty state quando nenhuma conta Meta foi conectada: leva direto pra `/integracoes/meta`.
+  - Banner de saúde foi enxugado (não duplica "Falta pixel" — fica só com token expirando/expirado + eventos com erro).
+
 - **05:18** — **Dashboard / Campanhas: faturamento real (sem KPI falso).**
   - FATURAMENTO e ROAS agora vêm de `tickets.valor_fechado` (fechamentos reais do CRM) em vez de `metricas_diarias.receita` (Meta retorna zerado — KPI estava sempre R$ 0,00 / 0x). Mesma fonte usada pelo Dashboard de Atendimentos — agora os números batem.
   - Vale tanto pros KPIs quanto pra curva diária "Investido × Faturamento".

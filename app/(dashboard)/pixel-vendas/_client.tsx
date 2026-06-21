@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Balao } from "@/components/ui/Balao";
-import type { LinhaCampanha, EventoRow, ClientePixel, Saude } from "./page";
+import type { LinhaCampanha, EventoRow, ClientePixel, Saude, Onboarding } from "./page";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PERIODOS: [string, string][] = [["7d", "7 dias"], ["14d", "14 dias"], ["30d", "30 dias"], ["90d", "90 dias"]];
@@ -25,9 +25,9 @@ const inp: React.CSSProperties = {
 interface Kpis { gasto: number; bruto: number; liquido: number; roas: number | null; matchClid: number; vendas: number }
 
 export function PixelVendasClient({
-  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel, saude,
+  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel, saude, onboarding,
 }: {
-  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude;
+  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude; onboarding: Onboarding;
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
@@ -74,6 +74,7 @@ export function PixelVendasClient({
       </div>
 
       <BannerSaude saude={saude} />
+      <CardOnboarding onboarding={onboarding} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <Kpi titulo="Gasto em ads" valor={BRL.format(kpis.gasto)} sub="investido no período" cor="#f0a35e" />
@@ -121,8 +122,6 @@ export function PixelVendasClient({
         ))}
       </div>
 
-      <ConectarPixel clientes={clientesPixel} />
-
       <DiagEvento evento={diagEvento} onClose={() => setDiagEvento(null)} />
     </div>
   );
@@ -140,9 +139,9 @@ function BannerSaude({ saude }: { saude: Saude }) {
   const itens: string[] = [];
   if (saude.tokenExpirado.length) itens.push(`🔴 Token expirado: ${saude.tokenExpirado.map((t) => t.cliente_nome).join(", ")} — reconectar em Integrações.`);
   if (saude.tokenExpirando.length) itens.push(`🟡 Token expira em breve: ${saude.tokenExpirando.map((t) => `${t.cliente_nome} (${t.dias}d)`).join(", ")}.`);
-  if (saude.pixelFaltando.length) itens.push(`🟡 Falta escolher o Pixel: ${saude.pixelFaltando.map((p) => p.cliente_nome).join(", ")}.`);
   if (saude.eventosErro) itens.push(`🔴 ${saude.eventosErro} evento(s) com erro — abre cada um em "Por quê?".`);
   if (saude.eventosSemAtribuicao) itens.push(`⚪ ${saude.eventosSemAtribuicao} venda(s) sem atribuição (sem click-id ou anúncio não sincronizado).`);
+  if (itens.length === 0) return null;
   return (
     <div className="mk-card" style={{ padding: "10px 14px", marginBottom: 14, borderColor: "rgba(240,163,94,0.5)", background: "rgba(240,163,94,0.06)", display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
       <div style={{ fontWeight: 600, marginBottom: 2 }}>Tem coisa pra ajustar:</div>
@@ -272,9 +271,20 @@ function StatusEvento({ status, onReenviar }: { status: string; onReenviar: () =
   return <button className="ghost-btn" style={{ fontSize: 11.5 }} onClick={onReenviar}>Reenviar</button>;
 }
 
-function ConectarPixel({ clientes }: { clientes: ClientePixel[] }) {
+function CardOnboarding({ onboarding }: { onboarding: Onboarding }) {
   const [carregando, setCarregando] = useState<string | null>(null);
   const [pixels, setPixels] = useState<Record<string, { id: string; name: string }[]>>({});
+
+  if (onboarding.semIntegracao) {
+    return (
+      <div className="mk-card" style={{ padding: 14, marginBottom: 14, borderColor: "var(--mk-accent)" }}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>Setup — Conecte sua primeira conta Meta</div>
+        <div style={{ fontSize: 12.5, opacity: 0.75, marginBottom: 10 }}>Pra mandar vendas pro Meta, conecte um cliente em Integrações → Meta Ads. Depois você escolhe o Pixel aqui.</div>
+        <a href="/integracoes/meta" className="ghost-btn" style={{ textDecoration: "none", display: "inline-block", fontSize: 11.5 }}>Ir pra Integrações</a>
+      </div>
+    );
+  }
+  if (onboarding.tudoPronto) return null;
 
   async function listar(clienteId: string, integracaoId: string) {
     setCarregando(integracaoId);
@@ -290,25 +300,38 @@ function ConectarPixel({ clientes }: { clientes: ClientePixel[] }) {
   }
 
   return (
-    <div className="mk-card" style={{ padding: 14, borderColor: "var(--mk-accent)" }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>Conectar Pixel (Meta)</div>
-      {clientes.length === 0 && <div style={{ opacity: 0.6, fontSize: 13 }}>Nenhum cliente com integração Meta. Conecte o Meta Ads em Integrações primeiro.</div>}
-      {clientes.map((c) => (
-        <div key={c.integracao_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid var(--mk-border)", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 180 }}>{c.cliente_nome}</div>
-          {c.pixel_id
-            ? <span style={{ color: "var(--mk-accent)" }}>✓ Pixel {c.pixel_nome || c.pixel_id}</span>
-            : <span style={{ opacity: 0.6 }}>— não conectado</span>}
-          {!pixels[c.integracao_id]
-            ? <button className="ghost-btn" style={{ fontSize: 11.5 }} disabled={carregando === c.integracao_id} onClick={() => listar(c.cliente_id, c.integracao_id)}>{carregando === c.integracao_id ? "…" : "Escolher pixel"}</button>
-            : (
-              <select onChange={(e) => { const p = pixels[c.integracao_id].find((x) => x.id === e.target.value); if (p) salvar(c.integracao_id, p.id, p.name); }} defaultValue="" style={inp}>
-                <option value="" disabled>Selecione…</option>
-                {pixels[c.integracao_id].map((p) => <option key={p.id} value={p.id}>{p.name} ({p.id})</option>)}
-              </select>
-            )}
-        </div>
-      ))}
+    <div className="mk-card" style={{ padding: 14, marginBottom: 14, borderColor: "var(--mk-accent)" }}>
+      <div style={{ fontWeight: 600, marginBottom: 10 }}>Setup — termina de configurar pra começar a enviar vendas</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {onboarding.passos.map((p) => {
+          const prox = !p.pixel_id ? "pixel" : !p.temVenda ? "venda" : "ok";
+          return (
+            <div key={p.integracao_id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: 8, border: "1px solid var(--mk-border)", background: "var(--mk-surface-2)" }}>
+              <div style={{ fontWeight: 600 }}>{p.cliente_nome}</div>
+              <div style={{ display: "flex", gap: 14, fontSize: 12, flexWrap: "wrap" }}>
+                <span style={{ color: "var(--mk-accent)" }}>✓ Meta conectado</span>
+                <span style={{ color: p.pixel_id ? "var(--mk-accent)" : "var(--mk-text-muted)" }}>{p.pixel_id ? `✓ Pixel ${p.pixel_nome || p.pixel_id}` : "⏳ Pixel não escolhido"}</span>
+                <span style={{ color: p.temVenda ? "var(--mk-accent)" : "var(--mk-text-muted)" }}>{p.temVenda ? "✓ 1ª venda enviada" : "⏳ Aguardando 1ª venda"}</span>
+              </div>
+              {prox === "pixel" && (
+                !pixels[p.integracao_id] ? (
+                  <button className="ghost-btn" style={{ alignSelf: "flex-start", fontSize: 11.5 }} disabled={carregando === p.integracao_id} onClick={() => listar(p.cliente_id, p.integracao_id)}>
+                    {carregando === p.integracao_id ? "Listando…" : "Escolher pixel"}
+                  </button>
+                ) : (
+                  <select style={{ ...inp, alignSelf: "flex-start", minWidth: 240 }} defaultValue="" onChange={(e) => { const x = pixels[p.integracao_id].find((y) => y.id === e.target.value); if (x) salvar(p.integracao_id, x.id, x.name); }}>
+                    <option value="" disabled>Selecione um pixel…</option>
+                    {pixels[p.integracao_id].map((x) => <option key={x.id} value={x.id}>{x.name} ({x.id})</option>)}
+                  </select>
+                )
+              )}
+              {prox === "venda" && (
+                <div style={{ fontSize: 12, opacity: 0.7 }}>Próximo passo: registrar um Fechamento real num contato que veio de CTWA — o sistema dispara automaticamente o Purchase pro Meta. Resultado aparece no feed abaixo (✓ enviado) e no Events Manager.</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
