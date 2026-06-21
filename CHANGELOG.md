@@ -7,6 +7,9 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **03:06** — **Plano de implementação do "Pixel & Vendas" escrito.**
+  - Plano detalhado (11 tasks, com código real) em `docs/superpowers/plans/2026-06-20-pixel-e-vendas.md`. Ainda **sem código de produção**. Cobre: parquear os 9 itens, fix do bug `ctwa_clid` (camelCase), migration `capi_eventos` + pixel no `integracoes`, cliente CAPI (`enviarPurchase`), worker com **claim atômico + reaper**, cron, hook no Fechamento (`after()`), OAuth `ads_management` + descoberta de pixel, painel KPIs + tabela campanha→conjunto + feed + conectar.
+
 - **02:49** — **Design fechado: "Pixel & Vendas" (rastreio Meta + Conversions API).**
   - Spec de implementação salvo em `docs/superpowers/specs/2026-06-20-pixel-e-vendas-design.md` (brainstorming aprovado). Ainda **sem código de produção** — próximo passo é o plano de implementação.
   - Resumo: nova aba **única** em **Tráfego (Ads)** (super_admin); os 9 itens atuais saem do menu (rotas preservadas). Envia evento **Purchase** ao Meta via **Conversions API** quando há **Fechamento** — atribuição pelo `ctwa_clid` da CTWA, dedup por `event_id=fechamento:{ticket_id}`. Painel **Gasto / Bruto / Líquido / ROAS** por campanha→conjunto, busca e filtro. Conexão de **Pixel via OAuth** (scope `ads_management`). Inclui **fix do bug** de chave `ctwa_clid` (camelCase vs snake_case). Globo de leads por estado fica pra **Fase 2**.
