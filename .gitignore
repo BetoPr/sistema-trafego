@@ -63,3 +63,4 @@ supabase/.temp
 .idea/
 
 .vercel
+.design-refs/
