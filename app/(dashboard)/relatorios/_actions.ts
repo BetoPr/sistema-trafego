@@ -40,8 +40,13 @@ function parsePayload(formData: FormData): PayloadRelatorio | { erro: string } {
   const diaMesRaw = formData.get("dia_mes");
   const dia_mes = diaMesRaw !== null && diaMesRaw !== "" ? Number(diaMesRaw) : null;
 
-  const hora_envio = String(formData.get("hora_envio") || "09:00");
-  if (!/^\d{2}:\d{2}$/.test(hora_envio)) return { erro: "Hora de envio inválida" };
+  // Aceita HH:MM ou H:MM (input type=time as vezes manda sem zero-padding).
+  let hora_envio = String(formData.get("hora_envio") || "09:00").trim();
+  const m = hora_envio.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!m) return { erro: "Hora de envio inválida (use HH:MM)" };
+  const hh = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+  const mm = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  hora_envio = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 
   const formato = (String(formData.get("formato") || "pdf") as Formato);
   if (!["pdf", "imagem", "texto"].includes(formato)) return { erro: "Formato inválido" };
