@@ -5,6 +5,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-22
+
+- **00:25** — **CountUp: KPIs animam de 0 ate valor final.**
+  - Componente `components/ui/CountUp.tsx` (client) — usa requestAnimationFrame com ease-out cubic, duracao 900ms padrao. Respeita prefers-reduced-motion. Aceita number|null (null → fallback "—"). Helpers: fmtCountBRL, fmtCountMultX, fmtCountPct.
+  - DashboardKPIs.tsx: Investido / Faturamento / Lucro / ROAS / Impressoes / Cliques / CPL / CAC animam.
+  - DashboardAtendimentos.tsx: Faturamento / Tickets fechados / Servicos vendidos / Ticket medio animam.
+  - analise-ias/page.tsx: Tokens / Custo / Chamadas / Sucesso% / Audio min / Medias animam.
+
 ## 2026-06-21
 
 - **00:05** — **Desktop polish: KPI hover + tooltip do gráfico.**

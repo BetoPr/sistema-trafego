@@ -1,5 +1,8 @@
-import { fmtBRL, fmtInt, fmtMultX } from "@/lib/format";
+import { fmtBRL, fmtInt } from "@/lib/format";
+import { CountUp, fmtCountBRL, fmtCountMultX } from "@/components/ui/CountUp";
 import type { KpiResumo } from "@/lib/meta-ads/queries";
+
+const nfInt = new Intl.NumberFormat("pt-BR");
 
 interface Props {
   kpi: KpiResumo;
@@ -20,7 +23,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
       >
         <KpiFinanceiro
           rotulo="INVESTIDO"
-          valor={fmtBRL(kpi.investido)}
+          valor={<CountUp value={kpi.investido} format={fmtCountBRL} />}
           sub={`investido em ads · ${periodoLabel}`}
           icone="ti-coin"
           accent="#F0A35E"
@@ -28,7 +31,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiFinanceiro
           rotulo="FATURAMENTO"
-          valor={fmtBRL(kpi.faturamento)}
+          valor={<CountUp value={kpi.faturamento} format={fmtCountBRL} />}
           sub={`${fmtInt(kpi.vendas)} vendas fechadas · via CRM`}
           icone="ti-cash-banknote"
           accent="rgba(255,255,255,0.5)"
@@ -38,7 +41,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiFinanceiro
           rotulo="LUCRO BRUTO"
-          valor={fmtBRL(kpi.lucro)}
+          valor={<CountUp value={kpi.lucro} format={fmtCountBRL} />}
           sub="faturamento − investido"
           icone="ti-trending-up"
           accent="var(--mk-accent-2)"
@@ -48,7 +51,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiFinanceiro
           rotulo="ROAS BRUTO"
-          valor={fmtMultX(kpi.roas)}
+          valor={<CountUp value={kpi.roas} format={fmtCountMultX} fallback="—" />}
           sub="retorno sobre investimento"
           icone="ti-target-arrow"
           accent="var(--mk-accent-2)"
@@ -63,14 +66,14 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
       >
         <KpiTrafego
           rotulo="IMPRESSÕES"
-          valor={fmtInt(kpi.impressoes)}
+          valor={<CountUp value={kpi.impressoes} />}
           sub={`alcance ${fmtInt(kpi.alcance)}`}
           icone="ti-eye"
           iconColor="var(--mk-icon-blue)"
         />
         <KpiTrafego
           rotulo="CLIQUES"
-          valor={fmtInt(kpi.cliques)}
+          valor={<CountUp value={kpi.cliques} />}
           sub={
             kpi.ctr != null
               ? `CTR ${(kpi.ctr * 100).toFixed(2).replace(".", ",")}%`
@@ -81,14 +84,14 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiTrafego
           rotulo="CPL"
-          valor={fmtBRL(kpi.cpl)}
+          valor={<CountUp value={kpi.cpl} format={fmtCountBRL} />}
           sub={`custo por lead · ${fmtInt(kpi.leads)} leads`}
           icone="ti-user-plus"
           iconColor="var(--mk-icon-green)"
         />
         <KpiTrafego
           rotulo="CAC"
-          valor={fmtBRL(kpi.cac)}
+          valor={<CountUp value={kpi.cac} format={fmtCountBRL} />}
           sub="custo por conversão"
           icone="ti-shopping-cart"
           iconColor="var(--mk-icon-pink)"
@@ -101,7 +104,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
 function KpiFinanceiro({
   rotulo, valor, sub, icone, accent, iconColor, iconBg, destaque, valorColor, className,
 }: {
-  rotulo: string; valor: string; sub: string; icone: string;
+  rotulo: string; valor: React.ReactNode; sub: string; icone: string;
   accent: string; iconColor?: string; iconBg?: string; destaque?: boolean; valorColor?: string;
   className?: string;
 }) {
@@ -151,7 +154,7 @@ function KpiFinanceiro({
 function KpiTrafego({
   rotulo, valor, sub, icone, iconColor,
 }: {
-  rotulo: string; valor: string; sub: string; icone: string; iconColor: string;
+  rotulo: string; valor: React.ReactNode; sub: string; icone: string; iconColor: string;
 }) {
   return (
     <div

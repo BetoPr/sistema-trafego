@@ -1,6 +1,7 @@
 "use client";
 
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
+import { CountUp, fmtCountBRL } from "@/components/ui/CountUp";
 import type { KpisAtendimento, ServicoStat, SerieDiaAtend, SatisfacaoStat, TemposStat } from "@/lib/crm/dashboard-queries";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -29,10 +30,10 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempo
   return (
     <>
       <div className="dash-kpis" style={{ marginBottom: 14 }}>
-        <Kpi label="Faturamento" valor={BRL.format(kpis.faturamento_total)} icon="ti-cash" cor="#10b981" primary sub={periodoLabel} />
-        <Kpi label="Tickets fechados" valor={String(kpis.tickets_fechados)} icon="ti-checks" cor="#94a3b8" sub={periodoLabel} />
-        <Kpi label="Serviços vendidos" valor={String(kpis.quantidade_total)} icon="ti-shopping-bag" cor="#94a3b8" sub="soma das quantidades" />
-        <Kpi label="Ticket médio" valor={BRL.format(kpis.ticket_medio)} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
+        <Kpi label="Faturamento" valor={<CountUp value={kpis.faturamento_total} format={fmtCountBRL} />} icon="ti-cash" cor="#10b981" primary sub={periodoLabel} />
+        <Kpi label="Tickets fechados" valor={<CountUp value={kpis.tickets_fechados} />} icon="ti-checks" cor="#94a3b8" sub={periodoLabel} />
+        <Kpi label="Serviços vendidos" valor={<CountUp value={kpis.quantidade_total} />} icon="ti-shopping-bag" cor="#94a3b8" sub="soma das quantidades" />
+        <Kpi label="Ticket médio" valor={<CountUp value={kpis.ticket_medio} format={fmtCountBRL} />} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
       </div>
 
       <div className="mk-card" style={{ padding: 16, marginTop: 14 }}>
@@ -154,7 +155,7 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempo
   );
 }
 
-function Kpi({ label, valor, icon, cor, sub, primary }: { label: string; valor: string; icon: string; cor: string; sub?: string; primary?: boolean }) {
+function Kpi({ label, valor, icon, cor, sub, primary }: { label: string; valor: React.ReactNode; icon: string; cor: string; sub?: string; primary?: boolean }) {
   return (
     <div className="mk-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

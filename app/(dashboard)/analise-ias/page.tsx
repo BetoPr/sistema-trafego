@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/crm/permissions";
 import { agregarUso } from "@/lib/ai/relatorio";
 import { Controles } from "./_controles";
 import { ExportarUso } from "./_exportar";
+import { CountUp } from "@/components/ui/CountUp";
 
 export const dynamic = "force-dynamic";
 
@@ -47,18 +48,18 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
         <>
           {/* KPIs com delta vs período anterior */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Tokens (total)" valor={nf.format(d.totais.tokens)} delta={d.delta.tokens} icone="ti-coins" cor="#10b981" />
-            <Card titulo="Custo estimado" valor={usd(d.totais.custo)} delta={d.delta.custo} icone="ti-cash" cor="#10b981" />
-            <Card titulo="Chamadas" valor={nf.format(d.totais.chamadas)} delta={d.delta.chamadas} icone="ti-arrows-exchange" cor="#5B8BA6" />
-            <Card titulo="Sucesso" valor={pct(d.totais.sucesso, d.totais.chamadas)} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#10b981" />
-            <Card titulo="Áudio transcrito" valor={`${Math.round(d.totais.audioSeg / 60)} min`} icone="ti-microphone" cor="#C97064" />
+            <Card titulo="Tokens (total)" valor={<CountUp value={d.totais.tokens} />} delta={d.delta.tokens} icone="ti-coins" cor="#10b981" />
+            <Card titulo="Custo estimado" valor={<CountUp value={d.totais.custo} format={(n) => usd(n)} />} delta={d.delta.custo} icone="ti-cash" cor="#10b981" />
+            <Card titulo="Chamadas" valor={<CountUp value={d.totais.chamadas} />} delta={d.delta.chamadas} icone="ti-arrows-exchange" cor="#5B8BA6" />
+            <Card titulo="Sucesso" valor={<CountUp value={d.totais.chamadas > 0 ? Math.round((d.totais.sucesso / d.totais.chamadas) * 100) : 0} suffix="%" />} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#10b981" />
+            <Card titulo="Áudio transcrito" valor={<CountUp value={Math.round(d.totais.audioSeg / 60)} suffix=" min" />} icone="ti-microphone" cor="#C97064" />
           </div>
 
           {/* Médias + eficiência */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Média por conversa" valor={`${nf.format(d.medias.porConversa)} tok`} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#10b981" />
-            <Card titulo="Média por ticket" valor={`${nf.format(d.medias.porTicket)} tok`} sub={`${d.medias.tickets} ticket(s)`} icone="ti-ticket" cor="#5B8BA6" />
-            <Card titulo="Média por chamada" valor={`${nf.format(d.medias.porRequest)} tok`} icone="ti-arrow-bar-right" cor="#C97064" />
+            <Card titulo="Média por conversa" valor={<CountUp value={d.medias.porConversa} suffix=" tok" />} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#10b981" />
+            <Card titulo="Média por ticket" valor={<CountUp value={d.medias.porTicket} suffix=" tok" />} sub={`${d.medias.tickets} ticket(s)`} icone="ti-ticket" cor="#5B8BA6" />
+            <Card titulo="Média por chamada" valor={<CountUp value={d.medias.porRequest} suffix=" tok" />} icone="ti-arrow-bar-right" cor="#C97064" />
             <Card titulo="Prompt × Resposta" valor={`${d.eficiencia.promptPct}% / ${d.eficiencia.completionPct}%`} sub="entrada / saída" icone="ti-arrows-split" cor="#10b981" />
           </div>
 
@@ -137,7 +138,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
   );
 }
 
-function Card({ titulo, valor, sub, delta, icone, cor }: { titulo: string; valor: string; sub?: string; delta?: number; icone: string; cor: string }) {
+function Card({ titulo, valor, sub, delta, icone, cor }: { titulo: string; valor: React.ReactNode; sub?: string; delta?: number; icone: string; cor: string }) {
   return (
     <div className="mk-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
