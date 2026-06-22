@@ -107,6 +107,24 @@ export function RelatoriosClient({
     });
   }
 
+  async function enviarAgora(id: string, nome: string) {
+    if (!confirm(`Enviar "${nome}" agora?`)) return;
+    startTransition(async () => {
+      try {
+        const r = await fetch(`/api/relatorios/${id}/enviar-agora`, { method: "POST" });
+        const j = await r.json();
+        if (!r.ok) {
+          alert(`Falhou: ${j.error || "erro desconhecido"}`);
+        } else {
+          alert(`Despachado. Enviados: ${j.enviados}, falhas: ${j.falhas}`);
+        }
+        router.refresh();
+      } catch (e) {
+        alert("Erro de rede: " + (e instanceof Error ? e.message : String(e)));
+      }
+    });
+  }
+
   return (
     <>
       {/* Toolbar */}
@@ -213,6 +231,12 @@ export function RelatoriosClient({
                     </Td>
                     <Td>
                       <div style={{ display: "flex", gap: 4 }}>
+                        <button onClick={() => enviarAgora(r.id, r.nome)}
+                          title="Enviar agora"
+                          disabled={!r.ativo || pending}
+                          style={{ ...btnAcao, opacity: r.ativo ? 1 : 0.4 }}>
+                          <i className="ti ti-send" style={{ fontSize: 14 }} />
+                        </button>
                         <button onClick={() => router.push(`/relatorios?editar=${r.id}`)}
                           title="Editar"
                           style={btnAcao}>

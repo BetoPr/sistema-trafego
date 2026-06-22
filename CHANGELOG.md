@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **03:35** — **Relatorios: worker + envio UAZAPI + cron a cada 2 min + botao "Enviar agora".**
+  - `lib/relatorios/worker.ts`: `processarRelatoriosPendentes` pega relatorios ativos com proximo_envio <= now(), faz claim atomico (ultimo_status='enviando'), monta texto formatado (KPIs financeiro + trafego, igual Dashboard — usa tickets.valor_fechado + metricas_diarias), pega canal WhatsApp connected, envia via instanceSendText, recalcula proximo_envio. Em caso de erro: marca ultimo_status='falhou' + ultimo_erro.
+  - `/api/cron/relatorios/route.ts`: GET protegido por CRON_SECRET.
+  - pg_cron job `relatorios-tick` agendado `*/2 * * * *` chamando o endpoint.
+  - `/api/relatorios/[id]/enviar-agora/route.ts`: POST autenticado, marca proximo_envio=now() + roda worker imediato (botao "Enviar agora" no painel).
+  - `_client.tsx`: botao paper-plane ao lado de editar/deletar — confirma + dispara fetch + alerta resultado.
+
 - **03:15** — **Nova aba Relatorios: agendamento automatico de envio (UI + persistencia).**
   - Migration `relatorios_agendados` (id, agencia_id, nome, cliente_id/telefone_destino, canal_id, plataforma, frequencia diario/semanal/mensal, dia_semana, dia_mes, hora_envio, timezone, formato pdf/imagem/texto, periodo_dias, ativo, proximo_envio, ultimo_envio/status/erro, soft delete). RLS multi-tenant.
   - `/relatorios/page.tsx` reescrita: server component lendo agenda, badge "N REGISTROS · M ATIVOS", banner sucesso/erro.
