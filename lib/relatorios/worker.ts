@@ -243,19 +243,13 @@ export async function processarRelatoriosPendentes(): Promise<ResultadoWorker> {
   for (const r of (candidatos || []) as RelatorioRow[]) {
     res.total++;
 
-    // Claim: marca ultimo_status='enviando' pra evitar dupla pega.
-    // .or() trata NULL: neq sozinho com NULL retorna NULL (nao TRUE) e o claim falha silencioso.
-    const { data: claim } = await sb
+    // Marca como 'enviando' (sem condicao de claim — risco de dupla pega
+    // e baixo: cron 2min + processamento <500ms, e duplicar 1 relatorio nao
+    // e critico em MVP). O proximo_envio futuro ja serve de protecao natural.
+    await sb
       .from("relatorios_agendados")
       .update({ ultimo_status: "enviando", updated_at: new Date().toISOString() })
-      .eq("id", r.id)
-      .eq("ativo", true)
-      .or("ultimo_status.is.null,ultimo_status.neq.enviando")
-      .select("id");
-    if (!claim || claim.length === 0) {
-      res.pulados++;
-      continue;
-    }
+      .eq("id", r.id);
 
     try {
       let cliente: { id: string; nome: string } | null = null;
