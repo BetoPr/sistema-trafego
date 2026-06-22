@@ -11,8 +11,13 @@ import {
   redirectUri,
 } from "@/lib/meta-ads/api";
 
+/** Base URL pra redirects — usa NEXT_PUBLIC_APP_URL (correto atras de Nginx proxy). */
+function baseUrl(req: NextRequest): string {
+  return process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+}
+
 function errorRedirect(req: NextRequest, code: string, msg?: string) {
-  const url = new URL("/integracoes/meta", req.url);
+  const url = new URL("/integracoes/meta", baseUrl(req));
   url.searchParams.set("erro", code);
   if (msg) url.searchParams.set("msg", msg.slice(0, 200));
   return NextResponse.redirect(url);
@@ -52,7 +57,7 @@ export async function GET(req: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", req.url));
+  if (!user) return NextResponse.redirect(new URL("/login", baseUrl(req)));
   if (user.id !== statePayload.user_id) {
     return errorRedirect(req, "user_mismatch");
   }
@@ -120,7 +125,7 @@ export async function GET(req: NextRequest) {
     })),
   });
 
-  const res = NextResponse.redirect(new URL("/integracoes/meta/contas", req.url));
+  const res = NextResponse.redirect(new URL("/integracoes/meta/contas", baseUrl(req)));
   res.cookies.set("meta_pending", pendingCookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
