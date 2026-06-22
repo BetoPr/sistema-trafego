@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { RelatorioFormBalao, type RelatorioForm } from "./_form-balao";
 import { alternarAtivoRelatorio, deletarRelatorio } from "./_actions";
 
+function useIsMobile(bp = 768) {
+  const [m, setM] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`);
+    const on = () => setM(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [bp]);
+  return m;
+}
+
 interface LinhaRelatorio {
   id: string;
   nome: string;
@@ -39,6 +51,7 @@ export function RelatoriosClient({
   editarId: string | null;
 }) {
   const router = useRouter();
+  const mobile = useIsMobile();
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState<FiltroStatus>("todos");
   const [aberto, setAberto] = useState<RelatorioForm | null>(null);
@@ -174,7 +187,7 @@ export function RelatoriosClient({
         </div>
       </div>
 
-      {/* Tabela */}
+      {/* Lista — cards mobile, tabela desktop */}
       <div className="mk-card" style={{ borderRadius: 13, padding: 0, overflow: "hidden" }}>
         {filtrada.length === 0 ? (
           <div style={{ padding: "48px 22px", textAlign: "center", color: "var(--mk-text-muted)", fontSize: 13 }}>
@@ -182,6 +195,79 @@ export function RelatoriosClient({
             {lista.length === 0
               ? "Nenhum relatório agendado ainda. Clique em \"Criar Relatório\" pra começar."
               : "Nenhum relatório bate com o filtro atual."}
+          </div>
+        ) : mobile ? (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {filtrada.map((r) => (
+              <div key={r.id} style={{
+                padding: "12px 14px",
+                borderBottom: "0.5px solid var(--mk-border)",
+                opacity: r.ativo ? 1 : 0.55,
+                display: "flex", flexDirection: "column", gap: 9,
+              }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <button
+                    onClick={() => toggle(r.id, r.ativo)}
+                    disabled={pending}
+                    aria-label={r.ativo ? "Desativar" : "Ativar"}
+                    style={{
+                      flex: "none", marginTop: 3,
+                      width: 36, height: 20, borderRadius: 13, padding: 0,
+                      background: r.ativo ? "var(--mk-accent)" : "rgba(255,255,255,0.15)",
+                      border: 0, position: "relative", cursor: "pointer",
+                    }}>
+                    <span style={{
+                      position: "absolute", top: 2, left: r.ativo ? "auto" : 2, right: r.ativo ? 2 : "auto",
+                      width: 16, height: 16, borderRadius: "50%",
+                      background: r.ativo ? "#fff" : "#888",
+                      transition: "all 0.16s",
+                    }} />
+                  </button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--mk-text)", lineHeight: 1.25, wordBreak: "break-word" }}>
+                      {r.nome}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--mk-text-secondary)", marginTop: 2, wordBreak: "break-word" }}>
+                      {r.recebedor}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 8, borderTop: "0.5px solid var(--mk-border)", flexWrap: "wrap" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+                    {r.plataforma === "meta_ads"
+                      ? <><i className="ti ti-brand-meta" style={{ fontSize: 12, color: "#1877F2" }} />Meta</>
+                      : <><i className="ti ti-brand-google" style={{ fontSize: 12, color: "#EA4335" }} />Google</>}
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+                    <i className="ti ti-repeat" style={{ fontSize: 12 }} />{FREQ_LABEL[r.frequencia]}
+                  </span>
+                  <span style={{
+                    marginLeft: "auto",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    fontSize: 11, fontWeight: r.ativo ? 700 : 400,
+                    color: r.ativo ? "var(--mk-accent-2)" : "var(--mk-text-muted)",
+                  }}>
+                    <i className="ti ti-clock-bolt" style={{ fontSize: 12 }} />
+                    {r.ativo ? r.proximoFmt : "Inativo"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => enviarAgora(r.id, r.nome)}
+                    disabled={!r.ativo || pending}
+                    style={{ ...btnAcaoMobile, opacity: r.ativo ? 1 : 0.4, flex: 1 }}>
+                    <i className="ti ti-send" style={{ fontSize: 14, marginRight: 5 }} />Enviar
+                  </button>
+                  <button onClick={() => router.push(`/relatorios?editar=${r.id}`)}
+                    style={btnAcaoMobile}>
+                    <i className="ti ti-adjustments-horizontal" style={{ fontSize: 14 }} />
+                  </button>
+                  <button onClick={() => deletar(r.id, r.nome)}
+                    style={{ ...btnAcaoMobile, color: "#FB7185", borderColor: "rgba(251,113,133,0.32)" }}>
+                    <i className="ti ti-trash" style={{ fontSize: 14 }} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -284,6 +370,13 @@ const btnAcao: React.CSSProperties = {
   width: 30, height: 30, borderRadius: 7,
   background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)",
   color: "var(--mk-accent-2)", cursor: "pointer",
+};
+const btnAcaoMobile: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  minHeight: 38, padding: "0 12px", borderRadius: 9,
+  background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)",
+  color: "var(--mk-accent-2)", cursor: "pointer", fontSize: 12, fontWeight: 600,
+  fontFamily: "inherit",
 };
 
 function Th({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {

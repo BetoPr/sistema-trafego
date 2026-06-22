@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { instanceSendText } from "@/lib/uazapi/client";
+import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+import { gerarBufferPdf, type PdfDados } from "./pdf";
 
 interface RelatorioRow {
   id: string;
@@ -49,24 +50,31 @@ function calcularProximoEnvio(r: RelatorioRow, base = new Date()): Date {
   return proximo;
 }
 
-/**
- * Monta o texto do relatório com KPIs principais do período pedido.
- * Faturamento vem de tickets.valor_fechado (CRM), igual ao Dashboard.
- * Gasto/impressoes/cliques vêm de metricas_diarias.
- */
-async function montarTextoRelatorio(
+interface DadosRelatorio {
+  inicio: Date;
+  fim: Date;
+  faturamento: number;
+  vendas: number;
+  gasto: number;
+  impressoes: number;
+  cliques: number;
+  leads: number;
+  conversoes: number;
+  lucro: number;
+  roas: number;
+  ctr: number;
+  cpl: number;
+}
+
+async function coletarDadosRelatorio(
   sb: ReturnType<typeof createServiceClient>,
   r: RelatorioRow,
   cliente: { id: string; nome: string } | null,
-): Promise<string> {
+): Promise<DadosRelatorio> {
   const fim = new Date();
   const inicio = new Date(fim);
   inicio.setDate(inicio.getDate() - r.periodo_dias);
 
-  const fmtData = (d: Date) =>
-    `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-
-  // Faturamento + tickets fechados no período
   const { data: tickets } = await sb
     .from("tickets")
     .select("valor_fechado")
@@ -77,7 +85,6 @@ async function montarTextoRelatorio(
   const faturamento = (tickets || []).reduce((s, t) => s + Number(t.valor_fechado || 0), 0);
   const vendas = (tickets || []).length;
 
-  // Métricas diárias (Meta Ads) — opcional: cliente_id filtra
   let q = sb
     .from("metricas_diarias")
     .select("gasto, impressoes, cliques, leads, conversoes")
@@ -100,29 +107,84 @@ async function montarTextoRelatorio(
   const ctr = impressoes > 0 ? (cliques / impressoes) * 100 : 0;
   const cpl = leads > 0 ? gasto / leads : 0;
 
+  return { inicio, fim, faturamento, vendas, gasto, impressoes, cliques, leads, conversoes, lucro, roas, ctr, cpl };
+}
+
+function fmtData(d: Date) {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function montarTextoRelatorio(r: RelatorioRow, cliente: { nome: string } | null, d: DadosRelatorio): string {
   const linhas: string[] = [];
   linhas.push(`📊 *${r.nome}*`);
-  linhas.push(`Período: ${fmtData(inicio)} a ${fmtData(fim)}`);
+  linhas.push(`Período: ${fmtData(d.inicio)} a ${fmtData(d.fim)}`);
   if (cliente) linhas.push(`Cliente: ${cliente.nome}`);
   linhas.push("");
   linhas.push("*💰 Financeiro*");
-  linhas.push(`• Investido: ${BRL.format(gasto)}`);
-  linhas.push(`• Faturamento: ${BRL.format(faturamento)} (${vendas} venda${vendas === 1 ? "" : "s"})`);
-  linhas.push(`• Lucro bruto: ${BRL.format(lucro)}`);
-  linhas.push(`• ROAS: ${roas > 0 ? roas.toFixed(2).replace(".", ",") + "x" : "—"}`);
+  linhas.push(`• Investido: ${BRL.format(d.gasto)}`);
+  linhas.push(`• Faturamento: ${BRL.format(d.faturamento)} (${d.vendas} venda${d.vendas === 1 ? "" : "s"})`);
+  linhas.push(`• Lucro bruto: ${BRL.format(d.lucro)}`);
+  linhas.push(`• ROAS: ${d.roas > 0 ? d.roas.toFixed(2).replace(".", ",") + "x" : "—"}`);
 
-  if (impressoes > 0 || cliques > 0) {
+  if (d.impressoes > 0 || d.cliques > 0) {
     linhas.push("");
     linhas.push("*📈 Tráfego*");
-    if (impressoes > 0) linhas.push(`• Impressões: ${nfInt.format(impressoes)}`);
-    if (cliques > 0) linhas.push(`• Cliques: ${nfInt.format(cliques)} (CTR ${ctr.toFixed(2).replace(".", ",")}%)`);
-    if (leads > 0) linhas.push(`• Leads: ${nfInt.format(leads)} · CPL ${BRL.format(cpl)}`);
-    if (conversoes > 0) linhas.push(`• Conversões: ${nfInt.format(conversoes)}`);
+    if (d.impressoes > 0) linhas.push(`• Impressões: ${nfInt.format(d.impressoes)}`);
+    if (d.cliques > 0) linhas.push(`• Cliques: ${nfInt.format(d.cliques)} (CTR ${d.ctr.toFixed(2).replace(".", ",")}%)`);
+    if (d.leads > 0) linhas.push(`• Leads: ${nfInt.format(d.leads)} · CPL ${BRL.format(d.cpl)}`);
+    if (d.conversoes > 0) linhas.push(`• Conversões: ${nfInt.format(d.conversoes)}`);
   }
 
   linhas.push("");
   linhas.push("_Enviado automaticamente pelo Sonar CRM._");
   return linhas.join("\n");
+}
+
+function dadosParaPdf(r: RelatorioRow, cliente: { nome: string } | null, d: DadosRelatorio): PdfDados {
+  return {
+    titulo: r.nome,
+    cliente: cliente?.nome || null,
+    periodoInicio: fmtData(d.inicio),
+    periodoFim: fmtData(d.fim),
+    financeiro: {
+      investido: BRL.format(d.gasto),
+      faturamento: BRL.format(d.faturamento),
+      lucro: BRL.format(d.lucro),
+      roas: d.roas > 0 ? d.roas.toFixed(2).replace(".", ",") + "x" : "—",
+      vendas: d.vendas,
+    },
+    trafego: d.impressoes > 0 || d.cliques > 0 ? {
+      impressoes: nfInt.format(d.impressoes),
+      cliques: nfInt.format(d.cliques),
+      ctr: d.ctr.toFixed(2).replace(".", ",") + "%",
+      leads: nfInt.format(d.leads),
+      cpl: BRL.format(d.cpl),
+      conversoes: nfInt.format(d.conversoes),
+    } : null,
+  };
+}
+
+/** Sobe PDF no bucket `relatorios` e retorna URL assinada de 24h. */
+async function uploadPdf(
+  sb: ReturnType<typeof createServiceClient>,
+  agenciaId: string,
+  relatorioId: string,
+  buffer: Buffer,
+): Promise<string> {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const path = `${agenciaId}/${relatorioId}/${ts}.pdf`;
+  const { error: upErr } = await sb.storage
+    .from("relatorios")
+    .upload(path, buffer, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+  if (upErr) throw new Error(`Upload PDF falhou: ${upErr.message}`);
+  const { data: signed, error: sigErr } = await sb.storage
+    .from("relatorios")
+    .createSignedUrl(path, 60 * 60 * 24);
+  if (sigErr || !signed) throw new Error(`URL assinada falhou: ${sigErr?.message}`);
+  return signed.signedUrl;
 }
 
 async function pegarCanal(
@@ -205,7 +267,8 @@ export async function processarRelatoriosPendentes(): Promise<ResultadoWorker> {
         if (cli) cliente = cli as { id: string; nome: string };
       }
 
-      const texto = await montarTextoRelatorio(sb, r, cliente);
+      const dados = await coletarDadosRelatorio(sb, r, cliente);
+      const texto = montarTextoRelatorio(r, cliente, dados);
 
       const canal = await pegarCanal(sb, r.agencia_id, r.canal_id);
       if (!canal) {
@@ -255,10 +318,35 @@ export async function processarRelatoriosPendentes(): Promise<ResultadoWorker> {
         continue;
       }
 
-      await instanceSendText(
-        { baseUrl: canal.baseUrl, token: canal.token },
-        { number: numero, text: texto },
-      );
+      if (r.formato === "pdf") {
+        try {
+          const pdf = dadosParaPdf(r, cliente, dados);
+          const buf = await gerarBufferPdf(pdf);
+          const url = await uploadPdf(sb, r.agencia_id, r.id, buf);
+          await instanceSendMedia(
+            { baseUrl: canal.baseUrl, token: canal.token },
+            {
+              number: numero,
+              type: "document",
+              file: url,
+              docName: `${r.nome.replace(/[^\w\s-]/g, "_").slice(0, 60)}.pdf`,
+              text: `📊 ${r.nome}\nPeríodo: ${fmtData(dados.inicio)} a ${fmtData(dados.fim)}`,
+            },
+          );
+        } catch (pdfErr) {
+          // fallback pra texto se PDF/upload falhar
+          console.warn(`[relatorios] PDF falhou (${r.id}), enviando texto:`, pdfErr);
+          await instanceSendText(
+            { baseUrl: canal.baseUrl, token: canal.token },
+            { number: numero, text: texto },
+          );
+        }
+      } else {
+        await instanceSendText(
+          { baseUrl: canal.baseUrl, token: canal.token },
+          { number: numero, text: texto },
+        );
+      }
 
       await sb
         .from("relatorios_agendados")

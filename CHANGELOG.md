@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **04:00** — **Relatorios: mobile (cards 1col) + envio PDF real.**
+  - `_client.tsx`: hook useIsMobile; em <=768px, tabela vira cards stack 1col com toggle ativo no topo, nome+recebedor, chips Meta/Google + frequencia + proximo envio, e botoes "Enviar" full-width + editar + deletar lado a lado.
+  - `lib/relatorios/pdf.tsx`: Document @react-pdf/renderer (A4 dark theme) com header titulo + periodo, secao Financeiro (Investido laranja + Faturamento + Lucro verde + ROAS verde) + secao Trafego (impressoes, cliques+CTR, leads, CPL, conversoes).
+  - Worker atualizado: se formato='pdf', gera PDF -> upload bucket `relatorios` -> URL assinada 24h -> `instanceSendMedia` type=document com docName `<nome>.pdf` + caption resumo. Fallback automatico pra texto se PDF falhar.
+  - Texto formato continua para formato='texto'. Imagem ainda envia texto (proxima fase).
+
 - **03:35** — **Relatorios: worker + envio UAZAPI + cron a cada 2 min + botao "Enviar agora".**
   - `lib/relatorios/worker.ts`: `processarRelatoriosPendentes` pega relatorios ativos com proximo_envio <= now(), faz claim atomico (ultimo_status='enviando'), monta texto formatado (KPIs financeiro + trafego, igual Dashboard — usa tickets.valor_fechado + metricas_diarias), pega canal WhatsApp connected, envia via instanceSendText, recalcula proximo_envio. Em caso de erro: marca ultimo_status='falhou' + ultimo_erro.
   - `/api/cron/relatorios/route.ts`: GET protegido por CRON_SECRET.
