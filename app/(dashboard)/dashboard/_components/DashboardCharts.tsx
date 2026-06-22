@@ -73,9 +73,18 @@ export function GastoReceitaChart({ data }: { data: PontoSerie[] }) {
             <XAxis dataKey="dataLabel" stroke="var(--mk-text-muted)" fontSize={10.5} tickLine={false} axisLine={false} />
             <YAxis stroke="var(--mk-text-muted)" fontSize={10.5} tickLine={false} axisLine={false} tickFormatter={(v) => fmtBRL(v)} width={70} />
             <Tooltip
-              contentStyle={{ background: "var(--mk-surface-2)", border: "1px solid var(--mk-border)", borderRadius: 8, fontSize: 12 }}
+              cursor={{ stroke: "rgba(52,211,153,0.28)", strokeWidth: 1 }}
+              contentStyle={{
+                background: "rgba(10,12,11,0.96)",
+                border: "0.5px solid rgba(52,211,153,0.32)",
+                borderRadius: 11,
+                fontSize: 12,
+                padding: "10px 12px",
+                boxShadow: "0 14px 40px rgba(0,0,0,0.6)",
+              }}
               formatter={(v, name) => [fmtBRL(Number(v)), name === "gasto" ? "Investido" : "Faturamento"]}
-              labelStyle={{ color: "var(--mk-text)" }}
+              labelStyle={{ color: "#fff", fontWeight: 700, fontSize: 11, marginBottom: 4 }}
+              itemStyle={{ color: "var(--mk-text-secondary)", padding: "1px 0" }}
             />
             <Area type="monotone" dataKey="receita" stroke="#34D399" fill="url(#gradReceita)" strokeWidth={2.5} />
             <Area type="monotone" dataKey="gasto" stroke="#F0A35E" fill="url(#gradGasto)" strokeWidth={2.5} />

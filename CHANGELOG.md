@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **00:05** — **Desktop polish: KPI hover + tooltip do gráfico.**
+  - `globals.css`: `.kpi-card:hover` ganha translateY(-2px) + borda glow accent (só hover:hover, não toca em mobile). Lucro hero amplifica o glow.
+  - `DashboardCharts.tsx`: Tooltip do AreaChart "Investido × Faturamento" ganha visual dark/glass com border accent + shadow forte (igual aos demais tooltips do CRM).
+
 - **23:50** — **Mobile polish global + Dashboard KPIs com Lucro hero.**
   - `globals.css` ≤768px:
     - `.dashboard-kpis-financeiros` reorganiza no mobile: Lucro vira hero full-width no topo, Investido + Faturamento em 2 colunas abaixo, ROAS isolado embaixo (grid-areas).
