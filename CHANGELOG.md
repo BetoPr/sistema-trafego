@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **00:35** — **Aurora background no Dashboard (decorativo animado).**
+  - Novo `components/layout/AuroraBg.tsx` — 2 esferas radiais (verde-accent) com blur, respiram lentamente (18s/22s ease-in-out). `position: fixed`, `pointer-events: none`, atras do conteudo. Respeita prefers-reduced-motion.
+  - Aplicado em `app/(dashboard)/dashboard/page.tsx` na view principal (atendimentos+campanhas).
+
 - **00:25** — **CountUp: KPIs animam de 0 ate valor final.**
   - Componente `components/ui/CountUp.tsx` (client) — usa requestAnimationFrame com ease-out cubic, duracao 900ms padrao. Respeita prefers-reduced-motion. Aceita number|null (null → fallback "—"). Helpers: fmtCountBRL, fmtCountMultX, fmtCountPct.
   - DashboardKPIs.tsx: Investido / Faturamento / Lucro / ROAS / Impressoes / Cliques / CPL / CAC animam.

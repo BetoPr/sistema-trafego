@@ -10,6 +10,7 @@ import {
 } from "@/lib/meta-ads/queries";
 import { resolverFaixa, carregarDashboardAtendimentos } from "@/lib/crm/dashboard-queries";
 import { SyncNowButton } from "@/components/shared/SyncNowButton";
+import AuroraBg from "@/components/layout/AuroraBg";
 import { DashboardKPIs } from "./_components/DashboardKPIs";
 import { GastoReceitaChart, StatusDonut, TopCampanhasChart } from "./_components/DashboardCharts";
 import { PeriodoToggle, ViewToggle } from "./_components/PeriodoToggle";
@@ -63,7 +64,8 @@ export default async function DashboardPage({
 
   return (
     <section className="mk-page">
-      <div className="mk-page-head">
+      <AuroraBg />
+      <div className="mk-page-head" style={{ position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
           <div>
             <div className="mk-eyebrow">Painel da agência</div>
