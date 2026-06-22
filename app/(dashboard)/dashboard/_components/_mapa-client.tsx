@@ -462,7 +462,7 @@ function ChipRow({
       }}>
         {label.toUpperCase()}
       </span>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+      <div data-chip-strip style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
         {opcoes.map((o) => {
           const a = o.id === ativo;
           return (

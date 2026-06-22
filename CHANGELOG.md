@@ -7,6 +7,17 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **23:50** — **Mobile polish global + Dashboard KPIs com Lucro hero.**
+  - `globals.css` ≤768px:
+    - `.dashboard-kpis-financeiros` reorganiza no mobile: Lucro vira hero full-width no topo, Investido + Faturamento em 2 colunas abaixo, ROAS isolado embaixo (grid-areas).
+    - `.dashboard-kpis-trafego` força 2x2 mobile (Impressões/Cliques/CPL/CAC).
+    - Inputs com min-height 42px + font-size 15px (evita zoom iOS).
+    - CTAs ganharam min-height 40px (alvo tátil).
+    - `.chip-strip` / `[data-chip-strip]`: rola horizontalmente em vez de quebrar.
+    - Balão respeita `env(safe-area-inset-bottom)`.
+  - `DashboardKPIs.tsx`: classes `kpi-lucro-hero` / `kpi-invest` / `kpi-fat` / `kpi-roas` no Grupo A + `dashboard-kpis-trafego` no Grupo B.
+  - Filtro Serviço×Idade no mapa marcado como `data-chip-strip` (rola horizontal no mobile).
+
 - **23:30** — **Dashboard/Campanhas: filtro Serviço × Idade no mapa de contatos.**
   - Migration `contatos.faixa_etaria` (text + check 18-24/25-34/35-44/45-54/55+).
   - `lib/crm/faixas-tipos.ts` — tipos + constante `FAIXAS_ETARIAS` (compartilhado server/client).

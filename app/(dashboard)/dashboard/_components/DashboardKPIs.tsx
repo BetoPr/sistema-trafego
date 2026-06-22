@@ -14,13 +14,17 @@ interface Props {
 export function DashboardKPIs({ kpi, periodoLabel }: Props) {
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 14, marginBottom: 14 }}>
+      <div
+        className="dashboard-kpis-financeiros"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 14, marginBottom: 14 }}
+      >
         <KpiFinanceiro
           rotulo="INVESTIDO"
           valor={fmtBRL(kpi.investido)}
           sub={`investido em ads · ${periodoLabel}`}
           icone="ti-coin"
           accent="#F0A35E"
+          className="kpi-card kpi-invest"
         />
         <KpiFinanceiro
           rotulo="FATURAMENTO"
@@ -30,6 +34,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
           accent="rgba(255,255,255,0.5)"
           iconColor="var(--mk-text-secondary)"
           iconBg="var(--mk-surface-2)"
+          className="kpi-card kpi-fat"
         />
         <KpiFinanceiro
           rotulo="LUCRO BRUTO"
@@ -39,6 +44,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
           accent="var(--mk-accent-2)"
           destaque
           valorColor={kpi.lucro < 0 ? "#FB7185" : "var(--mk-accent-2)"}
+          className="kpi-card kpi-lucro-hero"
         />
         <KpiFinanceiro
           rotulo="ROAS BRUTO"
@@ -47,10 +53,14 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
           icone="ti-target-arrow"
           accent="var(--mk-accent-2)"
           iconColor="var(--mk-accent-2)"
+          className="kpi-card kpi-roas"
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+      <div
+        className="dashboard-kpis-trafego"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}
+      >
         <KpiTrafego
           rotulo="IMPRESSÕES"
           valor={fmtInt(kpi.impressoes)}
@@ -89,13 +99,15 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
 }
 
 function KpiFinanceiro({
-  rotulo, valor, sub, icone, accent, iconColor, iconBg, destaque, valorColor,
+  rotulo, valor, sub, icone, accent, iconColor, iconBg, destaque, valorColor, className,
 }: {
   rotulo: string; valor: string; sub: string; icone: string;
   accent: string; iconColor?: string; iconBg?: string; destaque?: boolean; valorColor?: string;
+  className?: string;
 }) {
   return (
     <div
+      className={className}
       style={{
         position: "relative",
         background: destaque

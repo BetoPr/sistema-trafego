@@ -1066,6 +1066,53 @@ select option { background: #ffffff; color: #111111; }
   /* Painel direito atendimentos: vira drawer */
   .painel-direito,
   [class*="painel-direito"] { width: 100% !important; max-width: 100% !important; }
+
+  /* === Dashboard/Campanhas mobile === */
+  /* Grupo financeiro: Lucro vira hero full-width no topo + 3 outros em row */
+  .dashboard-kpis-financeiros {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "lucro lucro"
+      "invest fat"
+      "roas roas" !important;
+    gap: 10px !important;
+  }
+  .dashboard-kpis-financeiros .kpi-lucro-hero { grid-area: lucro; padding: 22px 20px !important; }
+  .dashboard-kpis-financeiros .kpi-lucro-hero > div:nth-of-type(2) { font-size: 32px !important; }
+  .dashboard-kpis-financeiros .kpi-invest { grid-area: invest; }
+  .dashboard-kpis-financeiros .kpi-fat { grid-area: fat; }
+  .dashboard-kpis-financeiros .kpi-roas { grid-area: roas; }
+
+  /* Grupo tráfego: 2x2 forçado (auto-fit falha em <360px) */
+  .dashboard-kpis-trafego { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+
+  /* Safe-area iOS bottom */
+  .balao-box { padding-bottom: calc(env(safe-area-inset-bottom) + 16px) !important; }
+
+  /* Tap targets mínimos 44px em CTAs */
+  .cta-btn, .ghost-btn { min-height: 40px; }
+  button[type="submit"]:not(.mk-hamburger) { min-height: 40px; }
+
+  /* Inputs/selects mais altos pra dedos */
+  .mk-input, .mk-select, input[type="text"], input[type="search"], input[type="email"], input[type="tel"], input[type="password"], input[type="number"], select, textarea {
+    min-height: 42px;
+    font-size: 15px; /* evita zoom automático iOS quando <16px */
+  }
+
+  /* Chip-strips horizontais: prefere rolar a quebrar (filtros, abas, etc.) */
+  .chip-strip,
+  [data-chip-strip] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .chip-strip::-webkit-scrollbar,
+  [data-chip-strip]::-webkit-scrollbar { display: none; }
+  .chip-strip > *,
+  [data-chip-strip] > * { flex: 0 0 auto; }
 }
 
 /* TABLET responsivo extra (1001-1280px): cards comprimem */
