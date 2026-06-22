@@ -243,13 +243,14 @@ export async function processarRelatoriosPendentes(): Promise<ResultadoWorker> {
   for (const r of (candidatos || []) as RelatorioRow[]) {
     res.total++;
 
-    // Claim: marca ultimo_status='enviando' e zera proximo_envio só pra evitar dupla pega.
+    // Claim: marca ultimo_status='enviando' pra evitar dupla pega.
+    // .or() trata NULL: neq sozinho com NULL retorna NULL (nao TRUE) e o claim falha silencioso.
     const { data: claim } = await sb
       .from("relatorios_agendados")
       .update({ ultimo_status: "enviando", updated_at: new Date().toISOString() })
       .eq("id", r.id)
       .eq("ativo", true)
-      .neq("ultimo_status", "enviando")
+      .or("ultimo_status.is.null,ultimo_status.neq.enviando")
       .select("id");
     if (!claim || claim.length === 0) {
       res.pulados++;

@@ -26,9 +26,14 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
   if (rel.deleted_at) return NextResponse.json({ error: "Relatório deletado" }, { status: 400 });
   if (!rel.ativo) return NextResponse.json({ error: "Relatório inativo — ative antes de enviar" }, { status: 400 });
 
+  // Reseta ultimo_status pra destravar caso esteja "enviando" (claim fantasma).
   await sb
     .from("relatorios_agendados")
-    .update({ proximo_envio: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({
+      proximo_envio: new Date().toISOString(),
+      ultimo_status: null,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id);
 
   const r = await processarRelatoriosPendentes();

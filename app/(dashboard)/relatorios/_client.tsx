@@ -128,8 +128,12 @@ export function RelatoriosClient({
         const j = await r.json();
         if (!r.ok) {
           alert(`Falhou: ${j.error || "erro desconhecido"}`);
+        } else if ((j.enviados || 0) > 0) {
+          alert(`Enviado! Confira o WhatsApp.`);
+        } else if ((j.falhas || 0) > 0) {
+          alert(`Falhou no envio — veja o ultimo_erro do registro na tabela.`);
         } else {
-          alert(`Despachado. Enviados: ${j.enviados}, falhas: ${j.falhas}`);
+          alert(`Worker rodou mas nao despachou (total=${j.total} pulados=${j.pulados}). Tenta de novo em 5s.`);
         }
         router.refresh();
       } catch (e) {
