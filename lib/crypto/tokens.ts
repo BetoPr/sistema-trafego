@@ -40,8 +40,12 @@ export function bufferToBytea(buf: Buffer): string {
  * O driver retorna como string "\xHEX" (default) ou Buffer real.
  */
 export function byteaToBuffer(raw: unknown): Buffer {
+  // Tokens nulos (canal desconectado, integracao expirada) viram Buffer vazio.
+  // Quem chama decryptToken depois precisa tratar o "" como "sem token".
+  if (raw === null || raw === undefined) return Buffer.alloc(0);
   if (Buffer.isBuffer(raw)) return raw;
   if (typeof raw === "string") {
+    if (!raw) return Buffer.alloc(0);
     if (raw.startsWith("\\x")) return Buffer.from(raw.slice(2), "hex");
     // Fallback: base64 (alguns clientes podem retornar assim).
     if (/^[A-Za-z0-9+/=]+$/.test(raw)) return Buffer.from(raw, "base64");
@@ -51,6 +55,8 @@ export function byteaToBuffer(raw: unknown): Buffer {
 }
 
 export function decryptToken(blob: Buffer): string {
+  // Buffer vazio = canal/integracao sem token cifrado. Retorna "" pra chamador tratar.
+  if (!blob || blob.length === 0) return "";
   const key = getKey();
   const iv = blob.subarray(0, IV_BYTES);
   const tag = blob.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
