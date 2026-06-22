@@ -7,6 +7,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **03:15** — **Nova aba Relatorios: agendamento automatico de envio (UI + persistencia).**
+  - Migration `relatorios_agendados` (id, agencia_id, nome, cliente_id/telefone_destino, canal_id, plataforma, frequencia diario/semanal/mensal, dia_semana, dia_mes, hora_envio, timezone, formato pdf/imagem/texto, periodo_dias, ativo, proximo_envio, ultimo_envio/status/erro, soft delete). RLS multi-tenant.
+  - `/relatorios/page.tsx` reescrita: server component lendo agenda, badge "N REGISTROS · M ATIVOS", banner sucesso/erro.
+  - `_actions.ts`: criarRelatorio, atualizarRelatorio, alternarAtivoRelatorio, deletarRelatorio. Calcula `proximo_envio` automaticamente (diario/semanal/mensal).
+  - `_client.tsx`: toolbar (busca + chips status Todos/Ativos/Inativos + botao Criar). Tabela com toggle ativo inline, edit, delete.
+  - `_form-balao.tsx`: Balao com nome, destinatario (cliente OR telefone livre), plataforma, canal, frequencia (chips), dia/hora, formato, periodo.
+  - Sidebar: novo item "Relatorios" em Trafego (Ads).
+
+  **Pendente** (proxima fase): worker pg_cron que dispara envio + geracao de PDF/imagem/texto + integracao UAZAPI.
+
 - **00:35** — **Aurora background no Dashboard (decorativo animado).**
   - Novo `components/layout/AuroraBg.tsx` — 2 esferas radiais (verde-accent) com blur, respiram lentamente (18s/22s ease-in-out). `position: fixed`, `pointer-events: none`, atras do conteudo. Respeita prefers-reduced-motion.
   - Aplicado em `app/(dashboard)/dashboard/page.tsx` na view principal (atendimentos+campanhas).

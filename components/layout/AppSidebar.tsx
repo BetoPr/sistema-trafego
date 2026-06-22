@@ -67,6 +67,7 @@ function buildSections(role?: string): NavSection[] {
             iconColor: "var(--mk-icon-purple)",
             items: [
               { href: "/pixel-vendas", label: "Pixel & Vendas", icon: "ti-target-arrow" },
+              { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list" },
             ],
           } as NavSection,
         ]
