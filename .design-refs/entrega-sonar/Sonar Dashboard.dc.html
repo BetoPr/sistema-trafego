@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#080808;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#fff;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.09);border-radius:8px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.16);}
+  ::-webkit-scrollbar-track{background:transparent;}
+  @keyframes auroraA{0%,100%{transform:translate(-6%,-3%) scale(1);}50%{transform:translate(7%,5%) scale(1.18);}}
+  @keyframes auroraB{0%,100%{transform:translate(6%,3%) scale(1.12);}50%{transform:translate(-7%,-5%) scale(1);}}
+  @keyframes tileIn{from{opacity:0;transform:translateY(13px) scale(.84);}to{opacity:1;}}
+  @keyframes glowPulse{0%,100%{box-shadow:0 8px 22px rgba(16,185,129,0.30),0 0 0 0 rgba(16,185,129,0);}50%{box-shadow:0 12px 34px rgba(16,185,129,0.55),0 0 0 5px rgba(16,185,129,0.10);}}
+  @keyframes radarPulse{0%{transform:scale(.55);opacity:.75;}100%{transform:scale(2.4);opacity:0;}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</helmet>
+<div data-screen-label="Dashboard · Campanhas" style="position:relative;display:flex;min-height:100vh;width:100%;background:#080808;overflow:hidden;">
+
+  <div aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;">
+    <div style="position:absolute;top:-14%;left:34%;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,0.16),transparent 62%);filter:blur(34px);animation:auroraA 18s ease-in-out infinite;"></div>
+    <div style="position:absolute;bottom:-22%;right:6%;width:680px;height:680px;border-radius:50%;background:radial-gradient(circle,rgba(13,148,136,0.13),transparent 62%);filter:blur(40px);animation:auroraB 22s ease-in-out infinite;"></div>
+  </div>
+
+  <aside style="position:relative;z-index:2;flex:0 0 240px;width:240px;height:100vh;position:sticky;top:0;display:flex;flex-direction:column;background:rgba(5,5,5,0.72);backdrop-filter:blur(12px);border-right:0.5px solid rgba(255,255,255,0.07);padding:18px 14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px 18px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">
+          <span style="position:absolute;width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(52,211,153,0.7);animation:radarPulse 2.6s ease-out infinite;"></span>
+          <span style="position:absolute;width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(52,211,153,0.5);animation:radarPulse 2.6s ease-out 1.3s infinite;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 10px #34D399;"></span>
+        </div>
+        <span style="font-size:16px;font-weight:700;letter-spacing:3px;color:#fff;">S<span style="color:#34D399;">O</span>NAR</span>
+      </div>
+      <i class="ti ti-layout-sidebar" style="font-size:17px;color:#666;"></i>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:3px;overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#5a5a5a;padding:12px 8px 6px;">PRINCIPAL</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;background:rgba(16,185,129,0.13);border:0.5px solid rgba(16,185,129,0.28);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+        <i class="ti ti-layout-dashboard" style="font-size:17px;color:#34D399;"></i>Dashboard</div>
+
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#5a5a5a;padding:14px 8px 6px;">ATENDIMENTO</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-message" style="font-size:16px;color:#777;"></i>Atendimentos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-clock-bolt" style="font-size:16px;color:#777;"></i>Follow-up</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-address-book" style="font-size:16px;color:#777;"></i>Contatos</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-brain" style="font-size:16px;color:#777;"></i>IA<span style="margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.5px;color:#34D399;border:0.5px solid rgba(52,211,153,0.4);border-radius:5px;padding:2px 6px;">BÁSICA</span></div>
+
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#5a5a5a;padding:14px 8px 6px;">COMUNICAÇÃO</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-send" style="font-size:16px;color:#777;"></i>Envio em Massa</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-bolt" style="font-size:16px;color:#777;"></i>Mensagens Rápidas</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-users-group" style="font-size:16px;color:#777;"></i>Grupos</div>
+
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#5a5a5a;padding:14px 8px 6px;">TRÁFEGO (ADS)</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-target-arrow" style="font-size:16px;color:#777;"></i>Pixel &amp; Vendas</div>
+
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#5a5a5a;padding:14px 8px 6px;">ADMINISTRAÇÃO</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-brand-whatsapp" style="font-size:16px;color:#777;"></i>Canais</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-list-check" style="font-size:16px;color:#777;"></i>Filas</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-users" style="font-size:16px;color:#777;"></i>Equipes</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;" style-hover="background:rgba(255,255,255,0.04);color:#fff;"><i class="ti ti-user-circle" style="font-size:16px;color:#777;"></i>Usuários</div>
+    </nav>
+
+    <div style="display:flex;align-items:center;gap:11px;padding:11px 12px;margin-top:8px;border-top:0.5px solid rgba(255,255,255,0.06);cursor:pointer;">
+      <i class="ti ti-moon" style="font-size:17px;color:#777;"></i>
+      <div><div style="font-size:12.5px;font-weight:600;color:#ddd;">Modo Escuro</div><div style="font-size:10px;color:#666;">Clique pra alternar</div></div>
+    </div>
+  </aside>
+
+  <main style="position:relative;z-index:1;flex:1;min-width:0;height:100vh;overflow-y:auto;">
+    <div style="position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:14px 28px;background:rgba(8,8,8,0.72);backdrop-filter:blur(14px);border-bottom:0.5px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;max-width:440px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:11px;padding:9px 14px;">
+        <i class="ti ti-search" style="font-size:15px;color:#666;"></i>
+        <span style="font-size:13px;color:#666;">Buscar páginas, sessões…</span>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.09);border-radius:11px;padding:8px 12px;cursor:pointer;" style-hover="border-color:rgba(52,211,153,0.4);">
+          <i class="ti ti-infinity" style="font-size:16px;color:#34D399;"></i>
+          <span style="font-size:12.5px;font-weight:600;color:#eee;">Meta Ads</span>
+          <i class="ti ti-chevron-down" style="font-size:13px;color:#888;"></i>
+        </div>
+        <div onClick="{{ resync }}" style="display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.12);border:0.5px solid rgba(16,185,129,0.32);border-radius:11px;padding:8px 14px;cursor:pointer;" style-hover="background:rgba(16,185,129,0.2);">
+          <i class="ti ti-refresh" style="font-size:15px;color:#34D399;animation:{{ syncAnim }};"></i>
+          <span style="font-size:12.5px;font-weight:600;color:#34D399;">Sincronizar agora</span>
+        </div>
+        <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#04130d;background:linear-gradient(135deg,#34D399,#0D9488);box-shadow:0 0 0 2px rgba(52,211,153,0.25);">JS</div>
+      </div>
+    </div>
+
+    <div style="padding:26px 28px 56px;max-width:1480px;">
+      <div style="opacity:{{ intro }};">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:#34D399;text-transform:uppercase;">Painel da Agência</div>
+        <h1 style="margin:6px 0 4px;font-size:25px;font-weight:700;letter-spacing:-0.5px;color:#fff;">Bom dia, José.</h1>
+        <p style="margin:0;font-size:13px;color:#999;">1 integração(ões) ativa(s) · sincronizado há 4 min</p>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:20px 0 18px;">
+        <div style="display:inline-flex;padding:4px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;gap:4px;">
+          <div style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;color:#999;cursor:pointer;" style-hover="color:#fff;"><i class="ti ti-message" style="font-size:15px;"></i>Atendimentos</div>
+          <div style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;color:#fff;background:rgba(16,185,129,0.16);border:0.5px solid rgba(16,185,129,0.34);cursor:pointer;"><i class="ti ti-speakerphone" style="font-size:15px;color:#34D399;"></i>Campanhas</div>
+        </div>
+
+        <div style="display:inline-flex;padding:4px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;gap:3px;">
+          <sc-for list="{{ periods }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.on }}" style="padding:7px 15px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;color:{{ p.color }};background:{{ p.bg }};">{{ p.l }}</div>
+          </sc-for>
+          <div style="display:flex;align-items:center;gap:6px;padding:7px 15px;border-radius:9px;font-size:12.5px;font-weight:600;color:#888;cursor:pointer;" style-hover="color:#ccc;"><i class="ti ti-calendar" style="font-size:14px;"></i>Período X a Y</div>
+        </div>
+      </div>
+
+      <!-- KPI GROUP A -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;">
+        <div style="position:relative;background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0;background:linear-gradient(90deg,#F0A35E,transparent);"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#888;">INVESTIDO</span><div style="width:30px;height:30px;border-radius:9px;background:rgba(240,163,94,0.14);display:flex;align-items:center;justify-content:center;"><i class="ti ti-coin" style="font-size:16px;color:#F0A35E;"></i></div></div>
+          <div style="margin:12px 0 5px;font-size:27px;font-weight:700;letter-spacing:-0.5px;color:#fff;">{{ m.investido }}</div>
+          <div style="font-size:11px;color:#777;">investido em ads · {{ m.periodLabel }}</div>
+        </div>
+        <div style="position:relative;background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0;background:linear-gradient(90deg,rgba(255,255,255,0.5),transparent);"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#888;">FATURAMENTO</span><div style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;"><i class="ti ti-cash-banknote" style="font-size:16px;color:#ddd;"></i></div></div>
+          <div style="margin:12px 0 5px;font-size:27px;font-weight:700;letter-spacing:-0.5px;color:#fff;">{{ m.faturamento }}</div>
+          <div style="font-size:11px;color:#777;">{{ m.fatSub }} · via CRM</div>
+        </div>
+        <div style="position:relative;background:linear-gradient(180deg,rgba(16,185,129,0.10),rgba(0,0,0,0.5));border:0.5px solid rgba(16,185,129,0.4);border-radius:16px;padding:18px;box-shadow:0 0 30px rgba(16,185,129,0.10);">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0;background:linear-gradient(90deg,#34D399,transparent);"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#34D399;">LUCRO BRUTO</span><div style="width:30px;height:30px;border-radius:9px;background:rgba(52,211,153,0.16);display:flex;align-items:center;justify-content:center;"><i class="ti ti-trending-up" style="font-size:16px;color:#34D399;"></i></div></div>
+          <div style="margin:12px 0 5px;font-size:27px;font-weight:700;letter-spacing:-0.5px;color:#34D399;">{{ m.lucro }}</div>
+          <div style="font-size:11px;color:#7aa394;">faturamento − investido</div>
+        </div>
+        <div style="position:relative;background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0;background:linear-gradient(90deg,#34D399,transparent);"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#888;">ROAS BRUTO</span><div style="width:30px;height:30px;border-radius:9px;background:rgba(52,211,153,0.12);display:flex;align-items:center;justify-content:center;"><i class="ti ti-target-arrow" style="font-size:16px;color:#34D399;"></i></div></div>
+          <div style="margin:12px 0 5px;font-size:27px;font-weight:700;letter-spacing:-0.5px;color:#fff;">{{ m.roas }}</div>
+          <div style="font-size:11px;color:#777;">retorno sobre investimento</div>
+        </div>
+      </div>
+
+      <!-- KPI GROUP B -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:14px;">
+        <div style="background:rgba(0,0,0,0.34);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:15px 16px;">
+          <div style="display:flex;align-items:center;gap:8px;"><i class="ti ti-eye" style="font-size:15px;color:#0D9488;"></i><span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">IMPRESSÕES</span></div>
+          <div style="margin:9px 0 3px;font-size:21px;font-weight:700;color:#eee;">{{ m.impressoes }}</div>
+          <div style="font-size:10.5px;color:#666;">{{ m.alcanceSub }}</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.34);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:15px 16px;">
+          <div style="display:flex;align-items:center;gap:8px;"><i class="ti ti-click" style="font-size:15px;color:#7C3AED;"></i><span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">CLIQUES</span></div>
+          <div style="margin:9px 0 3px;font-size:21px;font-weight:700;color:#eee;">{{ m.cliques }}</div>
+          <div style="font-size:10.5px;color:#666;">{{ m.ctrSub }}</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.34);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:15px 16px;">
+          <div style="display:flex;align-items:center;gap:8px;"><i class="ti ti-user-plus" style="font-size:15px;color:#34D399;"></i><span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">CPL</span></div>
+          <div style="margin:9px 0 3px;font-size:21px;font-weight:700;color:#eee;">{{ m.cpl }}</div>
+          <div style="font-size:10.5px;color:#666;">custo por lead · {{ m.leadsSub }}</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.34);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:15px 16px;">
+          <div style="display:flex;align-items:center;gap:8px;"><i class="ti ti-shopping-cart" style="font-size:15px;color:#E11D48;"></i><span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">CAC</span></div>
+          <div style="margin:9px 0 3px;font-size:21px;font-weight:700;color:#eee;">{{ m.cac }}</div>
+          <div style="font-size:10.5px;color:#666;">custo por conversão</div>
+        </div>
+      </div>
+
+      <!-- CHART ROW -->
+      <div style="display:grid;grid-template-columns:1.7fr 1fr;gap:14px;margin-top:14px;">
+        <div style="background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px 18px 14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#999;">INVESTIDO × FATURAMENTO (DIÁRIO)</span>
+            <div style="display:flex;gap:14px;">
+              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;"><span style="width:9px;height:9px;border-radius:3px;background:#F0A35E;"></span>Investido</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;"><span style="width:9px;height:9px;border-radius:3px;background:#34D399;"></span>Faturamento</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div style="position:relative;width:52px;height:248px;flex:none;">
+              <sc-for list="{{ chart.yticks }}" as="g" hint-placeholder-count="5">
+                <div style="position:absolute;top:{{ g.topPct }}%;right:2px;transform:translateY(-50%);font-size:10px;color:#5a5a5a;white-space:nowrap;">{{ g.label }}</div>
+              </sc-for>
+            </div>
+            <div style="position:relative;flex:1;min-width:0;">
+              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" style="width:100%;height:248px;display:block;overflow:visible;">
+                <defs>
+                  <linearGradient id="invG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0A35E" stop-opacity="0.34"></stop><stop offset="1" stop-color="#F0A35E" stop-opacity="0"></stop></linearGradient>
+                  <linearGradient id="fatG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10B981" stop-opacity="0.30"></stop><stop offset="1" stop-color="#10B981" stop-opacity="0"></stop></linearGradient>
+                </defs>
+                <sc-for list="{{ chart.yticks }}" as="g" hint-placeholder-count="5">
+                  <line x1="0" x2="1000" y1="{{ g.y }}" y2="{{ g.y }}" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                </sc-for>
+                <path d="{{ chart.fatArea }}" fill="url(#fatG)" style="opacity:{{ chart.op }};"></path>
+                <path d="{{ chart.invArea }}" fill="url(#invG)" style="opacity:{{ chart.op }};"></path>
+                <path d="{{ chart.fatLine }}" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="{{ chart.dash }}" stroke-dashoffset="{{ chart.fatOff }}" vector-effect="non-scaling-stroke"></path>
+                <path d="{{ chart.invLine }}" fill="none" stroke="#F0A35E" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="{{ chart.dash }}" stroke-dashoffset="{{ chart.invOff }}" vector-effect="non-scaling-stroke"></path>
+              </svg>
+              <div style="position:relative;height:16px;margin-top:6px;">
+                <sc-for list="{{ chart.xlabels }}" as="x" hint-placeholder-count="8">
+                  <div style="position:absolute;left:{{ x.leftPct }}%;transform:translateX(-50%);font-size:10px;color:#5a5a5a;white-space:nowrap;">{{ x.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;display:flex;flex-direction:column;">
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#999;">STATUS DAS CAMPANHAS</span>
+          <div style="display:flex;align-items:center;gap:18px;margin-top:10px;flex:1;">
+            <div style="position:relative;width:150px;height:150px;flex:none;">
+              <svg viewBox="0 0 170 170" style="width:150px;height:150px;transform:rotate(-90deg);">
+                <circle cx="85" cy="85" r="64" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="17"></circle>
+                <sc-for list="{{ donut }}" as="d" hint-placeholder-count="3">
+                  <circle cx="85" cy="85" r="64" fill="none" stroke="{{ d.color }}" stroke-width="17" stroke-linecap="round" stroke-dasharray="{{ d.dashArray }}" stroke-dashoffset="{{ d.dashOffset }}"></circle>
+                </sc-for>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:26px;font-weight:700;color:#fff;line-height:1;">{{ donutTotal }}</span>
+                <span style="font-size:10px;color:#777;margin-top:2px;">campanhas</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;flex:1;">
+              <sc-for list="{{ donut }}" as="d" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:9px;">
+                  <span style="width:9px;height:9px;border-radius:3px;background:{{ d.color }};flex:none;"></span>
+                  <span style="font-size:12.5px;color:#ccc;flex:1;">{{ d.label }}</span>
+                  <span style="font-size:13px;font-weight:700;color:#fff;">{{ d.count }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP 5 -->
+      <div style="background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;margin-top:14px;">
+        <span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#999;">TOP 5 CAMPANHAS (POR GASTO)</span>
+        <div style="display:flex;flex-direction:column;gap:13px;margin-top:16px;">
+          <sc-for list="{{ top5 }}" as="c" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span style="flex:0 0 230px;font-size:12px;color:#bbb;text-align:right;line-height:1.3;">{{ c.name }}</span>
+              <div style="flex:1;height:26px;background:rgba(255,255,255,0.03);border-radius:7px;overflow:hidden;position:relative;">
+                <div style="height:100%;width:{{ c.w }}%;background:linear-gradient(90deg,#0D9488,#34D399);border-radius:7px;transition:width .9s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:10px;"><span style="font-size:11px;font-weight:700;color:#04130d;">{{ c.spend }}</span></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div style="background:rgba(0,0,0,0.5);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 22px;margin-top:14px;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;"><i class="ti ti-map-pin" style="font-size:16px;color:#34D399;"></i><span style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#999;">CONTATOS POR ESTADO</span></div>
+            <p style="margin:7px 0 0;font-size:12.5px;color:#888;">Distribuição geográfica da base · passe o mouse sobre um estado</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:10px;color:#666;">menos</span>
+            <span style="width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,rgba(16,185,129,0.14),rgba(16,185,129,0.55),#10B981);"></span>
+            <span style="font-size:10px;color:#666;">mais</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;margin-top:16px;">
+          <div style="position:relative;width:400px;height:400px;flex:none;">
+            <svg viewBox="0 0 1000 1000" style="position:absolute;inset:0;width:100%;height:100%;">
+              <defs><radialGradient id="brSea" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="rgba(16,185,129,0.06)"></stop><stop offset="1" stop-color="rgba(16,185,129,0)"></stop></radialGradient></defs>
+              <path d="{{ v1.outline }}" fill="url(#brSea)" stroke="rgba(52,211,153,0.4)" stroke-width="2.5" stroke-linejoin="round"></path>
+            </svg>
+            <sc-for list="{{ v1.bubbles }}" as="b" hint-placeholder-count="27">
+              <div onMouseEnter="{{ b.onEnter }}" onMouseLeave="{{ b.onLeave }}" style="position:absolute;left:{{ b.xpct }}%;top:{{ b.ypct }}%;width:{{ b.d }}px;height:{{ b.d }}px;border-radius:50%;background:{{ b.fill }};border:1px solid {{ b.border }};transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;cursor:pointer;will-change:transform;" style-hover="border-color:#fff;z-index:30;box-shadow:0 0 0 3px rgba(52,211,153,0.25),0 10px 26px rgba(16,185,129,0.5);">
+                <span style="font-size:{{ b.fs }}px;font-weight:700;color:{{ b.txt }};pointer-events:none;">{{ b.uf }}</span>
+              </div>
+            </sc-for>
+            <div style="position:absolute;left:{{ tip.x1 }}%;top:{{ tip.y1 }}%;transform:translate(-50%,calc(-100% - 10px));pointer-events:none;opacity:{{ tip.op1 }};z-index:40;background:rgba(10,12,11,0.96);border:0.5px solid rgba(52,211,153,0.4);border-radius:11px;padding:8px 12px;box-shadow:0 14px 40px rgba(0,0,0,0.6);white-space:nowrap;">
+              <div style="font-size:12px;font-weight:700;color:#fff;">{{ tip.name }}</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;"><span style="font-size:17px;font-weight:700;color:#34D399;">{{ tip.count }}</span><span style="font-size:10.5px;color:#888;">contatos · {{ tip.pct }}%</span></div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;gap:22px;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">TOTAL DE CONTATOS</div>
+                <div style="font-size:30px;font-weight:700;letter-spacing:-0.5px;color:#fff;margin-top:4px;">{{ mapTotal }}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">MAIOR CONCENTRAÇÃO</div>
+                <div style="font-size:15px;font-weight:700;color:#34D399;margin-top:7px;">São Paulo · 22,3%</div>
+                <div style="font-size:11px;color:#777;">+ RJ e MG = metade da base</div>
+              </div>
+            </div>
+            <div style="height:0.5px;background:rgba(255,255,255,0.08);"></div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">RANKING DE ESTADOS · TOP 10</div>
+              <sc-for list="{{ ranking }}" as="r" hint-placeholder-count="10">
+                <div onMouseEnter="{{ r.onEnter }}" onMouseLeave="{{ r.onLeave }}" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:2px 0;" style-hover="opacity:0.82;">
+                  <span style="flex:none;width:16px;font-size:10.5px;font-weight:700;color:#555;text-align:right;">{{ r.rank }}</span>
+                  <span style="flex:none;width:28px;font-size:12.5px;font-weight:700;color:#34D399;">{{ r.code }}</span>
+                  <span style="flex:none;width:8px;height:8px;border-radius:2px;background:{{ r.dot }};"></span>
+                  <span style="flex:none;width:96px;font-size:11.5px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.name }}</span>
+                  <div style="flex:1;height:7px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden;"><div style="height:100%;width:{{ r.w }}%;background:{{ r.bar }};border-radius:4px;transition:width .9s cubic-bezier(.2,.8,.2,1);"></div></div>
+                  <span style="flex:none;width:44px;text-align:right;font-size:12px;font-weight:700;color:#eee;">{{ r.countStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;padding-top:16px;border-top:0.5px solid rgba(255,255,255,0.07);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#888;">DISTRIBUIÇÃO POR REGIÃO</span>
+            <div style="font-size:11.5px;font-weight:600;color:#34D399;opacity:{{ tip.op4 }};">{{ tip.name }} · {{ tip.count }} ({{ tip.pct }}%)</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <sc-for list="{{ v4.regions }}" as="reg" hint-placeholder-count="5">
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-size:12px;font-weight:700;color:#ddd;display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:3px;background:{{ reg.color }};"></span>{{ reg.name }}</span>
+                  <span style="font-size:11px;color:#888;">{{ reg.totalStr }} · {{ reg.pct }}%</span>
+                </div>
+                <div style="display:flex;gap:3px;height:30px;width:{{ reg.widthPct }}%;min-width:60px;">
+                  <sc-for list="{{ reg.segs }}" as="s" hint-placeholder-count="4">
+                    <div onMouseEnter="{{ s.onEnter }}" onMouseLeave="{{ s.onLeave }}" style="flex:{{ s.flex }} 1 0;min-width:22px;background:{{ s.fill }};border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;" style-hover="filter:brightness(1.4);">
+                      <span style="font-size:10.5px;font-weight:700;color:{{ s.txt }};white-space:nowrap;">{{ s.uf }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { period:'30d', t:0, hovered:null };
+    this.brl = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+    this.nf = new Intl.NumberFormat('pt-BR');
+    this.P = {
+      'hoje':{label:'hoje', inv:128.40, fat:540.00, leads:3, cliques:228, impressoes:5400, conv:1, ctr:1.27, alcance:3600, vendas:2},
+      '7d':{label:'7 dias', inv:892.10, fat:3120.00, leads:21, cliques:1610, impressoes:39800, conv:9, ctr:1.41, alcance:24100, vendas:9},
+      '30d':{label:'30 dias', inv:3512.40, fat:12480.00, leads:84, cliques:6320, impressoes:158400, conv:38, ctr:1.33, alcance:92500, vendas:31},
+    };
+    // uf, nome, região, contatos, lon, lat
+    this.statesRaw = [
+      ['SP','São Paulo','SE',1284,-46.63,-23.55],['RJ','Rio de Janeiro','SE',642,-43.2,-22.9],
+      ['MG','Minas Gerais','SE',531,-43.94,-19.92],['PR','Paraná','S',388,-49.27,-25.43],
+      ['RS','Rio Grande do Sul','S',356,-51.23,-30.03],['BA','Bahia','NE',312,-38.5,-12.97],
+      ['SC','Santa Catarina','S',298,-48.55,-27.6],['GO','Goiás','CO',245,-49.25,-16.68],
+      ['PE','Pernambuco','NE',221,-34.88,-8.05],['CE','Ceará','NE',198,-38.54,-3.72],
+      ['DF','Distrito Federal','CO',187,-47.93,-15.78],['ES','Espírito Santo','SE',142,-40.3,-20.32],
+      ['PA','Pará','N',121,-48.5,-1.46],['MT','Mato Grosso','CO',118,-56.1,-15.6],
+      ['MS','Mato Grosso do Sul','CO',97,-54.62,-20.44],['MA','Maranhão','NE',89,-44.3,-2.53],
+      ['PB','Paraíba','NE',84,-34.86,-7.12],['RN','Rio G. do Norte','NE',78,-35.2,-5.79],
+      ['AM','Amazonas','N',71,-60.02,-3.1],['AL','Alagoas','NE',61,-35.7,-9.65],
+      ['PI','Piauí','NE',57,-42.8,-5.09],['SE','Sergipe','NE',49,-37.07,-10.95],
+      ['TO','Tocantins','N',43,-48.33,-10.18],['RO','Rondônia','N',38,-63.9,-8.76],
+      ['AC','Acre','N',19,-67.8,-9.97],['AP','Amapá','N',14,-51.07,0.03],
+      ['RR','Roraima','N',11,-60.67,2.82],
+    ];
+    this.maxCount = 1284;
+    this.totalC = this.statesRaw.reduce((a,s)=>a+s[3],0);
+    this.regionNames = {N:'Norte',NE:'Nordeste',CO:'Centro-Oeste',SE:'Sudeste',S:'Sul'};
+    this.regionColors = {N:'#0D9488',NE:'#10B981',CO:'#34D399',SE:'#5EEAD4',S:'#99F6E4'};
+    this.boundary = [
+      [-61,5],[-55,4],[-51,4.2],[-50,2],[-48.5,0],[-44.3,-1.5],[-41,-2.8],[-38.5,-3.7],[-35.2,-5.2],
+      [-34.8,-7.1],[-34.9,-8.5],[-35.7,-9.8],[-37,-11],[-38.5,-13],[-39,-15.5],[-39.7,-18],[-40.3,-20.3],
+      [-42,-22],[-43.2,-23],[-45,-23.8],[-46.3,-24],[-48.5,-25.6],[-48.6,-27.6],[-50,-29],[-50.2,-30.5],
+      [-52,-32],[-53.4,-33.7],[-55,-31],[-57,-30],[-56,-27],[-54.6,-25.6],[-54,-24],[-58,-20],[-58,-17],
+      [-60,-16],[-60,-13],[-63,-11],[-66,-10],[-70,-11],[-73.5,-9.5],[-72,-7],[-70,-4],[-69,-1],[-67,1],[-64,2],[-62,4],
+    ];
+  }
+  componentDidMount(){ this.runT(); }
+  componentWillUnmount(){ if(this._iv) clearInterval(this._iv); }
+  runT(){
+    if(this._iv) clearInterval(this._iv);
+    const dur=1300, s=performance.now();
+    this._iv=setInterval(()=>{
+      let p=Math.min(1,(performance.now()-s)/dur);
+      p=1-Math.pow(1-p,3);
+      this.setState({t:p});
+      if(p>=1){ clearInterval(this._iv); this._iv=null; }
+    },16);
+  }
+  resync(){ this.setState({t:0}, ()=>this.runT()); }
+  setPeriod(p){ if(p===this.state.period) return; this.setState({period:p, t:0}, ()=>this.runT()); }
+  smooth(pts){
+    if(pts.length<2) return pts.length? `M ${pts[0].x} ${pts[0].y}` : '';
+    let d=`M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||p2;
+      const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+      const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+      d+=` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+  shapeVals(n){
+    const inv=[], fat=[];
+    for(let i=0;i<n;i++){
+      const x = n>1 ? i/(n-1) : 0;
+      const g=(c,w,a)=>a*Math.exp(-((x-c)*(x-c))/w);
+      inv.push(g(0.18,0.010,42)+g(0.45,0.020,52)+g(0.72,0.045,30)+6);
+      fat.push(g(0.30,0.045,68)+g(0.63,0.030,98)+g(0.88,0.060,42)+22);
+    }
+    return {inv,fat};
+  }
+  proj(lon,lat){ return { x:60+(lon+74)*22, y:60+(6-lat)*22 }; }
+  smoothClosed(pts){
+    const n=pts.length; let d=`M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for(let i=0;i<n;i++){ const p0=pts[(i-1+n)%n],p1=pts[i],p2=pts[(i+1)%n],p3=pts[(i+2)%n];
+      const c1x=p1.x+(p2.x-p0.x)/6,c1y=p1.y+(p2.y-p0.y)/6,c2x=p2.x-(p3.x-p1.x)/6,c2y=p2.y-(p3.y-p1.y)/6;
+      d+=` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`; }
+    return d+' Z';
+  }
+  renderVals(){
+    const t = this.state.t, period = this.state.period, P = this.P[period];
+    const money = (v)=> this.brl.format(v*t);
+    const num = (v)=> this.nf.format(Math.round(v*t));
+    const lucro = P.fat-P.inv, roas = P.inv? P.fat/P.inv : 0;
+    const cpl = P.leads? P.inv/P.leads : 0, cac = P.conv? P.inv/P.conv : 0;
+
+    const m = {
+      periodLabel: P.label,
+      investido: money(P.inv),
+      faturamento: money(P.fat),
+      fatSub: Math.round(P.vendas*t)+' vendas fechadas',
+      lucro: money(lucro),
+      roas: roas? ((roas*t).toFixed(2).replace('.',','))+'x' : '—',
+      impressoes: num(P.impressoes),
+      alcanceSub: 'alcance '+this.nf.format(Math.round(P.alcance*t)),
+      cliques: num(P.cliques),
+      ctrSub: 'CTR '+P.ctr.toFixed(2).replace('.',',')+'%',
+      cpl: money(cpl),
+      leadsSub: Math.round(P.leads*t)+' leads',
+      cac: money(cac),
+    };
+
+    const periods = [['hoje','Hoje'],['7d','7 dias'],['30d','30 dias']].map(([k,l])=>({
+      k, l, active:k===period,
+      color: k===period? '#fff' : '#888',
+      bg: k===period? 'rgba(16,185,129,0.16)' : 'transparent',
+      on: ()=>this.setPeriod(k),
+    }));
+
+    // chart
+    const n = period==='hoje'?12 : period==='7d'?7 : 30;
+    const {inv,fat} = this.shapeVals(n);
+    const W=1000,H=300,pT=18,pB=14;
+    const max = Math.max(...inv,...fat)*1.08;
+    const X=i=> n>1? (i/(n-1))*W : W/2;
+    const Y=v=> pT+(1-v/max)*(H-pT-pB);
+    const invPts=inv.map((v,i)=>({x:X(i),y:Y(v)}));
+    const fatPts=fat.map((v,i)=>({x:X(i),y:Y(v)}));
+    const invLine=this.smooth(invPts), fatLine=this.smooth(fatPts);
+    const yMaxR = Math.ceil(max/25)*25;
+    const yticks=[0,0.25,0.5,0.75,1].map(fr=>{ const y=Y(max*fr); return {y:y.toFixed(1), topPct:((y/H)*100).toFixed(2), label:'R$ '+Math.round(yMaxR*fr)}; });
+    const end=new Date(2026,5,20);
+    const dayLabel=(i)=>{ const d=new Date(end); d.setDate(end.getDate()-(n-1-i)); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2); };
+    const stepL=Math.max(1,Math.round(n/8)); const xlabels=[];
+    for(let i=0;i<n;i+=stepL){ xlabels.push({leftPct:((X(i)/W)*100).toFixed(2), label: period==='hoje'? (('0'+(i*2)).slice(-2)+'h') : dayLabel(i)}); }
+    const dash=5200;
+    const chart={ W,H, invLine, fatLine, invArea:`${invLine} L ${W} ${H} L 0 ${H} Z`, fatArea:`${fatLine} L ${W} ${H} L 0 ${H} Z`,
+      dash, invOff:(dash*(1-t)).toFixed(0), fatOff:(dash*(1-Math.max(0,t-0.05))).toFixed(0), op:t.toFixed(3), yticks, xlabels };
+
+    // donut
+    const dsegs=[{label:'Ativas',count:5,color:'#34D399'},{label:'Pausadas',count:7,color:'#FBBF24'},{label:'Outras',count:2,color:'rgba(255,255,255,0.22)'}];
+    const dtot=dsegs.reduce((a,s)=>a+s.count,0);
+    const r=64, circ=2*Math.PI*r; let acc=0;
+    const donut=dsegs.map(s=>{ const len=circ*(s.count/dtot); const o={label:s.label,color:s.color,count:s.count,dashArray:`${(len*t).toFixed(1)} ${circ.toFixed(1)}`,dashOffset:(-acc*t).toFixed(1)}; acc+=len; return o; });
+
+    // top5
+    const t5=[
+      {name:'Ensaios IA — WhatsApp · Cópia',spend:236.40},
+      {name:'Ensaios IA — Aprovadas #1',spend:124.10},
+      {name:'Ensaios IA — Aprovadas #2',spend:96.08},
+      {name:'Remarketing — Visitantes Site',spend:58.30},
+      {name:'Leadgen — Público Frio SP/RJ',spend:41.20},
+    ];
+    const tmax=236.40;
+    const top5=t5.map(c=>({name:c.name, spend:this.brl.format(c.spend), w:((c.spend/tmax)*100*t).toFixed(1)}));
+
+    // V1 — mapa geográfico (bolhas proporcionais)
+    const outline=this.smoothClosed(this.boundary.map(([lo,la])=>this.proj(lo,la)));
+    const byUf={};
+    const v1bubbles=this.statesRaw.map(([uf,name,region,count,lon,lat])=>{
+      const p=this.proj(lon,lat); const it=Math.sqrt(count/this.maxCount);
+      const d=(11+it*46*t).toFixed(1);
+      const b={ uf,name,count, region, xpct:(p.x/10).toFixed(2), ypct:(p.y/10).toFixed(2), d,
+        fs:(it>0.4?11:9), fill:`rgba(16,185,129,${(0.32+0.55*it).toFixed(3)})`, border:`rgba(52,211,153,${(0.5+0.4*it).toFixed(3)})`,
+        txt: it>0.28?'#04130d':'rgba(255,255,255,0.85)',
+        onEnter:()=>this.setState({hovered:{v:'map',uf}}), onLeave:()=>this.setState({hovered:null}) };
+      byUf[uf]=b; return b;
+    });
+
+    // V3 — ranking top 10 (cor por região)
+    const ranking=this.statesRaw.slice(0,10).map(([uf,name,region,count],i)=>({ code:uf, name, rank:i+1,
+      countStr:this.nf.format(count), dot:this.regionColors[region],
+      bar:`linear-gradient(90deg,${this.regionColors[region]}99,${this.regionColors[region]})`,
+      w:((count/this.maxCount)*100*t).toFixed(1),
+      onEnter:()=>this.setState({hovered:{v:'map',uf}}), onLeave:()=>this.setState({hovered:null}) }));
+
+    // V4 — marimekko por região
+    const order=['SE','S','NE','CO','N'];
+    const regTotals={}; this.statesRaw.forEach(s=>regTotals[s[2]]=(regTotals[s[2]]||0)+s[3]);
+    const maxRegTotal=Math.max(...Object.values(regTotals));
+    const v4regions=order.map(rk=>{
+      const sts=this.statesRaw.filter(s=>s[2]===rk).sort((a,b)=>b[3]-a[3]);
+      const segs=sts.map(([uf,name,region,count])=>{ const it=Math.sqrt(count/this.maxCount);
+        return { uf,name,count, flex:count, fill:`rgba(16,185,129,${(0.30+0.6*it).toFixed(3)})`, txt: it>0.3?'#04130d':'#cfe',
+          onEnter:()=>this.setState({hovered:{v:'reg',uf}}), onLeave:()=>this.setState({hovered:null}) }; });
+      return { name:this.regionNames[rk], color:this.regionColors[rk], totalStr:this.nf.format(regTotals[rk]),
+        pct:((regTotals[rk]/this.totalC)*100).toFixed(0), widthPct:(22+(regTotals[rk]/maxRegTotal)*78*t).toFixed(1), segs };
+    });
+
+    // tooltip compartilhado (mapa + região)
+    const hv=this.state.hovered;
+    let tip={ name:'', count:'', pct:'', op1:0, x1:50, y1:50, op4:0 };
+    if(hv && byUf[hv.uf]){ const b=byUf[hv.uf]; tip.name=b.name; tip.count=this.nf.format(b.count);
+      tip.pct=((b.count/this.totalC)*100).toFixed(1).replace('.',',');
+      if(hv.v==='map'){ tip.op1=1; tip.x1=b.xpct; tip.y1=b.ypct; }
+      if(hv.v==='reg'){ tip.op4=1; }
+    }
+
+    return {
+      m, periods, chart, donut, donutTotal:dtot, top5, v1:{outline,bubbles:v1bubbles}, ranking, v4:{regions:v4regions}, tip,
+      intro: Math.min(1,t*1.4).toFixed(3),
+      mapTotal:this.nf.format(Math.round(this.totalC*t)),
+      resync:()=>this.resync(),
+      syncAnim: t<1? 'spin .8s linear infinite' : 'none',
+    };
+  }
+}
+</script>
+</body>
+</html>

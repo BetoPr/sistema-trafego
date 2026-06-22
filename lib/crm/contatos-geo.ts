@@ -1,10 +1,21 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ufPorTelefone, normalizarUf } from "@/lib/geo/ddd-estado";
+import { FAIXAS_ETARIAS, type FaixaEtaria, type PontoContato } from "@/lib/crm/faixas-tipos";
+
+export type { FaixaEtaria, PontoContato };
 
 export interface ContatoEstado {
   uf: string;
   count: number;
+}
+
+export interface DadosGeoCompletos {
+  porUf: ContatoEstado[];
+  total: number;
+  semGeo: number;
+  servicos: string[];
+  pontos: PontoContato[];
 }
 
 /**
@@ -17,48 +28,74 @@ export async function contatosPorEstado(
   supabase: SupabaseClient,
   agenciaId: string,
 ): Promise<{ porUf: ContatoEstado[]; total: number; semGeo: number }> {
-  // 1. IDs de contatos com ticket em algum dos status alvo
+  const dados = await dadosGeoCompletos(supabase, agenciaId);
+  return { porUf: dados.porUf, total: dados.total, semGeo: dados.semGeo };
+}
+
+/**
+ * Versão enriquecida: além do agregado por UF, retorna a lista de pontos
+ * (1 por contato com geo) já enriquecidos com serviço (do ticket mais recente)
+ * e faixa etária. O cliente filtra reativamente sem nova ida ao banco.
+ */
+export async function dadosGeoCompletos(
+  supabase: SupabaseClient,
+  agenciaId: string,
+): Promise<DadosGeoCompletos> {
   const { data: ticks, error: errT } = await supabase
     .from("tickets")
-    .select("contato_id")
+    .select("contato_id, metadata, created_at")
     .eq("agencia_id", agenciaId)
-    .in("status", ["aberto", "pendente", "fechado"]);
-  if (errT) throw new Error(`contatosPorEstado tickets: ${errT.message}`);
+    .in("status", ["aberto", "pendente", "fechado"])
+    .order("created_at", { ascending: false });
+  if (errT) throw new Error(`dadosGeoCompletos tickets: ${errT.message}`);
+
+  const servicoPorContato = new Map<string, string>();
+  for (const t of (ticks || []) as Array<{ contato_id: string; metadata: Record<string, unknown> | null }>) {
+    if (!t.contato_id) continue;
+    if (!servicoPorContato.has(t.contato_id)) {
+      const svc = t.metadata && typeof t.metadata === "object" ? (t.metadata as { servico?: unknown }).servico : null;
+      if (typeof svc === "string" && svc.trim()) {
+        servicoPorContato.set(t.contato_id, svc.trim());
+      }
+    }
+  }
+
   const idsValidos = Array.from(
     new Set((ticks || []).map((t) => t.contato_id as string).filter(Boolean)),
   );
 
   if (idsValidos.length === 0) {
-    return { porUf: [], total: 0, semGeo: 0 };
+    return { porUf: [], total: 0, semGeo: 0, servicos: [], pontos: [] };
   }
 
-  // 2. Busca os contatos correspondentes (em batches pra evitar URL longa)
-  const all: Array<{ estado: string | null; whatsapp: string | null; wa_id: string | null; telefone: string | null }> = [];
+  const all: Array<{
+    id: string;
+    estado: string | null;
+    whatsapp: string | null;
+    wa_id: string | null;
+    telefone: string | null;
+    faixa_etaria: string | null;
+  }> = [];
   const BATCH = 200;
   for (let i = 0; i < idsValidos.length; i += BATCH) {
     const lote = idsValidos.slice(i, i + BATCH);
     const { data: parte, error } = await supabase
       .from("contatos")
-      .select("estado, whatsapp, wa_id, telefone")
+      .select("id, estado, whatsapp, wa_id, telefone, faixa_etaria")
       .eq("agencia_id", agenciaId)
       .is("deleted_at", null)
       .in("id", lote);
-    if (error) throw new Error(`contatosPorEstado: ${error.message}`);
+    if (error) throw new Error(`dadosGeoCompletos contatos: ${error.message}`);
     if (parte) all.push(...(parte as typeof all));
   }
-  const data = all;
 
   const cont = new Map<string, number>();
+  const pontos: PontoContato[] = [];
+  const setServicos = new Set<string>();
   let total = 0;
   let semGeo = 0;
-  for (const c of (data as Array<{
-    estado: string | null;
-    whatsapp: string | null;
-    wa_id: string | null;
-    telefone: string | null;
-  }> | null) ?? []) {
+  for (const c of all) {
     total++;
-    // Prioridade: estado manual → telefone (whatsapp > wa_id > telefone)
     const uf =
       normalizarUf(c.estado) ||
       ufPorTelefone(c.whatsapp) ||
@@ -69,11 +106,22 @@ export async function contatosPorEstado(
       continue;
     }
     cont.set(uf, (cont.get(uf) || 0) + 1);
+    const servico = servicoPorContato.get(c.id) || null;
+    if (servico) setServicos.add(servico);
+    const faixa = (c.faixa_etaria as FaixaEtaria | null) || null;
+    const faixaValida = faixa && FAIXAS_ETARIAS.includes(faixa) ? faixa : null;
+    pontos.push({ uf, servico, faixa: faixaValida });
   }
 
   const porUf: ContatoEstado[] = Array.from(cont.entries())
     .map(([uf, count]) => ({ uf, count }))
     .sort((a, b) => b.count - a.count);
 
-  return { porUf, total, semGeo };
+  return {
+    porUf,
+    total,
+    semGeo,
+    servicos: Array.from(setServicos).sort(),
+    pontos,
+  };
 }

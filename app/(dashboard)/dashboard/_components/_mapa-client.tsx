@@ -2,39 +2,45 @@
 
 import { useMemo, useState } from "react";
 import { PATH_CONTORNO_BR, proj, ESTADO_POR_UF } from "@/lib/geo/brasil";
+import { FAIXAS_ETARIAS, type FaixaEtaria } from "@/lib/crm/faixas-tipos";
 import type { DadosMapa } from "./MapaContatosEstado";
 
 const nf = new Intl.NumberFormat("pt-BR");
 const nfPct = (n: number) => n.toFixed(1).replace(".", ",");
 
-interface BolhaProps {
-  uf: string;
-  nome: string;
-  count: number;
-  xpct: number;
-  ypct: number;
-  diametro: number;
-  fontSize: number;
-  fill: string;
-  border: string;
-  txtColor: string;
-}
+type SvcFilter = "todos" | string;
+type AgeFilter = "all" | FaixaEtaria;
 
 export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
+  const [svc, setSvc] = useState<SvcFilter>("todos");
+  const [age, setAge] = useState<AgeFilter>("all");
   const [hover, setHover] = useState<{ tipo: "mapa" | "regiao"; uf: string } | null>(null);
+  const [pulse, setPulse] = useState(0);
 
-  // Map UF -> count para acesso rápido
-  const countPorUf = useMemo(
-    () => new Map(dados.porUf.map((p) => [p.uf, p.count])),
-    [dados.porUf],
-  );
-  const maxCount = useMemo(
-    () => dados.porUf.reduce((m, p) => (p.count > m ? p.count : m), 0),
-    [dados.porUf],
-  );
+  const filtroAtivo = svc !== "todos" || age !== "all";
 
-  // Bolhas: posição + tamanho proporcional (sqrt da contagem normalizada)
-  const bolhas: BolhaProps[] = useMemo(() => {
+  const pontosFiltrados = useMemo(() => {
+    return dados.pontos.filter((p) => {
+      if (svc !== "todos" && p.servico !== svc) return false;
+      if (age !== "all" && p.faixa !== age) return false;
+      return true;
+    });
+  }, [dados.pontos, svc, age]);
+
+  const countPorUf = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of pontosFiltrados) m.set(p.uf, (m.get(p.uf) || 0) + 1);
+    return m;
+  }, [pontosFiltrados]);
+
+  const totalFiltrado = pontosFiltrados.length;
+  const maxCount = useMemo(() => {
+    let max = 0;
+    for (const v of countPorUf.values()) if (v > max) max = v;
+    return max;
+  }, [countPorUf]);
+
+  const bolhas = useMemo(() => {
     return dados.estados.map((e) => {
       const count = countPorUf.get(e.uf) || 0;
       const it = maxCount > 0 ? Math.sqrt(count / maxCount) : 0;
@@ -44,7 +50,7 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
         uf: e.uf,
         nome: e.nome,
         count,
-        xpct: p.x / 10, // viewBox 1000 → %
+        xpct: p.x / 10,
         ypct: p.y / 10,
         diametro,
         fontSize: it > 0.4 ? 11 : 9,
@@ -55,39 +61,86 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
     });
   }, [dados.estados, countPorUf, maxCount]);
 
-  const top10 = useMemo(() => dados.porUf.slice(0, 10), [dados.porUf]);
+  const top10 = useMemo(() => {
+    return Array.from(countPorUf.entries())
+      .map(([uf, count]) => ({ uf, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [countPorUf]);
 
-  // Tooltip / highlight compartilhado
+  const regioesData = useMemo(() => {
+    return dados.regioes
+      .map((reg) => {
+        const ufs = dados.estados.filter((e) => e.regiao === reg.regiao);
+        const estadosCount = ufs
+          .map((e) => ({ uf: e.uf, count: countPorUf.get(e.uf) || 0 }))
+          .filter((x) => x.count > 0)
+          .sort((a, b) => b.count - a.count);
+        const total = estadosCount.reduce((s, x) => s + x.count, 0);
+        return { ...reg, total, estados: estadosCount };
+      })
+      .filter((r) => r.total > 0);
+  }, [dados.regioes, dados.estados, countPorUf]);
+
+  const maiorUf = top10[0];
+  const maiorInfo = maiorUf ? ESTADO_POR_UF[maiorUf.uf] : null;
+  const maiorPct = maiorUf && totalFiltrado > 0 ? (maiorUf.count / totalFiltrado) * 100 : 0;
+
   const hoverUf = hover?.uf || null;
   const hoverInfo = hoverUf ? bolhas.find((b) => b.uf === hoverUf) || null : null;
-  const hoverPct = hoverInfo && dados.total > 0 ? (hoverInfo.count / dados.total) * 100 : 0;
+  const hoverPct = hoverInfo && totalFiltrado > 0 ? (hoverInfo.count / totalFiltrado) * 100 : 0;
+
+  function aplicarSvc(novo: SvcFilter) {
+    if (novo === svc) return;
+    setSvc(novo);
+    setPulse(Date.now());
+  }
+  function aplicarAge(novo: AgeFilter) {
+    if (novo === age) return;
+    setAge(novo);
+    setPulse(Date.now());
+  }
+  function limpar() {
+    if (!filtroAtivo) return;
+    setSvc("todos");
+    setAge("all");
+    setPulse(Date.now());
+  }
+
+  const svcLabel = svc === "todos" ? "Todos os serviços" : svc;
+  const ageLabel = age === "all" ? "todas as idades" : `${age} anos`;
 
   return (
     <div className="mk-card" style={{ padding: "20px 22px", borderRadius: 16, marginTop: 14 }}>
-      {/* Cabeçalho */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <i className="ti ti-map-pin" style={{ fontSize: 16, color: "var(--mk-accent-2)" }} />
             <span className="label-tiny">Contatos por estado</span>
-          </div>
-          <p style={{ margin: "7px 0 0", fontSize: 12.5, color: "var(--mk-text-muted)" }}>
-            Distribuição geográfica da base · {nf.format(dados.total - dados.semGeo)} de {nf.format(dados.total)} contatos com localização
-            {dados.semGeo > 0 && (
-              <span style={{ marginLeft: 6, opacity: 0.7 }}>
-                ({nf.format(dados.semGeo)} sem geo)
+            {filtroAtivo && (
+              <span style={{
+                fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: "var(--mk-accent-2)",
+                background: "rgba(52,211,153,0.10)", border: "0.5px solid rgba(52,211,153,0.3)",
+                borderRadius: 6, padding: "3px 8px",
+              }}>
+                {svcLabel} · {ageLabel}
               </span>
             )}
-            · passe o mouse sobre um estado
+          </div>
+          <p style={{ margin: "7px 0 0", fontSize: 12.5, color: "var(--mk-text-muted)" }}>
+            Distribuição geográfica · {nf.format(totalFiltrado)} contato{totalFiltrado === 1 ? "" : "s"} no filtro atual
+            {dados.semGeo > 0 && (
+              <span style={{ marginLeft: 6, opacity: 0.7 }}>
+                ({nf.format(dados.semGeo)} sem geo na base)
+              </span>
+            )}
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>menos</span>
           <span
             style={{
-              width: 90,
-              height: 8,
-              borderRadius: 4,
+              width: 90, height: 8, borderRadius: 4,
               background: "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(16,185,129,0.55), #10B981)",
             }}
           />
@@ -95,9 +148,42 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
         </div>
       </div>
 
+      {/* Filtros — chips Serviço + Idade */}
+      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+        <ChipRow
+          label="Serviço"
+          opcoes={[
+            { id: "todos", label: "Todos os serviços" },
+            ...dados.servicos.map((s) => ({ id: s, label: s })),
+          ]}
+          ativo={svc}
+          onSelecionar={(id) => aplicarSvc(id)}
+        />
+        <ChipRow
+          label="Idade"
+          opcoes={[
+            { id: "all", label: "Todas as idades" },
+            ...FAIXAS_ETARIAS.map((f) => ({ id: f, label: `${f} anos` })),
+          ]}
+          ativo={age}
+          onSelecionar={(id) => aplicarAge(id as AgeFilter)}
+          acaoExtra={
+            filtroAtivo ? (
+              <button
+                onClick={limpar}
+                className="ghost-btn"
+                style={{ fontSize: 11, padding: "5px 11px", borderRadius: 8 }}
+              >
+                <i className="ti ti-x" style={{ fontSize: 12, marginRight: 4 }} />
+                Limpar filtro
+              </button>
+            ) : null
+          }
+        />
+      </div>
+
       {/* Corpo: mapa + lateral */}
       <div style={{ display: "flex", gap: 30, flexWrap: "wrap", alignItems: "flex-start", marginTop: 16 }}>
-        {/* Mapa SVG + bolhas posicionadas em % */}
         <div style={{ position: "relative", width: 400, height: 400, flex: "none" }}>
           <svg viewBox="0 0 1000 1000" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
             <defs>
@@ -114,6 +200,21 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
               strokeLinejoin="round"
             />
           </svg>
+
+          {/* Varredura ao trocar filtro */}
+          {pulse > 0 && (
+            <div
+              key={pulse}
+              style={{
+                position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5,
+                background: "linear-gradient(90deg, transparent 0%, rgba(52,211,153,0.16) 50%, transparent 100%)",
+                animation: "mapSweep 900ms ease-out forwards",
+                mixBlendMode: "screen",
+              }}
+            />
+          )}
+          <style>{`@keyframes mapSweep { 0% { transform: translateX(-100%); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateX(100%); opacity: 0; } }`}</style>
+
           {bolhas.map((b) => (
             <div
               key={b.uf}
@@ -138,22 +239,24 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
                   hoverUf === b.uf
                     ? "0 0 0 3px rgba(52,211,153,0.25), 0 10px 26px rgba(16,185,129,0.5)"
                     : "none",
-                transition: "box-shadow 0.18s",
+                transition: "box-shadow 0.18s, width 0.4s cubic-bezier(.2,.8,.2,1), height 0.4s cubic-bezier(.2,.8,.2,1), background 0.3s, border-color 0.3s",
               }}
             >
-              <span
-                style={{
-                  fontSize: b.fontSize,
-                  fontWeight: 700,
-                  color: b.txtColor,
-                  pointerEvents: "none",
-                }}
-              >
-                {b.uf}
-              </span>
+              {b.count > 0 && (
+                <span
+                  style={{
+                    fontSize: b.fontSize,
+                    fontWeight: 700,
+                    color: b.txtColor,
+                    pointerEvents: "none",
+                  }}
+                >
+                  {b.uf}
+                </span>
+              )}
             </div>
           ))}
-          {hoverInfo && hover?.tipo === "mapa" && (
+          {hoverInfo && hover?.tipo === "mapa" && hoverInfo.count > 0 && (
             <div
               style={{
                 position: "absolute",
@@ -183,24 +286,23 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
           )}
         </div>
 
-        {/* Lateral: total + maior concentração + ranking */}
         <div style={{ flex: 1, minWidth: 280, display: "flex", flexDirection: "column", gap: 15 }}>
           <div style={{ display: "flex", gap: 22, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "var(--mk-text-muted)" }}>
-                TOTAL DE CONTATOS
+                TOTAL NO FILTRO
               </div>
               <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.5px", color: "var(--mk-text)", marginTop: 4 }}>
-                {nf.format(dados.total)}
+                {nf.format(totalFiltrado)}
               </div>
             </div>
-            {dados.maiorUf && (
+            {maiorUf && maiorInfo && (
               <div>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "var(--mk-text-muted)" }}>
                   MAIOR CONCENTRAÇÃO
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--mk-accent-2)", marginTop: 7 }}>
-                  {dados.maiorUf.nome} · {nfPct(dados.maiorUf.pct)}%
+                  {maiorInfo.nome} · {nfPct(maiorPct)}%
                 </div>
               </div>
             )}
@@ -212,11 +314,14 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "var(--mk-text-muted)" }}>
               RANKING DE ESTADOS · TOP 10
             </div>
+            {top10.length === 0 && (
+              <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: "12px 0" }}>
+                Sem contatos no filtro atual.
+              </div>
+            )}
             {top10.map((p, i) => {
               const info = ESTADO_POR_UF[p.uf];
-              const regiao = info?.regiao;
-              const cor = regiao ? "var(--mk-accent-2)" : "var(--mk-text-muted)";
-              const pct = dados.total > 0 ? (p.count / dados.total) * 100 : 0;
+              const pct = totalFiltrado > 0 ? (p.count / totalFiltrado) * 100 : 0;
               return (
                 <div
                   key={p.uf}
@@ -238,7 +343,7 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
                   <span style={{ flex: "none", width: 28, fontSize: 12.5, fontWeight: 700, color: "var(--mk-accent-2)" }}>
                     {p.uf}
                   </span>
-                  <span style={{ flex: "none", width: 8, height: 8, borderRadius: 2, background: cor }} />
+                  <span style={{ flex: "none", width: 8, height: 8, borderRadius: 2, background: "var(--mk-accent-2)" }} />
                   <span style={{ flex: "none", width: 110, fontSize: 11.5, color: "var(--mk-text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {info?.nome || p.uf}
                   </span>
@@ -266,24 +371,22 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
         </div>
       </div>
 
-      {/* Distribuição por região (marimekko) */}
-      {dados.regioes.length > 0 && (
+      {regioesData.length > 0 && (
         <div style={{ marginTop: 18, paddingTop: 16, borderTop: "0.5px solid var(--mk-border)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "var(--mk-text-muted)" }}>
               DISTRIBUIÇÃO POR REGIÃO
             </span>
-            {hoverInfo && (
+            {hoverInfo && hoverInfo.count > 0 && (
               <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--mk-accent-2)" }}>
                 {hoverInfo.nome} · {nf.format(hoverInfo.count)} ({nfPct(hoverPct)}%)
               </div>
             )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {dados.regioes.map((reg) => {
-              const totalSemGeo = dados.total - dados.semGeo;
-              const pctReg = totalSemGeo > 0 ? (reg.total / totalSemGeo) * 100 : 0;
-              const maxRegTotal = Math.max(...dados.regioes.map((r) => r.total));
+            {regioesData.map((reg) => {
+              const pctReg = totalFiltrado > 0 ? (reg.total / totalFiltrado) * 100 : 0;
+              const maxRegTotal = Math.max(...regioesData.map((r) => r.total));
               const widthPct = maxRegTotal > 0 ? 22 + (reg.total / maxRegTotal) * 78 : 22;
               return (
                 <div key={reg.regiao}>
@@ -296,7 +399,7 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
                       {nf.format(reg.total)} · {pctReg.toFixed(0)}%
                     </span>
                   </div>
-                  <div style={{ display: "flex", gap: 3, height: 30, width: `${widthPct}%`, minWidth: 60 }}>
+                  <div style={{ display: "flex", gap: 3, height: 30, width: `${widthPct}%`, minWidth: 60, transition: "width 0.6s cubic-bezier(.2,.8,.2,1)" }}>
                     {reg.estados.map((s) => {
                       const it = maxCount > 0 ? Math.sqrt(s.count / maxCount) : 0;
                       return (
@@ -315,7 +418,7 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
                             cursor: "pointer",
                             overflow: "hidden",
                             filter: hoverUf === s.uf ? "brightness(1.4)" : "none",
-                            transition: "filter 0.18s",
+                            transition: "filter 0.18s, background 0.4s",
                           }}
                         >
                           <span
@@ -338,6 +441,53 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ChipRow({
+  label, opcoes, ativo, onSelecionar, acaoExtra,
+}: {
+  label: string;
+  opcoes: { id: string; label: string }[];
+  ativo: string;
+  onSelecionar: (id: string) => void;
+  acaoExtra?: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <span style={{
+        fontSize: 9.5, fontWeight: 700, letterSpacing: 1, color: "var(--mk-text-muted)",
+        minWidth: 56,
+      }}>
+        {label.toUpperCase()}
+      </span>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+        {opcoes.map((o) => {
+          const a = o.id === ativo;
+          return (
+            <button
+              key={o.id}
+              onClick={() => onSelecionar(o.id)}
+              style={{
+                fontSize: 11.5,
+                fontWeight: a ? 700 : 500,
+                color: a ? "#fff" : "var(--mk-text-secondary)",
+                background: a ? "rgba(16,185,129,0.16)" : "var(--mk-surface-2)",
+                border: a ? "0.5px solid rgba(52,211,153,0.4)" : "0.5px solid var(--mk-border)",
+                borderRadius: 8,
+                padding: "5px 11px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "all 0.18s",
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {acaoExtra}
     </div>
   );
 }

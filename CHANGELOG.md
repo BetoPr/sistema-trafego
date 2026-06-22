@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-21
 
+- **23:30** — **Dashboard/Campanhas: filtro Serviço × Idade no mapa de contatos.**
+  - Migration `contatos.faixa_etaria` (text + check 18-24/25-34/35-44/45-54/55+).
+  - `lib/crm/faixas-tipos.ts` — tipos + constante `FAIXAS_ETARIAS` (compartilhado server/client).
+  - `lib/crm/contatos-geo.ts` — nova função `dadosGeoCompletos` retorna lista de pontos enriquecidos (uf + serviço do ticket mais recente + faixa etária). Mantém `contatosPorEstado` como wrapper.
+  - `_mapa-client.tsx` reescrito: 2 trilhos de chips (Serviço + Idade) acima do mapa; bolinhas, ranking Top 10 e marimekko regiões recalculam reativamente; "Limpar filtro"; varredura visual ao trocar; rótulo do filtro ativo no header.
+
 - **22:55** — **Redesign docs sessão 1 (Atendimentos + Follow-up) + tokens globais.**
   - `docs/redesign-abas/tokens.md` — paleta light+dark, tipografia, espaçamento, classes mk-*, ícones Tabler. Referência única.
   - `docs/redesign-abas/sessao-1/aba-atendimentos/prompt.md` — inventário técnico (estrutura 3-col, dados por elemento, estados, filtros, deep-links, componentes). 9.6KB, exhaustivo.
