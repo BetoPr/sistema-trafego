@@ -44,6 +44,12 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
   const [, startTransition] = useTransition();
 
   const etMap = useMemo(() => new Map(etiquetas.map((e) => [e.id, e])), [etiquetas]);
+  // Pasta = etiqueta-mãe que tem pelo menos 1 filha. Etiqueta solta (sem pai, sem filha) NÃO é Pasta.
+  const pastas = useMemo(() => {
+    const idsComFilhas = new Set(etiquetas.filter((e) => e.etiqueta_pai_id).map((e) => e.etiqueta_pai_id!));
+    return etiquetas.filter((e) => !e.etiqueta_pai_id && idsComFilhas.has(e.id));
+  }, [etiquetas]);
+  // Linhas-mãe (todas que poderiam ser pasta) — usadas no select "Pasta-mãe" do criar nova
   const linhasMae = useMemo(() => etiquetas.filter((e) => !e.etiqueta_pai_id), [etiquetas]);
 
   function criarLinha() {
@@ -129,12 +135,12 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".4px", color: "var(--mk-text-muted)" }}>
           PASTAS
         </span>
-        {linhasMae.length === 0 ? (
+        {pastas.length === 0 ? (
           <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", fontStyle: "italic" }}>
             Nenhuma criada ainda.
           </span>
         ) : (
-          linhasMae.map((l) => (
+          pastas.map((l) => (
             <span
               key={l.id}
               style={{
@@ -494,15 +500,31 @@ function EtiquetaCell({
   function criarNova() {
     const nome = novoNome.trim();
     if (!nome) return;
+    const paiUsado = novoPai;
     startTransition(async () => {
-      const r = await criarEtiquetaInline(nome, novoCor, novoPai || null);
+      const r = await criarEtiquetaInline(nome, novoCor, paiUsado || null);
       if (!r.ok || !r.id) {
         setErro(r.msg || "Falha");
         return;
       }
-      const nova: EtiquetaOpt = { id: r.id, nome, cor: novoCor, etiqueta_pai_id: novoPai || null };
+      const nova: EtiquetaOpt = { id: r.id, nome, cor: novoCor, etiqueta_pai_id: paiUsado || null };
       onEtiquetaCriada(nova);
-      setSel((s) => new Set([...s, nova.id]));
+      // Se criou com Pasta-mãe (hierarquia), auto-salva vinculando + fecha
+      if (paiUsado) {
+        const novaSel = new Set([...sel, nova.id]);
+        // remove Pasta-mãe da seleção se estava marcada (evita "já possui")
+        novaSel.delete(paiUsado);
+        const ids = Array.from(novaSel);
+        const rs = await salvarEtiquetasDoAlvo(alvo, alvoId, ids);
+        if (!rs.ok) {
+          setErro(rs.msg || "Falha ao salvar");
+          return;
+        }
+        onSalvo(ids);
+        setAberto(false);
+      } else {
+        setSel((s) => new Set([...s, nova.id]));
+      }
       setNovoNome("");
       setNovoPai("");
       setNovoCor(PALETA_RAPIDA[0]);
@@ -617,35 +639,137 @@ function EtiquetaCell({
                 Sem etiquetas cadastradas.
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {etiquetas.map((e) => (
-                  <label
-                    key={e.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      background: sel.has(e.id) ? "rgba(0,225,154,.10)" : "transparent",
-                      fontSize: 12,
-                    }}
-                  >
-                    <input type="checkbox" checked={sel.has(e.id)} onChange={() => toggleEt(e.id)} />
-                    <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        background: e.cor,
-                        flex: "none",
-                      }}
-                    />
-                    <span style={{ flex: 1 }}>{e.nome}</span>
-                  </label>
-                ))}
-              </div>
+              (() => {
+                // Indexa filhas por pai_id
+                const filhasPorPai = new Map<string, EtiquetaOpt[]>();
+                for (const e of etiquetas) {
+                  if (e.etiqueta_pai_id) {
+                    const arr = filhasPorPai.get(e.etiqueta_pai_id) || [];
+                    arr.push(e);
+                    filhasPorPai.set(e.etiqueta_pai_id, arr);
+                  }
+                }
+                const idsComFilhas = new Set(filhasPorPai.keys());
+                const pastasLocal = etiquetas.filter((e) => !e.etiqueta_pai_id && idsComFilhas.has(e.id));
+                const soltas = etiquetas.filter((e) => !e.etiqueta_pai_id && !idsComFilhas.has(e.id));
+
+                function temFilhaMarcada(pastaId: string) {
+                  return (filhasPorPai.get(pastaId) || []).some((f) => sel.has(f.id));
+                }
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {pastasLocal.map((p) => {
+                      const filhas = filhasPorPai.get(p.id) || [];
+                      const pastaBloqueada = temFilhaMarcada(p.id);
+                      return (
+                        <div key={p.id} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {!pastaBloqueada && (
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "6px 8px",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                background: sel.has(p.id) ? "rgba(0,225,154,.10)" : "transparent",
+                                fontSize: 12,
+                                fontWeight: 700,
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={sel.has(p.id)}
+                                onChange={() => {
+                                  // Marca Pasta → desmarca filhas (mutuamente excludentes)
+                                  setSel((s) => {
+                                    const n = new Set(s);
+                                    if (n.has(p.id)) {
+                                      n.delete(p.id);
+                                    } else {
+                                      n.add(p.id);
+                                      for (const f of filhas) n.delete(f.id);
+                                    }
+                                    return n;
+                                  });
+                                }}
+                              />
+                              <i
+                                className="ti ti-folder"
+                                style={{ fontSize: 12, color: p.cor, flex: "none" }}
+                              />
+                              <span style={{ flex: 1, color: p.cor }}>{p.nome}</span>
+                            </label>
+                          )}
+                          {filhas.map((f) => (
+                            <label
+                              key={f.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "5px 8px 5px 22px",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                background: sel.has(f.id) ? "rgba(0,225,154,.10)" : "transparent",
+                                fontSize: 11.5,
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={sel.has(f.id)}
+                                onChange={() => {
+                                  setSel((s) => {
+                                    const n = new Set(s);
+                                    if (n.has(f.id)) {
+                                      n.delete(f.id);
+                                    } else {
+                                      n.add(f.id);
+                                      n.delete(p.id); // marcar filha desmarca Pasta-mãe
+                                    }
+                                    return n;
+                                  });
+                                }}
+                              />
+                              <i className="ti ti-tag" style={{ fontSize: 11, color: f.cor, flex: "none" }} />
+                              <span style={{ flex: 1 }}>{f.nome}</span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {soltas.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        {pastasLocal.length > 0 && (
+                          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".4px", color: "var(--mk-text-muted)", padding: "4px 6px 2px" }}>
+                            ETIQUETAS SOLTAS
+                          </div>
+                        )}
+                        {soltas.map((e) => (
+                          <label
+                            key={e.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              background: sel.has(e.id) ? "rgba(0,225,154,.10)" : "transparent",
+                              fontSize: 12,
+                            }}
+                          >
+                            <input type="checkbox" checked={sel.has(e.id)} onChange={() => toggleEt(e.id)} />
+                            <i className="ti ti-tag" style={{ fontSize: 11, color: e.cor, flex: "none" }} />
+                            <span style={{ flex: 1 }}>{e.nome}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
             )}
 
             <div style={{ borderTop: ".5px solid var(--mk-border)", marginTop: 6, paddingTop: 6 }}>
