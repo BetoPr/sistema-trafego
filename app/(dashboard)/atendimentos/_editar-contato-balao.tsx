@@ -26,6 +26,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
   const router = useRouter();
   const [nome, setNome] = useState(nomeAtual);
   const [whatsapp, setWhatsapp] = useState(whatsappAtual || "");
+  const [idade, setIdade] = useState<string>("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -43,6 +44,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
       if (j.ok) {
         setNome(j.nome ?? nomeAtual);
         setWhatsapp(j.whatsapp ?? "");
+        setIdade(j.idade != null ? String(j.idade) : "");
         setTodasEtq(j.todasEtiquetas || []);
         setAplicadas(j.etiquetasAplicadas || []);
         setFechamentos(j.fechamentos || []);
@@ -72,6 +74,19 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
     try {
       const r = await salvarContatoBasico({ id: contatoId, nome, whatsapp });
       if (!r.ok) { setErro(r.erro || "Falha ao salvar"); return; }
+      // PATCH idade separado (campo extra que actions legadas não cobrem).
+      const idadeNum = idade.trim() === "" ? null : Number(idade);
+      const idadeMudou =
+        idadeNum === null ? idade.trim() === "" : Number.isFinite(idadeNum) && idadeNum >= 0 && idadeNum <= 130;
+      if (idadeMudou) {
+        try {
+          await fetch(`/api/contatos/${contatoId}`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ idade: idadeNum }),
+          });
+        } catch {}
+      }
       onClose();
       if (onSalvo) onSalvo(); else router.refresh();
     } catch (e) {
@@ -100,7 +115,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {/* Dados */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr", gap: 10 }}>
           <div>
             <label style={lbl}>Nome</label>
             <input value={nome} onChange={(e) => setNome(e.target.value)} autoFocus style={inp} placeholder="Nome do contato" />
@@ -108,6 +123,16 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
           <div>
             <label style={lbl}>WhatsApp</label>
             <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} style={inp} placeholder="5511999999999" />
+          </div>
+          <div>
+            <label style={lbl}>Idade <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>(opcional)</span></label>
+            <input
+              value={idade}
+              onChange={(e) => setIdade(e.target.value.replace(/\D/g, "").slice(0, 3))}
+              style={inp}
+              inputMode="numeric"
+              placeholder="—"
+            />
           </div>
         </div>
 

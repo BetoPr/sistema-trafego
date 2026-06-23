@@ -5,20 +5,67 @@ import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
 
-export async function criarEtiqueta(nome: string, cor: string): Promise<{ ok: boolean; id?: string; msg?: string }> {
+export async function criarEtiqueta(
+  nome: string,
+  cor: string,
+  etiquetaPaiId: string | null = null,
+): Promise<{ ok: boolean; id?: string; msg?: string }> {
   const ctx = await requireAdmin();
   const n = nome.trim();
   if (!n) return { ok: false, msg: "Nome obrigatório." };
   const sb = createServiceClient();
+  if (etiquetaPaiId) {
+    const { data: pai } = await sb
+      .from("etiquetas")
+      .select("id, etiqueta_pai_id")
+      .eq("id", etiquetaPaiId)
+      .eq("agencia_id", ctx.agenciaId)
+      .maybeSingle();
+    if (!pai) return { ok: false, msg: "Etiqueta-mãe inválida." };
+    if (pai.etiqueta_pai_id) return { ok: false, msg: "Hierarquia só permite 2 níveis (Linha → Variante)." };
+  }
   const { data, error } = await sb
     .from("etiquetas")
-    .insert({ agencia_id: ctx.agenciaId, nome: n, cor: cor || "#00E19A", categoria: "etiqueta" })
+    .insert({ agencia_id: ctx.agenciaId, nome: n, cor: cor || "#00E19A", categoria: "etiqueta", etiqueta_pai_id: etiquetaPaiId })
     .select("id")
     .single();
   if (error) return { ok: false, msg: error.message };
-  void audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "etiqueta", entidadeId: data.id, payload: { nome: n, cor } });
+  void audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "etiqueta", entidadeId: data.id, payload: { nome: n, cor, etiqueta_pai_id: etiquetaPaiId } });
   revalidatePath("/configuracoes/etiquetas");
   return { ok: true, id: data.id };
+}
+
+export async function atualizarEtiquetaPai(etiquetaId: string, etiquetaPaiId: string | null): Promise<{ ok: boolean; msg?: string }> {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+  if (etiquetaPaiId === etiquetaId) return { ok: false, msg: "Etiqueta não pode ser pai dela mesma." };
+  if (etiquetaPaiId) {
+    const { data: pai } = await sb
+      .from("etiquetas")
+      .select("id, etiqueta_pai_id")
+      .eq("id", etiquetaPaiId)
+      .eq("agencia_id", ctx.agenciaId)
+      .maybeSingle();
+    if (!pai) return { ok: false, msg: "Etiqueta-mãe inválida." };
+    if (pai.etiqueta_pai_id) return { ok: false, msg: "Hierarquia só permite 2 níveis (Linha → Variante)." };
+  }
+  // Esta etiqueta não pode virar filha se ela já tem filhas (impede 3 níveis).
+  const { count: filhas } = await sb
+    .from("etiquetas")
+    .select("id", { count: "exact", head: true })
+    .eq("agencia_id", ctx.agenciaId)
+    .eq("etiqueta_pai_id", etiquetaId);
+  if (etiquetaPaiId && filhas && filhas > 0) {
+    return { ok: false, msg: "Esta etiqueta já é uma Linha (tem filhas). Não pode virar variante." };
+  }
+  const { error } = await sb
+    .from("etiquetas")
+    .update({ etiqueta_pai_id: etiquetaPaiId })
+    .eq("id", etiquetaId)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/configuracoes/etiquetas");
+  return { ok: true };
 }
 
 /**

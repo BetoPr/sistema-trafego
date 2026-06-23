@@ -66,7 +66,7 @@ function buildSections(role?: string): NavSection[] {
             icon: "ti-speakerphone",
             iconColor: "var(--mk-icon-purple)",
             items: [
-              { href: "/pixel-vendas", label: "Pixel & Vendas", icon: "ti-target-arrow" },
+              { href: "/pixel-vendas", label: "Pixel & Campanhas", icon: "ti-target-arrow" },
               { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list" },
               { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing" },
             ],

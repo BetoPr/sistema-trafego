@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   // Contato precisa ser da agência
   const { data: contato } = await sb
     .from("contatos")
-    .select("id, nome, whatsapp, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))")
+    .select("id, nome, whatsapp, idade, contato_etiquetas(etiqueta:etiquetas(id, nome, cor, categoria))")
     .eq("id", id)
     .eq("agencia_id", u.agencia_id)
     .is("deleted_at", null)
@@ -58,6 +58,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     ok: true,
     nome: contato.nome,
     whatsapp: contato.whatsapp,
+    idade: (contato as { idade?: number | null }).idade ?? null,
     etiquetasAplicadas: aplicadas,
     todasEtiquetas: (todasTags || []).filter((e) => (e.categoria || "etiqueta") === "etiqueta").map((e) => ({ id: e.id, nome: e.nome, cor: e.cor })),
     fechamentos,

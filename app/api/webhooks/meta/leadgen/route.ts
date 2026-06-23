@@ -139,7 +139,8 @@ async function processarLeadgenPayload(payload: LeadgenWebhookPayload): Promise<
       const fields = parseFieldData(detail);
       const tel = normalizarTelefoneBR(fields.telefone);
 
-      const camposExtras = fields.extras;
+      const camposExtras: Record<string, string | number> = { ...fields.extras };
+      if (fields.idade != null) camposExtras["_idade"] = fields.idade;
       const ctwa = (camposExtras["ctwa_clid"] || camposExtras["ctwa_clickid"] || null) as string | null;
 
       const { data: inserido } = await sb.from("meta_leads").upsert(

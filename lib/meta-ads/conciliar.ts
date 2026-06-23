@@ -109,9 +109,9 @@ export async function conciliarLead(metaLeadId: string): Promise<ConciliarResult
 
   const { data: lead } = await sb
     .from("meta_leads")
-    .select("id, agencia_id, telefone, telefone_norm, ctwa_clid, status, tentativas_conciliacao")
+    .select("id, agencia_id, telefone, telefone_norm, ctwa_clid, status, tentativas_conciliacao, campos_jsonb")
     .eq("id", metaLeadId)
-    .maybeSingle<MetaLeadRow>();
+    .maybeSingle<MetaLeadRow & { campos_jsonb: Record<string, unknown> | null }>();
 
   if (!lead) return { ok: false, status: "erro", motivo: "lead nao encontrado" };
   if (lead.status === "conciliado") return { ok: true, status: "conciliado" };
@@ -138,6 +138,22 @@ export async function conciliarLead(metaLeadId: string): Promise<ConciliarResult
     conciliado_em: new Date().toISOString(),
     motivo_orfao: null,
   }).eq("id", lead.id);
+
+  // Persiste idade do form (campos_jsonb._idade) no contato — só se ainda não tiver.
+  const idadeBruta = lead.campos_jsonb?.["_idade"];
+  const idade =
+    typeof idadeBruta === "number"
+      ? idadeBruta
+      : typeof idadeBruta === "string" && /^\d+$/.test(idadeBruta)
+        ? Number(idadeBruta)
+        : null;
+  if (idade != null && idade >= 0 && idade <= 130) {
+    await sb
+      .from("contatos")
+      .update({ idade })
+      .eq("id", contato.id)
+      .is("idade", null);
+  }
 
   return { ok: true, status: "conciliado", contato_id: contato.id, ticket_id: ticketId || undefined };
 }

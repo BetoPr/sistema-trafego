@@ -7,6 +7,17 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **12:30** — **R1+R2+R4: Pixel & Campanhas + hierarquia etiqueta (Linha/Variante) + idade do contato.**
+  - Rename: `Pixel & Vendas` → `Pixel & Campanhas` (sidebar + título da página).
+  - Migration `etiquetas.etiqueta_pai_id` (FK self-ref, índice parcial). Hierarquia 2 níveis: **Linha** (mãe) agrupa **Variantes** (filhas). Auto-etiquetagem aplica a mãe junto automaticamente.
+  - `_actions.ts`: `criarEtiqueta(nome, cor, etiquetaPaiId?)` + nova `atualizarEtiquetaPai`. Valida hierarquia ≤ 2 níveis e impede ciclos.
+  - `/configuracoes/etiquetas`: novo seletor "Etiqueta-mãe" no form de criar + dropdown "Vincular como Variante" em cada linha. Render hierárquico (Linha com filhas + Órfãs).
+  - `lib/crm/auto-etiquetar-campanha.ts`: ao aplicar filha, busca `etiqueta_pai_id` e aplica mãe também.
+  - Migration `contatos.idade smallint` (0–130, nullable).
+  - `/api/contatos/[id]`: novo endpoint `PATCH` aceitando `{ idade, nome }`.
+  - Balão Editar contato (`_editar-contato-balao.tsx`): campo **Idade** opcional ao lado de Nome/WhatsApp; PATCH separado pro endpoint novo.
+  - `parseFieldData` do leadgen agora extrai `age`/`idade`. Webhook salva em `campos_jsonb._idade`. `conciliarLead` aplica idade no contato (só quando idade ainda for null) ao conciliar.
+
 - **11:45** — **Etiqueta↔Campanha/Conjunto: refatoração de UI + fix bug + suporte conjuntos.**
   - Fix bug: query de campanhas em /configuracoes/etiquetas tentava `select plataforma_id` (não existe). Schema real: `plataforma` text. Por isso "Nenhuma campanha sincronizada" mesmo com 7 campanhas no DB.
   - Migration `etiqueta_conjuntos` (N:M etiqueta ↔ conjunto Meta) com RLS — granularidade fina.

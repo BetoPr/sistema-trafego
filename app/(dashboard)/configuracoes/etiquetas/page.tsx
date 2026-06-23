@@ -9,7 +9,7 @@ export default async function EtiquetasConfigPage() {
 
   const { data: etData } = await sb
     .from("etiquetas")
-    .select("id, nome, cor, categoria, palavra_gatilho, mensagem_resposta, ativo")
+    .select("id, nome, cor, categoria, palavra_gatilho, mensagem_resposta, ativo, etiqueta_pai_id")
     .eq("agencia_id", ctx.agenciaId)
     .order("nome");
 
@@ -22,6 +22,7 @@ export default async function EtiquetasConfigPage() {
       palavra_gatilho: (e.palavra_gatilho as string | null) ?? null,
       mensagem_resposta: (e.mensagem_resposta as string | null) ?? null,
       ativo: (e.ativo as boolean | null) ?? true,
+      etiqueta_pai_id: (e.etiqueta_pai_id as string | null) ?? null,
     }));
 
   return (

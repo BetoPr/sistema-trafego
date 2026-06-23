@@ -91,11 +91,13 @@ export function parseFieldData(detail: LeadDetail): {
   email: string | null;
   telefone: string | null;
   nome: string | null;
+  idade: number | null;
   extras: Record<string, string>;
 } {
   let email: string | null = null;
   let telefone: string | null = null;
   let nome: string | null = null;
+  let idade: number | null = null;
   const extras: Record<string, string> = {};
 
   for (const f of detail.field_data || []) {
@@ -108,12 +110,16 @@ export function parseFieldData(detail: LeadDetail): {
       telefone = v;
     } else if (!nome && (k === "full_name" || k === "nome" || k.includes("name") || k.includes("nome"))) {
       nome = v;
+    } else if (idade == null && (k === "age" || k.includes("idade") || k.includes("age "))) {
+      const n = parseInt(v.replace(/\D/g, ""), 10);
+      if (Number.isFinite(n) && n >= 0 && n <= 130) idade = n;
+      else extras[f.name] = v;
     } else {
       extras[f.name] = v;
     }
   }
 
-  return { email, telefone, nome, extras };
+  return { email, telefone, nome, idade, extras };
 }
 
 /**

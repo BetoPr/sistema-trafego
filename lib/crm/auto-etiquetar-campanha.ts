@@ -71,9 +71,21 @@ export async function aplicarEtiquetasDeCampanha(p: Params): Promise<AutoEtiquet
   const etiquetaIds = (ativas || []).map((e) => e.id as string);
   if (etiquetaIds.length === 0) return { campanhaId, conjuntoId, etiquetasAplicadas: [] };
 
-  // 4. insert N:M contato_etiquetas (duplicados falham silenciosamente)
+  // 4. expande pais (herança): para cada filha, aplica também a etiqueta-mãe
+  const { data: paisRows } = await p.sb
+    .from("etiquetas")
+    .select("id, etiqueta_pai_id")
+    .eq("agencia_id", p.agenciaId)
+    .in("id", etiquetaIds);
+  const aSetar = new Set<string>(etiquetaIds);
+  for (const r of paisRows || []) {
+    const paiId = (r as { etiqueta_pai_id: string | null }).etiqueta_pai_id;
+    if (paiId) aSetar.add(paiId);
+  }
+
+  // 5. insert N:M contato_etiquetas (duplicados falham silenciosamente)
   const aplicadas: string[] = [];
-  for (const eid of etiquetaIds) {
+  for (const eid of aSetar) {
     const { error } = await p.sb.from("contato_etiquetas").insert({ contato_id: p.contatoId, etiqueta_id: eid });
     if (!error) aplicadas.push(eid);
   }

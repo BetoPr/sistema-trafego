@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Balao } from "@/components/ui/Balao";
-import { criarEtiqueta } from "./_actions";
+import { criarEtiqueta, atualizarEtiquetaPai } from "./_actions";
 
 interface Etiqueta {
   id: string;
@@ -11,6 +11,7 @@ interface Etiqueta {
   palavra_gatilho: string | null;
   mensagem_resposta?: string | null;
   ativo: boolean;
+  etiqueta_pai_id: string | null;
 }
 
 const PALETA = [
@@ -22,18 +23,58 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
   const [lista, setLista] = useState<Etiqueta[]>(inicial);
   const [nome, setNome] = useState("");
   const [cor, setCor] = useState(PALETA[0]);
+  const [paiId, setPaiId] = useState<string>("");
   const [criando, setCriando] = useState(false);
   const [editando, setEditando] = useState<Etiqueta | null>(null);
+  const [, startTransition] = useTransition();
+
+  const linhasDisp = useMemo(() => lista.filter((e) => !e.etiqueta_pai_id), [lista]);
+  const filhasPorPai = useMemo(() => {
+    const m = new Map<string, Etiqueta[]>();
+    for (const e of lista) {
+      if (e.etiqueta_pai_id) {
+        const arr = m.get(e.etiqueta_pai_id) || [];
+        arr.push(e);
+        m.set(e.etiqueta_pai_id, arr);
+      }
+    }
+    return m;
+  }, [lista]);
+  const orfas = useMemo(
+    () => lista.filter((e) => !e.etiqueta_pai_id && !filhasPorPai.has(e.id)),
+    [lista, filhasPorPai],
+  );
+  const linhasComFilhas = useMemo(
+    () => lista.filter((e) => !e.etiqueta_pai_id && filhasPorPai.has(e.id)),
+    [lista, filhasPorPai],
+  );
+
+  function trocarPai(etiqueta: Etiqueta, novoPai: string | null) {
+    startTransition(async () => {
+      const r = await atualizarEtiquetaPai(etiqueta.id, novoPai);
+      if (!r.ok) {
+        alert(r.msg || "Falha");
+        return;
+      }
+      setLista((arr) => arr.map((x) => (x.id === etiqueta.id ? { ...x, etiqueta_pai_id: novoPai } : x)));
+    });
+  }
 
   async function adicionar() {
     const n = nome.trim();
     if (!n) return;
     setCriando(true);
     try {
-      const r = await criarEtiqueta(n, cor);
+      const r = await criarEtiqueta(n, cor, paiId || null);
       if (r.ok && r.id) {
-        setLista((l) => [...l, { id: r.id!, nome: n, cor, palavra_gatilho: null, mensagem_resposta: null, ativo: true }].sort((a, b) => a.nome.localeCompare(b.nome)));
+        setLista((l) =>
+          [
+            ...l,
+            { id: r.id!, nome: n, cor, palavra_gatilho: null, mensagem_resposta: null, ativo: true, etiqueta_pai_id: paiId || null },
+          ].sort((a, b) => a.nome.localeCompare(b.nome)),
+        );
         setNome("");
+        setPaiId("");
       } else {
         alert(r.msg || "Falha ao criar.");
       }
@@ -64,22 +105,38 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
             value={nome}
             onChange={(ev) => setNome(ev.target.value)}
             onKeyDown={(ev) => ev.key === "Enter" && adicionar()}
-            placeholder="Nome da etiqueta (ex: Cliente VIP)"
+            placeholder="Nome (Linha: 'Restauração' · Variante: 'Restauração/Bebê')"
             style={{ flex: 1, minWidth: 180, padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }}
           />
+          <select
+            value={paiId}
+            onChange={(ev) => setPaiId(ev.target.value)}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, maxWidth: 200 }}
+            title="Vincular como Variante de uma Linha existente"
+          >
+            <option value="">— Linha (sem mãe)</option>
+            {linhasDisp.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
           <Swatches valor={cor} onChange={setCor} />
           <button onClick={adicionar} disabled={criando || !nome.trim()} className="cta-btn" style={{ fontSize: 12 }}>
             <i className="ti ti-plus" /> {criando ? "Criando…" : "Criar"}
           </button>
         </div>
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8, fontSize: 10.5, color: "var(--mk-text-muted)" }}>
+          <strong>Linha</strong> agrupa Variantes (ex.: <em>Restauração</em> → <em>Restauração/Bebê</em>, <em>Restauração/Mofo</em>). Aplicar uma Variante aplica a Linha mãe automaticamente.
+        </div>
+        <div style={{ marginTop: 6 }}>
           <Badge nome={nome || "Prévia"} cor={cor} />
         </div>
       </div>
 
       <div style={{ height: 0.5, background: "var(--mk-border)" }} />
 
-      {/* Lista */}
+      {/* Lista hierárquica: Linhas (com filhas) + Órfãs */}
       <div>
         <div style={{ fontSize: 11, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 8, fontFamily: "monospace" }}>
           ETIQUETAS ({lista.length})
@@ -87,21 +144,46 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
         {lista.length === 0 ? (
           <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: "16px 0", textAlign: "center" }}>Nenhuma etiqueta criada ainda.</div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {lista.map((e) => (
-              <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderBottom: "0.5px solid var(--mk-border)", opacity: e.ativo ? 1 : 0.5 }}>
-                <Badge nome={e.nome} cor={e.cor} />
-                {e.palavra_gatilho && (
-                  <span title={`Gatilho: ${e.palavra_gatilho}`} style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "inline-flex", alignItems: "center", gap: 3 }}>
-                    <i className="ti ti-bolt" /> {e.palavra_gatilho}
-                  </span>
-                )}
-                {!e.ativo && <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "1px 6px" }}>inativo</span>}
-                <div style={{ flex: 1 }} />
-                <button onClick={() => setEditando(e)} title="Editar" style={iconBtn}><i className="ti ti-pencil" /></button>
-                <button onClick={() => excluir(e)} title="Excluir" style={{ ...iconBtn, color: "#f43f5e" }}><i className="ti ti-trash" /></button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {linhasComFilhas.map((linha) => (
+              <div key={linha.id} style={{ border: "0.5px solid var(--mk-border)", borderRadius: 10, padding: 8, background: "var(--mk-surface)" }}>
+                <Linha
+                  etiqueta={linha}
+                  isLinha
+                  onEdit={() => setEditando(linha)}
+                  onDelete={() => excluir(linha)}
+                  paiOpcoes={linhasDisp.filter((x) => x.id !== linha.id)}
+                  onTrocarPai={(p) => trocarPai(linha, p)}
+                />
+                <div style={{ marginLeft: 22, marginTop: 6, display: "flex", flexDirection: "column" }}>
+                  {(filhasPorPai.get(linha.id) || []).map((f) => (
+                    <Linha
+                      key={f.id}
+                      etiqueta={f}
+                      onEdit={() => setEditando(f)}
+                      onDelete={() => excluir(f)}
+                      paiOpcoes={linhasDisp.filter((x) => x.id !== f.id)}
+                      onTrocarPai={(p) => trocarPai(f, p)}
+                    />
+                  ))}
+                </div>
               </div>
             ))}
+            {orfas.length > 0 && (
+              <div>
+                <div style={{ fontSize: 10, color: "var(--mk-text-muted)", padding: "4px 4px", letterSpacing: .5 }}>SEM HIERARQUIA</div>
+                {orfas.map((e) => (
+                  <Linha
+                    key={e.id}
+                    etiqueta={e}
+                    onEdit={() => setEditando(e)}
+                    onDelete={() => excluir(e)}
+                    paiOpcoes={linhasDisp.filter((x) => x.id !== e.id)}
+                    onTrocarPai={(p) => trocarPai(e, p)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -222,6 +304,55 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
         </label>
       </div>
     </Balao>
+  );
+}
+
+function Linha({
+  etiqueta,
+  isLinha,
+  onEdit,
+  onDelete,
+  paiOpcoes,
+  onTrocarPai,
+}: {
+  etiqueta: Etiqueta;
+  isLinha?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  paiOpcoes: Etiqueta[];
+  onTrocarPai: (paiId: string | null) => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", borderBottom: "0.5px solid var(--mk-border)", opacity: etiqueta.ativo ? 1 : 0.5 }}>
+      {isLinha && <i className="ti ti-folder" style={{ fontSize: 13, color: etiqueta.cor }} title="Linha" />}
+      <Badge nome={etiqueta.nome} cor={etiqueta.cor} />
+      {etiqueta.palavra_gatilho && (
+        <span title={`Gatilho: ${etiqueta.palavra_gatilho}`} style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+          <i className="ti ti-bolt" /> {etiqueta.palavra_gatilho}
+        </span>
+      )}
+      {!etiqueta.ativo && <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "1px 6px" }}>inativo</span>}
+      <div style={{ flex: 1 }} />
+      <select
+        value={etiqueta.etiqueta_pai_id || ""}
+        onChange={(ev) => onTrocarPai(ev.target.value || null)}
+        title="Vincular como Variante de uma Linha"
+        style={{ fontSize: 11, padding: "3px 6px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", maxWidth: 160 }}
+      >
+        <option value="">— Sem mãe (Linha)</option>
+        {paiOpcoes.map((p) => (
+          <option key={p.id} value={p.id}>
+            ↳ {p.nome}
+          </option>
+        ))}
+      </select>
+      <button onClick={onEdit} title="Editar" style={iconBtn}>
+        <i className="ti ti-pencil" />
+      </button>
+      <button onClick={onDelete} title="Excluir" style={{ ...iconBtn, color: "#f43f5e" }}>
+        <i className="ti ti-trash" />
+      </button>
+    </div>
   );
 }
 

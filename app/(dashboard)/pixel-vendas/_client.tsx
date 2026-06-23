@@ -60,7 +60,7 @@ export function PixelVendasClient({
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
         <h1 style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 22, fontWeight: 700, color: "var(--mk-accent)" }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
-          Pixel &amp; Vendas
+          Pixel &amp; Campanhas
         </h1>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <select value={clienteFiltro} onChange={(e) => ir({ cliente: e.target.value })} style={inp}>
