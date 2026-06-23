@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { salvarEtiquetasDoAlvo, criarEtiquetaInline } from "./_atribuicoes-actions";
 
 export interface EtiquetaOpt {
@@ -442,20 +443,52 @@ function EtiquetaCell({
   const [novoNome, setNovoNome] = useState("");
   const [novoPai, setNovoPai] = useState<string>("");
   const [novoCor, setNovoCor] = useState(PALETA_RAPIDA[0]);
-  const [abrePraCima, setAbrePraCima] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; abrePraCima: boolean } | null>(null);
+  const [montado, setMontado] = useState(false);
+
+  useEffect(() => {
+    setMontado(true);
+  }, []);
 
   // Sincroniza sel local quando prop selecionadas muda (após onSalvo cascade).
   useEffect(() => {
     if (!aberto) setSel(new Set(selecionadas));
   }, [selecionadas, aberto]);
 
-  // Detecta overflow vertical antes do paint: abre pra cima se faltar espaço.
+  // Calcula posição absoluta na viewport pro portal.
   useLayoutEffect(() => {
     if (!aberto || !btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
+    const dropdownH = 360;
+    const dropdownW = 280;
     const espacoAbaixo = window.innerHeight - r.bottom;
-    setAbrePraCima(espacoAbaixo < 360 && r.top > 360);
+    const abrePraCima = espacoAbaixo < dropdownH && r.top > dropdownH;
+    const top = abrePraCima ? r.top - dropdownH - 6 : r.bottom + 6;
+    const left = Math.max(8, Math.min(window.innerWidth - dropdownW - 8, r.right - dropdownW));
+    setPos({ top, left, width: dropdownW, abrePraCima });
+  }, [aberto]);
+
+  // Reposiciona em resize/scroll.
+  useEffect(() => {
+    if (!aberto) return;
+    function recalc() {
+      if (!btnRef.current) return;
+      const r = btnRef.current.getBoundingClientRect();
+      const dropdownH = 360;
+      const dropdownW = 280;
+      const espacoAbaixo = window.innerHeight - r.bottom;
+      const abrePraCima = espacoAbaixo < dropdownH && r.top > dropdownH;
+      const top = abrePraCima ? r.top - dropdownH - 6 : r.bottom + 6;
+      const left = Math.max(8, Math.min(window.innerWidth - dropdownW - 8, r.right - dropdownW));
+      setPos({ top, left, width: dropdownW, abrePraCima });
+    }
+    window.addEventListener("scroll", recalc, true);
+    window.addEventListener("resize", recalc);
+    return () => {
+      window.removeEventListener("scroll", recalc, true);
+      window.removeEventListener("resize", recalc);
+    };
   }, [aberto]);
 
   function criarNova() {
@@ -553,25 +586,26 @@ function EtiquetaCell({
         )}
       </button>
 
-      {aberto && (
+      {aberto && montado && pos && createPortal(
         <>
           <div
-            style={{ position: "fixed", inset: 0, zIndex: 39 }}
+            style={{ position: "fixed", inset: 0, zIndex: 9998 }}
             onClick={fechar}
           />
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute",
-              [abrePraCima ? "bottom" : "top"]: "calc(100% + 6px)",
-              right: 0,
-              width: 280,
-              maxHeight: 320,
+              position: "fixed",
+              top: pos.top,
+              left: pos.left,
+              width: pos.width,
+              maxHeight: 360,
               overflowY: "auto",
               background: "var(--mk-bg)",
               border: ".5px solid var(--mk-border)",
               borderRadius: 10,
               boxShadow: "0 14px 40px rgba(0,0,0,.5)",
-              zIndex: 40,
+              zIndex: 9999,
               padding: 8,
             }}
           >
@@ -696,7 +730,8 @@ function EtiquetaCell({
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );
