@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { salvarEtiquetasDoAlvo } from "./_atribuicoes-actions";
+import { salvarEtiquetasDoAlvo, criarEtiquetaInline } from "./_atribuicoes-actions";
 
 export interface EtiquetaOpt {
   id: string;
   nome: string;
   cor: string;
+  etiqueta_pai_id?: string | null;
 }
+
+const PALETA_RAPIDA = ["#00E19A", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#84cc16"];
 
 export interface ConjuntoNode {
   id: string;
@@ -29,12 +32,38 @@ interface Props {
   etiquetas: EtiquetaOpt[];
 }
 
-export default function Atribuicoes({ campanhas: campanhasInit, etiquetas }: Props) {
+export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiquetasInit }: Props) {
   const [campanhas, setCampanhas] = useState(campanhasInit);
+  const [etiquetas, setEtiquetas] = useState<EtiquetaOpt[]>(etiquetasInit);
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<Set<string>>(new Set());
+  const [novaLinhaAberto, setNovaLinhaAberto] = useState(false);
+  const [novaLinhaNome, setNovaLinhaNome] = useState("");
+  const [novaLinhaCor, setNovaLinhaCor] = useState(PALETA_RAPIDA[0]);
+  const [, startTransition] = useTransition();
 
   const etMap = useMemo(() => new Map(etiquetas.map((e) => [e.id, e])), [etiquetas]);
+  const linhasMae = useMemo(() => etiquetas.filter((e) => !e.etiqueta_pai_id), [etiquetas]);
+
+  function criarLinha() {
+    const nome = novaLinhaNome.trim();
+    if (!nome) return;
+    startTransition(async () => {
+      const r = await criarEtiquetaInline(nome, novaLinhaCor, null);
+      if (!r.ok || !r.id) {
+        alert(r.msg || "Falha");
+        return;
+      }
+      setEtiquetas((arr) => [...arr, { id: r.id!, nome, cor: novaLinhaCor, etiqueta_pai_id: null }]);
+      setNovaLinhaNome("");
+      setNovaLinhaCor(PALETA_RAPIDA[0]);
+      setNovaLinhaAberto(false);
+    });
+  }
+
+  function criadaInline(nova: EtiquetaOpt) {
+    setEtiquetas((arr) => (arr.some((x) => x.id === nova.id) ? arr : [...arr, nova]));
+  }
 
   function toggleAberto(id: string) {
     setAberto((s) => {
@@ -81,7 +110,118 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas }: Pro
         <strong>conjunto</strong> é mais granular.
       </p>
 
-      {etiquetas.length === 0 && (
+      {/* Linhas comerciais (etiquetas-mãe) + botão Nova Linha */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "10px 12px",
+          background: "var(--mk-bg-deep)",
+          border: ".5px solid var(--mk-border)",
+          borderRadius: 9,
+          marginBottom: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".4px", color: "var(--mk-text-muted)" }}>
+          LINHAS COMERCIAIS
+        </span>
+        {linhasMae.length === 0 ? (
+          <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", fontStyle: "italic" }}>
+            Nenhuma criada ainda.
+          </span>
+        ) : (
+          linhasMae.map((l) => (
+            <span
+              key={l.id}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                background: `${l.cor}22`,
+                color: l.cor,
+                border: `1px solid ${l.cor}`,
+                borderRadius: 12,
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
+              <i className="ti ti-folder" style={{ fontSize: 10 }} /> {l.nome}
+            </span>
+          ))
+        )}
+        <div style={{ flex: 1 }} />
+        {!novaLinhaAberto ? (
+          <button
+            type="button"
+            onClick={() => setNovaLinhaAberto(true)}
+            className="ghost-btn"
+            style={{ fontSize: 11.5, padding: "5px 10px", borderRadius: 7 }}
+          >
+            <i className="ti ti-plus" /> Nova Linha
+          </button>
+        ) : (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <input
+              autoFocus
+              value={novaLinhaNome}
+              onChange={(e) => setNovaLinhaNome(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && criarLinha()}
+              placeholder="Ex.: Restauração"
+              style={{
+                padding: "5px 8px",
+                background: "var(--mk-surface-2)",
+                border: ".5px solid var(--mk-border)",
+                borderRadius: 7,
+                color: "var(--mk-text)",
+                fontSize: 12,
+                width: 160,
+              }}
+            />
+            <div style={{ display: "inline-flex", gap: 2 }}>
+              {PALETA_RAPIDA.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setNovaLinhaCor(c)}
+                  title={c}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: c,
+                    border: c === novaLinhaCor ? "2px solid var(--mk-text)" : "1px solid rgba(255,255,255,.2)",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={criarLinha}
+              className="cta-btn"
+              style={{ fontSize: 11.5, padding: "5px 10px", borderRadius: 7, fontWeight: 700 }}
+            >
+              Criar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNovaLinhaAberto(false);
+                setNovaLinhaNome("");
+              }}
+              className="ghost-btn"
+              style={{ fontSize: 11.5, padding: "5px 8px", borderRadius: 7 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+      </div>
+
+      {etiquetas.length === 0 && !novaLinhaAberto && (
         <div
           style={{
             padding: 12,
@@ -94,7 +234,7 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas }: Pro
           }}
         >
           <i className="ti ti-alert-triangle" style={{ marginRight: 6, color: "#f0a35e" }} />
-          Nenhuma etiqueta cadastrada ainda. Vá em <strong>Configuração → Etiquetas</strong> pra criar.
+          Comece criando uma <strong>Linha Comercial</strong> acima (ex.: &quot;Restauração&quot;). Depois você cria as Variantes vinculando às campanhas Meta.
         </div>
       )}
 
@@ -142,11 +282,13 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas }: Pro
                 key={c.id}
                 camp={c}
                 etiquetas={etiquetas}
+                linhasMae={linhasMae}
                 etMap={etMap}
                 open={open}
                 onToggleOpen={() => toggleAberto(c.id)}
                 onUpdateCampanha={(ids) => updateCampanha(c.id, ids)}
                 onUpdateConjunto={(cjId, ids) => updateConjunto(c.id, cjId, ids)}
+                onEtiquetaCriada={criadaInline}
               />
             );
           })}
@@ -159,19 +301,23 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas }: Pro
 function CampanhaCard({
   camp,
   etiquetas,
+  linhasMae,
   etMap,
   open,
   onToggleOpen,
   onUpdateCampanha,
   onUpdateConjunto,
+  onEtiquetaCriada,
 }: {
   camp: CampanhaNode;
   etiquetas: EtiquetaOpt[];
+  linhasMae: EtiquetaOpt[];
   etMap: Map<string, EtiquetaOpt>;
   open: boolean;
   onToggleOpen: () => void;
   onUpdateCampanha: (ids: string[]) => void;
   onUpdateConjunto: (conjId: string, ids: string[]) => void;
+  onEtiquetaCriada: (e: EtiquetaOpt) => void;
 }) {
   return (
     <div
@@ -213,9 +359,11 @@ function CampanhaCard({
           alvo="campanha"
           alvoId={camp.id}
           etiquetas={etiquetas}
+          linhasMae={linhasMae}
           etMap={etMap}
           selecionadas={camp.etiqueta_ids}
           onSalvo={onUpdateCampanha}
+          onEtiquetaCriada={onEtiquetaCriada}
         />
       </div>
 
@@ -252,9 +400,11 @@ function CampanhaCard({
                 alvo="conjunto"
                 alvoId={cj.id}
                 etiquetas={etiquetas}
+                linhasMae={linhasMae}
                 etMap={etMap}
                 selecionadas={cj.etiqueta_ids}
                 onSalvo={(ids) => onUpdateConjunto(cj.id, ids)}
+                onEtiquetaCriada={onEtiquetaCriada}
               />
             </div>
           ))}
@@ -268,21 +418,49 @@ function EtiquetaCell({
   alvo,
   alvoId,
   etiquetas,
+  linhasMae,
   etMap,
   selecionadas,
   onSalvo,
+  onEtiquetaCriada,
 }: {
   alvo: "campanha" | "conjunto";
   alvoId: string;
   etiquetas: EtiquetaOpt[];
+  linhasMae: EtiquetaOpt[];
   etMap: Map<string, EtiquetaOpt>;
   selecionadas: string[];
   onSalvo: (ids: string[]) => void;
+  onEtiquetaCriada: (e: EtiquetaOpt) => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set(selecionadas));
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  const [criandoAberto, setCriandoAberto] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoPai, setNovoPai] = useState<string>("");
+  const [novoCor, setNovoCor] = useState(PALETA_RAPIDA[0]);
+
+  function criarNova() {
+    const nome = novoNome.trim();
+    if (!nome) return;
+    startTransition(async () => {
+      const r = await criarEtiquetaInline(nome, novoCor, novoPai || null);
+      if (!r.ok || !r.id) {
+        setErro(r.msg || "Falha");
+        return;
+      }
+      const nova: EtiquetaOpt = { id: r.id, nome, cor: novoCor, etiqueta_pai_id: novoPai || null };
+      onEtiquetaCriada(nova);
+      setSel((s) => new Set([...s, nova.id]));
+      setNovoNome("");
+      setNovoPai("");
+      setNovoCor(PALETA_RAPIDA[0]);
+      setCriandoAberto(false);
+      setErro(null);
+    });
+  }
 
   function abrir() {
     setSel(new Set(selecionadas));
@@ -418,6 +596,63 @@ function EtiquetaCell({
                 ))}
               </div>
             )}
+
+            <div style={{ borderTop: ".5px solid var(--mk-border)", marginTop: 6, paddingTop: 6 }}>
+              {!criandoAberto ? (
+                <button
+                  type="button"
+                  onClick={() => setCriandoAberto(true)}
+                  className="ghost-btn"
+                  style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, width: "100%", textAlign: "left" }}
+                >
+                  <i className="ti ti-plus" /> Criar nova etiqueta
+                </button>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, padding: 4 }}>
+                  <input
+                    autoFocus
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    placeholder={novoPai ? "Nome da Variante (ex.: Bebê)" : "Nome (Linha ou solta)"}
+                    style={{ width: "100%", padding: "5px 8px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 6, color: "var(--mk-text)", fontSize: 11.5 }}
+                  />
+                  {linhasMae.length > 0 && (
+                    <select
+                      value={novoPai}
+                      onChange={(e) => setNovoPai(e.target.value)}
+                      style={{ width: "100%", padding: "5px 8px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 6, color: "var(--mk-text)", fontSize: 11.5 }}
+                    >
+                      <option value="">— Sem Linha-mãe</option>
+                      {linhasMae.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          Filha de: {l.nome}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <div style={{ display: "flex", gap: 3, justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "inline-flex", gap: 2 }}>
+                      {PALETA_RAPIDA.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setNovoCor(c)}
+                          style={{ width: 16, height: 16, borderRadius: 4, background: c, border: c === novoCor ? "2px solid var(--mk-text)" : "1px solid rgba(255,255,255,.2)", cursor: "pointer" }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ display: "inline-flex", gap: 4 }}>
+                      <button type="button" onClick={() => { setCriandoAberto(false); setNovoNome(""); }} className="ghost-btn" style={{ fontSize: 10.5, padding: "4px 8px", borderRadius: 6 }}>
+                        ×
+                      </button>
+                      <button type="button" onClick={criarNova} disabled={pending || !novoNome.trim()} className="cta-btn" style={{ fontSize: 10.5, padding: "4px 10px", borderRadius: 6, fontWeight: 700 }}>
+                        {pending ? "…" : "Criar"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {erro && (
               <div style={{ fontSize: 11, color: "var(--mk-icon-pink)", padding: "4px 6px" }}>{erro}</div>

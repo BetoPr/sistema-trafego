@@ -773,19 +773,43 @@ function corTempo(iso: string, now: number): string {
 function AvatarContato({ nome, foto, onAtender }: { nome?: string | null; foto?: string | null; onAtender?: (e: React.MouseEvent) => void }) {
   const [erro, setErro] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  const [resolved, setResolved] = useState<string | null>(null);
   const ini = nome?.slice(0, 2).toUpperCase() || "?";
   const hasAtender = !!onAtender;
-  const podeAmpliar = !!(foto && !erro);
+
+  // Se `foto` é path do bucket (não começa com http/data), resolve via API.
+  useEffect(() => {
+    setErro(false);
+    setResolved(null);
+    if (!foto) return;
+    if (foto.startsWith("http") || foto.startsWith("data:")) {
+      setResolved(foto);
+      return;
+    }
+    let cancel = false;
+    fetch(`/api/media?path=${encodeURIComponent(foto)}`)
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}));
+        if (cancel) return;
+        if (r.ok && j.url) setResolved(j.url);
+        else setErro(true);
+      })
+      .catch(() => !cancel && setErro(true));
+    return () => { cancel = true; };
+  }, [foto]);
+
+  const fotoSrc = resolved;
+  const podeAmpliar = !!(fotoSrc && !erro);
 
   return (
     <div
       className={hasAtender ? "avatar-atender" : undefined}
       style={{ position: "relative", width: 36, height: 36, flexShrink: 0 }}
     >
-      {foto && !erro ? (
+      {fotoSrc && !erro ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={foto}
+          src={fotoSrc}
           alt=""
           onError={() => setErro(true)}
           onClick={podeAmpliar ? (e) => { e.stopPropagation(); setLightbox(true); } : undefined}
@@ -821,7 +845,7 @@ function AvatarContato({ nome, foto, onAtender }: { nome?: string | null; foto?:
           <i className="ti ti-arrow-left" />
         </button>
       )}
-      <LightboxFoto src={foto} alt={nome || ""} open={lightbox} onClose={() => setLightbox(false)} />
+      <LightboxFoto src={fotoSrc} alt={nome || ""} open={lightbox} onClose={() => setLightbox(false)} />
     </div>
   );
 }

@@ -28,6 +28,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
   const [whatsapp, setWhatsapp] = useState(whatsappAtual || "");
   const [idade, setIdade] = useState<string>("");
   const [salvando, setSalvando] = useState(false);
+  const [refreshFoto, setRefreshFoto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   const [carregando, setCarregando] = useState(false);
@@ -135,6 +136,27 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
             />
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={async () => {
+            setRefreshFoto(true);
+            try {
+              const r = await fetch(`/api/contatos/${contatoId}/foto-refresh`, { method: "POST" });
+              const j = await r.json().catch(() => ({}));
+              if (!r.ok) alert(`Falha: ${j.error || r.statusText}`);
+              else if (!j.foto) alert(j.motivo || "Contato sem foto pública.");
+              else { router.refresh(); }
+            } finally {
+              setRefreshFoto(false);
+            }
+          }}
+          className="ghost-btn"
+          disabled={refreshFoto}
+          style={{ fontSize: 11.5, alignSelf: "flex-start", padding: "5px 10px", borderRadius: 7 }}
+        >
+          <i className={`ti ${refreshFoto ? "ti-loader" : "ti-photo-down"}`} /> {refreshFoto ? "Buscando…" : "Atualizar foto de perfil"}
+        </button>
 
         {/* Etiquetas */}
         <div>

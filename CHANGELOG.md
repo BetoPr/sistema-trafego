@@ -7,6 +7,18 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **13:30** — **R3+R5 + ONBOARDING-TESTE.md.**
+  - R3 (Linha manual em /pixel-vendas):
+    - `_atribuicoes-actions.ts`: nova action `criarEtiquetaInline(nome, cor, paiId?)` com validação de hierarquia.
+    - `_atribuicoes.tsx`: nova barra topo "LINHAS COMERCIAIS" com chips coloridas + form inline "+ Nova Linha".
+    - Dentro do dropdown de etiquetas por campanha/conjunto: rodapé "+ Criar nova etiqueta" com mini-form (nome + escolha de Linha-mãe + paleta cor). Etiqueta criada já fica marcada.
+  - R5 (foto perfil bug):
+    - `/api/contatos/[id]/foto-refresh`: nova rota POST. Busca UAZAPI `GetNameAndImageURL`, baixa foto, sobe pro bucket `crm-media`, salva path em `contatos.foto_url`.
+    - `_lista.tsx` `AvatarContato`: detecta se foto é URL externa (http/data) ou path bucket. Path → resolve via `/api/media` (signed URL renovável).
+    - `_editar-contato-balao.tsx`: botão **Atualizar foto de perfil** que chama o endpoint.
+    - Fix raiz: URL `pps.whatsapp.net` expira em ~6h. Agora persistimos no bucket.
+  - **ONBOARDING-TESTE.md**: guia passo a passo (14 blocos) cobrindo brand, sidebar, alertas, /analise-ias fix, Pixel & Campanhas, hierarquia, atribuições, idade, foto, mídia, abas flutuantes verde, spinner verde, relatórios.
+
 - **12:30** — **R1+R2+R4: Pixel & Campanhas + hierarquia etiqueta (Linha/Variante) + idade do contato.**
   - Rename: `Pixel & Vendas` → `Pixel & Campanhas` (sidebar + título da página).
   - Migration `etiquetas.etiqueta_pai_id` (FK self-ref, índice parcial). Hierarquia 2 níveis: **Linha** (mãe) agrupa **Variantes** (filhas). Auto-etiquetagem aplica a mãe junto automaticamente.

@@ -5,6 +5,54 @@ import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
 
+/**
+ * Cria etiqueta inline a partir da UI de Pixel & Campanhas.
+ * Quando `etiquetaPaiId` informado → cria Variante (filha).
+ * Sem pai → cria Linha (mãe). Valida hierarquia 2 níveis.
+ */
+export async function criarEtiquetaInline(
+  nome: string,
+  cor: string,
+  etiquetaPaiId: string | null = null,
+): Promise<{ ok: boolean; id?: string; msg?: string }> {
+  const ctx = await requireAdmin();
+  const n = nome.trim();
+  if (!n) return { ok: false, msg: "Nome obrigatório" };
+  const sb = createServiceClient();
+  if (etiquetaPaiId) {
+    const { data: pai } = await sb
+      .from("etiquetas")
+      .select("id, etiqueta_pai_id")
+      .eq("id", etiquetaPaiId)
+      .eq("agencia_id", ctx.agenciaId)
+      .maybeSingle();
+    if (!pai) return { ok: false, msg: "Linha-mãe inválida" };
+    if (pai.etiqueta_pai_id) return { ok: false, msg: "Hierarquia só permite 2 níveis" };
+  }
+  const { data, error } = await sb
+    .from("etiquetas")
+    .insert({
+      agencia_id: ctx.agenciaId,
+      nome: n,
+      cor: cor || "#00E19A",
+      categoria: "etiqueta",
+      etiqueta_pai_id: etiquetaPaiId,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, msg: error.message };
+  void audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "create",
+    entidade: "etiqueta",
+    entidadeId: data.id,
+    payload: { nome: n, cor, etiqueta_pai_id: etiquetaPaiId, origem: "pixel-vendas" },
+  });
+  revalidatePath("/pixel-vendas");
+  return { ok: true, id: data.id };
+}
+
 type Alvo = "campanha" | "conjunto";
 
 /**
