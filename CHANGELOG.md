@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **09:06** — **Quick wins B: abas flutuantes verde, sidebar Clientes, Copiar prompt menu.**
+  - `_floating-tabs.tsx`: cor roxa (#9B7DBF / rgba(155,125,191)) → verde `var(--mk-accent-2)` / `rgba(0,225,154,…)`.
+  - `_crm-overlays.tsx`: spinner/badge da análise IA também migrado pro verde.
+  - `AppSidebar.tsx`: item **Clientes** (`/clientes`, ícone `ti-building-store`) adicionado em Administração — permite editar/excluir Teste01.
+  - `AtendimentosLive.tsx`: botão **Copiar prompt** agora abre menu com ChatGPT / Claude — clicar copia o prompt e abre a IA escolhida em nova aba (`chatgpt.com` / `claude.ai/new`).
+
 - **00:28** — **Alertas: fix integrações Meta + sidebar.**
   - Query `integracoes` corrigida: `plataforma='meta_ads'` (era `meta`) e `status='ativa'` (era `conectado`) — alinhado com schema real.
   - `meta-worker.ts`: mesmo fix no guard de status.

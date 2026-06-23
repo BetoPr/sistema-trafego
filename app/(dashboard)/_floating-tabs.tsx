@@ -186,14 +186,14 @@ export function FloatingTabs() {
       onPointerDown={onDown}
       onPointerUp={() => { if (drag.current && !drag.current.moved) abrir(); }}
       title="Abas flutuantes"
-      style={{ ...base, width: LW, height: LW, borderRadius: "50%", border: "1px solid var(--mk-accent)", background: "var(--mk-bg)", boxShadow: "0 10px 30px rgba(0,0,0,0.45)", cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", color: "#9B7DBF" }}
+      style={{ ...base, width: LW, height: LW, borderRadius: "50%", border: "1px solid var(--mk-accent)", background: "var(--mk-bg)", boxShadow: "0 10px 30px rgba(0,0,0,0.45)", cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--mk-accent-2)" }}
     >
       <i className="ti ti-layout-grid-add" style={{ fontSize: 22 }} />
     </button>
   ) : (
     <div style={{ ...base, width: size.w, height: size.h, background: "var(--mk-bg)", border: "1px solid var(--mk-accent)", borderRadius: 12, boxShadow: "0 16px 50px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Barra de arraste */}
-      <div onPointerDown={onDown} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", background: "rgba(155,125,191,0.18)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}>
+      <div onPointerDown={onDown} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", background: "rgba(0,225,154,0.14)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}>
         <i className="ti ti-grip-vertical" style={{ color: "var(--mk-text-muted)" }} />
         <strong style={{ fontSize: 11.5, flex: 1, color: "var(--mk-text)" }}>Abas flutuantes</strong>
         <button onClick={recarregar} title="Recarregar aba" style={iconBtn}><i className="ti ti-refresh" /></button>
@@ -213,7 +213,7 @@ export function FloatingTabs() {
                 flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                 padding: "7px 6px", fontSize: 11, fontWeight: on ? 600 : 500,
                 background: on ? "var(--mk-bg)" : "transparent",
-                color: on ? "#9B7DBF" : "var(--mk-text-muted)",
+                color: on ? "var(--mk-accent-2)" : "var(--mk-text-muted)",
                 border: "0.5px solid", borderColor: on ? "var(--mk-border)" : "transparent",
                 borderBottom: on ? "2px solid #9B7DBF" : "0.5px solid transparent",
                 borderRadius: "8px 8px 0 0", cursor: "pointer",

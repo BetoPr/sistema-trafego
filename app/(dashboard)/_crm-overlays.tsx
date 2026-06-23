@@ -296,9 +296,9 @@ function FollowUpWidget() {
       title="Follow-up com IA"
       style={{ ...style, width: 56, height: 56, borderRadius: "50%", border: "1px solid var(--mk-accent)", background: "var(--mk-bg)", boxShadow: "0 10px 30px rgba(0,0,0,0.45)", cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", position: "fixed" }}
     >
-      <i className="ti ti-sparkles" style={{ fontSize: 22, color: "#9B7DBF", animation: analisando ? "spin 1.4s linear infinite" : undefined }} />
+      <i className="ti ti-sparkles" style={{ fontSize: 22, color: "var(--mk-accent-2)", animation: analisando ? "spin 1.4s linear infinite" : undefined }} />
       {(analisando || valem > 0) && (
-        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: analisando ? "#9B7DBF" : "#00E19A", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: analisando ? "var(--mk-accent-2)" : "#00E19A", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {analisando ? `${analisando.feitos}` : valem}
         </span>
       )}
@@ -306,8 +306,8 @@ function FollowUpWidget() {
     </button>
   ) : (
     <div style={{ ...style, width: 280, background: "var(--mk-bg)", border: "1px solid var(--mk-accent)", borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.45)", overflow: "hidden" }}>
-      <div onPointerDown={onDown} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "rgba(155,125,191,0.18)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}>
-        <i className="ti ti-sparkles" style={{ color: "#9B7DBF" }} />
+      <div onPointerDown={onDown} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "rgba(0,225,154,0.14)", cursor: "grab", borderBottom: "0.5px solid var(--mk-border)" }}>
+        <i className="ti ti-sparkles" style={{ color: "var(--mk-accent-2)" }} />
         <strong style={{ fontSize: 11.5, flex: 1, color: "var(--mk-text)" }}>Follow-up com IA</strong>
         <button onClick={colapsar} title="Minimizar" style={iconBtn}><i className="ti ti-minus" /></button>
         <button onClick={colapsar} title="Fechar (vira botão)" style={iconBtn}><i className="ti ti-x" /></button>
@@ -317,7 +317,7 @@ function FollowUpWidget() {
           <>
             <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-loader-2" style={{ animation: "spin 1s linear infinite", display: "inline-block" }} /> Analisando {analisando.feitos}/{analisando.total}…</div>
             <div style={{ height: 5, borderRadius: 3, background: "var(--mk-surface-2)", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.round((analisando.feitos / Math.max(1, analisando.total)) * 100)}%`, background: "#9B7DBF", transition: "width .3s" }} />
+              <div style={{ height: "100%", width: `${Math.round((analisando.feitos / Math.max(1, analisando.total)) * 100)}%`, background: "var(--mk-accent-2)", transition: "width .3s" }} />
             </div>
             <button onClick={pararAnalise} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}><i className="ti ti-player-stop" /> Parar</button>
           </>

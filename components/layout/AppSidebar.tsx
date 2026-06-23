@@ -83,6 +83,7 @@ function buildSections(role?: string): NavSection[] {
         { href: "/filas", label: "Filas", icon: "ti-list-tree" },
         { href: "/equipes", label: "Equipes", icon: "ti-users-group" },
         { href: "/usuarios", label: "Usuários", icon: "ti-user-circle" },
+        { href: "/clientes", label: "Clientes", icon: "ti-building-store" },
       ],
     },
     {

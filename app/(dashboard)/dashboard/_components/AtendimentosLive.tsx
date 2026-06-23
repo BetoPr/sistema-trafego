@@ -79,6 +79,7 @@ export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicia
   const [dados, setDados] = useState<Dados>(inicial);
   const [loading, setLoading] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
   const [servicosSel, setServicosSel] = useState<Set<string>>(new Set());
   const [menuServ, setMenuServ] = useState(false);
   const reqRef = useRef(0);
@@ -95,11 +96,10 @@ export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicia
     return p.toString();
   }
 
-  async function copiarPrompt() {
+  async function copiarPrompt(destino: "openai" | "claude") {
     try {
       await navigator.clipboard.writeText(PROMPT_ANALISE);
     } catch {
-      // Fallback p/ navegadores sem clipboard API
       const ta = document.createElement("textarea");
       ta.value = PROMPT_ANALISE;
       document.body.appendChild(ta);
@@ -107,7 +107,10 @@ export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicia
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
+    const url = destino === "openai" ? "https://chatgpt.com/" : "https://claude.ai/new";
+    window.open(url, "_blank", "noopener,noreferrer");
     setCopiado(true);
+    setMenuAberto(false);
     setTimeout(() => setCopiado(false), 2000);
   }
 
@@ -237,13 +240,47 @@ export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicia
           </span>
         )}
 
-        <button
-          onClick={copiarPrompt}
-          style={{ marginLeft: "auto", fontSize: 12, color: copiado ? "#00E19A" : "var(--mk-text-secondary)", background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: `0.5px solid ${copiado ? "#00E19A" : "var(--mk-border)"}`, borderRadius: 8 }}
-          title="Copia o prompt de análise. Cole na IA (Claude/ChatGPT) e anexe o PDF abaixo."
-        >
-          <i className={`ti ${copiado ? "ti-check" : "ti-clipboard-text"}`} /> {copiado ? "Copiado!" : "Copiar prompt"}
-        </button>
+        <div style={{ position: "relative", marginLeft: "auto" }}>
+          <button
+            onClick={() => setMenuAberto((v) => !v)}
+            style={{ fontSize: 12, color: copiado ? "#00E19A" : "var(--mk-text-secondary)", background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: `0.5px solid ${copiado ? "#00E19A" : "var(--mk-border)"}`, borderRadius: 8 }}
+            title="Copia o prompt e abre a IA escolhida em nova aba. Cole a mensagem e anexe o PDF abaixo."
+          >
+            <i className={`ti ${copiado ? "ti-check" : "ti-clipboard-text"}`} /> {copiado ? "Copiado!" : "Copiar prompt"}
+            <i className="ti ti-chevron-down" style={{ fontSize: 11 }} />
+          </button>
+          {menuAberto && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 4px)",
+                right: 0,
+                minWidth: 180,
+                background: "var(--mk-bg)",
+                border: "0.5px solid var(--mk-border)",
+                borderRadius: 8,
+                boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+                zIndex: 30,
+                padding: 4,
+              }}
+            >
+              <button
+                onClick={() => copiarPrompt("openai")}
+                style={menuItem}
+                title="Copia o prompt e abre o ChatGPT em nova aba"
+              >
+                <i className="ti ti-brand-openai" style={{ fontSize: 15, color: "#10A37F" }} /> ChatGPT
+              </button>
+              <button
+                onClick={() => copiarPrompt("claude")}
+                style={menuItem}
+                title="Copia o prompt e abre o Claude em nova aba"
+              >
+                <i className="ti ti-message-chatbot" style={{ fontSize: 15, color: "#D97757" }} /> Claude
+              </button>
+            </div>
+          )}
+        </div>
 
         <a
           href={`/api/relatorios/atendimentos-pdf?${qsParaBuscar()}`}
@@ -262,3 +299,4 @@ export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicia
 }
 
 const dateInp: React.CSSProperties = { background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "5px 8px", color: "var(--mk-text)", fontSize: 11.5, colorScheme: "dark" };
+const menuItem: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 10px", background: "transparent", border: 0, color: "var(--mk-text)", cursor: "pointer", fontSize: 12.5, fontWeight: 600, borderRadius: 6, textAlign: "left" };
