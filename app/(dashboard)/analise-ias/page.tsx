@@ -22,7 +22,14 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
   const dias = [1, 7, 30].includes(Number(sp.dias)) ? Number(sp.dias) : 7;
   const escopo = (superAdmin && (sp.escopo === "todos" || sp.escopo === "tipo")) ? sp.escopo : "meu";
 
-  const d = await agregarUso({ provider, dias, escopo, agenciaId: ctx.agenciaId, superAdmin });
+  let d;
+  try {
+    d = await agregarUso({ provider, dias, escopo, agenciaId: ctx.agenciaId, superAdmin });
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack?.split("\n").slice(0, 5).join("\n")}` : String(e);
+    console.error("[analise-ias] agregarUso falhou:", msg);
+    throw new Error(`Falha ao agregar uso de IA: ${msg}`);
+  }
   const maxDia = Math.max(1, ...d.porDia.map((x) => x.tokens));
   const usoChatPct = Math.min(100, Math.round((d.chatGroqHoje / Math.max(1, d.limiteChatDia)) * 100));
 
