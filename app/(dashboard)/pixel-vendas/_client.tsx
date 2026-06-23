@@ -190,29 +190,17 @@ function diagnosticar(e: EventoRow): PassoDiag[] {
 function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
   const [pixelAtivo, setPixelAtivo] = useState(config.pixel_ativo);
   const [leadAtivo, setLeadAtivo] = useState(config.lead_ativo);
-  const [icpAtivo, setIcpAtivo] = useState(config.icp_ativo);
-  const [palavras, setPalavras] = useState<string[]>(config.icp_palavras);
-  const [nova, setNova] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  function adicionar() {
-    const p = nova.trim().toLowerCase();
-    if (!p) return;
-    if (palavras.includes(p)) { setNova(""); return; }
-    setPalavras([...palavras, p]);
-    setNova("");
-  }
-  function remover(p: string) {
-    setPalavras(palavras.filter((x) => x !== p));
-  }
   async function salvar() {
     setSalvando(true);
     try {
       const fd = new FormData();
       fd.set("pixel_ativo", pixelAtivo ? "1" : "0");
-      fd.set("palavras", palavras.join(","));
       fd.set("lead_ativo", leadAtivo ? "1" : "0");
-      fd.set("icp_ativo", icpAtivo ? "1" : "0");
+      // ICP removido — Lead + Venda agora cobrem tudo.
+      fd.set("icp_ativo", "0");
+      fd.set("palavras", "");
       const r = await salvarConfigEventos(fd);
       if (!r.ok) alert(r.error || "Erro ao salvar");
     } finally { setSalvando(false); }
@@ -228,7 +216,7 @@ function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
       </div>
 
       <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
-        Lead → ICP → Venda. Eventos universais que o Meta usa pra otimizar os anúncios pelos perfis mais quentes.
+        Lead → Venda. Eventos universais que o Meta usa pra otimizar os anúncios pelos perfis mais quentes.
       </p>
 
       {/* Pixel master switch */}
@@ -259,43 +247,6 @@ function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
           </label>
         </div>
 
-        {/* ICP */}
-        <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <input type="checkbox" checked={icpAtivo} onChange={(e) => setIcpAtivo(e.target.checked)} id="cap_icp" disabled={dim} />
-            <label htmlFor="cap_icp" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
-              <b>ICP</b> — manda quando o lead se mostra qualificado (palavra-chave que você definir abaixo)
-            </label>
-          </div>
-          {icpAtivo && (
-            <>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8, paddingLeft: 24 }}>
-                {palavras.length === 0 && (
-                  <span style={{ fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic" }}>
-                    Nenhuma palavra cadastrada — adicione abaixo o que indica intenção pro seu nicho.
-                  </span>
-                )}
-                {palavras.map((p) => (
-                  <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 8px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 6, fontSize: 11 }}>
-                    {p}
-                    <button type="button" onClick={() => remover(p)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--mk-text-muted)", padding: 0, fontSize: 13, lineHeight: 1 }} aria-label={`Remover ${p}`}>×</button>
-                  </span>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 6, paddingLeft: 24 }}>
-                <input
-                  type="text"
-                  value={nova}
-                  onChange={(e) => setNova(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionar(); } }}
-                  placeholder="Adicionar palavra-chave (Enter)"
-                  style={{ flex: 1, padding: "5px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", color: "var(--mk-text)", fontSize: 11.5 }}
-                />
-                <button type="button" onClick={adicionar} disabled={!nova.trim()} className="ghost-btn" style={{ fontSize: 11 }}>+ Adicionar</button>
-              </div>
-            </>
-          )}
-        </div>
 
         {/* Venda */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 12 }}>

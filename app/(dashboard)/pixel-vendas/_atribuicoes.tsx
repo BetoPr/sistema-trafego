@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { salvarEtiquetasDoAlvo, criarEtiquetaInline } from "./_atribuicoes-actions";
 
 export interface EtiquetaOpt {
@@ -105,9 +105,10 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
         <span style={{ fontSize: 13, fontWeight: 700 }}>Etiquetas por campanha / conjunto</span>
       </div>
       <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
-        Atribua etiquetas a campanhas ou conjuntos do Meta. Quando um lead chega pelo anúncio, recebe automaticamente
-        as etiquetas vinculadas. Vínculo na <strong>campanha</strong> vale pra todos os conjuntos dela; no{" "}
-        <strong>conjunto</strong> é mais granular.
+        <strong>Pasta</strong> agrupa um conjunto de campanhas (ex.: <em>Restauração</em>). <strong>Etiqueta</strong> marca
+        cada campanha individual dentro da Pasta (ex.: <em>Bebê</em>, <em>Mofo</em>, <em>Casal</em>). Quando um lead chega
+        pelo anúncio, recebe Pasta + Etiqueta automaticamente — daí no Dashboard você filtra por Pasta (visão geral) ou
+        Etiqueta (campanha específica).
       </p>
 
       {/* Linhas comerciais (etiquetas-mãe) + botão Nova Linha */}
@@ -125,7 +126,7 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
         }}
       >
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".4px", color: "var(--mk-text-muted)" }}>
-          LINHAS COMERCIAIS
+          PASTAS
         </span>
         {linhasMae.length === 0 ? (
           <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", fontStyle: "italic" }}>
@@ -160,7 +161,7 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
             className="ghost-btn"
             style={{ fontSize: 11.5, padding: "5px 10px", borderRadius: 7 }}
           >
-            <i className="ti ti-plus" /> Nova Linha
+            <i className="ti ti-folder-plus" /> Nova Pasta
           </button>
         ) : (
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -234,7 +235,7 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
           }}
         >
           <i className="ti ti-alert-triangle" style={{ marginRight: 6, color: "#f0a35e" }} />
-          Comece criando uma <strong>Linha Comercial</strong> acima (ex.: &quot;Restauração&quot;). Depois você cria as Variantes vinculando às campanhas Meta.
+          Crie uma <strong>Pasta</strong> acima (ex.: &quot;Restauração&quot;). Depois cria as Etiquetas vinculadas às campanhas Meta de dentro dela.
         </div>
       )}
 
@@ -441,6 +442,21 @@ function EtiquetaCell({
   const [novoNome, setNovoNome] = useState("");
   const [novoPai, setNovoPai] = useState<string>("");
   const [novoCor, setNovoCor] = useState(PALETA_RAPIDA[0]);
+  const [abrePraCima, setAbrePraCima] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // Sincroniza sel local quando prop selecionadas muda (após onSalvo cascade).
+  useEffect(() => {
+    if (!aberto) setSel(new Set(selecionadas));
+  }, [selecionadas, aberto]);
+
+  // Detecta overflow vertical antes do paint: abre pra cima se faltar espaço.
+  useLayoutEffect(() => {
+    if (!aberto || !btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const espacoAbaixo = window.innerHeight - r.bottom;
+    setAbrePraCima(espacoAbaixo < 360 && r.top > 360);
+  }, [aberto]);
 
   function criarNova() {
     const nome = novoNome.trim();
@@ -495,6 +511,7 @@ function EtiquetaCell({
   return (
     <div style={{ position: "relative", flex: "none" }} onClick={(e) => e.stopPropagation()}>
       <button
+        ref={btnRef}
         type="button"
         onClick={abrir}
         style={{
@@ -545,7 +562,7 @@ function EtiquetaCell({
           <div
             style={{
               position: "absolute",
-              top: "calc(100% + 6px)",
+              [abrePraCima ? "bottom" : "top"]: "calc(100% + 6px)",
               right: 0,
               width: 280,
               maxHeight: 320,
@@ -613,7 +630,7 @@ function EtiquetaCell({
                     autoFocus
                     value={novoNome}
                     onChange={(e) => setNovoNome(e.target.value)}
-                    placeholder={novoPai ? "Nome da Variante (ex.: Bebê)" : "Nome (Linha ou solta)"}
+                    placeholder={novoPai ? "Nome da Etiqueta (ex.: Bebê)" : "Nome (Pasta nova ou Etiqueta solta)"}
                     style={{ width: "100%", padding: "5px 8px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 6, color: "var(--mk-text)", fontSize: 11.5 }}
                   />
                   {linhasMae.length > 0 && (
@@ -622,10 +639,10 @@ function EtiquetaCell({
                       onChange={(e) => setNovoPai(e.target.value)}
                       style={{ width: "100%", padding: "5px 8px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 6, color: "var(--mk-text)", fontSize: 11.5 }}
                     >
-                      <option value="">— Sem Linha-mãe</option>
+                      <option value="">— Pasta nova / Etiqueta solta</option>
                       {linhasMae.map((l) => (
                         <option key={l.id} value={l.id}>
-                          Filha de: {l.nome}
+                          📁 {l.nome}
                         </option>
                       ))}
                     </select>
