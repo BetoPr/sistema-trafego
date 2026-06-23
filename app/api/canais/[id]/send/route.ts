@@ -181,6 +181,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .eq("id", ticket.id)
     .is("primeira_resposta_em", null);
 
+  // Pausa IA imediatamente quando atendente envia mensagem (espelha o toggle visual).
+  // Reativacao manual via toggle reseta ia_reset_em e libera o guard de pausa.
+  await sb.from("tickets").update({ ia_pausada: true }).eq("id", ticket.id).eq("ia_pausada", false);
+
   void audit({
     agenciaId: u.agencia_id,
     usuarioId: auth.user.id,

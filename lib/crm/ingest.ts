@@ -16,6 +16,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ParsedMessage } from "@/lib/uazapi/webhook-parser";
 import { dispatchWebhook } from "./webhook-dispatcher";
 import { inscreverPorEtiqueta } from "./follow-up";
+import { aplicarEtiquetasComMaes } from "./aplicar-etiqueta";
 import { instanceSendText } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 
@@ -258,11 +259,17 @@ export async function ingestMensagem(
           // palavra_gatilho pode ter várias palavras separadas por vírgula — qualquer uma dispara
           const palavras = ((g.palavra_gatilho as string | null) || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
           if (palavras.some((p) => texto.includes(p))) {
-            // Unique (contato_id, etiqueta_id) faz o insert duplicado falhar em silêncio.
-            const { error: insErr } = await sb.from("contato_etiquetas").insert({ contato_id: contatoId, etiqueta_id: g.id });
-            // 3B — etiqueta-gatilho: só inscreve se a etiqueta é NOVA (sem erro de duplicado)
-            if (!insErr) {
-              try { await inscreverPorEtiqueta({ agenciaId: ctx.agenciaId, contatoId, etiquetaId: g.id, ticketId }); } catch {}
+            // Detecta se etiqueta-filha ja existia (pra so disparar resposta na 1a vez).
+            const { data: jaTinha } = await sb
+              .from("contato_etiquetas")
+              .select("contato_id")
+              .eq("contato_id", contatoId)
+              .eq("etiqueta_id", g.id)
+              .maybeSingle();
+            // Aplica etiqueta + Pasta-mae (heranca). Idempotente.
+            await aplicarEtiquetasComMaes(sb, ctx.agenciaId, contatoId, [g.id as string]);
+            if (!jaTinha) {
+              try { await inscreverPorEtiqueta({ agenciaId: ctx.agenciaId, contatoId, etiquetaId: g.id as string, ticketId }); } catch {}
 
               // Resposta automática (se configurada) — só na 1ª aplicação
               const resp = (g.mensagem_resposta as string | null)?.trim();

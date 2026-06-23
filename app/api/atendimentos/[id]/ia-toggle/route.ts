@@ -62,6 +62,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { error } = await sb.from("tickets").update(patch).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Reativacao: limpa trava_processando velha no buffer (caso ficou presa de
+  // run anterior). Permite proxima msg do cliente disparar IA imediato.
+  if (!novaPausada) {
+    await sb
+      .from("ia_atendimento_buffer")
+      .update({ trava_processando: false, processar_apos: new Date().toISOString() })
+      .eq("ticket_id", id);
+  }
+
   // Log
   if (perfilAtribuido) {
     await sb.from("ia_atendimento_log").insert({
