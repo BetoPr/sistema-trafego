@@ -329,7 +329,7 @@ export async function executarTool(
         if (existente) {
           etiquetaId = existente.id;
         } else {
-          const cores = ["#10b981", "#9B7DBF", "#f59e0b", "#C97064", "#5B8BA6"];
+          const cores = ["#00E19A", "#9B7DBF", "#f59e0b", "#C97064", "#5B8BA6"];
           const cor = cores[Math.floor(Math.random() * cores.length)];
           const { data: nova } = await ctx.sb
             .from("etiquetas")

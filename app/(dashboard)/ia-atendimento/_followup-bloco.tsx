@@ -95,7 +95,7 @@ export default function FollowUpBloco({
                 background: "var(--mk-surface)",
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 4, background: s.ativa ? "#10b981" : "#6b7280" }} />
+              <span style={{ width: 8, height: 8, borderRadius: 4, background: s.ativa ? "#00E19A" : "#6b7280" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600 }}>{s.nome}</div>
                 <div style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
@@ -495,7 +495,7 @@ function EtapaCard({
               "Enviando..."
             ) : etapa.midia_path || etapa.midia_url ? (
               <>
-                <i className="ti ti-file-check" style={{ color: "#10b981" }} />{" "}
+                <i className="ti ti-file-check" style={{ color: "#00E19A" }} />{" "}
                 {etapa.midia_filename || "mídia anexada"}
                 <div style={{ fontSize: 10.5, marginTop: 4 }}>Arraste outro arquivo pra substituir</div>
               </>

@@ -36,11 +36,11 @@ export function InstanciasDisponiveis() {
   }
 
   return (
-    <div className="mk-card mk-card-lg" id="importar" style={{ marginBottom: 14, borderLeft: "3px solid #10b981" }}>
+    <div className="mk-card mk-card-lg" id="importar" style={{ marginBottom: 14, borderLeft: "3px solid #00E19A" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 className="card-title" style={{ marginBottom: 4 }}>
-            <i className="ti ti-download" style={{ marginRight: 6, color: "#10b981" }} />
+            <i className="ti ti-download" style={{ marginRight: 6, color: "#00E19A" }} />
             Sessões existentes no servidor
           </h3>
           <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>

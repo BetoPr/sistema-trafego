@@ -115,7 +115,7 @@ export function GroqCloudCard({ temChave, inicial }: Props) {
 
       <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
         <i className="ti ti-info-circle" /> As alterações são salvas automaticamente.
-        {msg && <span style={{ marginLeft: "auto", color: "#10b981" }}><i className="ti ti-check" /> {msg}</span>}
+        {msg && <span style={{ marginLeft: "auto", color: "#00E19A" }}><i className="ti ti-check" /> {msg}</span>}
       </div>
     </div>
   );
@@ -130,7 +130,7 @@ function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       onClick={onToggle}
       style={{
         width: 46, height: 26, borderRadius: 13, border: 0, cursor: "pointer", position: "relative",
-        background: on ? "#10b981" : "var(--mk-surface-2)", transition: "background 0.18s", flexShrink: 0,
+        background: on ? "#00E19A" : "var(--mk-surface-2)", transition: "background 0.18s", flexShrink: 0,
       }}
     >
       <span style={{ position: "absolute", top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.18s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />

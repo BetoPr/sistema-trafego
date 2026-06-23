@@ -66,7 +66,7 @@ export function AudioPlayer({ midiaPath, transcricao, rotulo, status }: Props) {
             width: 32,
             height: 32,
             borderRadius: "50%",
-            background: "#10b981",
+            background: "#00E19A",
             color: "#FFFFFF",
             border: 0,
             cursor: url ? "pointer" : "not-allowed",

@@ -29,7 +29,7 @@ export function SincronizarPagesBtn({ integracaoId }: { integracaoId: string }) 
         {pending ? " Sincronizando..." : " Sincronizar Pages do Facebook"}
       </button>
       {msg && (
-        <div style={{ fontSize: 11.5, color: msg.startsWith("✓") ? "#10b981" : "#C97064" }}>
+        <div style={{ fontSize: 11.5, color: msg.startsWith("✓") ? "#00E19A" : "#C97064" }}>
           {msg}
         </div>
       )}

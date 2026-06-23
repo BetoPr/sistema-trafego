@@ -48,19 +48,19 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
         <>
           {/* KPIs com delta vs período anterior */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Tokens (total)" valor={<CountUp value={d.totais.tokens} />} delta={d.delta.tokens} icone="ti-coins" cor="#10b981" />
-            <Card titulo="Custo estimado" valor={<CountUp value={d.totais.custo} format={(n) => usd(n)} />} delta={d.delta.custo} icone="ti-cash" cor="#10b981" />
+            <Card titulo="Tokens (total)" valor={<CountUp value={d.totais.tokens} />} delta={d.delta.tokens} icone="ti-coins" cor="#00E19A" />
+            <Card titulo="Custo estimado" valor={<CountUp value={d.totais.custo} format={(n) => usd(n)} />} delta={d.delta.custo} icone="ti-cash" cor="#00E19A" />
             <Card titulo="Chamadas" valor={<CountUp value={d.totais.chamadas} />} delta={d.delta.chamadas} icone="ti-arrows-exchange" cor="#5B8BA6" />
-            <Card titulo="Sucesso" valor={<CountUp value={d.totais.chamadas > 0 ? Math.round((d.totais.sucesso / d.totais.chamadas) * 100) : 0} suffix="%" />} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#10b981" />
+            <Card titulo="Sucesso" valor={<CountUp value={d.totais.chamadas > 0 ? Math.round((d.totais.sucesso / d.totais.chamadas) * 100) : 0} suffix="%" />} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#00E19A" />
             <Card titulo="Áudio transcrito" valor={<CountUp value={Math.round(d.totais.audioSeg / 60)} suffix=" min" />} icone="ti-microphone" cor="#C97064" />
           </div>
 
           {/* Médias + eficiência */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <Card titulo="Média por conversa" valor={<CountUp value={d.medias.porConversa} suffix=" tok" />} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#10b981" />
+            <Card titulo="Média por conversa" valor={<CountUp value={d.medias.porConversa} suffix=" tok" />} sub={`${usd(d.medias.custoPorConversa)} · ${d.medias.contatos} conversa(s)`} icone="ti-message-circle" cor="#00E19A" />
             <Card titulo="Média por ticket" valor={<CountUp value={d.medias.porTicket} suffix=" tok" />} sub={`${d.medias.tickets} ticket(s)`} icone="ti-ticket" cor="#5B8BA6" />
             <Card titulo="Média por chamada" valor={<CountUp value={d.medias.porRequest} suffix=" tok" />} icone="ti-arrow-bar-right" cor="#C97064" />
-            <Card titulo="Prompt × Resposta" valor={`${d.eficiencia.promptPct}% / ${d.eficiencia.completionPct}%`} sub="entrada / saída" icone="ti-arrows-split" cor="#10b981" />
+            <Card titulo="Prompt × Resposta" valor={`${d.eficiencia.promptPct}% / ${d.eficiencia.completionPct}%`} sub="entrada / saída" icone="ti-arrows-split" cor="#00E19A" />
           </div>
 
           {/* Limite diário de chat (Groq) */}
@@ -68,11 +68,11 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
               <h3 className="card-title" style={{ margin: 0 }}>Limite diário de chat (Groq)</h3>
               <span style={{ fontSize: 12, color: "var(--mk-text-secondary)" }}>
-                <strong style={{ color: usoChatPct > 85 ? "#C97064" : "#10b981" }}>{nf.format(d.chatGroqHoje)}</strong> / {nf.format(d.limiteChatDia)} tokens hoje
+                <strong style={{ color: usoChatPct > 85 ? "#C97064" : "#00E19A" }}>{nf.format(d.chatGroqHoje)}</strong> / {nf.format(d.limiteChatDia)} tokens hoje
               </span>
             </div>
             <div style={{ height: 10, borderRadius: 6, background: "var(--mk-surface-2)", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${usoChatPct}%`, background: usoChatPct > 85 ? "#C97064" : "#10b981", transition: "width .3s" }} />
+              <div style={{ height: "100%", width: `${usoChatPct}%`, background: usoChatPct > 85 ? "#C97064" : "#00E19A", transition: "width .3s" }} />
             </div>
             <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>Resumo + Sentimento + Follow-up + Atendimento somam no teto de 100k/dia por chave Groq. Mais chaves = mais limite.</div>
           </div>
@@ -83,7 +83,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
             <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 120 }}>
               {d.porDia.map((x) => (
                 <div key={x.dia} title={`${x.dia}: ${nf.format(x.tokens)} tokens`} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
-                  <div style={{ width: "100%", maxWidth: 26, height: `${Math.round((x.tokens / maxDia) * 100)}%`, minHeight: x.tokens ? 2 : 0, background: "linear-gradient(180deg,#10b981,#0d9488)", borderRadius: "4px 4px 0 0" }} />
+                  <div style={{ width: "100%", maxWidth: 26, height: `${Math.round((x.tokens / maxDia) * 100)}%`, minHeight: x.tokens ? 2 : 0, background: "linear-gradient(180deg,#00E19A,#0d9488)", borderRadius: "4px 4px 0 0" }} />
                   <span style={{ fontSize: 8.5, color: "var(--mk-text-muted)", marginTop: 3, whiteSpace: "nowrap" }}>{x.dia.slice(5)}</span>
                 </div>
               ))}
@@ -125,7 +125,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
                       <td style={{ ...td, fontFamily: "monospace", fontSize: 10.5 }}>{l.modelo}</td>
                       <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{nf.format(l.tokens)}</td>
                       <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{usd(l.custo)}</td>
-                      <td style={td}>{l.status === "ok" ? <span style={{ color: "#10b981" }}>ok</span> : <span style={{ color: "#C97064" }}>{l.status === "rate_limit" ? "limite" : "erro"}</span>}</td>
+                      <td style={td}>{l.status === "ok" ? <span style={{ color: "#00E19A" }}>ok</span> : <span style={{ color: "#C97064" }}>{l.status === "rate_limit" ? "limite" : "erro"}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -148,7 +148,7 @@ function Card({ titulo, valor, sub, delta, icone, cor }: { titulo: string; valor
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--mk-text)" }}>{valor}</div>
         {typeof delta === "number" && (
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: delta > 0 ? "#C97064" : delta < 0 ? "#10b981" : "var(--mk-text-muted)" }}>
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: delta > 0 ? "#C97064" : delta < 0 ? "#00E19A" : "var(--mk-text-muted)" }}>
             <i className={`ti ti-arrow-${delta > 0 ? "up" : delta < 0 ? "down" : "right"}`} /> {Math.abs(delta)}%
           </span>
         )}
@@ -177,7 +177,7 @@ function Tabela({ titulo, linhas, total }: { titulo: string; linhas: Array<{ cha
                 <td style={td}>
                   {l.rotulo}
                   <div style={{ height: 4, borderRadius: 3, background: "var(--mk-surface-2)", marginTop: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${total ? Math.round((l.tokens / total) * 100) : 0}%`, background: "#10b981" }} />
+                    <div style={{ height: "100%", width: `${total ? Math.round((l.tokens / total) * 100) : 0}%`, background: "#00E19A" }} />
                   </div>
                 </td>
                 <td style={{ ...td, textAlign: "right", fontFamily: "monospace" }}>{nf.format(l.tokens)}</td>

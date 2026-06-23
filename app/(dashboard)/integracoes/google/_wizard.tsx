@@ -46,7 +46,7 @@ export function WizardGoogle() {
           >
             <div style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>Passo {s.id}</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: "var(--mk-text)", marginTop: 2 }}>
-              {step > s.id && <i className="ti ti-circle-check" style={{ fontSize: 13, color: "#10b981", marginRight: 4 }} />}
+              {step > s.id && <i className="ti ti-circle-check" style={{ fontSize: 13, color: "#00E19A", marginRight: 4 }} />}
               {s.label}
             </div>
           </div>
@@ -220,8 +220,8 @@ function ExternalA({ href, children }: { href: string; children: React.ReactNode
 function Aviso({ tipo, children }: { tipo: "info" | "ok" | "warn"; children: React.ReactNode }) {
   const colors = {
     info: { bg: "rgba(91,139,166,0.12)", border: "#5B8BA6", icon: "ti-info-circle" },
-    ok: { bg: "rgba(16,185,129,0.12)", border: "#10b981", icon: "ti-circle-check" },
-    warn: { bg: "rgba(16,185,129,0.15)", border: "#10b981", icon: "ti-alert-triangle" },
+    ok: { bg: "rgba(16,185,129,0.12)", border: "#00E19A", icon: "ti-circle-check" },
+    warn: { bg: "rgba(16,185,129,0.15)", border: "#00E19A", icon: "ti-alert-triangle" },
   }[tipo];
   return (
     <div style={{ background: colors.bg, borderLeft: `3px solid ${colors.border}`, padding: "10px 12px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", lineHeight: 1.6, display: "flex", gap: 10 }}>

@@ -159,7 +159,7 @@ const btnHdr: React.CSSProperties = {
   borderRadius: 6,
   padding: "5px 10px",
   cursor: "pointer",
-  color: "#10b981",
+  color: "#00E19A",
   fontSize: 13,
 };
 const lbl: React.CSSProperties = { display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" };

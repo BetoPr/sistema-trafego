@@ -141,7 +141,7 @@ export function MapaContatosClient({ dados }: { dados: DadosMapa }) {
           <span
             style={{
               width: 90, height: 8, borderRadius: 4,
-              background: "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(16,185,129,0.55), #10B981)",
+              background: "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(16,185,129,0.55), #00E19A)",
             }}
           />
           <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>mais</span>

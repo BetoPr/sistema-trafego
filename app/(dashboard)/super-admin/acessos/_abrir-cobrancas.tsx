@@ -19,7 +19,7 @@ export function AbrirCobrancasBtn({ pendentes }: { pendentes: number }) {
         fontSize: 12.5,
         padding: "8px 14px",
         border: "0.5px solid rgba(16,185,129,0.4)",
-        color: "#10b981",
+        color: "#00E19A",
         position: "relative",
       }}
       title="Abrir controle de cobranças das agências"
@@ -60,7 +60,7 @@ export function CobrancaIconBtn({ agenciaId }: { agenciaId: string }) {
         alignItems: "center",
         justifyContent: "center",
         fontSize: 13,
-        color: "#10b981",
+        color: "#00E19A",
       }}
       title="Ver cobrança da agência deste usuário"
     >

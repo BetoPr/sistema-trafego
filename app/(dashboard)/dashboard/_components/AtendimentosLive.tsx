@@ -45,7 +45,7 @@ Gere um RELATÓRIO VISUAL EM HTML, em português, dentro de UM ÚNICO bloco de c
 
 - Tema **escuro** elegante: fundo \`#0f0f12\` ou similar, texto claro \`#FFFDF8\`, accent roxo \`#9B7DBF\`.
 - Cards com \`border-radius: 12px\`, padding generoso, \`border: 1px solid #2a2a30\`.
-- Cores semânticas: verde \`#10b981\` (positivo), amarelo \`#f59e0b\` (atenção), vermelho \`#C97064\` (problema), azul \`#5B8BA6\` (info).
+- Cores semânticas: verde \`#00E19A\` (positivo), amarelo \`#f59e0b\` (atenção), vermelho \`#C97064\` (problema), azul \`#5B8BA6\` (info).
 - Tipografia: \`system-ui, -apple-system, sans-serif\`. Títulos com \`font-weight: 600-700\`.
 - Layout responsivo com \`display: grid\` ou \`flex\`. Container \`max-width: 1100px\` centrado.
 - Use moeda BR (R$ 1.234,56) e datas pt-BR.
@@ -239,7 +239,7 @@ export function AtendimentosLive({ inicial, servicosDisponiveis = [] }: { inicia
 
         <button
           onClick={copiarPrompt}
-          style={{ marginLeft: "auto", fontSize: 12, color: copiado ? "#10b981" : "var(--mk-text-secondary)", background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: `0.5px solid ${copiado ? "#10b981" : "var(--mk-border)"}`, borderRadius: 8 }}
+          style={{ marginLeft: "auto", fontSize: 12, color: copiado ? "#00E19A" : "var(--mk-text-secondary)", background: "transparent", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", border: `0.5px solid ${copiado ? "#00E19A" : "var(--mk-border)"}`, borderRadius: 8 }}
           title="Copia o prompt de análise. Cole na IA (Claude/ChatGPT) e anexe o PDF abaixo."
         >
           <i className={`ti ${copiado ? "ti-check" : "ti-clipboard-text"}`} /> {copiado ? "Copiado!" : "Copiar prompt"}

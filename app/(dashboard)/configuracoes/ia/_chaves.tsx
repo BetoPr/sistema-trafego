@@ -102,7 +102,7 @@ export function ChavesManager({
                   </form>
                 )}
                 {t && !t.loading && (
-                  <div style={{ marginTop: 6, fontSize: 11, color: t.ok ? "#10b981" : "#C97064", display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ marginTop: 6, fontSize: 11, color: t.ok ? "#00E19A" : "#C97064", display: "flex", alignItems: "center", gap: 5 }}>
                     <i className={`ti ${t.ok ? "ti-circle-check" : "ti-alert-triangle"}`} /> {t.msg}
                   </div>
                 )}

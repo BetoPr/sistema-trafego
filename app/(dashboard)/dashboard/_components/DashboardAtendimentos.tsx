@@ -30,7 +30,7 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempo
   return (
     <>
       <div className="dash-kpis" style={{ marginBottom: 14 }}>
-        <Kpi label="Faturamento" valor={<CountUp value={kpis.faturamento_total} format={fmtCountBRL} />} icon="ti-cash" cor="#10b981" primary sub={periodoLabel} />
+        <Kpi label="Faturamento" valor={<CountUp value={kpis.faturamento_total} format={fmtCountBRL} />} icon="ti-cash" cor="#00E19A" primary sub={periodoLabel} />
         <Kpi label="Tickets fechados" valor={<CountUp value={kpis.tickets_fechados} />} icon="ti-checks" cor="#94a3b8" sub={periodoLabel} />
         <Kpi label="Serviços vendidos" valor={<CountUp value={kpis.quantidade_total} />} icon="ti-shopping-bag" cor="#94a3b8" sub="soma das quantidades" />
         <Kpi label="Ticket médio" valor={<CountUp value={kpis.ticket_medio} format={fmtCountBRL} />} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
@@ -43,11 +43,11 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempo
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
             <div style={{ textAlign: "center", minWidth: 90 }}>
-              <div style={{ fontSize: 32, fontWeight: 700, color: satisfacao.score >= 70 ? "#10b981" : satisfacao.score >= 40 ? "#f59e0b" : "#e24b4a" }}>{satisfacao.score}%</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: satisfacao.score >= 70 ? "#00E19A" : satisfacao.score >= 40 ? "#f59e0b" : "#e24b4a" }}>{satisfacao.score}%</div>
               <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>satisfeitos</div>
             </div>
             <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 8 }}>
-              <SatLinha label="Muito bom" valor={satisfacao.muito_bom} total={satisfacao.total} cor="#10b981" icon="ti-mood-happy" />
+              <SatLinha label="Muito bom" valor={satisfacao.muito_bom} total={satisfacao.total} cor="#00E19A" icon="ti-mood-happy" />
               <SatLinha label="Bom" valor={satisfacao.bom} total={satisfacao.total} cor="#5B8BA6" icon="ti-mood-smile" />
               <SatLinha label="Ruim" valor={satisfacao.ruim} total={satisfacao.total} cor="#e24b4a" icon="ti-mood-sad" />
               <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{satisfacao.total} atendimento(s) analisado(s) · {periodoLabel}</div>
@@ -98,7 +98,7 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempo
                 <XAxis dataKey="data" tick={{ fontSize: 10, fill: "var(--mk-text-muted)" }} tickFormatter={(v) => v.slice(5)} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--mk-text-muted)" }} tickFormatter={(v) => `R$${v}`} />
                 <Tooltip contentStyle={{ background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8, fontSize: 11 }} formatter={(v) => BRL.format(Number(v) || 0)} />
-                <Line type="monotone" dataKey="faturamento" stroke="#10b981" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="faturamento" stroke="#00E19A" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -173,7 +173,7 @@ function TempoBox({ label, valor, icon, n, dica }: { label: string; valor: strin
     <div className="mk-card" style={{ padding: 14 }} title={dica}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>{label.toUpperCase()}</div>
-        <i className={`ti ${icon}`} style={{ fontSize: 14, color: "#10b981" }} />
+        <i className={`ti ${icon}`} style={{ fontSize: 14, color: "#00E19A" }} />
       </div>
       <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: "var(--mk-text)" }}>{valor}</div>
       <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 2 }}>{n > 0 ? `${n} amostra${n > 1 ? "s" : ""}` : "sem dados"}</div>

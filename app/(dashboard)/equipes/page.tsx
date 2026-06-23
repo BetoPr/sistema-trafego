@@ -71,7 +71,7 @@ export default async function EquipesPage({ searchParams }: PageProps) {
 }
 
 function banner(t: "ok" | "erro"): React.CSSProperties {
-  const cor = t === "ok" ? "#10b981" : "#C97064";
+  const cor = t === "ok" ? "#00E19A" : "#C97064";
   return { background: t === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 };
 }
 const iconBtn: React.CSSProperties = { fontSize: 11, padding: "4px 10px" };

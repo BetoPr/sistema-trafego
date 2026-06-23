@@ -17,7 +17,7 @@ export default async function EtiquetasConfigPage() {
     .map((e) => ({
       id: e.id as string,
       nome: e.nome as string,
-      cor: (e.cor as string) || "#10b981",
+      cor: (e.cor as string) || "#00E19A",
       palavra_gatilho: (e.palavra_gatilho as string | null) ?? null,
       mensagem_resposta: (e.mensagem_resposta as string | null) ?? null,
       ativo: (e.ativo as boolean | null) ?? true,

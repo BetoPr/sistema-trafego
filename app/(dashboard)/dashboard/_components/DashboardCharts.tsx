@@ -20,7 +20,7 @@ import { fmtBRL, fmtInt } from "@/lib/format";
 import type { DistribStatus, PontoSerie, TopCampanha } from "@/lib/meta-ads/queries";
 
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "#34D399",
+  ACTIVE: "#4DECB3",
   PAUSED: "#FBBF24",
   DELETED: "#FB7185",
   ARCHIVED: "rgba(255,255,255,0.22)",
@@ -65,8 +65,8 @@ export function GastoReceitaChart({ data }: { data: PontoSerie[] }) {
                 <stop offset="100%" stopColor="#F0A35E" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gradReceita" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity={0.30} />
-                <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                <stop offset="0%" stopColor="#00E19A" stopOpacity={0.30} />
+                <stop offset="100%" stopColor="#00E19A" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -86,7 +86,7 @@ export function GastoReceitaChart({ data }: { data: PontoSerie[] }) {
               labelStyle={{ color: "#fff", fontWeight: 700, fontSize: 11, marginBottom: 4 }}
               itemStyle={{ color: "var(--mk-text-secondary)", padding: "1px 0" }}
             />
-            <Area type="monotone" dataKey="receita" stroke="#34D399" fill="url(#gradReceita)" strokeWidth={2.5} />
+            <Area type="monotone" dataKey="receita" stroke="#4DECB3" fill="url(#gradReceita)" strokeWidth={2.5} />
             <Area type="monotone" dataKey="gasto" stroke="#F0A35E" fill="url(#gradGasto)" strokeWidth={2.5} />
           </AreaChart>
         </ResponsiveContainer>

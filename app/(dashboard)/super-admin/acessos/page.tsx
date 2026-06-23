@@ -125,9 +125,9 @@ export default async function AcessosPage({ searchParams }: PageProps) {
           {editando && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 14, padding: "10px 12px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8 }}>
               <Stat label="Criado em" valor={new Date(editando.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} />
-              <Stat label="Última entrada no CRM" valor={editando.ultimo_login ? new Date(editando.ultimo_login).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "Nunca"} cor={editando.ultimo_login ? "#10b981" : "var(--mk-text-muted)"} />
+              <Stat label="Última entrada no CRM" valor={editando.ultimo_login ? new Date(editando.ultimo_login).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "Nunca"} cor={editando.ultimo_login ? "#00E19A" : "var(--mk-text-muted)"} />
               <Stat label="Última saída no CRM" valor={editando.ultimo_logout ? new Date(editando.ultimo_logout).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"} cor={editando.ultimo_logout ? "var(--mk-text-secondary)" : "var(--mk-text-muted)"} />
-              <Stat label="Status" valor={editando.ativo ? "Ativo" : "Inativo"} cor={editando.ativo ? "#10b981" : "#C97064"} />
+              <Stat label="Status" valor={editando.ativo ? "Ativo" : "Inativo"} cor={editando.ativo ? "#00E19A" : "#C97064"} />
             </div>
           )}
           <form action={editando ? atualizarAcesso : criarAcesso} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -217,7 +217,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
                           <td style={{ padding: "6px 10px", color: "var(--mk-text-secondary)" }}>{l.entidade}</td>
                           <td style={{ padding: "6px 10px", fontFamily: "monospace", fontSize: 10.5, color: "var(--mk-text-muted)" }}>{l.caminho || "—"}</td>
                           <td style={{ padding: "6px 10px" }}>
-                            {l.status ? <span style={{ color: l.status >= 400 ? "#C97064" : "#10b981" }}>{l.status}</span> : "—"}
+                            {l.status ? <span style={{ color: l.status >= 400 ? "#C97064" : "#00E19A" }}>{l.status}</span> : "—"}
                           </td>
                         </tr>
                       ))}
@@ -254,7 +254,7 @@ function labelOk(k: string) { return ({ criado: "Acesso criado.", atualizado: "A
 function labelErr(k: string) { return ({ campos: "Campos obrigatórios.", senha_curta: "Senha precisa ter 6+ caracteres.", auth: "Erro de autenticação.", db: "Erro no banco.", id: "ID inválido.", cobranca: "Falha no envio da cobrança." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 

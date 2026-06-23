@@ -70,12 +70,12 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
             </div>
             Disparos em excesso ou com intervalo muito curto entre mensagens podem fazer o WhatsApp <strong>banir o número permanentemente</strong>. Quanto menor o delay e maior o volume, maior o risco.
             <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(16,185,129,0.12)", borderRadius: 6, border: "0.5px solid rgba(16,185,129,0.4)" }}>
-              <strong style={{ color: "#10b981" }}><i className="ti ti-shield-check" style={{ marginRight: 4 }} />Configuração confortável:</strong> delay mín <strong>20s</strong> e máx <strong>45s</strong>, com lotes de até <strong>50 números por vez</strong> e pausa de ~30min entre lotes. Número novo (chip recém-ativado)? Comece com mín <strong>60s</strong> / máx <strong>120s</strong> e no máximo 20 contatos/dia na primeira semana.
+              <strong style={{ color: "#00E19A" }}><i className="ti ti-shield-check" style={{ marginRight: 4 }} />Configuração confortável:</strong> delay mín <strong>20s</strong> e máx <strong>45s</strong>, com lotes de até <strong>50 números por vez</strong> e pausa de ~30min entre lotes. Número novo (chip recém-ativado)? Comece com mín <strong>60s</strong> / máx <strong>120s</strong> e no máximo 20 contatos/dia na primeira semana.
             </div>
           </div>
 
-          <div style={{ background: "rgba(16,185,129,0.15)", borderLeft: "3px solid #10b981", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)" }}>
-            <i className="ti ti-alert-triangle" style={{ marginRight: 6, color: "#10b981" }} />
+          <div style={{ background: "rgba(16,185,129,0.15)", borderLeft: "3px solid #00E19A", padding: 10, borderRadius: 6, fontSize: 11, color: "var(--mk-text-secondary)" }}>
+            <i className="ti ti-alert-triangle" style={{ marginRight: 6, color: "#00E19A" }} />
             MVP: envia direto via UAZAPI sem fila persistente. Para volumes grandes (1000+), aguarde Wave futura com BullMQ.
           </div>
 
@@ -89,7 +89,7 @@ export default async function EnvioMassaPage({ searchParams }: PageProps) {
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 

@@ -112,21 +112,21 @@ function CartaoModelo({ m }: { m: ModeloInfo }) {
     <div style={{ border: "0.5px solid var(--mk-border)", borderRadius: 10, padding: 12, background: "var(--mk-surface)", fontSize: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
         <strong style={{ fontSize: 13 }}>{m.displayName}</strong>
-        {m.badge && <span style={{ fontSize: 9.5, padding: "1px 7px", borderRadius: 999, background: "rgba(16,185,129,0.16)", color: "#10b981", border: "0.5px solid #10b981" }}>{m.badge}</span>}
+        {m.badge && <span style={{ fontSize: 9.5, padding: "1px 7px", borderRadius: 999, background: "rgba(16,185,129,0.16)", color: "#00E19A", border: "0.5px solid #00E19A" }}>{m.badge}</span>}
         <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{m.id}</span>
       </div>
       <div style={{ color: "var(--mk-text-secondary)", marginBottom: 8 }}>{m.resumo}</div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 8 }}>
         <Mini titulo="Custo"><Tier valor={m.custo} max={4} cor="#C97064" /></Mini>
-        <Mini titulo="Velocidade"><Tier valor={4 - m.velocidade} max={3} cor="#10b981" /></Mini>
+        <Mini titulo="Velocidade"><Tier valor={4 - m.velocidade} max={3} cor="#00E19A" /></Mini>
         <Mini titulo="Contexto">{fmtContexto(m.contexto)}</Mini>
-        <Mini titulo="Ferramentas">{m.suporta.ferramentas ? <span style={{ color: "#10b981" }}>✓ sim</span> : <span style={{ color: "#C97064" }}>✗ não</span>}</Mini>
+        <Mini titulo="Ferramentas">{m.suporta.ferramentas ? <span style={{ color: "#00E19A" }}>✓ sim</span> : <span style={{ color: "#C97064" }}>✗ não</span>}</Mini>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#10b981", marginBottom: 3, textTransform: "uppercase" }}>Melhor para</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#00E19A", marginBottom: 3, textTransform: "uppercase" }}>Melhor para</div>
           <ul style={{ margin: 0, paddingLeft: 16, color: "var(--mk-text-secondary)", lineHeight: 1.5 }}>
             {m.melhorPara.map((x, i) => <li key={i}>{x}</li>)}
           </ul>

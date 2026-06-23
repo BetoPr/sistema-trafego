@@ -41,7 +41,7 @@ export function TestarApiBtn({ perfilId }: { perfilId: string }) {
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
       {resultado && (
-        <div style={{ padding: "8px 12px", borderRadius: 6, fontSize: 11.5, background: resultado.ok ? "rgba(16,185,129,0.10)" : "rgba(201,112,100,0.12)", border: `0.5px solid ${resultado.ok ? "#10b981" : "#C97064"}`, color: resultado.ok ? "#10b981" : "#C97064" }}>
+        <div style={{ padding: "8px 12px", borderRadius: 6, fontSize: 11.5, background: resultado.ok ? "rgba(16,185,129,0.10)" : "rgba(201,112,100,0.12)", border: `0.5px solid ${resultado.ok ? "#00E19A" : "#C97064"}`, color: resultado.ok ? "#00E19A" : "#C97064" }}>
           {resultado.ok ? (
             <>
               <strong>✓ Chave OK</strong> · {resultado.modelo} · {resultado.latencia_ms}ms · {resultado.tokens_in}↓ / {resultado.tokens_out}↑ tokens

@@ -51,7 +51,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
 
       {sp.ok && (
         <div style={banner("ok")}>
-          <i className="ti ti-circle-check" style={{ marginRight: 8, color: "#10b981" }} />
+          <i className="ti ti-circle-check" style={{ marginRight: 8, color: "#00E19A" }} />
           {sp.ok === "fav" ? "Favorito alterado." : sp.ok === "vis" ? "Visibilidade alterada." : sp.ok === "alias" ? "Apelido salvo." : "OK."}
         </div>
       )}
@@ -121,7 +121,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
                 <div key={`${i.servidorId}|${i.id}`} style={{
                   padding: "12px 14px",
                   borderRadius: 10,
-                  border: i.favorita ? "1px solid #10b981" : "0.5px solid var(--mk-border)",
+                  border: i.favorita ? "1px solid #00E19A" : "0.5px solid var(--mk-border)",
                   background: i.favorita ? "rgba(16,185,129,0.06)" : "var(--mk-surface)",
                   opacity: i.visivel ? 1 : 0.55,
                 }}>
@@ -132,7 +132,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                         <span style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.name}</span>
-                        {i.favorita && <i className="ti ti-star-filled" style={{ color: "#10b981", fontSize: 11 }} />}
+                        {i.favorita && <i className="ti ti-star-filled" style={{ color: "#00E19A", fontSize: 11 }} />}
                       </div>
                       <div style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>{i.servidorNome}</div>
                     </div>
@@ -152,7 +152,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
                       <input type="hidden" name="instance_id" value={i.id} />
                       <input type="hidden" name="favorita" value={String(i.favorita)} />
                       <button type="submit" className="ghost-btn" style={iconBtn} title={i.favorita ? "Desmarcar favorita" : "Marcar como favorita"}>
-                        <i className={`ti ${i.favorita ? "ti-star-filled" : "ti-star"}`} style={{ color: i.favorita ? "#10b981" : undefined }} />
+                        <i className={`ti ${i.favorita ? "ti-star-filled" : "ti-star"}`} style={{ color: i.favorita ? "#00E19A" : undefined }} />
                       </button>
                     </form>
                     <form action={alternarVisivel} style={{ display: "inline" }}>
@@ -178,7 +178,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
 }
 
 function banner(t: "ok" | "erro"): React.CSSProperties {
-  const cor = t === "ok" ? "#10b981" : "#C97064";
+  const cor = t === "ok" ? "#00E19A" : "#C97064";
   return { background: t === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 };
 }
 function Label({ children }: { children: React.ReactNode }) { return <label style={{ display: "block", fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 4, fontFamily: "monospace" }}>{children}</label>; }

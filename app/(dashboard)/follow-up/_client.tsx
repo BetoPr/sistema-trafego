@@ -36,7 +36,7 @@ type FiltroRec = "todos" | "vale" | "nao" | "sem";
 type FiltroFu = "todos" | "0" | "1" | "2" | "3" | "4" | "5+";
 const REC_OPCOES: { v: FiltroRec; label: string; cor: string }[] = [
   { v: "todos", label: "Todos", cor: "var(--mk-text-muted)" },
-  { v: "vale", label: "Vale follow-up", cor: "#10b981" },
+  { v: "vale", label: "Vale follow-up", cor: "#00E19A" },
   { v: "nao", label: "Não recomendado", cor: "#94a3b8" },
   { v: "sem", label: "Sem análise", cor: "var(--mk-text-muted)" },
 ];
@@ -184,7 +184,7 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
             <Label>Conexão</Label>
             <MultiDropdown
               icon="ti-plug" placeholder="Todas"
-              options={canais.map((c) => ({ id: c.id, label: c.nome, dot: c.status === "connected" ? "#10b981" : "#C97064" }))}
+              options={canais.map((c) => ({ id: c.id, label: c.nome, dot: c.status === "connected" ? "#00E19A" : "#C97064" }))}
               sel={canalSel} onChange={setCanalSel}
             />
           </div>
@@ -327,7 +327,7 @@ function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onGerar, onEnviar,
         {/* Status análise */}
         {c._pendente ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}><i className="ti ti-loader-2" style={{ animation: "fu-spin 1s linear infinite" }} /> analisando</span>
           : !c._analisado ? <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>não analisado</span>
-          : c.enviar ? <span style={{ fontSize: 10, color: "#10b981", border: "0.5px solid #10b98155", borderRadius: 6, padding: "2px 8px" }}><i className="ti ti-circle-check" /> vale follow-up</span>
+          : c.enviar ? <span style={{ fontSize: 10, color: "#00E19A", border: "0.5px solid #00E19A55", borderRadius: 6, padding: "2px 8px" }}><i className="ti ti-circle-check" /> vale follow-up</span>
           : <span style={{ fontSize: 10, color: "#94a3b8", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "2px 8px" }}>não recomendado</span>}
       </div>
 
@@ -335,7 +335,7 @@ function CardCand({ c, now, onPatch, onAnalisar, onRegenerar, onGerar, onEnviar,
       {c.motivo && <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginBottom: 8, fontStyle: "italic" }}>{c.motivo}</div>}
 
       {c._sent ? (
-        <div style={{ fontSize: 12, color: "#10b981" }}><i className="ti ti-check" /> Follow-up enviado{c._agendados ? ` · +${c._agendados} agendado(s)` : ""}.</div>
+        <div style={{ fontSize: 12, color: "#00E19A" }}><i className="ti ti-check" /> Follow-up enviado{c._agendados ? ` · +${c._agendados} agendado(s)` : ""}.</div>
       ) : !c._analisado ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)", flex: 1 }}>Conversa parada — ainda não analisada pela IA.</span>
@@ -435,7 +435,7 @@ function EtiquetarBalao({ cand, etiquetas, onClose }: { cand: Cand; etiquetas: E
     const base: OpcEtq[] = etiquetas.map((e) => ({ id: e.id, nome: e.nome, cor: e.cor }));
     for (const nome of ETIQUETAS_FOLLOWUP) {
       if (!base.some((o) => o.nome.toLowerCase() === nome.toLowerCase())) {
-        base.push({ id: null, nome, cor: nome === "Em follow-up" ? "#f59e0b" : "#10b981", criar: true });
+        base.push({ id: null, nome, cor: nome === "Em follow-up" ? "#f59e0b" : "#00E19A", criar: true });
       }
     }
     return base.sort((a, b) => a.nome.localeCompare(b.nome));

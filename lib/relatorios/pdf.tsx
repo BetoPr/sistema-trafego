@@ -25,12 +25,12 @@ export interface PdfDados {
 
 const styles = StyleSheet.create({
   page: { backgroundColor: "#0c0d0c", padding: 36, color: "#fff", fontFamily: "Helvetica" },
-  header: { borderBottom: "1pt solid #10B981", paddingBottom: 12, marginBottom: 18 },
-  eyebrow: { fontSize: 9, color: "#34D399", letterSpacing: 2, marginBottom: 4 },
+  header: { borderBottom: "1pt solid #00E19A", paddingBottom: 12, marginBottom: 18 },
+  eyebrow: { fontSize: 9, color: "#4DECB3", letterSpacing: 2, marginBottom: 4 },
   titulo: { fontSize: 20, fontWeight: 700 },
   sub: { fontSize: 10, color: "#999", marginTop: 4 },
   secao: { marginBottom: 18 },
-  secaoTitulo: { fontSize: 10, fontWeight: 700, color: "#34D399", letterSpacing: 1, marginBottom: 10 },
+  secaoTitulo: { fontSize: 10, fontWeight: 700, color: "#4DECB3", letterSpacing: 1, marginBottom: 10 },
   kpiRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
   kpiCard: {
     flex: 1,
@@ -77,11 +77,11 @@ function DocumentoRelatorio({ d }: { d: PdfDados }) {
           <View style={styles.kpiRow}>
             <View style={styles.kpiCard}>
               <Text style={styles.kpiLabel}>LUCRO BRUTO</Text>
-              <Text style={[styles.kpiValor, { color: "#34D399" }]}>{d.financeiro.lucro}</Text>
+              <Text style={[styles.kpiValor, { color: "#4DECB3" }]}>{d.financeiro.lucro}</Text>
             </View>
             <View style={styles.kpiCard}>
               <Text style={styles.kpiLabel}>ROAS</Text>
-              <Text style={[styles.kpiValor, { color: "#34D399" }]}>{d.financeiro.roas}</Text>
+              <Text style={[styles.kpiValor, { color: "#4DECB3" }]}>{d.financeiro.roas}</Text>
             </View>
           </View>
         </View>

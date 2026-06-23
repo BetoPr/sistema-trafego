@@ -402,7 +402,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
 function statusInfo(p: PerfilRow): { label: string; cor: string; bg: string; ico: string } {
   if (!p.ativo) return { label: "Inativo", cor: "#9B9B9B", bg: "rgba(255,255,255,0.06)", ico: "ti-power" };
   if (perfilTemWhitelist(p)) return { label: "Teste", cor: "#FBBF24", bg: "rgba(251,191,36,0.15)", ico: "ti-flask" };
-  return { label: "Producao", cor: "#10b981", bg: "rgba(16,185,129,0.15)", ico: "ti-rocket" };
+  return { label: "Producao", cor: "#00E19A", bg: "rgba(16,185,129,0.15)", ico: "ti-rocket" };
 }
 
 function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
@@ -550,13 +550,13 @@ function PerfilForm({
               placeholder="sk-proj-... (OpenAI) · sk-ant-... (Anthropic) · gsk_... (Groq)"
             />
             <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--mk-text-muted)", display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "none" }}>
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: "#00E19A", textDecoration: "none" }}>
                 <i className="ti ti-external-link" /> Pegar chave OpenAI
               </a>
-              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "none" }}>
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: "#00E19A", textDecoration: "none" }}>
                 <i className="ti ti-external-link" /> Pegar chave Anthropic
               </a>
-              <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", textDecoration: "none" }}>
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style={{ color: "#00E19A", textDecoration: "none" }}>
                 <i className="ti ti-external-link" /> Pegar chave Groq
               </a>
             </div>
@@ -876,7 +876,7 @@ function UsoPorTicketBloco({ itens }: { itens: UsoPorTicket[] }) {
 
 function LogsBloco({ logs }: { logs: LogRow[] }) {
   const corPorEvento: Record<string, string> = {
-    resposta: "#10b981",
+    resposta: "#00E19A",
     tool_call: "#9B7DBF",
     erro: "#C97064",
     pausa_humano: "#f59e0b",
@@ -931,7 +931,7 @@ function LogsBloco({ logs }: { logs: LogRow[] }) {
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 function labelOk(k: string) {
@@ -959,9 +959,9 @@ function chip(ativo: boolean): React.CSSProperties {
     fontSize: 11.5,
     padding: "5px 10px",
     borderRadius: 999,
-    border: `0.5px solid ${ativo ? "#10b981" : "var(--mk-border)"}`,
+    border: `0.5px solid ${ativo ? "#00E19A" : "var(--mk-border)"}`,
     background: ativo ? "rgba(16,185,129,0.18)" : "var(--mk-surface)",
-    color: ativo ? "#10b981" : "var(--mk-text-secondary)",
+    color: ativo ? "#00E19A" : "var(--mk-text-secondary)",
     cursor: "pointer",
   };
 }

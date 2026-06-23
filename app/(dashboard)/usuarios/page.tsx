@@ -238,8 +238,8 @@ export default async function UsuariosPage({ searchParams }: PageProps) {
                   <td style={tdLi}><span className={`mk-badge ${u.ativo ? "b-green" : "b-gray"}`}>{u.ativo ? "Ativo" : "Inativo"}</span></td>
                   <td style={tdLi}>
                     {u.online ? (
-                      <span title="Online agora" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#10b981", fontWeight: 600 }}>
-                        <span className="online-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 0 0 rgba(16,185,129,0.7)" }} />
+                      <span title="Online agora" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#00E19A", fontWeight: 600 }}>
+                        <span className="online-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "#00E19A", boxShadow: "0 0 0 0 rgba(16,185,129,0.7)" }} />
                         Online
                       </span>
                     ) : (
@@ -290,7 +290,7 @@ function labelErr(k: string) {
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return (
     <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}>
       <i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />

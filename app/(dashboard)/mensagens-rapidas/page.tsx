@@ -96,7 +96,7 @@ function labelOk(k: string) { return ({ criada: "Atalho criado.", atualizada: "A
 function labelErr(k: string) { return ({ campos: "Comando e conteúdo obrigatórios.", db: "Erro no banco.", permissao: "Sem permissão pra criar globais." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 

@@ -68,7 +68,7 @@ function statusBadge(a: AgenciaCobranca) {
   if (d === 0) return { label: "VENCE HOJE", cor: "#f59e0b" };
   if (d === 1) return { label: "VENCE AMANHÃ", cor: "#f59e0b" };
   if (d <= 7) return { label: `${d}d`, cor: "#f59e0b" };
-  return { label: `${d}d`, cor: "#10b981" };
+  return { label: `${d}d`, cor: "#00E19A" };
 }
 
 export function CobrancasBloco({ agencias, config, canais }: Props) {
@@ -113,7 +113,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
         <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", margin: 0, flex: 1 }}>
           Controle de mensalidades. Cobrança automática 1 dia antes do vencimento via WhatsApp.
           {canalAtivo ? (
-            <> Canal: <strong style={{ color: "#10b981" }}>{canalAtivo.nome}</strong> ({canalAtivo.numero_conectado || "—"}).</>
+            <> Canal: <strong style={{ color: "#00E19A" }}>{canalAtivo.nome}</strong> ({canalAtivo.numero_conectado || "—"}).</>
           ) : (
             <> <strong style={{ color: "#C97064" }}>⚠ Canal de envio não configurado.</strong></>
           )}
@@ -121,7 +121,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
             <> · <button
               type="button"
               onClick={() => setFiltroAgenciaId(null)}
-              style={{ background: "transparent", border: 0, color: "#10b981", textDecoration: "underline", cursor: "pointer", fontSize: 11.5, padding: 0 }}
+              style={{ background: "transparent", border: 0, color: "#00E19A", textDecoration: "underline", cursor: "pointer", fontSize: 11.5, padding: 0 }}
             >ver todas</button></>
           )}
         </p>
@@ -171,7 +171,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
                   <td style={td}>
                     {a.ultima_cobranca_em ? (
                       <div style={{ fontSize: 11 }}>
-                        <span style={{ color: a.ultima_cobranca_status === "enviada" ? "#10b981" : "#C97064" }}>
+                        <span style={{ color: a.ultima_cobranca_status === "enviada" ? "#00E19A" : "#C97064" }}>
                           {a.ultima_cobranca_status}
                         </span>
                         <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>
@@ -196,7 +196,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
                         onClick={() => { setMeses(1); setConfirmPago(a); }}
                         className="ghost-btn acesso-icon-btn"
                         title="Marcar como pago"
-                        style={{ ...iconBtn, color: "#10b981" }}
+                        style={{ ...iconBtn, color: "#00E19A" }}
                       >
                         <i className="ti ti-check" />
                       </button>
@@ -249,7 +249,7 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
             </p>
             <div style={{ background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 8, padding: "10px 14px", fontSize: 12, lineHeight: 1.6 }}>
               <div>WhatsApp destino: <code>{confirmCobrar.whatsapp_cobranca || "—"}</code></div>
-              <div>Valor: <strong style={{ color: "#10b981" }}>{confirmCobrar.valor_mensal ? BRL.format(confirmCobrar.valor_mensal) : "—"}</strong></div>
+              <div>Valor: <strong style={{ color: "#00E19A" }}>{confirmCobrar.valor_mensal ? BRL.format(confirmCobrar.valor_mensal) : "—"}</strong></div>
               <div>Canal de envio: <strong>{canalAtivo?.nome || "não configurado"}</strong></div>
             </div>
             <div style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>

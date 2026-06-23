@@ -100,7 +100,7 @@ export function TemplatesPicker({ templates }: Props) {
       </div>
 
       {selecionado && (
-        <div style={{ fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.3)", borderRadius: 6 }}>
+        <div style={{ fontSize: 11, color: "#00E19A", display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.3)", borderRadius: 6 }}>
           <i className="ti ti-circle-check-filled" />
           Template aplicado. Prompt, modelo e delays foram preenchidos. Você ainda pode editar antes de salvar.
         </div>
@@ -115,7 +115,7 @@ function card(ativo: boolean): React.CSSProperties {
     gap: 8,
     padding: "12px 14px",
     borderRadius: 8,
-    border: `1px solid ${ativo ? "#10b981" : "rgba(155,125,191,0.4)"}`,
+    border: `1px solid ${ativo ? "#00E19A" : "rgba(155,125,191,0.4)"}`,
     background: ativo ? "rgba(16,185,129,0.12)" : "var(--mk-surface)",
     cursor: "pointer",
     alignItems: "flex-start",

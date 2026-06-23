@@ -73,7 +73,7 @@ export default function LoginPage() {
 
 /** Marca "S" — recriação vetorial (esmeralda), em fita dupla serpenteada. */
 function LogoS() {
-  const c = "var(--mk-accent, #10b981)";
+  const c = "var(--mk-accent, #00E19A)";
   return (
     <svg width="50" height="50" viewBox="0 0 100 100" fill="none" aria-label="Logo" role="img">
       {/* Fita principal em S */}

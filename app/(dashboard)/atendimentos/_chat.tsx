@@ -703,7 +703,7 @@ export function ChatView(props: Props) {
               return (
                 <div key={m.id} data-dia={rotuloDia(m.created_at)} style={{ display: "flex", justifyContent: "center", margin: "2px 0" }}>
                   <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 999, padding: "3px 11px", display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "85%" }}>
-                    <i className="ti ti-robot" style={{ color: "#10b981" }} /> {m.conteudo}
+                    <i className="ti ti-robot" style={{ color: "#00E19A" }} /> {m.conteudo}
                   </span>
                 </div>
               );

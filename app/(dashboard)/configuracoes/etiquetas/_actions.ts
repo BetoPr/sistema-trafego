@@ -12,7 +12,7 @@ export async function criarEtiqueta(nome: string, cor: string): Promise<{ ok: bo
   const sb = createServiceClient();
   const { data, error } = await sb
     .from("etiquetas")
-    .insert({ agencia_id: ctx.agenciaId, nome: n, cor: cor || "#10b981", categoria: "etiqueta" })
+    .insert({ agencia_id: ctx.agenciaId, nome: n, cor: cor || "#00E19A", categoria: "etiqueta" })
     .select("id")
     .single();
   if (error) return { ok: false, msg: error.message };

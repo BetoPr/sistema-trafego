@@ -89,7 +89,7 @@ export default async function AuditoriaPage({ searchParams }: PageProps) {
                       <td style={td}><span className="mk-badge b-purple" style={{ fontSize: 9.5 }}>{l.acao}</span></td>
                       <td style={td}>{l.entidade || "—"} {l.entidade_id ? <span style={{ color: "var(--mk-text-muted)", fontFamily: "monospace", fontSize: 10 }}>#{String(l.entidade_id).slice(0, 8)}</span> : null}</td>
                       <td style={{ ...td, fontFamily: "monospace", fontSize: 10.5 }}>{l.caminho || "—"}</td>
-                      <td style={td}>{l.status ? <span style={{ color: l.status < 300 ? "#10b981" : "#C97064" }}>{l.status}</span> : "—"}</td>
+                      <td style={td}>{l.status ? <span style={{ color: l.status < 300 ? "#00E19A" : "#C97064" }}>{l.status}</span> : "—"}</td>
                       <td style={{ ...td, fontFamily: "monospace", fontSize: 10.5 }}>{l.ip || "—"}</td>
                     </tr>
                   );

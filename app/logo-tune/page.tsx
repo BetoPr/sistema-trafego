@@ -103,7 +103,7 @@ export default function LogoTunePage() {
               navigator.clipboard.writeText(JSON.stringify(cfg, null, 2));
               alert("Config copiada!");
             }}
-            style={{ background: "#34d399", color: "#04140d", padding: "8px 14px", borderRadius: 8, border: 0, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+            style={{ background: "#4DECB3", color: "#04140d", padding: "8px 14px", borderRadius: 8, border: 0, fontWeight: 700, cursor: "pointer", fontSize: 13 }}
           >
             Copiar JSON
           </button>

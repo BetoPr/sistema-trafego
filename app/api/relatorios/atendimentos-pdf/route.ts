@@ -22,9 +22,9 @@ const MAX_MSGS = 60;
 
 const s = StyleSheet.create({
   page: { padding: 30, fontSize: 10, fontFamily: "Helvetica", color: "#222" },
-  h1: { fontSize: 16, marginBottom: 2, borderBottomWidth: 2, borderBottomColor: "#10b981", paddingBottom: 4 },
+  h1: { fontSize: 16, marginBottom: 2, borderBottomWidth: 2, borderBottomColor: "#00E19A", paddingBottom: 4 },
   sub: { fontSize: 10, color: "#555", marginBottom: 10 },
-  resumoBox: { backgroundColor: "#F1F7F4", borderLeftWidth: 3, borderLeftColor: "#10b981", padding: 8, marginBottom: 14 },
+  resumoBox: { backgroundColor: "#F1F7F4", borderLeftWidth: 3, borderLeftColor: "#00E19A", padding: 8, marginBottom: 14 },
   ticketHead: { backgroundColor: "#F4F4F2", borderRadius: 4, padding: 8, marginTop: 10, marginBottom: 4 },
   nome: { fontSize: 11.5, fontFamily: "Helvetica-Bold", color: "#111" },
   meta: { fontSize: 8.5, color: "#666", marginTop: 2 },

@@ -316,7 +316,7 @@ function PendingView({ ticketId, mensagens, contatoNome, onBack }: { ticketId: s
             <i className="ti ti-arrow-left" />
           </button>
         )}
-        <i className="ti ti-eye" style={{ color: "#10b981" }} />
+        <i className="ti ti-eye" style={{ color: "#00E19A" }} />
         <span style={{ fontSize: 13, fontWeight: 600 }}>Espiando — {contatoNome}</span>
         <div style={{ marginLeft: "auto" }}>
           <AtenderBotao ticketId={ticketId} />

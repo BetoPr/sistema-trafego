@@ -115,7 +115,7 @@ export default async function PlanoPage() {
       <div className="meta-card" style={{ marginBottom: 14 }}>
         <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <div>
-            <span className="mk-badge" style={{ background: "rgba(16,185,129,0.20)", color: "#10b981", border: "0.5px solid rgba(16,185,129,0.4)" }}>PRO</span>
+            <span className="mk-badge" style={{ background: "rgba(16,185,129,0.20)", color: "#00E19A", border: "0.5px solid rgba(16,185,129,0.4)" }}>PRO</span>
             <div style={{ fontSize: 22, fontWeight: 700, marginTop: 10 }}>
               {BRL.format(valorUnitario)} <span style={{ fontSize: 13, fontWeight: 400, opacity: 0.7 }}>/mês por conexão</span>
             </div>
@@ -160,7 +160,7 @@ export default async function PlanoPage() {
 
       <div className="mk-card mk-card-lg" style={{ marginTop: 18 }}>
         <h3 className="card-title" style={{ marginBottom: 4 }}>
-          <i className="ti ti-help-circle" style={{ marginRight: 6, color: "#10b981" }} />
+          <i className="ti ti-help-circle" style={{ marginRight: 6, color: "#00E19A" }} />
           Perguntas frequentes
         </h3>
         <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 14 }}>
@@ -189,7 +189,7 @@ export default async function PlanoPage() {
                   gap: 8,
                 }}
               >
-                <i className="ti ti-chevron-right" style={{ color: "#10b981", transition: "transform 0.2s" }} />
+                <i className="ti ti-chevron-right" style={{ color: "#00E19A", transition: "transform 0.2s" }} />
                 {f.pergunta}
               </summary>
               <div style={{ fontSize: 12.5, color: "var(--mk-text-secondary)", lineHeight: 1.6, marginTop: 8, paddingLeft: 24 }}>

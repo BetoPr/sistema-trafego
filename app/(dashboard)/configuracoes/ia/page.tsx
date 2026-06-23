@@ -69,7 +69,7 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
 
       {sp.ok && (
         <div style={banner("ok")}>
-          <i className="ti ti-circle-check" style={{ marginRight: 8, color: "#10b981" }} />
+          <i className="ti ti-circle-check" style={{ marginRight: 8, color: "#00E19A" }} />
           {OK_MSG[sp.ok] || "OK."}
           {sp.msg && <div style={{ marginTop: 4, fontSize: 11, fontFamily: "monospace" }}>{decodeURIComponent(sp.msg)}</div>}
         </div>
@@ -152,6 +152,6 @@ function TestarGroqBtn({ temGroq }: { temGroq: boolean }) {
 }
 
 function banner(t: "ok" | "erro"): React.CSSProperties {
-  const cor = t === "ok" ? "#10b981" : "#C97064";
+  const cor = t === "ok" ? "#00E19A" : "#C97064";
   return { background: t === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 };
 }

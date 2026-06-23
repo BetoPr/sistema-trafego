@@ -148,7 +148,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
           ) : (
             <>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "8px 12px", background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 8, marginBottom: 8 }}>
-                <Stat label="TOTAL" valor={BRL.format(totais.totalValor)} cor="#10b981" />
+                <Stat label="TOTAL" valor={BRL.format(totais.totalValor)} cor="#00E19A" />
                 {totais.totalQtd > 0 && <Stat label="SERVIÇOS (QTD)" valor={String(totais.totalQtd)} />}
                 <Stat label="FECHAMENTOS" valor={String(totais.quantidadeFechamentos)} />
                 {totais.ultimo && <Stat label="ÚLTIMO" valor={new Date(totais.ultimo).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} />}
@@ -156,7 +156,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
               <div className="chat-scroll" style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
                 {fechamentos.map((f) => (
                   <div key={f.ticketId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", border: "0.5px solid var(--mk-border)", borderRadius: 8, background: "var(--mk-surface)" }}>
-                    <i className="ti ti-circle-check" style={{ color: "#10b981", fontSize: 16, flexShrink: 0 }} />
+                    <i className="ti ti-circle-check" style={{ color: "#00E19A", fontSize: 16, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: "var(--mk-text)" }}>
                         {f.servico || "Sem serviço"}{f.quantidade != null && <span style={{ color: "var(--mk-text-muted)" }}> × {f.quantidade}</span>}
@@ -166,7 +166,7 @@ export function EditarContatoBalao({ open, onClose, contatoId, nomeAtual, whatsa
                         {f.fechado_em ? new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "—"}
                       </div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#10b981", whiteSpace: "nowrap" }}>{BRL.format(f.valor)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#00E19A", whiteSpace: "nowrap" }}>{BRL.format(f.valor)}</div>
                   </div>
                 ))}
               </div>

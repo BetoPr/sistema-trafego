@@ -8,8 +8,8 @@ const ATALHOS = [
   { href: "/configuracoes/ia", label: "Configurações de API (IA)", icon: "ti-key", cor: "#9B7DBF", desc: "Chaves de IA + transcrição de áudio (1 chave Groq faz tudo)" },
   { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles", cor: "#9B7DBF", desc: "Personalize resumo, sentimento e reescrita" },
   { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card", cor: "#5B8BA6", desc: "Cobranças PIX e cartão" },
-  { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook", cor: "#10b981", desc: "Notifique sistemas externos" },
-  { href: "/integracoes", label: "Integrações", icon: "ti-plug", cor: "#10b981", desc: "Meta Ads, Google Ads" },
+  { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook", cor: "#00E19A", desc: "Notifique sistemas externos" },
+  { href: "/integracoes", label: "Integrações", icon: "ti-plug", cor: "#00E19A", desc: "Meta Ads, Google Ads" },
   { href: "/auditoria", label: "Log de Auditoria", icon: "ti-file-text", cor: "#C97064", desc: "Histórico de ações no sistema" },
 ];
 
@@ -31,7 +31,7 @@ export default async function ConfiguracoesPage() {
           <h3 className="card-title">Perfil</h3>
           <p className="card-sub" style={{ marginBottom: 18 }}>Seu nome aparece nos relatórios.</p>
           <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, background: "var(--mk-surface-2)", borderRadius: 11, marginBottom: 18 }}>
-            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg, #10b981, #8B6F47)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8", fontSize: 22, fontWeight: 600 }}>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg, #00E19A, #8B6F47)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFDF8", fontSize: 22, fontWeight: 600 }}>
               {inicial}
             </div>
             <div style={{ flex: 1 }}>

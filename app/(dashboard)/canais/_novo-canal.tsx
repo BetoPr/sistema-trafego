@@ -94,8 +94,8 @@ function QrBalao({ canalId, nome, onClose }: { canalId: string; nome: string; on
     <Balao open onClose={onClose} titulo={`QR Code — ${nome}`} icone="ti-qrcode" largura={520}>
       {conectado ? (
         <div style={{ textAlign: "center", padding: 30 }}>
-          <i className="ti ti-circle-check" style={{ fontSize: 48, color: "#10b981" }} />
-          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 10, color: "#10b981" }}>Conectado!</div>
+          <i className="ti ti-circle-check" style={{ fontSize: 48, color: "#00E19A" }} />
+          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 10, color: "#00E19A" }}>Conectado!</div>
         </div>
       ) : (
         <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
@@ -130,8 +130,8 @@ function QrBalao({ canalId, nome, onClose }: { canalId: string; nome: string; on
               <i className="ti ti-refresh" style={{ marginRight: 4 }} />
               O QR renova sozinho a cada {QR_TTL}s até conectar. Feche no X pra parar.
             </div>
-            <div style={{ marginTop: 10, background: "rgba(16,185,129,0.14)", borderLeft: "3px solid #10b981", padding: 10, borderRadius: 6, fontSize: 10.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
-              <strong style={{ color: "#10b981" }}><i className="ti ti-device-mobile" style={{ marginRight: 4 }} />Está acessando pelo celular?</strong>
+            <div style={{ marginTop: 10, background: "rgba(16,185,129,0.14)", borderLeft: "3px solid #00E19A", padding: 10, borderRadius: 6, fontSize: 10.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
+              <strong style={{ color: "#00E19A" }}><i className="ti ti-device-mobile" style={{ marginRight: 4 }} />Está acessando pelo celular?</strong>
               <div style={{ marginTop: 4 }}>
                 Você não consegue escanear o QR na mesma tela. Use um computador ou um segundo celular pra ler:
               </div>

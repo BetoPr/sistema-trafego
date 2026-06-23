@@ -15,7 +15,7 @@ interface Passo {
   cor: string;
 }
 
-const ACCENT = "#10b981";
+const ACCENT = "#00E19A";
 const BG_DEEP = "#070b09";
 const SURFACE = "rgba(255,255,255,0.04)";
 const BORDER = "rgba(255,255,255,0.10)";
@@ -103,7 +103,7 @@ const PASSOS: Passo[] = [
     ],
     resultado: "🚀 Se a IA respondeu, seu atendimento automático está ativo.",
     dica: "Toda conversa também aparecerá em Atendimentos.",
-    cor: "#10b981",
+    cor: "#00E19A",
   },
   {
     num: 6,
@@ -119,7 +119,7 @@ const PASSOS: Passo[] = [
     ],
     resultado: "🎯 Agora qualquer pessoa que enviar mensagem pode ser atendida pela IA.",
     dica: "Caso precise pausar rapidamente, basta desativar o perfil.",
-    cor: "#10b981",
+    cor: "#00E19A",
   },
   {
     num: 7,

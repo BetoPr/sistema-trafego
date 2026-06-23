@@ -151,23 +151,23 @@ export function ImportarWhatsAppBtn({ canais }: Props) {
 
         {estado === "ok" && resumo && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ background: "rgba(16,185,129,0.12)", borderLeft: "3px solid #10b981", padding: "10px 14px", borderRadius: 8, fontSize: 12.5 }}>
+            <div style={{ background: "rgba(16,185,129,0.12)", borderLeft: "3px solid #00E19A", padding: "10px 14px", borderRadius: 8, fontSize: 12.5 }}>
               <strong>Pronto.</strong> Importação concluída em {(resumo.duracao_ms / 1000).toFixed(1)}s.
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <Stat label="Contatos totais" valor={resumo.contatos_totais} />
-              <Stat label="Novos importados" valor={resumo.contatos_novos} cor="#10b981" />
+              <Stat label="Novos importados" valor={resumo.contatos_novos} cor="#00E19A" />
               <Stat label="Já existiam" valor={resumo.contatos_existentes} cor="var(--mk-text-muted)" />
               <Stat label="Grupos pulados" valor={resumo.pulados_grupos} cor="var(--mk-text-muted)" />
               <Stat label="Etiquetas criadas" valor={resumo.etiquetas_criadas} cor="#9B7DBF" />
               <Stat label="Etiquetas reaproveitadas" valor={resumo.etiquetas_existentes} cor="var(--mk-text-muted)" />
-              <Stat label="Aplicações de etiqueta" valor={resumo.etiquetas_aplicadas} cor="#10b981" />
+              <Stat label="Aplicações de etiqueta" valor={resumo.etiquetas_aplicadas} cor="#00E19A" />
               {resumo.mensagens?.mensagens_novas != null && (
                 <Stat label="Mensagens do histórico" valor={resumo.mensagens.mensagens_novas} cor="#5B8BA6" />
               )}
               {resumo.numeros_lid?.resolvidos != null && resumo.numeros_lid.resolvidos > 0 && (
-                <Stat label="Números resolvidos" valor={resumo.numeros_lid.resolvidos} cor="#10b981" />
+                <Stat label="Números resolvidos" valor={resumo.numeros_lid.resolvidos} cor="#00E19A" />
               )}
               {resumo.dedup?.mesclados != null && resumo.dedup.mesclados > 0 && (
                 <Stat label="Contatos duplicados juntados" valor={resumo.dedup.mesclados} cor="#9B7DBF" />

@@ -298,7 +298,7 @@ function FollowUpWidget() {
     >
       <i className="ti ti-sparkles" style={{ fontSize: 22, color: "#9B7DBF", animation: analisando ? "spin 1.4s linear infinite" : undefined }} />
       {(analisando || valem > 0) && (
-        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: analisando ? "#9B7DBF" : "#10b981", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: analisando ? "#9B7DBF" : "#00E19A", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {analisando ? `${analisando.feitos}` : valem}
         </span>
       )}
@@ -322,7 +322,7 @@ function FollowUpWidget() {
             <button onClick={pararAnalise} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}><i className="ti ti-player-stop" /> Parar</button>
           </>
         ) : (
-          <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-circle-check" style={{ color: "#10b981" }} /> {total} conversa(s) · {valem} valem follow-up</div>
+          <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}><i className="ti ti-circle-check" style={{ color: "#00E19A" }} /> {total} conversa(s) · {valem} valem follow-up</div>
         )}
         <button onClick={() => router.push("/follow-up")} className="cta-btn" style={{ fontSize: 11, justifyContent: "center" }}><i className="ti ti-arrow-right" /> Abrir Follow-up</button>
       </div>

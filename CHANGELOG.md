@@ -7,6 +7,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **22:31** — **Brand Sonar oficial: hexágono + S verde + accent #00E19A.**
+  - `SonarLogo.tsx` reescrito: símbolo hexágono outline + letra S italic bold + bolhinhas decorativas verde `#00E19A`.
+  - Wordmark `so` branco · `nar.` verde mantido.
+  - `app/icon.svg`, `app/apple-icon.svg`: favicon novo (hex+S sobre `#0a0f10`).
+  - `public/manifest.json`, `app/layout.tsx`: `theme_color`/`themeColor` → `#00E19A`.
+  - `app/globals.css`: tokens `--mk-accent` → `#00E19A` (dark) / `#00B27A` (light); `--mk-accent-2` → `#4DECB3` / `#00E19A`.
+  - Replace global em `app/**`, `components/**`, `lib/relatorios/pdf.tsx`, `lib/ia-atendimento/tools-runner.ts`, `lib/geo/brasil.ts`: `#10b981`/`#10B981` → `#00E19A`, `#34d399`/`#34D399` → `#4DECB3`, `#059669` → `#00B27A`.
+
 - **04:00** — **Relatorios: mobile (cards 1col) + envio PDF real.**
   - `_client.tsx`: hook useIsMobile; em <=768px, tabela vira cards stack 1col com toggle ativo no topo, nome+recebedor, chips Meta/Google + frequencia + proximo envio, e botoes "Enviar" full-width + editar + deletar lado a lado.
   - `lib/relatorios/pdf.tsx`: Document @react-pdf/renderer (A4 dark theme) com header titulo + periodo, secao Financeiro (Investido laranja + Faturamento + Lucro verde + ROAS verde) + secao Trafego (impressoes, cliques+CTR, leads, CPL, conversoes).

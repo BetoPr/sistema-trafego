@@ -75,13 +75,13 @@ export function CheckSucesso({ open, mensagem = "Configurado!", onClose }: Props
           {/* Circulo de fundo com gradiente */}
           <defs>
             <linearGradient id="check-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="100%" stopColor="#059669" />
+              <stop offset="0%" stopColor="#00E19A" />
+              <stop offset="100%" stopColor="#00B27A" />
             </linearGradient>
             <filter id="check-shadow">
               <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
               <feOffset dx="0" dy="4" result="offsetblur" />
-              <feFlood floodColor="#10b981" floodOpacity="0.5" />
+              <feFlood floodColor="#00E19A" floodOpacity="0.5" />
               <feComposite in2="offsetblur" operator="in" />
               <feMerge>
                 <feMergeNode />

@@ -134,7 +134,7 @@ export function ClientesLista({ clientes }: Props) {
                             width: 34,
                             height: 34,
                             borderRadius: 8,
-                            background: "linear-gradient(135deg, #8B6F47, #10b981)",
+                            background: "linear-gradient(135deg, #8B6F47, #00E19A)",
                             color: "#fff",
                             display: "flex",
                             alignItems: "center",
@@ -186,7 +186,7 @@ export function ClientesLista({ clientes }: Props) {
                         <span
                           style={{
                             background: "rgba(16,185,129,0.15)",
-                            color: "#10b981",
+                            color: "#00E19A",
                             padding: "2px 8px",
                             borderRadius: 10,
                             fontSize: 11,

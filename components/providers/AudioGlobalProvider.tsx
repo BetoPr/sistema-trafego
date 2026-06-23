@@ -95,7 +95,7 @@ export function AudioGlobalProvider({ children }: { children: React.ReactNode })
             boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
           }}
         >
-          <i className="ti ti-microphone" style={{ color: "#10b981", fontSize: 18 }} />
+          <i className="ti ti-microphone" style={{ color: "#00E19A", fontSize: 18 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{estado.label}</div>
@@ -107,7 +107,7 @@ export function AudioGlobalProvider({ children }: { children: React.ReactNode })
                     onClick={() => setVelocidade(v)}
                     title={`Velocidade ${v}x`}
                     style={{
-                      background: velocidade === v ? "#10b981" : "transparent",
+                      background: velocidade === v ? "#00E19A" : "transparent",
                       color: velocidade === v ? "#FFFFFF" : "var(--mk-text-muted)",
                       border: "0.5px solid var(--mk-border)",
                       borderRadius: 6,

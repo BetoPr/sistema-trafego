@@ -177,7 +177,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   }
 
   function corAleatoria() {
-    const cores = ["#10b981", "#9B7DBF", "#5B8BA6", "#10b981", "#C97064", "#10b981"];
+    const cores = ["#00E19A", "#9B7DBF", "#5B8BA6", "#00E19A", "#C97064", "#00E19A"];
     return cores[Math.floor(Math.random() * cores.length)];
   }
 
@@ -320,7 +320,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
     }
   }
 
-  const sentimentoCor = ticket.sentimento === "muito_bom" ? "#10b981" : ticket.sentimento === "bom" ? "#5B8BA6" : ticket.sentimento === "ruim" ? "#C97064" : "var(--mk-text-muted)";
+  const sentimentoCor = ticket.sentimento === "muito_bom" ? "#00E19A" : ticket.sentimento === "bom" ? "#5B8BA6" : ticket.sentimento === "ruim" ? "#C97064" : "var(--mk-text-muted)";
   const sentimentoLabel = ticket.sentimento === "muito_bom" ? "Muito bom" : ticket.sentimento === "bom" ? "Bom" : ticket.sentimento === "ruim" ? "Ruim" : "Não analisado";
 
   return (
@@ -417,7 +417,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             {ticket.valor_fechado != null ? (
               <Card titulo="Fechamento">
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#10b981", fontSize: 12, fontWeight: 600 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#00E19A", fontSize: 12, fontWeight: 600 }}>
                     <i className="ti ti-circle-check" style={{ fontSize: 16 }} />
                     Fechamento registrado
                   </div>
@@ -473,7 +473,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                   />
                 )}
                 {servicosHabilitados && servicos.length === 0 && (
-                  <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#10b981", textDecoration: "none" }}>
+                  <a href="/configuracoes/servicos" style={{ fontSize: 10.5, color: "#00E19A", textDecoration: "none" }}>
                     <i className="ti ti-plus" /> Cadastre serviços em Configurações → Serviços
                   </a>
                 )}
@@ -572,7 +572,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
             <Card titulo="IA Atendendo">
               <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: iaPausadaLocal ? "var(--mk-text-muted)" : "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: iaPausadaLocal ? "var(--mk-text-muted)" : "#00E19A", display: "flex", alignItems: "center", gap: 6 }}>
                     <i className={`ti ${iaPausadaLocal ? "ti-robot-off" : "ti-robot"}`} style={{ fontSize: 16 }} />
                     {iaPausadaLocal ? "IA pausada" : "IA ativa"}
                   </div>
@@ -604,7 +604,7 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                   Análise de sentimento
                 </div>
                 {ticket.sentimento && (
-                  <span title="Já analisado" style={{ color: "#10b981", fontSize: 13 }}><i className="ti ti-lock-check" /></span>
+                  <span title="Já analisado" style={{ color: "#00E19A", fontSize: 13 }}><i className="ti ti-lock-check" /></span>
                 )}
                 <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               </div>
@@ -986,7 +986,7 @@ function InfoLinha({ icon, label, value, mono, noBorder, copy }: { icon: string;
             } catch {}
           }}
           title="Copiar"
-          style={{ background: "transparent", border: 0, color: copiado ? "#10b981" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 14, padding: "2px 4px", marginTop: 2 }}
+          style={{ background: "transparent", border: 0, color: copiado ? "#00E19A" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 14, padding: "2px 4px", marginTop: 2 }}
         >
           <i className={`ti ${copiado ? "ti-check" : "ti-copy"}`} />
         </button>

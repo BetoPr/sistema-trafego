@@ -22,8 +22,8 @@ export const REGIAO_NOME: Record<Regiao, string> = {
 
 export const REGIAO_COR: Record<Regiao, string> = {
   N: "#0D9488",
-  NE: "#10B981",
-  CO: "#34D399",
+  NE: "#00E19A",
+  CO: "#4DECB3",
   SE: "#5EEAD4",
   S: "#99F6E4",
 };

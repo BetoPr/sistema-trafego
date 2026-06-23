@@ -103,7 +103,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)" }}>{c.nome}</h4>
-                    {c.padrao && <i className="ti ti-star-filled" style={{ color: "#10b981", fontSize: 13 }} />}
+                    {c.padrao && <i className="ti ti-star-filled" style={{ color: "#00E19A", fontSize: 13 }} />}
                   </div>
                   <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
                     #{c.numero} · {c.tipo === "uazapi" ? "whatsapp" : c.tipo}
@@ -136,7 +136,7 @@ export default async function CanaisPage({ searchParams }: PageProps) {
                   {!c.contatos_importados_em && (
                     <Link
                       href="/contatos"
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", marginTop: 4, background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 6, fontSize: 11, color: "#10b981", textDecoration: "none", fontWeight: 500 }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", marginTop: 4, background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 6, fontSize: 11, color: "#00E19A", textDecoration: "none", fontWeight: 500 }}
                       title="Puxe contatos + etiquetas do WhatsApp Business pra plataforma"
                     >
                       <i className="ti ti-download" />
@@ -216,7 +216,7 @@ function labelErr(k: string) {
 }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro" | "warn"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : tipo === "warn" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : tipo === "warn" ? "#00E19A" : "#C97064";
   const bg = tipo === "ok" ? "rgba(16,185,129,0.12)" : tipo === "warn" ? "rgba(16,185,129,0.15)" : "rgba(201,112,100,0.12)";
   const icon = tipo === "ok" ? "ti-circle-check" : tipo === "warn" ? "ti-alert-triangle" : "ti-alert-triangle";
   return (

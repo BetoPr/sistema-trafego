@@ -149,7 +149,7 @@ export function ChatHeader(props: Props) {
 
         {/* Ícones de ação inline */}
         <IconBtn icon="ti-arrow-back-up" title="Retornar à fila" onClick={retornarFila} disabled={loading} />
-        <IconBtn icon="ti-circle-check" title="Marcar como resolvido (encerrar)" onClick={encerrar} disabled={loading} color="#10b981" />
+        <IconBtn icon="ti-circle-check" title="Marcar como resolvido (encerrar)" onClick={encerrar} disabled={loading} color="#00E19A" />
         <IconBtn icon="ti-arrows-exchange" title="Transferir (fila/atendente)" onClick={() => setModal("transferir")} />
         <IconBtn icon="ti-broadcast" title="Transferir canal" onClick={() => setModal("transferir-canal")} />
         <BotaoCobranca ticketId={props.ticketId} canalConectado={props.canalConectado} canalId={props.canalId} servicos={props.servicos} servicosHabilitados={props.servicosHabilitados} />
@@ -345,7 +345,7 @@ function ModalTransferirCanal({
     <Modal title="Transferir Canal" subtitle="Mude o canal WhatsApp do ticket" onClose={onClose}>
       {canais.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--mk-text-muted)", lineHeight: 1.6 }}>
-          <i className="ti ti-info-circle" style={{ fontSize: 24, color: "#10b981", display: "block", marginBottom: 8 }} />
+          <i className="ti ti-info-circle" style={{ fontSize: 24, color: "#00E19A", display: "block", marginBottom: 8 }} />
           Não há outros canais cadastrados pra transferir.<br />
           <a href="/canais" style={{ color: "var(--mk-accent)", textDecoration: "underline" }}>Cadastra um novo canal</a> em Administração → Canais.
         </div>

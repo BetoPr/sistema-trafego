@@ -18,7 +18,7 @@ interface Slide {
   screenshot?: string;
 }
 
-const ACCENT = "#10b981";
+const ACCENT = "#00E19A";
 const BG_DEEP = "#070b09";
 const SURFACE = "rgba(255,255,255,0.04)";
 const BORDER = "rgba(255,255,255,0.10)";
@@ -537,7 +537,7 @@ function CaixaMockup() {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {[
-          { nome: "Erivan Santana", txt: "Quero saber sobre o ensaio", tags: ["Lead Quente"], cor: "#10b981" },
+          { nome: "Erivan Santana", txt: "Quero saber sobre o ensaio", tags: ["Lead Quente"], cor: "#00E19A" },
           { nome: "Diana", txt: "Olá! Tenho interesse...", tags: ["Em Follow Up"], cor: "#FBBF24" },
           { nome: "Sandra", txt: "Ok", tags: ["Follow Up feito"], cor: "#9B7DBF" },
         ].map((c, i) => (

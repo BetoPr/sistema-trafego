@@ -308,8 +308,8 @@ export function ListaAtendimentos(p: Props) {
   const canaisDesconectados = p.canais.filter((c) => c.status === "disconnected" || c.status === "error");
 
   const conexaoConfig = {
-    connected: { icon: "ti-wifi", color: "#10b981", bg: "rgba(16,185,129,0.18)", border: "#10b981", lista: canaisConectados, label: "Conectado" },
-    connecting: { icon: "ti-qrcode", color: "#10b981", bg: "rgba(16,185,129,0.18)", border: "#10b981", lista: canaisConectando, label: "Conectando" },
+    connected: { icon: "ti-wifi", color: "#00E19A", bg: "rgba(16,185,129,0.18)", border: "#00E19A", lista: canaisConectados, label: "Conectado" },
+    connecting: { icon: "ti-qrcode", color: "#00E19A", bg: "rgba(16,185,129,0.18)", border: "#00E19A", lista: canaisConectando, label: "Conectando" },
     disconnected: { icon: "ti-wifi-off", color: "#C97064", bg: "rgba(201,112,100,0.18)", border: "#C97064", lista: canaisDesconectados, label: "Desconectado" },
   }[tipoConexao];
 
@@ -320,7 +320,7 @@ export function ListaAtendimentos(p: Props) {
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 6 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Atendimentos</h2>
           <button onClick={toggleSom} className="ghost-btn" style={btnHdr} title={somOn ? "Som de notificação ligado" : "Som mutado"}>
-            <i className={`ti ${somOn ? "ti-bell" : "ti-bell-off"}`} style={{ color: somOn ? "#10b981" : "var(--mk-text-muted)" }} />
+            <i className={`ti ${somOn ? "ti-bell" : "ti-bell-off"}`} style={{ color: somOn ? "#00E19A" : "var(--mk-text-muted)" }} />
           </button>
           <NovaConversa canais={p.canais} />
           <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos">
@@ -328,7 +328,7 @@ export function ListaAtendimentos(p: Props) {
           </button>
           <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros">
             <i className="ti ti-filter" />{!compactTabs && " Filtros"}
-            {filtrosAtivos > 0 && <span style={{ fontSize: 9.5, background: "#10b981", color: "#fff", borderRadius: 8, padding: "0 5px", marginLeft: 4 }}>{filtrosAtivos}</span>}
+            {filtrosAtivos > 0 && <span style={{ fontSize: 9.5, background: "#00E19A", color: "#fff", borderRadius: 8, padding: "0 5px", marginLeft: 4 }}>{filtrosAtivos}</span>}
           </button>
         </div>
       </div>
@@ -387,7 +387,7 @@ export function ListaAtendimentos(p: Props) {
         <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
           {TABS.map((t) => {
             const ativo = statusSel.includes(t.id);
-            const cor = t.id === "fechado" ? "var(--mk-text-muted)" : "#10b981";
+            const cor = t.id === "fechado" ? "var(--mk-text-muted)" : "#00E19A";
             return (
               <button
                 key={t.id}
@@ -472,14 +472,14 @@ export function ListaAtendimentos(p: Props) {
                         role="button"
                         onClick={(e) => { e.stopPropagation(); abrirEspiar(t); }}
                         title="Espiar conversa"
-                        style={{ color: "#10b981", fontSize: 14, padding: "0 2px", cursor: "pointer" }}
+                        style={{ color: "#00E19A", fontSize: 14, padding: "0 2px", cursor: "pointer" }}
                       >
                         <i className="ti ti-eye" />
                       </span>
                     )}
                     {/* IA atendendo: robô verde (mesmo do card "IA ativa"). Some quando humano assume. */}
                     {t.ia_perfil_id && !t.ia_pausada && (
-                      <span title="IA atendendo esta conversa" style={{ color: "#10b981", fontSize: 14, padding: "0 1px", display: "inline-flex", flexShrink: 0 }}>
+                      <span title="IA atendendo esta conversa" style={{ color: "#00E19A", fontSize: 14, padding: "0 1px", display: "inline-flex", flexShrink: 0 }}>
                         <i className="ti ti-robot" />
                       </span>
                     )}
@@ -498,7 +498,7 @@ export function ListaAtendimentos(p: Props) {
                           height: 14,
                           padding: "0 4px",
                           borderRadius: 999,
-                          background: "#10b981",
+                          background: "#00E19A",
                           color: "#FFFFFF",
                           fontSize: 9,
                           fontWeight: 600,
@@ -516,7 +516,7 @@ export function ListaAtendimentos(p: Props) {
                     {/* Filas fixas (IA Atendendo / Atendimento Humano) nao viram badge — IA vira o icone de robo acima */}
                     {f && !f.fixa && <span style={{ fontSize: 9.5, padding: "1px 5px", borderRadius: 3, background: `${f.cor}22`, color: f.cor, border: `0.5px solid ${f.cor}` }}>{f.nome}</span>}
                     {t.canal && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, background: "rgba(37,211,102,0.12)", color: "#25D366" }}>{t.canal.nome}</span>}
-                    {t.sentimento === "muito_bom" && <span style={{ fontSize: 9.5, color: "#10b981" }}>● ótimo</span>}
+                    {t.sentimento === "muito_bom" && <span style={{ fontSize: 9.5, color: "#00E19A" }}>● ótimo</span>}
                     {t.sentimento === "ruim" && <span style={{ fontSize: 9.5, color: "#C97064" }}>● ruim</span>}
                   </div>
                 </div>
@@ -614,7 +614,7 @@ export function ListaAtendimentos(p: Props) {
 
               <Secao titulo="CONEXÕES">
                 {p.canais.map((c) => (
-                  <ChkRow key={c.id} on={canalFiltros.includes(c.id)} dot={c.status === "connected" ? "#10b981" : "#C97064"} label={c.nome} onClick={() => toggleCanal(c.id)} />
+                  <ChkRow key={c.id} on={canalFiltros.includes(c.id)} dot={c.status === "connected" ? "#00E19A" : "#C97064"} label={c.nome} onClick={() => toggleCanal(c.id)} />
                 ))}
               </Secao>
 
@@ -666,7 +666,7 @@ export function ListaAtendimentos(p: Props) {
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 4px 10px", fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
                     <span>{fechamentos.length} fechamento{fechamentos.length === 1 ? "" : "s"}</span>
-                    <strong style={{ color: "#10b981" }}>
+                    <strong style={{ color: "#00E19A" }}>
                       Total: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(fechamentos.reduce((s, f) => s + f.valor, 0))}
                     </strong>
                   </div>
@@ -680,7 +680,7 @@ export function ListaAtendimentos(p: Props) {
                         style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "var(--mk-text)", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
                         title="Abrir conversa"
                       >
-                        <i className="ti ti-circle-check" style={{ color: "#10b981", fontSize: 16 }} />
+                        <i className="ti ti-circle-check" style={{ color: "#00E19A", fontSize: 16 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {f.contato_nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>#{f.numero}</span>
@@ -692,7 +692,7 @@ export function ListaAtendimentos(p: Props) {
                           </div>
                         </div>
                       </button>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#10b981", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#00E19A", whiteSpace: "nowrap" }}>
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
                       </div>
                       <button
@@ -743,7 +743,7 @@ const btnHdr: React.CSSProperties = { fontSize: 11, padding: "5px 10px" };
 
 
 const chipBtn: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "var(--mk-surface-2)", color: "var(--mk-text-secondary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "inherit" };
-const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "rgba(16,185,129,0.18)", color: "#10b981", border: "0.5px solid #10b981", display: "inline-flex", alignItems: "center" };
+const chipActive: React.CSSProperties = { fontSize: 10.5, padding: "3px 8px", borderRadius: 10, background: "rgba(16,185,129,0.18)", color: "#00E19A", border: "0.5px solid #00E19A", display: "inline-flex", alignItems: "center" };
 
 const modalOverlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "var(--mk-bg)", border: "0.5px solid var(--mk-border)", borderRadius: 14, width: "min(560px, 92vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 16px 48px rgba(0,0,0,0.5)" };
@@ -764,7 +764,7 @@ function tempoRel(iso: string, now: number): string {
 function corTempo(iso: string, now: number): string {
   const min = Math.floor((now - new Date(iso).getTime()) / 60000);
   if (min < 1) return "#4ade80";   // agora — verde claro
-  if (min < 60) return "#10b981";  // minutos — verde escuro
+  if (min < 60) return "#00E19A";  // minutos — verde escuro
   if (min < 1440) return "#f59e0b"; // horas — amarelo
   return "#e24b4a";                 // dias+ — vermelho
 }

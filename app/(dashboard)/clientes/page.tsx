@@ -79,7 +79,7 @@ export default async function ClientesPage() {
               height: 72,
               borderRadius: "50%",
               background: "rgba(139, 111, 71, 0.18)",
-              color: "#10b981",
+              color: "#00E19A",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

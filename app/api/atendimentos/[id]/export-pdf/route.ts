@@ -84,7 +84,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   .meta { font-size: 11px; color: #555; line-height: 1.6; }
   .meta strong { color: #222; }
   table { width: 100%; border-collapse: collapse; }
-  .resumo { background: #F8F5F0; padding: 12px; border-left: 3px solid #10b981; font-size: 11px; line-height: 1.6; margin: 8px 0; }
+  .resumo { background: #F8F5F0; padding: 12px; border-left: 3px solid #00E19A; font-size: 11px; line-height: 1.6; margin: 8px 0; }
   @media print {
     button { display: none; }
   }

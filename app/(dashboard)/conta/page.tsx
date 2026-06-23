@@ -59,7 +59,7 @@ function labelOk(k: string) { return ({ perfil: "Perfil atualizado.", senha: "Se
 function labelErr(k: string) { return ({ nome: "Nome obrigatório.", senha_curta: "Senha precisa de 6+ caracteres.", senha_diferente: "Senhas não coincidem.", auth: "Erro auth.", foto: "Selecione uma imagem.", foto_tipo: "Arquivo precisa ser imagem.", foto_grande: "Imagem muito grande (máx 5MB).", upload: "Falha ao subir a foto." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 

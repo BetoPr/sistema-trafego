@@ -84,7 +84,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
         <Kpi label="Total" valor={String(total)} cor="var(--mk-text)" />
-        <Kpi label="Conciliados" valor={String(conciliados)} cor="#10b981" sub={`${taxa}% conciliacao`} />
+        <Kpi label="Conciliados" valor={String(conciliados)} cor="#00E19A" sub={`${taxa}% conciliacao`} />
         <Kpi label="Orfaos" valor={String(orfaos)} cor="#D97706" sub="aguardando msg WA" />
         <Kpi label="Erros" valor={String(erros)} cor="#C97064" sub="ver motivo na linha" />
       </section>

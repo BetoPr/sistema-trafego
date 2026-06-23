@@ -75,7 +75,7 @@ export function JanelaComercial({ inicial }: { inicial: JanelaInicial }) {
         <button type="submit" className="cta-btn" style={{ fontSize: 11.5, padding: "5px 12px" }} disabled={salvando}>
           <i className={`ti ${salvando ? "ti-loader-2" : "ti-device-floppy"}`} /> {salvando ? "Salvando…" : "Salvar"}
         </button>
-        {salvo && <span style={{ fontSize: 11, color: "#10b981" }}><i className="ti ti-circle-check" /> salvo</span>}
+        {salvo && <span style={{ fontSize: 11, color: "#00E19A" }}><i className="ti ti-circle-check" /> salvo</span>}
         <span style={{ fontSize: 10, color: "var(--mk-text-muted)", marginLeft: "auto" }}>fora disso, o follow-up adia</span>
       </div>
     </form>

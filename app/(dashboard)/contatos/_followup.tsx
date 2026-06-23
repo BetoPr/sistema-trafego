@@ -173,7 +173,7 @@ export function FollowUpAvulsoBloco({ contatoId, agendados, historico, temConver
           </div>
 
           {erro && <div style={aviso("#C97064")}><i className="ti ti-alert-triangle" /> {erro}</div>}
-          {ok && <div style={aviso("#10b981")}><i className="ti ti-circle-check" /> {ok}</div>}
+          {ok && <div style={aviso("#00E19A")}><i className="ti ti-circle-check" /> {ok}</div>}
         </div>
       )}
 
@@ -226,7 +226,7 @@ function CardFollowUp({ fua, onCancelar }: { fua: FollowUpAvulsoRow; onCancelar?
 function corStatus(s: FollowUpAvulsoRow["status"]) {
   return {
     agendado: "#3b82f6",
-    enviado: "#10b981",
+    enviado: "#00E19A",
     cancelado: "#94a3b8",
     respondido: "#f59e0b",
     falha: "#C97064",

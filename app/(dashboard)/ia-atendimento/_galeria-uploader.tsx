@@ -201,7 +201,7 @@ export default function GaleriaUploader({
         onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
         onDrop={handleDrop}
         style={{
-          border: `2px dashed ${dragOver ? "#10b981" : "var(--mk-border)"}`,
+          border: `2px dashed ${dragOver ? "#00E19A" : "var(--mk-border)"}`,
           borderRadius: 8,
           padding: 18,
           textAlign: "center",
@@ -219,8 +219,8 @@ export default function GaleriaUploader({
           style={{ display: "none" }}
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <i className={`ti ${dragOver ? "ti-photo-down" : "ti-cloud-upload"}`} style={{ fontSize: 26, color: dragOver ? "#10b981" : undefined, opacity: dragOver ? 1 : 0.6 }} />
-        <div style={{ fontSize: 12.5, marginTop: 6, fontWeight: dragOver ? 600 : 400, color: dragOver ? "#10b981" : "var(--mk-text-muted)" }}>
+        <i className={`ti ${dragOver ? "ti-photo-down" : "ti-cloud-upload"}`} style={{ fontSize: 26, color: dragOver ? "#00E19A" : undefined, opacity: dragOver ? 1 : 0.6 }} />
+        <div style={{ fontSize: 12.5, marginTop: 6, fontWeight: dragOver ? 600 : 400, color: dragOver ? "#00E19A" : "var(--mk-text-muted)" }}>
           {enviando ? "Enviando..." : dragOver ? "Solte aqui pra adicionar" : "Arraste uma ou VÁRIAS imagens aqui, ou clique pra selecionar"}
         </div>
         {!enviando && !dragOver && (
@@ -243,7 +243,7 @@ export default function GaleriaUploader({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontSize: 11, color: "var(--mk-text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
-            <i className="ti ti-list-numbers" style={{ color: "#10b981" }} />
+            <i className="ti ti-list-numbers" style={{ color: "#00E19A" }} />
             A IA envia <strong style={{ color: "var(--mk-text)" }}>nesta ordem</strong> (1ª = capa). Digite o número à direita de cada foto pra definir a posição de envio.
           </div>
           {imagens.map((im, idx) => (
@@ -263,7 +263,7 @@ export default function GaleriaUploader({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={im.signed_url} alt={im.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : null}
-                <span style={{ position: "absolute", top: 3, left: 3, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: idx === 0 ? "#10b981" : "rgba(0,0,0,0.7)", color: idx === 0 ? "#04140d" : "#fff", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                <span style={{ position: "absolute", top: 3, left: 3, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: idx === 0 ? "#00E19A" : "rgba(0,0,0,0.7)", color: idx === 0 ? "#04140d" : "#fff", display: "inline-flex", alignItems: "center", gap: 3 }}>
                   {idx === 0 && <i className="ti ti-star-filled" style={{ fontSize: 9 }} />}
                   {idx + 1}º{idx === 0 ? " · CAPA" : ""}
                 </span>

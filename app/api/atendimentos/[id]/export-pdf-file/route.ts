@@ -13,11 +13,11 @@ export const runtime = "nodejs";
 
 const s = StyleSheet.create({
   page: { padding: 32, fontSize: 10, fontFamily: "Helvetica", color: "#222" },
-  h1: { fontSize: 16, marginBottom: 4, color: "#222", borderBottomWidth: 2, borderBottomColor: "#10b981", paddingBottom: 4 },
+  h1: { fontSize: 16, marginBottom: 4, color: "#222", borderBottomWidth: 2, borderBottomColor: "#00E19A", paddingBottom: 4 },
   h2: { fontSize: 12, marginTop: 14, marginBottom: 6, color: "#555" },
   meta: { fontSize: 10, color: "#444", lineHeight: 1.5, marginTop: 6 },
   metaLabel: { color: "#111", fontFamily: "Helvetica-Bold" },
-  resumo: { backgroundColor: "#F1F7F4", borderLeftWidth: 3, borderLeftColor: "#10b981", padding: 8, fontSize: 10, marginTop: 4, lineHeight: 1.5 },
+  resumo: { backgroundColor: "#F1F7F4", borderLeftWidth: 3, borderLeftColor: "#00E19A", padding: 8, fontSize: 10, marginTop: 4, lineHeight: 1.5 },
   bubbleWrapL: { alignItems: "flex-start", marginVertical: 3 },
   bubbleWrapR: { alignItems: "flex-end", marginVertical: 3 },
   bubbleL: { maxWidth: "78%", backgroundColor: "#F2EFEA", padding: 7, borderRadius: 6 },

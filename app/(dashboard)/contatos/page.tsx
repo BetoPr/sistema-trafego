@@ -117,7 +117,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                   borderRadius: 999,
                   background: "rgba(16,185,129,0.12)",
                   border: "0.5px solid rgba(16,185,129,0.4)",
-                  color: "#10b981",
+                  color: "#00E19A",
                   fontWeight: 500,
                 }}
               >
@@ -232,7 +232,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <div style={{ display: "flex", gap: 18, flexWrap: "wrap", padding: "8px 12px", background: "rgba(16,185,129,0.10)", border: "0.5px solid rgba(16,185,129,0.4)", borderRadius: 8 }}>
-                      <Stat label="TOTAL" valor={BRL.format(fechEditando.total)} cor="#10b981" />
+                      <Stat label="TOTAL" valor={BRL.format(fechEditando.total)} cor="#00E19A" />
                       <Stat label="FECHAMENTOS" valor={String(fechEditando.fechamentos)} />
                       <Stat label="SERVIÇOS (QTD)" valor={String(fechEditando.quantidade)} />
                       {fechEditando.ultimo && <Stat label="ÚLTIMO" valor={new Date(fechEditando.ultimo).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} />}
@@ -240,7 +240,7 @@ export default async function ContatosPage({ searchParams }: PageProps) {
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {Array.from(fechEditando.servicos.entries()).map(([nome, s]) => (
                         <span key={nome} style={{ fontSize: 10.5, padding: "3px 9px", borderRadius: 10, background: "var(--mk-surface-2)", border: "0.5px solid var(--mk-border)", color: "var(--mk-text-secondary)" }}>
-                          {nome} × {s.qtd} · <strong style={{ color: "#10b981" }}>{BRL.format(s.valor)}</strong>
+                          {nome} × {s.qtd} · <strong style={{ color: "#00E19A" }}>{BRL.format(s.valor)}</strong>
                         </span>
                       ))}
                     </div>
@@ -297,7 +297,7 @@ function labelOk(k: string) { return ({ criado: "Contato criado.", atualizado: "
 function labelErr(k: string) { return ({ nome_vazio: "Nome obrigatório.", db: "Erro no banco." } as Record<string, string>)[k] || "Erro."; }
 
 function Banner({ tipo, children }: { tipo: "ok" | "erro"; children: React.ReactNode }) {
-  const cor = tipo === "ok" ? "#10b981" : "#C97064";
+  const cor = tipo === "ok" ? "#00E19A" : "#C97064";
   return <div style={{ background: tipo === "ok" ? "rgba(16,185,129,0.12)" : "rgba(201,112,100,0.12)", borderLeft: `3px solid ${cor}`, padding: "10px 14px", borderRadius: 8, fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 14 }}><i className={`ti ${tipo === "ok" ? "ti-circle-check" : "ti-alert-triangle"}`} style={{ marginRight: 8, color: cor }} />{children}</div>;
 }
 

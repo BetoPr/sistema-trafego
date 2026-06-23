@@ -164,7 +164,7 @@ export function TabelaAcessos({ usuarios }: Props) {
                     {u.deleted_at ? (
                       <form action={restaurarAcesso} style={{ display: "inline" }}>
                         <input type="hidden" name="id" value={u.id} />
-                        <button type="submit" className="ghost-btn acesso-icon-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, color: "#10b981", border: "0.5px solid #10b981", borderRadius: 8 }} title="Restaurar usuário">
+                        <button type="submit" className="ghost-btn acesso-icon-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, color: "#00E19A", border: "0.5px solid #00E19A", borderRadius: 8 }} title="Restaurar usuário">
                           <i className="ti ti-arrow-back-up" /> Restaurar
                         </button>
                       </form>
