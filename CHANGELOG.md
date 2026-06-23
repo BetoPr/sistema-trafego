@@ -7,6 +7,18 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **23:49** — **Alertas inteligentes: backend completo (gasto Meta Ads → WhatsApp).**
+  - Migration `alertas_meta` + `alertas_meta_disparos` com RLS por agência.
+  - `lib/alertas/meta-spend.ts`: busca gasto via Graph API (today/this_month).
+  - `lib/alertas/meta-worker.ts`: itera alertas ativos, compara contra limite, dispara WhatsApp via UAZAPI, registra disparo. Anti-spam 24h.
+  - `/api/cron/alertas-meta`: endpoint protegido por CRON_SECRET.
+  - pg_cron `alertas-meta-tick` (a cada hora, minuto 7) apontando pra https://sonarcrm.com.br.
+  - `pg_cron relatorios-tick` migrado de Vercel → sonarcrm.com.br.
+  - `_actions.ts`: criar / editar / toggle / deletar / testar agora.
+  - `_shell.tsx`: lista real com toggle, edit, deletar, testar; Balão Novo com form (nome, tipo, limite, conta Meta, cliente opcional, telefone destino, canal opcional, template msg com {{conta}}, {{gasto}}, {{limite}}, {{tipo}}).
+  - EmptyState quando não há integração Meta (CTA pra conectar).
+  - `page.tsx`: server-side carrega alertas + integrações + canais + clientes.
+
 - **23:01** — **Alertas: redesign UI mobile/desktop (cards 1col, head rico, alerta destacado, Balão Novo).**
   - `app/(dashboard)/alertas/page.tsx` agora delega pra `_shell.tsx` (client component).
   - `_shell.tsx`: head com ícone bell + contador "N ativos · X disparados hoje" + botão Novo (Balão).
