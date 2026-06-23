@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Balao } from "@/components/ui/Balao";
-import { criarEtiqueta } from "./_actions";
+import { criarEtiqueta, vincularCampanhasEtiqueta } from "./_actions";
 
 interface Etiqueta {
   id: string;
@@ -13,17 +13,32 @@ interface Etiqueta {
   ativo: boolean;
 }
 
+interface Campanha {
+  id: string;
+  nome: string;
+  status: string | null;
+}
+
 const PALETA = [
   "#00E19A", "#14b8a6", "#06b6d4", "#3b82f6", "#8b5cf6",
   "#ec4899", "#f43f5e", "#f59e0b", "#84cc16", "#64748b",
 ];
 
-export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
+export function EtiquetasManager({
+  inicial,
+  campanhas,
+  vinculos,
+}: {
+  inicial: Etiqueta[];
+  campanhas: Campanha[];
+  vinculos: Record<string, string[]>;
+}) {
   const [lista, setLista] = useState<Etiqueta[]>(inicial);
   const [nome, setNome] = useState("");
   const [cor, setCor] = useState(PALETA[0]);
   const [criando, setCriando] = useState(false);
   const [editando, setEditando] = useState<Etiqueta | null>(null);
+  const [vincState, setVincState] = useState<Record<string, string[]>>(vinculos);
 
   async function adicionar() {
     const n = nome.trim();
@@ -88,32 +103,61 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
           <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: "16px 0", textAlign: "center" }}>Nenhuma etiqueta criada ainda.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {lista.map((e) => (
-              <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderBottom: "0.5px solid var(--mk-border)", opacity: e.ativo ? 1 : 0.5 }}>
-                <Badge nome={e.nome} cor={e.cor} />
-                {e.palavra_gatilho && (
-                  <span title={`Gatilho: ${e.palavra_gatilho}`} style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "inline-flex", alignItems: "center", gap: 3 }}>
-                    <i className="ti ti-bolt" /> {e.palavra_gatilho}
-                  </span>
-                )}
-                {!e.ativo && <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "1px 6px" }}>inativo</span>}
-                <div style={{ flex: 1 }} />
-                <button onClick={() => setEditando(e)} title="Editar" style={iconBtn}><i className="ti ti-pencil" /></button>
-                <button onClick={() => excluir(e)} title="Excluir" style={{ ...iconBtn, color: "#f43f5e" }}><i className="ti ti-trash" /></button>
-              </div>
-            ))}
+            {lista.map((e) => {
+              const nCamps = (vincState[e.id] || []).length;
+              return (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderBottom: "0.5px solid var(--mk-border)", opacity: e.ativo ? 1 : 0.5 }}>
+                  <Badge nome={e.nome} cor={e.cor} />
+                  {e.palavra_gatilho && (
+                    <span title={`Gatilho: ${e.palavra_gatilho}`} style={{ fontSize: 10, color: "var(--mk-text-muted)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <i className="ti ti-bolt" /> {e.palavra_gatilho}
+                    </span>
+                  )}
+                  {nCamps > 0 && (
+                    <span title={`${nCamps} campanha${nCamps > 1 ? "s" : ""} vinculada${nCamps > 1 ? "s" : ""}`} style={{ fontSize: 10, color: "var(--mk-accent-2)", display: "inline-flex", alignItems: "center", gap: 3, border: ".5px solid rgba(0,225,154,.32)", background: "rgba(0,225,154,.10)", borderRadius: 6, padding: "1px 6px", fontWeight: 600 }}>
+                      <i className="ti ti-speakerphone" /> {nCamps}
+                    </span>
+                  )}
+                  {!e.ativo && <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "1px 6px" }}>inativo</span>}
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => setEditando(e)} title="Editar" style={iconBtn}><i className="ti ti-pencil" /></button>
+                  <button onClick={() => excluir(e)} title="Excluir" style={{ ...iconBtn, color: "#f43f5e" }}><i className="ti ti-trash" /></button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {editando && (
-        <EditarBalao etiqueta={editando} onClose={() => setEditando(null)} onSalvo={aposSalvar} />
+        <EditarBalao
+          etiqueta={editando}
+          campanhas={campanhas}
+          campanhasVinculadasIniciais={vincState[editando.id] || []}
+          onClose={() => setEditando(null)}
+          onSalvo={aposSalvar}
+          onCampanhasSalvas={(ids) => setVincState((m) => ({ ...m, [editando.id]: ids }))}
+        />
       )}
     </div>
   );
 }
 
-function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClose: () => void; onSalvo: (e: Etiqueta) => void }) {
+function EditarBalao({
+  etiqueta,
+  campanhas,
+  campanhasVinculadasIniciais,
+  onClose,
+  onSalvo,
+  onCampanhasSalvas,
+}: {
+  etiqueta: Etiqueta;
+  campanhas: Campanha[];
+  campanhasVinculadasIniciais: string[];
+  onClose: () => void;
+  onSalvo: (e: Etiqueta) => void;
+  onCampanhasSalvas: (ids: string[]) => void;
+}) {
   const [nome, setNome] = useState(etiqueta.nome);
   const [cor, setCor] = useState(etiqueta.cor);
   const [gatilhos, setGatilhos] = useState<string[]>(() => {
@@ -123,10 +167,28 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
   const [ativo, setAtivo] = useState(etiqueta.ativo);
   const [mensagemResposta, setMensagemResposta] = useState(etiqueta.mensagem_resposta ?? "");
   const [salvando, setSalvando] = useState(false);
+  const [campIds, setCampIds] = useState<Set<string>>(new Set(campanhasVinculadasIniciais));
+  const [buscaCamp, setBuscaCamp] = useState("");
+  const [, startTransition] = useTransition();
 
   const setGatilho = (i: number, v: string) => setGatilhos((g) => g.map((x, j) => (j === i ? v : x)));
   const addGatilho = () => setGatilhos((g) => [...g, ""]);
   const rmGatilho = (i: number) => setGatilhos((g) => (g.length <= 1 ? [""] : g.filter((_, j) => j !== i)));
+
+  const campsFiltradas = useMemo(() => {
+    const q = buscaCamp.trim().toLowerCase();
+    if (!q) return campanhas;
+    return campanhas.filter((c) => c.nome.toLowerCase().includes(q));
+  }, [campanhas, buscaCamp]);
+
+  function toggleCamp(id: string) {
+    setCampIds((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
 
   async function salvar() {
     if (!nome.trim()) { alert("Nome obrigatório."); return; }
@@ -143,6 +205,18 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
         const j = await r.json().catch(() => ({}));
         alert(`Falha: ${j.error || r.statusText}`);
         return;
+      }
+      const ids = Array.from(campIds);
+      // grava vínculos campanha (só se mudou — comparação por set)
+      const iguais =
+        ids.length === campanhasVinculadasIniciais.length &&
+        ids.every((x) => campanhasVinculadasIniciais.includes(x));
+      if (!iguais) {
+        startTransition(async () => {
+          const rv = await vincularCampanhasEtiqueta(etiqueta.id, ids);
+          if (rv.ok) onCampanhasSalvas(ids);
+          else alert(`Vínculo campanhas: ${rv.msg || "falhou"}`);
+        });
       }
       onSalvo({ ...etiqueta, nome: nome.trim(), cor, palavra_gatilho: gatilhoStr, mensagem_resposta: respostaTrim, ativo });
     } finally {
@@ -213,6 +287,79 @@ function EditarBalao({ etiqueta, onClose, onSalvo }: { etiqueta: Etiqueta; onClo
           <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6, lineHeight: 1.5 }}>
             Dispara <strong>uma única vez</strong> por contato — só quando a etiqueta é aplicada pela 1ª vez via gatilho. Não é enviada se você marcar a etiqueta manualmente.
           </div>
+        </div>
+
+        <div style={{ height: 0.5, background: "var(--mk-border)" }} />
+
+        <div>
+          <label style={lbl}>
+            Campanhas vinculadas <span style={{ color: "var(--mk-accent-2)", fontWeight: 700 }}>(auto-etiquetagem)</span>
+          </label>
+          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginBottom: 8, lineHeight: 1.5 }}>
+            Quando um lead chegar pela 1ª vez vindo de QUALQUER uma dessas campanhas (click-id do anúncio), recebe esta etiqueta automaticamente. Útil pra saber qual campanha trouxe a venda depois.
+          </div>
+          {campanhas.length === 0 ? (
+            <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: 10, border: "1px dashed var(--mk-border)", borderRadius: 8, textAlign: "center" }}>
+              Nenhuma campanha sincronizada ainda. Conecte Meta Ads em <strong>Integrações</strong> e rode uma sincronização.
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                value={buscaCamp}
+                onChange={(e) => setBuscaCamp(e.target.value)}
+                placeholder="Filtrar campanhas…"
+                style={{ ...inp, marginBottom: 8 }}
+              />
+              <div
+                style={{
+                  maxHeight: 200,
+                  overflowY: "auto",
+                  border: "0.5px solid var(--mk-border)",
+                  borderRadius: 8,
+                  padding: 6,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  background: "var(--mk-bg-deep)",
+                }}
+              >
+                {campsFiltradas.length === 0 ? (
+                  <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: 8, textAlign: "center" }}>
+                    Nenhuma campanha bate com o filtro.
+                  </div>
+                ) : (
+                  campsFiltradas.map((c) => {
+                    const checked = campIds.has(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "5px 8px",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          background: checked ? "rgba(0,225,154,0.10)" : "transparent",
+                          fontSize: 12,
+                        }}
+                      >
+                        <input type="checkbox" checked={checked} onChange={() => toggleCamp(c.id)} />
+                        <span style={{ flex: 1 }}>{c.nome}</span>
+                        {c.status && c.status !== "ACTIVE" && (
+                          <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)" }}>{c.status.toLowerCase()}</span>
+                        )}
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
+                {campIds.size} campanha{campIds.size !== 1 ? "s" : ""} vinculada{campIds.size !== 1 ? "s" : ""}.
+              </div>
+            </>
+          )}
         </div>
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer" }}>

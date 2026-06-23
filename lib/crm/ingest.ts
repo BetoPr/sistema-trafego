@@ -224,6 +224,22 @@ export async function ingestMensagem(
     })();
   }
 
+  // 3a-ter. Auto-etiquetar por campanha — quando msg vem de anúncio (CTWA).
+  // Sempre roda; nao depende de pixel_ativo. Idempotente por unique constraint.
+  if (autor === "cliente" && m.adReferral) {
+    const sourceId = (m.adReferral as { sourceId?: string | null }).sourceId ?? null;
+    if (sourceId) {
+      void (async () => {
+        try {
+          const { aplicarEtiquetasDeCampanha } = await import("@/lib/crm/auto-etiquetar-campanha");
+          await aplicarEtiquetasDeCampanha({ sb, agenciaId: ctx.agenciaId, contatoId, sourceId });
+        } catch (e) {
+          console.error("[ingest] auto-etiquetar campanha falhou:", e instanceof Error ? e.message : String(e));
+        }
+      })();
+    }
+  }
+
   // 3b. Etiquetas por palavra-chave gatilho — só em mensagem recebida do cliente.
   // Se a palavra configurada aparece no texto, aplica a etiqueta no contato.
   // Quando aplica pela 1ª vez E a etiqueta tem mensagem_resposta, dispara

@@ -7,6 +7,15 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **11:05** — **E1+E2: Etiqueta ↔ Campanha (vínculo manual + auto-etiquetagem no ingest).**
+  - Migration `etiqueta_campanhas` (N:M etiqueta↔campanha Meta) com RLS por agência.
+  - `lib/crm/auto-etiquetar-campanha.ts`: resolve `ad_referral.sourceId` → campanha → etiquetas vinculadas → aplica em `contato_etiquetas` (idempotente).
+  - `lib/crm/ingest.ts`: hook fire-and-forget que dispara auto-etiquetagem na 1ª mensagem com click-id de anúncio (independente do master switch do Pixel).
+  - `app/(dashboard)/configuracoes/etiquetas/_actions.ts`: nova action `vincularCampanhasEtiqueta(etiquetaId, campanhaIds)`.
+  - `_client.tsx`: dentro do Balão Editar etiqueta, novo bloco "Campanhas vinculadas" com filtro + multi-select. Lista de etiquetas mostra badge "🔊 N" indicando quantas campanhas vinculadas.
+  - `page.tsx`: server-side puxa campanhas + mapa de vínculos em paralelo (1 query a mais).
+  - Estado preservado: UI mantém vínculos em estado local após salvar pra evitar refetch.
+
 - **10:25** — **Pixel & Vendas D1: Lead/ICP/Venda + master switch + remoção de Desempenho/Alarmes.**
   - `capi-palavras.ts`: schema novo (`pixel_ativo` + `lead_ativo` + `icp_ativo` + `icp_palavras`).
     Lê com fallback dos campos antigos `addtocart_*` (zero-downtime). Default da lista de palavras = vazio (deixa de ser nichado em fotografia).
