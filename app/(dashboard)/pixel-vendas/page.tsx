@@ -1,6 +1,7 @@
 import { requireSuperAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { PixelVendasClient } from "./_client";
+import Atribuicoes, { type CampanhaNode, type EtiquetaOpt } from "./_atribuicoes";
 
 export const dynamic = "force-dynamic";
 
@@ -277,7 +278,79 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     saude.tokenExpirado.length === 0 &&
     saude.eventosErro === 0;
 
+  // ----- Atribuições etiqueta x campanha/conjunto -----
+  const [etiquetasQ, allCampQ, allConjQ, vcQ, vcjQ] = await Promise.all([
+    sb
+      .from("etiquetas")
+      .select("id, nome, cor, categoria, ativo")
+      .eq("agencia_id", ctx.agenciaId)
+      .eq("ativo", true)
+      .order("nome"),
+    sb
+      .from("campanhas")
+      .select("id, nome, status, cliente_id, clientes(nome)")
+      .eq("agencia_id", ctx.agenciaId)
+      .order("nome"),
+    sb
+      .from("conjuntos")
+      .select("id, nome, status, campanha_id")
+      .eq("agencia_id", ctx.agenciaId)
+      .order("nome"),
+    sb
+      .from("etiqueta_campanhas")
+      .select("etiqueta_id, campanha_id")
+      .eq("agencia_id", ctx.agenciaId),
+    sb
+      .from("etiqueta_conjuntos")
+      .select("etiqueta_id, conjunto_id")
+      .eq("agencia_id", ctx.agenciaId),
+  ]);
+
+  const etiquetasOpts: EtiquetaOpt[] = (etiquetasQ.data || [])
+    .filter((e) => (e.categoria || "etiqueta") === "etiqueta")
+    .map((e) => ({ id: e.id as string, nome: e.nome as string, cor: (e.cor as string) || "#00E19A" }));
+
+  const vincCamp = new Map<string, string[]>();
+  for (const v of vcQ.data || []) {
+    const cid = v.campanha_id as string;
+    const arr = vincCamp.get(cid) || [];
+    arr.push(v.etiqueta_id as string);
+    vincCamp.set(cid, arr);
+  }
+  const vincConj = new Map<string, string[]>();
+  for (const v of vcjQ.data || []) {
+    const cid = v.conjunto_id as string;
+    const arr = vincConj.get(cid) || [];
+    arr.push(v.etiqueta_id as string);
+    vincConj.set(cid, arr);
+  }
+
+  const conjPorCampPlain = new Map<string, { id: string; nome: string; status: string | null }[]>();
+  for (const cj of allConjQ.data || []) {
+    const cid = cj.campanha_id as string;
+    const arr = conjPorCampPlain.get(cid) || [];
+    arr.push({ id: cj.id as string, nome: (cj.nome as string) || "(sem nome)", status: (cj.status as string | null) ?? null });
+    conjPorCampPlain.set(cid, arr);
+  }
+
+  const campanhasNodes: CampanhaNode[] = (allCampQ.data || []).map((c) => {
+    const conjs = (conjPorCampPlain.get(c.id as string) || []).map((cj) => ({
+      ...cj,
+      etiqueta_ids: vincConj.get(cj.id) || [],
+    }));
+    const clienteNome = (c as { clientes?: { nome?: string } | null }).clientes?.nome ?? null;
+    return {
+      id: c.id as string,
+      nome: (c.nome as string) || "(sem nome)",
+      status: (c.status as string | null) ?? null,
+      cliente_nome: clienteNome,
+      etiqueta_ids: vincCamp.get(c.id as string) || [],
+      conjuntos: conjs,
+    };
+  });
+
   return (
+    <>
     <PixelVendasClient
       periodo={periodo}
       clienteFiltro={params.cliente || ""}
@@ -288,5 +361,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       onboarding={onboarding}
       eventosConfig={eventosConfig}
     />
+    <div className="mk-page" style={{ paddingTop: 0 }}>
+      <Atribuicoes campanhas={campanhasNodes} etiquetas={etiquetasOpts} />
+    </div>
+    </>
   );
 }

@@ -7,6 +7,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **11:45** — **Etiqueta↔Campanha/Conjunto: refatoração de UI + fix bug + suporte conjuntos.**
+  - Fix bug: query de campanhas em /configuracoes/etiquetas tentava `select plataforma_id` (não existe). Schema real: `plataforma` text. Por isso "Nenhuma campanha sincronizada" mesmo com 7 campanhas no DB.
+  - Migration `etiqueta_conjuntos` (N:M etiqueta ↔ conjunto Meta) com RLS — granularidade fina.
+  - `lib/crm/auto-etiquetar-campanha.ts`: agora resolve `ad_id → conjunto + campanha`, junta etiquetas vinculadas em ambas tabelas e aplica.
+  - **UI movida pra /pixel-vendas**: novo componente `_atribuicoes.tsx` (tabela expandível campanha → conjuntos, dropdown de etiquetas multi-select por linha).
+  - `_atribuicoes-actions.ts`: `salvarEtiquetasDoAlvo(alvo: 'campanha'|'conjunto', alvoId, etiquetaIds)` — replace atômico.
+  - `/configuracoes/etiquetas`: Balão Editar voltou a ser apenas CRUD de etiqueta (sem vínculo de campanha).
+
 - **11:05** — **E1+E2: Etiqueta ↔ Campanha (vínculo manual + auto-etiquetagem no ingest).**
   - Migration `etiqueta_campanhas` (N:M etiqueta↔campanha Meta) com RLS por agência.
   - `lib/crm/auto-etiquetar-campanha.ts`: resolve `ad_referral.sourceId` → campanha → etiquetas vinculadas → aplica em `contato_etiquetas` (idempotente).
