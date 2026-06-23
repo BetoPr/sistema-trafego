@@ -7,6 +7,15 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-22
 
+- **23:01** — **Alertas: redesign UI mobile/desktop (cards 1col, head rico, alerta destacado, Balão Novo).**
+  - `app/(dashboard)/alertas/page.tsx` agora delega pra `_shell.tsx` (client component).
+  - `_shell.tsx`: head com ícone bell + contador "N ativos · X disparados hoje" + botão Novo (Balão).
+  - EmptyState polido com CTA "Criar primeiro alerta".
+  - Card destacado quando há alerta disparado (saldo baixo etc.) com gradient verde + ações Reabastecer/Detalhes.
+  - Lista cards-1col com toggle ativo/inativo + badge plataforma (Meta/Google) + msg preview.
+  - Balão Novo mostra 4 tipos: Saldo baixo, Queda ROAS, CPL alto, Fadiga criativo.
+  - Backend (cron Meta Ads + sender WhatsApp) entra na próxima onda — UI ja preparada.
+
 - **22:31** — **Brand Sonar oficial: hexágono + S verde + accent #00E19A.**
   - `SonarLogo.tsx` reescrito: símbolo hexágono outline + letra S italic bold + bolhinhas decorativas verde `#00E19A`.
   - Wordmark `so` branco · `nar.` verde mantido.

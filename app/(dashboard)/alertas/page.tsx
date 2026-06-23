@@ -1,6 +1,6 @@
 import { NeedsPlatform } from "@/components/shared/NeedsPlatform";
 import { PlatformContextBadge } from "@/components/shared/PlatformContextBadge";
-import { EmptyState } from "@/components/shared/EmptyState";
+import AlertasShell from "./_shell";
 
 export default function AlertasPage() {
   return (
@@ -8,20 +8,16 @@ export default function AlertasPage() {
       <div className="mk-page-head">
         <div className="mk-eyebrow">Monitoramento</div>
         <h1 className="mk-page-title">
-          Alertas automáticos
+          Alertas inteligentes
           <PlatformContextBadge />
         </h1>
-        <p className="mk-page-sub">Identifique problemas antes de perder dinheiro.</p>
+        <p className="mk-page-sub">
+          Configure regras (saldo, ROAS, CPL, fadiga) e receba aviso no WhatsApp antes de perder dinheiro.
+        </p>
       </div>
 
       <NeedsPlatform contexto="de alertas">
-        <EmptyState
-          icon="ti-bell-ringing"
-          iconColor="#C97064"
-          iconBg="rgba(201, 112, 100, 0.15)"
-          titulo="Nenhum alerta disparado"
-          descricao="Quando uma campanha sair do padrão (CPL alto, ROAS baixo, fadiga), o alerta aparece aqui."
-        />
+        <AlertasShell />
       </NeedsPlatform>
     </section>
   );
