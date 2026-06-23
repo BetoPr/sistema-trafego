@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
 import { inscreverPorEtiqueta } from "@/lib/crm/follow-up";
+import { aplicarEtiquetasComMaes } from "@/lib/crm/aplicar-etiqueta";
 
 export const runtime = "nodejs";
 
@@ -61,12 +62,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  const { error } = await ctx.svc
-    .from("contato_etiquetas")
-    .insert({ contato_id: contatoId, etiqueta_id: etiquetaId! });
-  if (error && !error.message.includes("duplicate")) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  // Aplica etiqueta + Pasta-mãe (se for filha). Idempotente.
+  await aplicarEtiquetasComMaes(ctx.svc, ctx.agenciaId, contatoId, [etiquetaId!]);
 
   void audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "contato_etiqueta", entidadeId: contatoId, payload: { etiquetaId } });
 

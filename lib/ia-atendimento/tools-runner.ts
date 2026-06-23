@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolverReferenciaTemporal } from "./contexto-temporal";
 import { carregarGaleria, gerarSignedUrlGaleria, escolherImagens, formatCatalogoParaIA } from "./galeria";
 import { downloadAndUpload } from "@/lib/crm/storage";
+import { aplicarEtiquetasComMaes } from "@/lib/crm/aplicar-etiqueta";
 
 export interface ToolDef {
   name: string;
@@ -255,10 +256,7 @@ export async function executarTool(
 
       if (etiquetaId) {
         try {
-          await ctx.sb.from("contato_etiquetas").upsert(
-            { contato_id: ctx.contatoId, etiqueta_id: etiquetaId },
-            { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true },
-          );
+          await aplicarEtiquetasComMaes(ctx.sb, ctx.agenciaId, ctx.contatoId, [etiquetaId]);
         } catch { /* contato_etiquetas opcional */ }
       }
 
@@ -341,9 +339,7 @@ export async function executarTool(
       }
 
       if (etiquetaId) {
-        await ctx.sb
-          .from("contato_etiquetas")
-          .upsert({ contato_id: ctx.contatoId, etiqueta_id: etiquetaId }, { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true });
+        await aplicarEtiquetasComMaes(ctx.sb, ctx.agenciaId, ctx.contatoId, [etiquetaId]);
       } else {
         return { ok: false, resultado: "nao foi possivel resolver etiqueta_id" };
       }
@@ -511,10 +507,7 @@ export async function executarTool(
 
       if (etiquetaId) {
         try {
-          await ctx.sb.from("contato_etiquetas").upsert(
-            { contato_id: ctx.contatoId, etiqueta_id: etiquetaId },
-            { onConflict: "contato_id,etiqueta_id", ignoreDuplicates: true },
-          );
+          await aplicarEtiquetasComMaes(ctx.sb, ctx.agenciaId, ctx.contatoId, [etiquetaId]);
         } catch { /* opcional */ }
       }
 
