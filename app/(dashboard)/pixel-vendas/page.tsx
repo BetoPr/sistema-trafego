@@ -50,19 +50,11 @@ export interface ClientePixel {
   pixel_id: string | null;
   pixel_nome: string | null;
 }
-export interface Alarme {
-  tipo: "roas_caiu" | "campanha_sem_venda" | "sem_vendas" | "match_baixo";
-  titulo: string;
-  descricao: string;
-  severidade: "warn" | "danger";
-}
-
 export interface Saude {
   tokenExpirando: { cliente_nome: string; dias: number }[];
   tokenExpirado: { cliente_nome: string }[];
   eventosErro: number;
   eventosSemAtribuicao: number;
-  alarmes: Alarme[];
   tudoOk: boolean;
 }
 
@@ -251,83 +243,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const { getCapiConfig } = await import("@/lib/crm/capi-palavras");
   const eventosConfig = await getCapiConfig(ctx.agenciaId);
 
-  // Alarmes — compara período atual vs período anterior (mesma duração imediatamente antes).
-  const anteriorDe = new Date(desdeDate.getTime() - dias * 24 * 3600 * 1000);
-  const anteriorAte = desdeDate;
-  const anteriorIso = anteriorDe.toISOString();
-  const anteriorData = anteriorIso.slice(0, 10);
-  const desdeDataExclusive = desdeDate.toISOString().slice(0, 10);
-
-  let mqAnt = sb
-    .from("metricas_diarias")
-    .select("gasto, cliente_id, campanha_id")
-    .eq("agencia_id", ctx.agenciaId)
-    .gte("data", anteriorData)
-    .lt("data", desdeDataExclusive);
-  if (params.cliente) mqAnt = mqAnt.eq("cliente_id", params.cliente);
-  const { data: metricasAnt } = await mqAnt;
-
-  let evAnt = sb
-    .from("capi_eventos")
-    .select("valor, status")
-    .eq("agencia_id", ctx.agenciaId)
-    .eq("event_name", "Purchase")
-    .gte("created_at", anteriorIso)
-    .lt("created_at", desdeISO);
-  if (params.cliente) evAnt = evAnt.eq("cliente_id", params.cliente);
-  const { data: eventosAnt } = await evAnt;
-
-  const gastoAnt = (metricasAnt || []).reduce((s, m) => s + Number(m.gasto || 0), 0);
-  const brutoAnt = (eventosAnt || [])
-    .filter((e) => e.status === "enviado" || e.status === "pendente")
-    .reduce((s, e) => s + Number(e.valor || 0), 0);
-  const roasAtual = kpis.roas;
-  const roasAnt = gastoAnt > 0 ? brutoAnt / gastoAnt : null;
-
-  const alarmes: Alarme[] = [];
-  // ROAS caiu >30% vs anterior (e tinha valor antes)
-  if (roasAnt != null && roasAnt > 0 && roasAtual != null) {
-    const queda = (roasAnt - roasAtual) / roasAnt;
-    if (queda >= 0.3) {
-      alarmes.push({
-        tipo: "roas_caiu",
-        titulo: `ROAS caiu ${Math.round(queda * 100)}% vs período anterior`,
-        descricao: `Antes ${roasAnt.toFixed(2).replace(".", ",")}x · Agora ${roasAtual.toFixed(2).replace(".", ",")}x. Conferir criativo/segmentação das campanhas que mais gastam.`,
-        severidade: queda >= 0.5 ? "danger" : "warn",
-      });
-    }
-  }
-  // Conta com gasto no período mas zero Purchase enviado
-  if (kpis.gasto > 0 && kpis.vendas === 0) {
-    alarmes.push({
-      tipo: "sem_vendas",
-      titulo: "Período sem vendas registradas",
-      descricao: `Gastou ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(kpis.gasto)} sem nenhuma venda fechada. Verificar se Fechamentos estão sendo registrados e se Pixel está conectado.`,
-      severidade: "danger",
-    });
-  }
-  // Campanha individual que gastou >20% do total sem vender
-  for (const linha of linhas) {
-    if (linha.gasto > 0 && linha.vendas === 0 && kpis.gasto > 0 && linha.gasto / kpis.gasto >= 0.2) {
-      alarmes.push({
-        tipo: "campanha_sem_venda",
-        titulo: `Campanha "${linha.nome}" gastou sem vender`,
-        descricao: `${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(linha.gasto)} gastos sem venda atribuída (${Math.round((linha.gasto / kpis.gasto) * 100)}% do total). Avaliar pausa ou ajuste.`,
-        severidade: "warn",
-      });
-    }
-  }
-  // Match de click-id baixo (<50% das vendas têm clid)
-  if (kpis.vendas >= 5 && kpis.matchClid < 50) {
-    alarmes.push({
-      tipo: "match_baixo",
-      titulo: `Apenas ${kpis.matchClid}% das vendas têm click-id`,
-      descricao: "Maioria das vendas não atribui à campanha. Pode ser bug no parser CTWA ou base com muitos contatos orgânicos. Investigar 'Por quê?' em eventos sem atribuição.",
-      severidade: "warn",
-    });
-  }
-
-  // Banner de saúde (só token + eventos com erro — pixel pendente vai pro Onboarding)
+  // Banner de saúde (só token + eventos com erro — alarmes movidos pra aba Alertas)
   const agora = Date.now();
   const saude: Saude = {
     tokenExpirando: (integs || [])
@@ -354,21 +270,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       })),
     eventosErro: (eventos || []).filter((e) => e.status === "erro").length,
     eventosSemAtribuicao: (eventos || []).filter((e) => e.status === "sem_atribuicao").length,
-    alarmes,
     tudoOk: false,
   };
   saude.tudoOk =
     saude.tokenExpirando.length === 0 &&
     saude.tokenExpirado.length === 0 &&
-    saude.eventosErro === 0 &&
-    saude.alarmes.length === 0;
+    saude.eventosErro === 0;
 
   return (
     <PixelVendasClient
       periodo={periodo}
       clienteFiltro={params.cliente || ""}
       kpis={kpis}
-      linhas={linhas}
       feed={feed}
       clientesPixel={clientesPixel}
       saude={saude}

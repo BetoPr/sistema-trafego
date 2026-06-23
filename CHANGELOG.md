@@ -7,6 +7,19 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **10:25** — **Pixel & Vendas D1: Lead/ICP/Venda + master switch + remoção de Desempenho/Alarmes.**
+  - `capi-palavras.ts`: schema novo (`pixel_ativo` + `lead_ativo` + `icp_ativo` + `icp_palavras`).
+    Lê com fallback dos campos antigos `addtocart_*` (zero-downtime). Default da lista de palavras = vazio (deixa de ser nichado em fotografia).
+  - `lib/crm/ingest.ts`: respeita master switch — quando `pixel_ativo=false` nenhum evento sai.
+  - `_eventos-actions.ts`: aceita os 4 campos novos.
+  - `_client.tsx`:
+    - Removida seção "Desempenho por campanha" (mesma info no Dashboard, era redundante).
+    - Removido bloco "Alarmes" do banner de saúde (a aba **Alertas** assume).
+    - Removido componente `FragmentLinha` e busca de campanha.
+    - `CardEventosAutomaticos` reescrito: toggle master "Pixel ativado" + Lead + **ICP** (renomeado de AddToCart, palavras-chave configuráveis) + linha informativa "Venda" (automática via Fechamento).
+    - Quando Pixel off, os 3 toggles abaixo ficam dim + desabilitados.
+  - `page.tsx`: removido cálculo de alarmes (ROAS caiu / sem vendas / match baixo / campanha sem venda). Simplificou interface `Saude`.
+
 - **09:50** — **Mídia: imagens vão pro bucket Supabase (substitui ImgBB rate-limitado).**
   - ImgBB começou a retornar `400 Rate limit reached` -> imagens dos clientes paravam de baixar.
   - `lib/crm/midia-download.ts`: imagem agora segue o mesmo fluxo de audio/video/documento (bucket `crm-media` via `uploadMedia`). UI já resolve path via signed URL.

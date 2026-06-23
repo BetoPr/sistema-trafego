@@ -208,12 +208,14 @@ export async function ingestMensagem(
         const { enfileirarLead, enfileirarAddToCart } = await import("@/lib/crm/capi-eventos");
         const { getCapiConfig, matchPalavraChave } = await import("@/lib/crm/capi-palavras");
         const cfg = await getCapiConfig(ctx.agenciaId);
+        // master switch — quando Pixel desligado, nenhum evento sai.
+        if (!cfg.pixel_ativo) return;
         // Lead: sempre tenta — a propria fn faz dedup por contato e ignora se nao tem ctwa_clid.
         if (cfg.lead_ativo) {
           await enfileirarLead({ agenciaId: ctx.agenciaId, contatoId });
         }
-        // AddToCart: so se palavra-chave bater.
-        if (cfg.addtocart_ativo && matchPalavraChave(m.conteudo!, cfg.addtocart_palavras)) {
+        // ICP (Meta AddToCart): so se palavra-chave bater.
+        if (cfg.icp_ativo && cfg.icp_palavras.length > 0 && matchPalavraChave(m.conteudo!, cfg.icp_palavras)) {
           await enfileirarAddToCart({ agenciaId: ctx.agenciaId, ticketId, contatoId });
         }
       } catch (e) {

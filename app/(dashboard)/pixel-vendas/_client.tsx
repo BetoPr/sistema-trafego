@@ -1,15 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Balao } from "@/components/ui/Balao";
-import type { LinhaCampanha, EventoRow, ClientePixel, Saude, Onboarding } from "./page";
+import type { EventoRow, ClientePixel, Saude, Onboarding } from "./page";
 import { salvarConfigEventos } from "./_eventos-actions";
 
 interface EventosConfigShape {
-  addtocart_ativo: boolean;
-  addtocart_palavras: string[];
+  pixel_ativo: boolean;
   lead_ativo: boolean;
+  icp_ativo: boolean;
+  icp_palavras: string[];
 }
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -32,13 +33,11 @@ const inp: React.CSSProperties = {
 interface Kpis { gasto: number; bruto: number; liquido: number; roas: number | null; matchClid: number; vendas: number }
 
 export function PixelVendasClient({
-  periodo, clienteFiltro, kpis, linhas, feed, clientesPixel, saude, onboarding, eventosConfig,
+  periodo, clienteFiltro, kpis, feed, clientesPixel, saude, onboarding, eventosConfig,
 }: {
-  periodo: string; clienteFiltro: string; kpis: Kpis; linhas: LinhaCampanha[]; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude; onboarding: Onboarding; eventosConfig: EventosConfigShape;
+  periodo: string; clienteFiltro: string; kpis: Kpis; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude; onboarding: Onboarding; eventosConfig: EventosConfigShape;
 }) {
   const router = useRouter();
-  const [busca, setBusca] = useState("");
-  const [aberta, setAberta] = useState<Record<string, boolean>>({});
   const [diagEvento, setDiagEvento] = useState<EventoRow | null>(null);
 
   const ir = (p: { periodo?: string; cliente?: string }) => {
@@ -48,11 +47,6 @@ export function PixelVendasClient({
     if (cli) q.set("cliente", cli);
     router.push(`/pixel-vendas?${q.toString()}`);
   };
-
-  const linhasFiltradas = useMemo(
-    () => linhas.filter((l) => l.nome.toLowerCase().includes(busca.trim().toLowerCase())),
-    [linhas, busca],
-  );
 
   const roasTxt = (r: number | null) => (r == null ? "—" : `${r.toFixed(2).replace(".", ",")}x`);
 
@@ -69,7 +63,6 @@ export function PixelVendasClient({
           Pixel &amp; Vendas
         </h1>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input placeholder="Pesquisar campanha…" value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...inp, minWidth: 200 }} />
           <select value={clienteFiltro} onChange={(e) => ir({ cliente: e.target.value })} style={inp}>
             <option value="">Todos os clientes</option>
             {clientesPixel.map((c) => <option key={c.cliente_id} value={c.cliente_id}>{c.cliente_nome}</option>)}
@@ -88,26 +81,6 @@ export function PixelVendasClient({
         <Kpi titulo="Faturamento bruto" valor={BRL.format(kpis.bruto)} sub={`${kpis.vendas} vendas atribuídas`} />
         <Kpi titulo="Faturamento líquido" valor={BRL.format(kpis.liquido)} sub="bruto − gasto" cor="var(--mk-accent)" destaque />
         <Kpi titulo="ROAS" valor={roasTxt(kpis.roas)} sub={`match de click-id: ${kpis.matchClid}%`} />
-      </div>
-
-      <div className="mk-card" style={{ padding: 0, marginBottom: 16, overflow: "hidden" }}>
-        <div style={{ padding: "12px 14px", fontWeight: 600, borderBottom: "1px solid var(--mk-border)" }}>Desempenho por campanha</div>
-        <table className="mk-table mk-table-card" style={{ width: "100%" }}>
-          <thead>
-            <tr><th>Campanha / Conjunto</th><th>Gasto</th><th>Bruto</th><th>Líquido</th><th>ROAS</th><th>Vendas</th></tr>
-          </thead>
-          <tbody>
-            {linhasFiltradas.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", opacity: 0.6, padding: 18 }}>Sem dados no período.</td></tr>}
-            {linhasFiltradas.map((l) => {
-              const key = l.campanha_id || "__none__";
-              const temConj = l.conjuntos.length > 0;
-              const open = !!aberta[key];
-              return (
-                <FragmentLinha key={key} linha={l} open={open} temConj={temConj} onToggle={() => setAberta((s) => ({ ...s, [key]: !s[key] }))} BRL={BRL} roasTxt={roasTxt} />
-              );
-            })}
-          </tbody>
-        </table>
       </div>
 
       <div className="mk-card" style={{ padding: 0, marginBottom: 16, overflow: "hidden" }}>
@@ -150,33 +123,12 @@ function BannerSaude({ saude }: { saude: Saude }) {
   if (saude.tokenExpirando.length) itens.push(`🟡 Token expira em breve: ${saude.tokenExpirando.map((t) => `${t.cliente_nome} (${t.dias}d)`).join(", ")}.`);
   if (saude.eventosErro) itens.push(`🔴 ${saude.eventosErro} evento(s) com erro — abre cada um em "Por quê?".`);
   if (saude.eventosSemAtribuicao) itens.push(`⚪ ${saude.eventosSemAtribuicao} venda(s) sem atribuição (sem click-id ou anúncio não sincronizado).`);
-  const semNada = itens.length === 0 && saude.alarmes.length === 0;
-  if (semNada) return null;
-  const temDanger = saude.alarmes.some((a) => a.severidade === "danger") || saude.tokenExpirado.length > 0 || saude.eventosErro > 0;
+  if (itens.length === 0) return null;
+  const temDanger = saude.tokenExpirado.length > 0 || saude.eventosErro > 0;
   return (
     <div className="mk-card" style={{ padding: "12px 14px", marginBottom: 14, borderColor: temDanger ? "rgba(251,113,133,0.5)" : "rgba(240,163,94,0.5)", background: temDanger ? "rgba(251,113,133,0.06)" : "rgba(240,163,94,0.06)", display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
-      {itens.length > 0 && (
-        <>
-          <div style={{ fontWeight: 600 }}>Tem coisa pra ajustar:</div>
-          {itens.map((t, i) => <div key={i}>{t}</div>)}
-        </>
-      )}
-      {saude.alarmes.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: itens.length ? 4 : 0 }}>
-          {itens.length > 0 && <div style={{ height: 1, background: "var(--mk-border)", margin: "2px 0" }} />}
-          <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-            <i className="ti ti-bell-ringing" style={{ fontSize: 14 }} /> Alarmes:
-          </div>
-          {saude.alarmes.map((a, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 8px", borderRadius: 6, background: a.severidade === "danger" ? "rgba(251,113,133,0.08)" : "rgba(240,163,94,0.08)" }}>
-              <div style={{ fontWeight: 600, fontSize: 12.5 }}>
-                {a.severidade === "danger" ? "🔴" : "🟡"} {a.titulo}
-              </div>
-              <div style={{ fontSize: 11.5, opacity: 0.85 }}>{a.descricao}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ fontWeight: 600 }}>Tem coisa pra ajustar:</div>
+      {itens.map((t, i) => <div key={i}>{t}</div>)}
     </div>
   );
 }
@@ -236,9 +188,10 @@ function diagnosticar(e: EventoRow): PassoDiag[] {
 }
 
 function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
+  const [pixelAtivo, setPixelAtivo] = useState(config.pixel_ativo);
   const [leadAtivo, setLeadAtivo] = useState(config.lead_ativo);
-  const [addAtivo, setAddAtivo] = useState(config.addtocart_ativo);
-  const [palavras, setPalavras] = useState<string[]>(config.addtocart_palavras);
+  const [icpAtivo, setIcpAtivo] = useState(config.icp_ativo);
+  const [palavras, setPalavras] = useState<string[]>(config.icp_palavras);
   const [nova, setNova] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -256,13 +209,16 @@ function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
     setSalvando(true);
     try {
       const fd = new FormData();
+      fd.set("pixel_ativo", pixelAtivo ? "1" : "0");
       fd.set("palavras", palavras.join(","));
       fd.set("lead_ativo", leadAtivo ? "1" : "0");
-      fd.set("addtocart_ativo", addAtivo ? "1" : "0");
+      fd.set("icp_ativo", icpAtivo ? "1" : "0");
       const r = await salvarConfigEventos(fd);
       if (!r.ok) alert(r.error || "Erro ao salvar");
     } finally { setSalvando(false); }
   }
+
+  const dim = !pixelAtivo;
 
   return (
     <div className="mk-card" style={{ padding: 16, marginTop: 16, borderRadius: 12 }}>
@@ -272,43 +228,81 @@ function CardEventosAutomaticos({ config }: { config: EventosConfigShape }) {
       </div>
 
       <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
-        Manda eventos extras pro Meta otimizar os anúncios pra perfis mais quentes — sem você fazer nada manual.
+        Lead → ICP → Venda. Eventos universais que o Meta usa pra otimizar os anúncios pelos perfis mais quentes.
       </p>
 
-      {/* Lead toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 8 }}>
-        <input type="checkbox" checked={leadAtivo} onChange={(e) => setLeadAtivo(e.target.checked)} id="cap_lead" />
-        <label htmlFor="cap_lead" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
-          <b>Lead</b> — manda quando contato envia 1ª mensagem com click-id de anúncio (contato chegou)
+      {/* Pixel master switch */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 12px",
+          borderRadius: 8,
+          background: pixelAtivo ? "rgba(0,225,154,0.10)" : "var(--mk-surface-2)",
+          border: pixelAtivo ? "0.5px solid rgba(0,225,154,0.35)" : "0.5px solid var(--mk-border)",
+          marginBottom: 12,
+        }}
+      >
+        <input type="checkbox" checked={pixelAtivo} onChange={(e) => setPixelAtivo(e.target.checked)} id="cap_pixel" />
+        <label htmlFor="cap_pixel" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
+          <b>Pixel ativado</b> — quando desligado, NENHUM evento é enviado pro Meta (útil pra rodar campanha individual sem mistura).
         </label>
       </div>
 
-      {/* AddToCart toggle + palavras */}
-      <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <input type="checkbox" checked={addAtivo} onChange={(e) => setAddAtivo(e.target.checked)} id="cap_atc" />
-          <label htmlFor="cap_atc" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
-            <b>AddToCart</b> — manda quando mensagem do cliente bate uma das palavras abaixo (demonstrou intenção)
+      <div style={{ opacity: dim ? 0.45 : 1, pointerEvents: dim ? "none" : "auto", transition: "opacity .15s" }}>
+        {/* Lead */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 8 }}>
+          <input type="checkbox" checked={leadAtivo} onChange={(e) => setLeadAtivo(e.target.checked)} id="cap_lead" disabled={dim} />
+          <label htmlFor="cap_lead" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
+            <b>Lead</b> — manda quando contato envia 1ª mensagem com click-id de anúncio (contato chegou)
           </label>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8, paddingLeft: 24 }}>
-          {palavras.map((p) => (
-            <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 8px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 6, fontSize: 11 }}>
-              {p}
-              <button type="button" onClick={() => remover(p)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--mk-text-muted)", padding: 0, fontSize: 13, lineHeight: 1 }} aria-label={`Remover ${p}`}>×</button>
-            </span>
-          ))}
+
+        {/* ICP */}
+        <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <input type="checkbox" checked={icpAtivo} onChange={(e) => setIcpAtivo(e.target.checked)} id="cap_icp" disabled={dim} />
+            <label htmlFor="cap_icp" style={{ flex: 1, cursor: "pointer", fontSize: 12.5 }}>
+              <b>ICP</b> — manda quando o lead se mostra qualificado (palavra-chave que você definir abaixo)
+            </label>
+          </div>
+          {icpAtivo && (
+            <>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8, paddingLeft: 24 }}>
+                {palavras.length === 0 && (
+                  <span style={{ fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic" }}>
+                    Nenhuma palavra cadastrada — adicione abaixo o que indica intenção pro seu nicho.
+                  </span>
+                )}
+                {palavras.map((p) => (
+                  <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 8px", background: "var(--mk-surface)", border: "0.5px solid var(--mk-border)", borderRadius: 6, fontSize: 11 }}>
+                    {p}
+                    <button type="button" onClick={() => remover(p)} style={{ background: "transparent", border: 0, cursor: "pointer", color: "var(--mk-text-muted)", padding: 0, fontSize: 13, lineHeight: 1 }} aria-label={`Remover ${p}`}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 6, paddingLeft: 24 }}>
+                <input
+                  type="text"
+                  value={nova}
+                  onChange={(e) => setNova(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionar(); } }}
+                  placeholder="Adicionar palavra-chave (Enter)"
+                  style={{ flex: 1, padding: "5px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", color: "var(--mk-text)", fontSize: 11.5 }}
+                />
+                <button type="button" onClick={adicionar} disabled={!nova.trim()} className="ghost-btn" style={{ fontSize: 11 }}>+ Adicionar</button>
+              </div>
+            </>
+          )}
         </div>
-        <div style={{ display: "flex", gap: 6, paddingLeft: 24 }}>
-          <input
-            type="text"
-            value={nova}
-            onChange={(e) => setNova(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionar(); } }}
-            placeholder="Adicionar palavra-chave (Enter)"
-            style={{ flex: 1, padding: "5px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", color: "var(--mk-text)", fontSize: 11.5 }}
-          />
-          <button type="button" onClick={adicionar} disabled={!nova.trim()} className="ghost-btn" style={{ fontSize: 11 }}>+ Adicionar</button>
+
+        {/* Venda */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--mk-surface-2)", marginBottom: 12 }}>
+          <span style={{ fontSize: 14, color: "var(--mk-accent-2)" }}>✓</span>
+          <div style={{ flex: 1, fontSize: 12.5 }}>
+            <b>Venda</b> — disparada automaticamente quando você registra um Fechamento. Sempre ativa.
+          </div>
         </div>
       </div>
 
@@ -344,31 +338,6 @@ function DiagEvento({ evento, onClose }: { evento: EventoRow | null; onClose: ()
         </div>
       )}
     </Balao>
-  );
-}
-
-function FragmentLinha({ linha, open, temConj, onToggle, BRL, roasTxt }: { linha: LinhaCampanha; open: boolean; temConj: boolean; onToggle: () => void; BRL: Intl.NumberFormat; roasTxt: (r: number | null) => string }) {
-  return (
-    <>
-      <tr onClick={temConj ? onToggle : undefined} style={{ cursor: temConj ? "pointer" : "default" }}>
-        <td>{temConj ? (open ? "▾ " : "▸ ") : ""}{linha.nome}</td>
-        <td style={{ color: "#f0a35e" }}>{BRL.format(linha.gasto)}</td>
-        <td>{BRL.format(linha.bruto)}</td>
-        <td style={{ color: "var(--mk-accent)", fontWeight: 600 }}>{BRL.format(linha.liquido)}</td>
-        <td>{roasTxt(linha.roas)}</td>
-        <td>{linha.vendas}</td>
-      </tr>
-      {open && linha.conjuntos.map((cj) => (
-        <tr key={cj.conjunto_id} style={{ opacity: 0.8 }}>
-          <td style={{ paddingLeft: 32 }}>· {cj.nome}</td>
-          <td>{BRL.format(cj.gasto)}</td>
-          <td>{BRL.format(cj.bruto)}</td>
-          <td>{BRL.format(cj.liquido)}</td>
-          <td>{roasTxt(cj.roas)}</td>
-          <td>{cj.vendas}</td>
-        </tr>
-      ))}
-    </>
   );
 }
 
