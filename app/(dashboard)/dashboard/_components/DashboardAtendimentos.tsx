@@ -30,10 +30,10 @@ export function DashboardAtendimentos({ kpis, servicos, serie, satisfacao, tempo
   return (
     <>
       <div className="dash-kpis" style={{ marginBottom: 14 }}>
-        <Kpi label="Faturamento" valor={<CountUp value={kpis.faturamento_total} format={fmtCountBRL} />} icon="ti-cash" cor="#00E19A" primary sub={periodoLabel} />
+        <Kpi label="Faturamento" valor={<CountUp value={kpis.faturamento_total} kind="brl" />} icon="ti-cash" cor="#00E19A" primary sub={periodoLabel} />
         <Kpi label="Tickets fechados" valor={<CountUp value={kpis.tickets_fechados} />} icon="ti-checks" cor="#94a3b8" sub={periodoLabel} />
         <Kpi label="Serviços vendidos" valor={<CountUp value={kpis.quantidade_total} />} icon="ti-shopping-bag" cor="#94a3b8" sub="soma das quantidades" />
-        <Kpi label="Ticket médio" valor={<CountUp value={kpis.ticket_medio} format={fmtCountBRL} />} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
+        <Kpi label="Ticket médio" valor={<CountUp value={kpis.ticket_medio} kind="brl" />} icon="ti-trending-up" cor="#94a3b8" sub={periodoLabel} />
       </div>
 
       <div className="mk-card" style={{ padding: 16, marginTop: 14 }}>

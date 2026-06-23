@@ -23,7 +23,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
       >
         <KpiFinanceiro
           rotulo="INVESTIDO"
-          valor={<CountUp value={kpi.investido} format={fmtCountBRL} />}
+          valor={<CountUp value={kpi.investido} kind="brl" />}
           sub={`investido em ads · ${periodoLabel}`}
           icone="ti-coin"
           accent="#F0A35E"
@@ -31,7 +31,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiFinanceiro
           rotulo="FATURAMENTO"
-          valor={<CountUp value={kpi.faturamento} format={fmtCountBRL} />}
+          valor={<CountUp value={kpi.faturamento} kind="brl" />}
           sub={`${fmtInt(kpi.vendas)} vendas fechadas · via CRM`}
           icone="ti-cash-banknote"
           accent="rgba(255,255,255,0.5)"
@@ -41,7 +41,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiFinanceiro
           rotulo="LUCRO BRUTO"
-          valor={<CountUp value={kpi.lucro} format={fmtCountBRL} />}
+          valor={<CountUp value={kpi.lucro} kind="brl" />}
           sub="faturamento − investido"
           icone="ti-trending-up"
           accent="var(--mk-accent-2)"
@@ -51,7 +51,7 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiFinanceiro
           rotulo="ROAS BRUTO"
-          valor={<CountUp value={kpi.roas} format={fmtCountMultX} fallback="—" />}
+          valor={<CountUp value={kpi.roas} kind="mult" fallback="—" />}
           sub="retorno sobre investimento"
           icone="ti-target-arrow"
           accent="var(--mk-accent-2)"
@@ -84,14 +84,14 @@ export function DashboardKPIs({ kpi, periodoLabel }: Props) {
         />
         <KpiTrafego
           rotulo="CPL"
-          valor={<CountUp value={kpi.cpl} format={fmtCountBRL} />}
+          valor={<CountUp value={kpi.cpl} kind="brl" />}
           sub={`custo por lead · ${fmtInt(kpi.leads)} leads`}
           icone="ti-user-plus"
           iconColor="var(--mk-icon-green)"
         />
         <KpiTrafego
           rotulo="CAC"
-          valor={<CountUp value={kpi.cac} format={fmtCountBRL} />}
+          valor={<CountUp value={kpi.cac} kind="brl" />}
           sub="custo por conversão"
           icone="ti-shopping-cart"
           iconColor="var(--mk-icon-pink)"

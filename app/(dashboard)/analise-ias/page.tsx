@@ -56,7 +56,7 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
           {/* KPIs com delta vs período anterior */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
             <Card titulo="Tokens (total)" valor={<CountUp value={d.totais.tokens} />} delta={d.delta.tokens} icone="ti-coins" cor="#00E19A" />
-            <Card titulo="Custo estimado" valor={<CountUp value={d.totais.custo} format={(n) => usd(n)} />} delta={d.delta.custo} icone="ti-cash" cor="#00E19A" />
+            <Card titulo="Custo estimado" valor={<CountUp value={d.totais.custo} kind="usd" />} delta={d.delta.custo} icone="ti-cash" cor="#00E19A" />
             <Card titulo="Chamadas" valor={<CountUp value={d.totais.chamadas} />} delta={d.delta.chamadas} icone="ti-arrows-exchange" cor="#5B8BA6" />
             <Card titulo="Sucesso" valor={<CountUp value={d.totais.chamadas > 0 ? Math.round((d.totais.sucesso / d.totais.chamadas) * 100) : 0} suffix="%" />} sub={`${d.totais.erros} erro(s) · ${d.totais.rateLimit} limite`} icone="ti-circle-check" cor="#00E19A" />
             <Card titulo="Áudio transcrito" valor={<CountUp value={Math.round(d.totais.audioSeg / 60)} suffix=" min" />} icone="ti-microphone" cor="#C97064" />
