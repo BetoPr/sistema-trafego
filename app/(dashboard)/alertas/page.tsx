@@ -28,8 +28,8 @@ export default async function AlertasPage() {
       .from("integracoes")
       .select("id, plataforma, account_id, account_name, status, cliente_id")
       .eq("agencia_id", usuario.agencia_id)
-      .eq("plataforma", "meta")
-      .eq("status", "conectado"),
+      .eq("plataforma", "meta_ads")
+      .eq("status", "ativa"),
     supabase
       .from("canais")
       .select("id, nome, status, padrao")

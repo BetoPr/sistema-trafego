@@ -5,6 +5,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-23
+
+- **00:28** — **Alertas: fix integrações Meta + sidebar.**
+  - Query `integracoes` corrigida: `plataforma='meta_ads'` (era `meta`) e `status='ativa'` (era `conectado`) — alinhado com schema real.
+  - `meta-worker.ts`: mesmo fix no guard de status.
+  - Sidebar: adicionado item **Alertas** dentro de **Tráfego (Ads)** (`ti-bell-ringing`).
+
 ## 2026-06-22
 
 - **23:49** — **Alertas inteligentes: backend completo (gasto Meta Ads → WhatsApp).**

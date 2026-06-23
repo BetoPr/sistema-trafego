@@ -96,7 +96,7 @@ export async function rodarAlertasMeta(): Promise<WorkerResult> {
       if (errI || !integ) throw new Error(`integracao não encontrada: ${errI?.message || "null"}`);
 
       const integRow = integ as IntegracaoRow;
-      if (integRow.status !== "conectado") {
+      if (integRow.status !== "ativa") {
         out.pulados++;
         continue;
       }

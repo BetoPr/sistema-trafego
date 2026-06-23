@@ -68,6 +68,7 @@ function buildSections(role?: string): NavSection[] {
             items: [
               { href: "/pixel-vendas", label: "Pixel & Vendas", icon: "ti-target-arrow" },
               { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list" },
+              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing" },
             ],
           } as NavSection,
         ]
