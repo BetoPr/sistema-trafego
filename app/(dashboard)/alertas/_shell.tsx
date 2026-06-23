@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Balao } from "@/components/ui/Balao";
 import {
   criarAlertaMeta,
@@ -9,6 +9,11 @@ import {
   deletarAlertaMeta,
   testarAlertaMeta,
 } from "./_actions";
+import WhatsappPreview from "./_whatsapp-preview";
+import EmojiPicker from "./_emoji-picker";
+
+const TEMPLATE_DEFAULT =
+  "Olá! 🚨 O gasto {{tipo}} da conta {{conta}} bateu {{gasto}} (limite {{limite}}). Considere ajustar o orçamento.";
 
 export interface AlertaItem {
   id: string;
@@ -63,17 +68,50 @@ export default function AlertasShell({ alertas, integracoes, canais, clientes }:
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [tplValor, setTplValor] = useState<string>(TEMPLATE_DEFAULT);
+  const [contaPreviewNome, setContaPreviewNome] = useState<string>(
+    integracoes[0]?.account_name || "Conta de exemplo",
+  );
+  const [tipoPreview, setTipoPreview] = useState<"gasto_dia" | "gasto_mes">("gasto_dia");
+  const [limitePreview, setLimitePreview] = useState<number>(500);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function inserirEmoji(e: string) {
+    const ta = textareaRef.current;
+    if (!ta) {
+      setTplValor((v) => v + e);
+      return;
+    }
+    const start = ta.selectionStart || 0;
+    const end = ta.selectionEnd || 0;
+    const novo = tplValor.slice(0, start) + e + tplValor.slice(end);
+    setTplValor(novo);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + e.length;
+    });
+  }
+
   const ativos = alertas.filter((a) => a.ativo).length;
   const disparados = alertas.filter((a) => a.ultimo_disparo_em).length;
 
   function abrirNovo() {
     setEditando(null);
     setErro(null);
+    setTplValor(TEMPLATE_DEFAULT);
+    setTipoPreview("gasto_dia");
+    setLimitePreview(500);
+    setContaPreviewNome(integracoes[0]?.account_name || "Conta de exemplo");
     setFormAberto(true);
   }
   function abrirEditar(a: AlertaItem) {
     setEditando(a);
     setErro(null);
+    setTplValor(a.mensagem_template || TEMPLATE_DEFAULT);
+    setTipoPreview(a.tipo);
+    setLimitePreview(a.limite_valor);
+    const integ = integracoes.find((i) => i.id === a.integracao_id);
+    setContaPreviewNome(integ?.account_name || "Conta de exemplo");
     setFormAberto(true);
   }
   function fechar() {
@@ -348,7 +386,12 @@ export default function AlertasShell({ alertas, integracoes, canais, clientes }:
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Tipo">
-              <select name="tipo" defaultValue={editando?.tipo || "gasto_dia"} style={inputStyle}>
+              <select
+                name="tipo"
+                value={tipoPreview}
+                onChange={(e) => setTipoPreview(e.target.value as "gasto_dia" | "gasto_mes")}
+                style={inputStyle}
+              >
                 <option value="gasto_dia">Gasto do dia</option>
                 <option value="gasto_mes">Gasto do mês</option>
               </select>
@@ -358,7 +401,13 @@ export default function AlertasShell({ alertas, integracoes, canais, clientes }:
                 name="limite_valor"
                 required
                 inputMode="decimal"
-                defaultValue={editando ? editando.limite_valor.toFixed(2).replace(".", ",") : ""}
+                value={String(limitePreview).replace(".", ",")}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                  const n = Number(raw);
+                  if (Number.isFinite(n)) setLimitePreview(n);
+                  else if (e.target.value === "") setLimitePreview(0);
+                }}
                 placeholder="500,00"
                 style={inputStyle}
               />
@@ -366,7 +415,16 @@ export default function AlertasShell({ alertas, integracoes, canais, clientes }:
           </div>
 
           <Field label="Conta Meta Ads">
-            <select name="integracao_id" required defaultValue={editando?.integracao_id || ""} style={inputStyle}>
+            <select
+              name="integracao_id"
+              required
+              defaultValue={editando?.integracao_id || ""}
+              onChange={(e) => {
+                const integ = integracoes.find((i) => i.id === e.target.value);
+                if (integ) setContaPreviewNome(integ.account_name);
+              }}
+              style={inputStyle}
+            >
               <option value="">Selecione…</option>
               {integracoes.map((i) => (
                 <option key={i.id} value={i.id}>
@@ -413,17 +471,35 @@ export default function AlertasShell({ alertas, integracoes, canais, clientes }:
             </Field>
           )}
 
-          <Field label="Mensagem (use {{conta}}, {{gasto}}, {{limite}}, {{tipo}})">
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-secondary)", letterSpacing: ".3px" }}>
+                {"Mensagem (use {{conta}}, {{gasto}}, {{limite}}, {{tipo}})"}
+              </span>
+              <EmojiPicker onPick={inserirEmoji} />
+            </div>
             <textarea
+              ref={textareaRef}
               name="mensagem_template"
               rows={4}
-              defaultValue={
-                editando?.mensagem_template ||
-                "Olá! O gasto {{tipo}} da conta {{conta}} bateu {{gasto}} (limite {{limite}}). Considere ajustar o orçamento."
-              }
+              value={tplValor}
+              onChange={(e) => setTplValor(e.target.value)}
               style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
             />
-          </Field>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--mk-text-secondary)", letterSpacing: ".3px" }}>
+              Pré-visualização no WhatsApp
+            </span>
+            <WhatsappPreview
+              template={tplValor}
+              contaExemplo={contaPreviewNome}
+              limiteExemplo={limitePreview}
+              tipo={tipoPreview}
+              nomeExemplo={editando?.nome || "Alerta"}
+            />
+          </div>
 
           {erro && (
             <div
