@@ -46,13 +46,13 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
 
       <Controles provider={provider} dias={dias} escopo={escopo} superAdmin={superAdmin} />
 
-      {d.totais.chamadas === 0 ? (
-        <div className="mk-card mk-card-lg" style={{ textAlign: "center", padding: 40, color: "var(--mk-text-muted)", fontSize: 13 }}>
-          <i className="ti ti-chart-bar" style={{ fontSize: 30, display: "block", marginBottom: 8, opacity: 0.6 }} />
-          Nenhum uso de IA registrado nesse período/provedor ainda. Use Follow-up, resumo ou transcrição que os dados aparecem aqui.
+      {d.totais.chamadas === 0 && (
+        <div className="mk-card" style={{ textAlign: "center", padding: 14, color: "var(--mk-text-muted)", fontSize: 12, marginBottom: 14, borderColor: "var(--mk-border)" }}>
+          <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+          Sem uso de IA neste período/provedor. Cards abaixo mostram zero.
         </div>
-      ) : (
-        <>
+      )}
+      <>
           {/* KPIs com delta vs período anterior */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
             <Card titulo="Tokens (total)" valor={<CountUp value={d.totais.tokens} />} delta={d.delta.tokens} icone="ti-coins" cor="#00E19A" />
@@ -140,7 +140,6 @@ export default async function AnaliseIAsPage({ searchParams }: PageProps) {
             </div>
           </div>
         </>
-      )}
     </section>
   );
 }

@@ -77,33 +77,47 @@ export async function agregarUso(f: FiltroUso): Promise<UsoAgregado> {
   const desde = new Date(Date.now() - dias * 86400000).toISOString();
   const desde2 = new Date(Date.now() - 2 * dias * 86400000).toISOString(); // janela anterior (delta)
 
+  // limit reduzido (era 50k -> lento). 10k cobre ~30d com uso típico.
   let q = sb
     .from("ia_uso")
     .select("agencia_id, usuario_id, contato_id, ticket_id, tarefa, provider, modelo, prompt_tokens, completion_tokens, total_tokens, audio_seg, custo_usd, status, criado_em")
     .gte("criado_em", desde2)
     .order("criado_em", { ascending: false })
-    .limit(50000);
+    .limit(10000);
   if (!crossCliente) q = q.eq("agencia_id", f.agenciaId);
   if (f.provider && f.provider !== "todos") q = q.eq("provider", f.provider);
-  const { data } = await q;
+
+  // Roda as 3 queries auxiliares em paralelo com a principal (eram sequenciais).
+  const uq = sb.from("usuarios").select("id, nome, agencia_id, tipo_cliente, role");
+  const usuariosQ = crossCliente ? uq : uq.eq("agencia_id", f.agenciaId);
+  const agq = sb.from("agencias").select("id, nome");
+  const agenciasQ = crossCliente ? agq : agq.eq("id", f.agenciaId);
+  const chavesGroqQ = sb
+    .from("ia_chaves")
+    .select("id", { count: "exact", head: true })
+    .eq("agencia_id", f.agenciaId)
+    .eq("provider", "groq")
+    .eq("ativa", true);
+
+  const [{ data }, usResult, agsResult, chavesResult] = await Promise.all([
+    q,
+    usuariosQ,
+    agenciasQ,
+    Promise.resolve(chavesGroqQ).then((r) => r as { count: number | null }, () => ({ count: null })),
+  ]);
+
   const todasRows = (data || []) as Row[];
   const rows = todasRows.filter((r) => r.criado_em >= desde);
   const rowsAnt = todasRows.filter((r) => r.criado_em < desde);
 
-  // Mapas auxiliares (usuários + agências).
-  const uq = sb.from("usuarios").select("id, nome, agencia_id, tipo_cliente, role");
-  const { data: us } = await (crossCliente ? uq : uq.eq("agencia_id", f.agenciaId));
+  const us = usResult.data;
   const userInfo = new Map((us || []).map((u) => [u.id as string, { nome: (u.nome as string) || "Usuário", tipo: (u.tipo_cliente as string) || null }]));
-  const agq = sb.from("agencias").select("id, nome");
-  const { data: ags } = await (crossCliente ? agq : agq.eq("id", f.agenciaId));
+  const ags = agsResult.data;
   const nomeAgencia = new Map((ags || []).map((a) => [a.id as string, (a.nome as string) || "Cliente"]));
 
-  // nº chaves Groq (teto 100k/chave). Pré-Fase 2: 1.
-  let nChavesGroq = 1;
-  try {
-    const { count } = await sb.from("ia_chaves").select("id", { count: "exact", head: true }).eq("agencia_id", f.agenciaId).eq("provider", "groq").eq("ativa", true);
-    if (count && count > 0) nChavesGroq = count;
-  } catch { /* tabela ainda não existe */ }
+  // nº chaves Groq (teto 100k/chave). Pré-Fase 2: 1. Já foi feita em paralelo acima.
+  const chavesCount = (chavesResult as { count: number | null }).count;
+  const nChavesGroq = chavesCount && chavesCount > 0 ? chavesCount : 1;
 
   const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
   const totais = { tokens: 0, custo: 0, chamadas: 0, sucesso: 0, erros: 0, rateLimit: 0, audioSeg: 0, promptTokens: 0, completionTokens: 0 };
