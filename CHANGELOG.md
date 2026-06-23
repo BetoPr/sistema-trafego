@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-23
 
+- **09:50** — **Mídia: imagens vão pro bucket Supabase (substitui ImgBB rate-limitado).**
+  - ImgBB começou a retornar `400 Rate limit reached` -> imagens dos clientes paravam de baixar.
+  - `lib/crm/midia-download.ts`: imagem agora segue o mesmo fluxo de audio/video/documento (bucket `crm-media` via `uploadMedia`). UI já resolve path via signed URL.
+  - Flag `IMG_STORAGE=imgbb` mantém comportamento antigo se quiser comparar.
+  - Imagens antigas armazenadas em `i.ibb.co/...` continuam funcionando (URL externa).
+
 - **09:06** — **Quick wins B: abas flutuantes verde, sidebar Clientes, Copiar prompt menu.**
   - `_floating-tabs.tsx`: cor roxa (#9B7DBF / rgba(155,125,191)) → verde `var(--mk-accent-2)` / `rgba(0,225,154,…)`.
   - `_crm-overlays.tsx`: spinner/badge da análise IA também migrado pro verde.

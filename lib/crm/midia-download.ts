@@ -23,6 +23,15 @@ import { uploadMedia } from "./storage";
 import { uploadImageToImgbb, uploadImageFromUrlToImgbb } from "@/lib/imgbb/upload";
 import { transcreverMensagemAudio } from "./ia";
 
+/**
+ * ImgBB ficou instável (rate limit / Bad Request frequente).
+ * Default: TODA mídia agora vai pro bucket Supabase (igual áudio/vídeo).
+ * Pra reativar ImgBB (caso queira testar) seta IMG_STORAGE=imgbb no .env.
+ */
+const USE_IMGBB = process.env.IMG_STORAGE === "imgbb";
+void uploadImageToImgbb;
+void uploadImageFromUrlToImgbb;
+
 export const LIMITE_AUTO_TENTATIVAS = 3;
 
 const TYPE_MAP: Record<string, "image" | "audio" | "video" | "document" | "sticker"> = {
@@ -116,8 +125,8 @@ export async function baixarEUploadMidia(
       return { ok: false, error: "uazapi_sem_dados", tentativas: tentativaAtual };
     }
 
-    // imagem → ImgBB
-    if (p.tipo === "imagem") {
+    // imagem → bucket (default) OU ImgBB (se IMG_STORAGE=imgbb)
+    if (p.tipo === "imagem" && USE_IMGBB) {
       let imgUrl: string | null = null;
       if (dl.fileURL) {
         const ib = await uploadImageFromUrlToImgbb({ sourceUrl: dl.fileURL, filename });
