@@ -333,19 +333,25 @@ function Linha({
       )}
       {!etiqueta.ativo && <span style={{ fontSize: 9.5, color: "var(--mk-text-muted)", border: "0.5px solid var(--mk-border)", borderRadius: 6, padding: "1px 6px" }}>inativo</span>}
       <div style={{ flex: 1 }} />
-      <select
-        value={etiqueta.etiqueta_pai_id || ""}
-        onChange={(ev) => onTrocarPai(ev.target.value || null)}
-        title="Vincular como Variante de uma Linha"
-        style={{ fontSize: 11, padding: "3px 6px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", maxWidth: 160 }}
-      >
-        <option value="">— Sem mãe (Linha)</option>
-        {paiOpcoes.map((p) => (
-          <option key={p.id} value={p.id}>
-            ↳ {p.nome}
-          </option>
-        ))}
-      </select>
+      {isLinha ? (
+        <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)", padding: "3px 8px", border: "0.5px dashed var(--mk-border)", borderRadius: 6 }}>
+          Pasta
+        </span>
+      ) : (
+        <select
+          value={etiqueta.etiqueta_pai_id || ""}
+          onChange={(ev) => onTrocarPai(ev.target.value || null)}
+          title="Vincular a uma Pasta"
+          style={{ fontSize: 11, padding: "3px 6px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", maxWidth: 160 }}
+        >
+          <option value="">— Sem Pasta</option>
+          {paiOpcoes.map((p) => (
+            <option key={p.id} value={p.id}>
+              ↳ {p.nome}
+            </option>
+          ))}
+        </select>
+      )}
       <button onClick={onEdit} title="Editar" style={iconBtn}>
         <i className="ti ti-pencil" />
       </button>
