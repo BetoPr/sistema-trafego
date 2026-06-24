@@ -90,9 +90,9 @@ export function MarcaCliente({ nome, logoUrl, modo, layout, altura, action }: Pr
               <span>TAMANHO DA LOGO</span>
               <span style={{ color: "#00E19A" }}>{alturaSel}px</span>
             </div>
-            <input type="range" name="altura" min={24} max={80} step={1} value={alturaSel} onChange={(e) => setAlturaSel(Number(e.target.value))} style={{ width: "100%", accentColor: "#00E19A" }} />
+            <input type="range" name="altura" min={24} max={200} step={1} value={alturaSel} onChange={(e) => setAlturaSel(Number(e.target.value))} style={{ width: "100%", accentColor: "#00E19A" }} />
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--mk-text-muted)", marginTop: 2 }}>
-              <span>24px</span><span>52px (default)</span><span>80px</span>
+              <span>24px</span><span>112px</span><span>200px</span>
             </div>
           </div>
         )}

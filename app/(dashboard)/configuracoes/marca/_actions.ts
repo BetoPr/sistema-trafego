@@ -11,7 +11,7 @@ export async function salvarMarca(formData: FormData): Promise<void> {
   const modo = String(formData.get("modo") || "texto") as "texto" | "logo" | "logo_texto";
   const layout = String(formData.get("layout") || "horizontal") as "horizontal" | "vertical";
   const alturaRaw = Number(formData.get("altura") || 36);
-  const altura = Math.max(24, Math.min(80, Math.round(Number.isFinite(alturaRaw) ? alturaRaw : 36)));
+  const altura = Math.max(24, Math.min(200, Math.round(Number.isFinite(alturaRaw) ? alturaRaw : 36)));
   const removerLogo = formData.get("remover_logo") === "1";
   const arquivo = formData.get("logo") as File | null;
 

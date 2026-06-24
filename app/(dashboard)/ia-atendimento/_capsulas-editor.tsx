@@ -9,6 +9,7 @@ import {
 } from "./_capsulas-actions";
 import type { Capsula } from "@/lib/ia-atendimento/capsulas";
 import { CAPSULA_TEMPLATES } from "@/lib/ia-atendimento/capsulas";
+import PlaceholderPicker from "./_placeholder-picker";
 
 interface Props {
   perfilId: string;
@@ -17,6 +18,7 @@ interface Props {
   objetivo: string;
   regrasGlobais: string;
   modoModular: boolean;
+  promptClassico: string;
 }
 
 export default function CapsulasEditor({
@@ -26,7 +28,9 @@ export default function CapsulasEditor({
   objetivo,
   regrasGlobais,
   modoModular,
+  promptClassico,
 }: Props) {
+  const [modular, setModular] = useState<boolean>(modoModular);
   const [aberta, setAberta] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
@@ -35,36 +39,52 @@ export default function CapsulasEditor({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Toggle modo modular */}
+      {/* Toggle modo: Prompt clássico vs Modular */}
       <div
         style={{
-          padding: 12,
-          background: modoModular ? "rgba(0,225,154,.10)" : "rgba(245,158,11,.08)",
-          border: `.5px solid ${modoModular ? "rgba(0,225,154,.32)" : "rgba(245,158,11,.30)"}`,
-          borderRadius: 9,
+          padding: 14,
+          background: "linear-gradient(135deg, rgba(155,125,191,.08), rgba(0,225,154,.06))",
+          border: ".5px solid rgba(155,125,191,.35)",
+          borderRadius: 11,
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 12,
         }}
       >
-        <i
-          className={`ti ${modoModular ? "ti-circle-check-filled" : "ti-alert-triangle"}`}
-          style={{ color: modoModular ? "#00E19A" : "#f59e0b", fontSize: 18 }}
-        />
-        <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.5 }}>
-          <strong style={{ color: modoModular ? "#00E19A" : "#f59e0b" }}>
-            {modoModular ? "Modo Modular ATIVO" : "Modo Tradicional"}
-          </strong>{" "}
-          —{" "}
-          {modoModular
-            ? "IA usa Identidade + Objetivo + Regras + Cápsulas. Orquestrador injeta só o necessário."
-            : "IA usa o prompt monolítico clássico. Pra ativar modular, marque o checkbox no fim e salve."}
+        <i className="ti ti-sparkles" style={{ color: "#9B7DBF", fontSize: 22 }} />
+        <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.55 }}>
+          <strong style={{ display: "block", marginBottom: 2, fontSize: 13 }}>
+            Modo da IA: {modular ? <span style={{ color: "#00E19A" }}>OTIMIZADO (sub-agentes)</span> : <span style={{ color: "#9B7DBF" }}>PROMPT ÚNICO</span>}
+          </strong>
+          <span style={{ color: "var(--mk-text-secondary)" }}>
+            {modular
+              ? "Sub-agentes internos injetam só conhecimento relevante por pergunta. Economiza tokens. Ferramentas e regras seguem funcionando igual."
+              : "Prompt do sistema clássico (1 textarea longa). Sem economia de tokens; tudo enviado a cada pergunta."}
+          </span>
         </div>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
-          <input type="checkbox" name="modo_modular" defaultChecked={modoModular} />
-          Modular
-        </label>
+        <SwitchToggle name="modo_modular" checked={modular} onChange={setModular} />
       </div>
+
+      {/* Modo prompt único — sempre montado (submete) mas só visível quando OFF */}
+      <div style={{ display: modular ? "none" : "block" }}>
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Prompt do sistema</legend>
+          <PlaceholderPicker />
+          <textarea
+            name="prompt_sistema"
+            rows={12}
+            defaultValue={promptClassico}
+            style={{ ...inp, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+            placeholder="Você é um atendente da empresa X..."
+          />
+          <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 6 }}>
+            Tudo num bloco só. Ferramentas (lista, etiquetas, contexto temporal) são injetadas automaticamente em cima.
+          </div>
+        </fieldset>
+      </div>
+
+      {/* Modo modular — sempre montado, só visível quando ON */}
+      <div style={{ display: modular ? "flex" : "none", flexDirection: "column", gap: 14 }}>
 
       {/* Identidade / Objetivo / Regras */}
       <fieldset
@@ -368,9 +388,52 @@ export default function CapsulasEditor({
           </div>
         )}
       </fieldset>
+      </div>
     </div>
   );
 }
+
+function SwitchToggle({ name, checked, onChange }: { name: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: checked ? "#00E19A" : "var(--mk-text-muted)", letterSpacing: ".5px" }}>
+        {checked ? "ON" : "OFF"}
+      </span>
+      <input type="checkbox" name={name} checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ display: "none" }} />
+      <span style={{
+        position: "relative",
+        width: 42, height: 22,
+        background: checked ? "#00E19A" : "rgba(120,120,120,.35)",
+        borderRadius: 999,
+        transition: "background .2s",
+      }}>
+        <span style={{
+          position: "absolute",
+          top: 2, left: checked ? 22 : 2,
+          width: 18, height: 18,
+          background: "#fff",
+          borderRadius: "50%",
+          transition: "left .2s",
+          boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+        }} />
+      </span>
+    </label>
+  );
+}
+
+const fieldsetStyle: React.CSSProperties = {
+  padding: 14,
+  border: ".5px solid var(--mk-border)",
+  borderRadius: 9,
+  background: "rgba(255,255,255,.015)",
+};
+const legendStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: "var(--mk-text-muted)",
+  letterSpacing: ".5px",
+  padding: "0 6px",
+};
 
 const lbl: React.CSSProperties = {
   display: "block",

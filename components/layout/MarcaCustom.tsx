@@ -19,7 +19,7 @@ interface Props {
 export function MarcaCustom({ nome, logoUrl, modo, layout, altura, compacto }: Props) {
   const semLogo = !logoUrl;
   const efetivoModo: LogoModo = semLogo ? "texto" : modo;
-  const h = Math.max(20, Math.min(80, altura || 36));
+  const h = Math.max(20, Math.min(200, altura || 36));
 
   if (compacto) {
     if (logoUrl) {

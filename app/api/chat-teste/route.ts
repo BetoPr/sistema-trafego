@@ -12,6 +12,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { chamarIA, type MsgIA } from "@/lib/ia-atendimento/providers";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { buildContextoTemporal, aplicarPlaceholders } from "@/lib/ia-atendimento/contexto-temporal";
+import { buildToolsSchema } from "@/lib/ia-atendimento/tools-runner";
 import {
   listarCapsulasPorPerfil,
   matchKeywordsLocal,
@@ -86,7 +87,49 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const promptSistema = `${ctxTemporal.block}\n\n[MODO TESTE — sem ferramentas, sem efeitos colaterais]\n\n${corpoPrompt}`;
+  // Carrega ferramentas do perfil pra IA poder chamar (simulado)
+  const { data: ferramentasRows } = await sb
+    .from("ia_atendimento_ferramentas")
+    .select("id, nome, descricao, acao, parametros")
+    .eq("perfil_id", perfil.id)
+    .eq("ativo", true);
+  const tools = await buildToolsSchema(
+    (ferramentasRows || []) as Array<{ id: string; nome: string; descricao: string; acao: string; parametros: Record<string, unknown> }>,
+    { sb, agenciaId: u.agencia_id },
+  );
+
+  // Etiquetas configuradas (mesma lógica do executor)
+  const { data: etiquetasCfg } = await sb
+    .from("ia_atendimento_perfil_etiquetas")
+    .select("descricao_uso, ordem, etiqueta:etiquetas!inner(id, nome, ativo)")
+    .eq("perfil_id", perfil.id)
+    .order("ordem");
+  type EtqRow = {
+    descricao_uso: string;
+    ordem: number;
+    etiqueta: { id: string; nome: string; ativo: boolean } | { id: string; nome: string; ativo: boolean }[] | null;
+  };
+  const etqRowsRaw = (etiquetasCfg || []) as EtqRow[];
+  const etqRows = etqRowsRaw
+    .map((r) => {
+      const e = Array.isArray(r.etiqueta) ? r.etiqueta[0] : r.etiqueta;
+      return e ? { descricao_uso: r.descricao_uso, ordem: r.ordem, etiqueta: e } : null;
+    })
+    .filter((r): r is { descricao_uso: string; ordem: number; etiqueta: { id: string; nome: string; ativo: boolean } } => r !== null && r.etiqueta.ativo);
+
+  const blocoEtiquetas = etqRows.length
+    ? `[ETIQUETAS DISPONIVEIS]\nVoce SO pode aplicar essas etiquetas via aplicar_etiqueta. NAO invente outras.\n${
+        etqRows.map((r) => `- ${r.etiqueta.nome}: ${r.descricao_uso || "(sem instrucao especifica)"}`).join("\n")
+      }\n\n`
+    : "";
+
+  const blocoFerramentas = tools.length
+    ? `[FERRAMENTAS / AÇÕES — OBRIGATÓRIO]\nVocê tem estas funções. Assim que a situação se encaixar, CHAME a função correspondente NA MESMA resposta, ANTES de conversar.\n${
+        tools.map((t) => `- ${t.name}: ${(t.description || "").split("\n")[0]}`).join("\n")
+      }\n\n`
+    : "";
+
+  const promptSistema = `${ctxTemporal.block}\n\n[MODO TESTE — IA pode chamar ferramentas, mas execução é SIMULADA (efeitos não saem do chat)]\n\n${blocoFerramentas}${blocoEtiquetas}${corpoPrompt}`;
 
   const mensagens: MsgIA[] = [{ role: "system", content: promptSistema }];
   for (const h of historico) {
@@ -102,17 +145,24 @@ export async function POST(req: NextRequest) {
       modelo: perfil.modelo,
       apiKey,
       mensagens,
-      tools: [], // sem tools em modo teste
+      tools, // tools ativadas mas execução é simulada (não roda handler)
       maxTokens: perfil.max_tokens_por_resposta,
       temperatura: Number(perfil.temperatura),
     });
+
+    const toolCalls = (resp.toolCalls || []).map((tc) => ({
+      tool: tc.name,
+      args: tc.arguments || {},
+    }));
+
     return Response.json({
-      texto: resp.texto || "(sem resposta)",
+      texto: resp.texto || (toolCalls.length > 0 ? "(IA chamou ferramentas — sem texto adicional)" : "(sem resposta)"),
       tokens_in: resp.tokensIn,
       tokens_out: resp.tokensOut,
       modelo: perfil.modelo,
       modo_modular: !!perfil.modo_modular,
       capsulas_usadas: capsulasUsadas,
+      tool_calls: toolCalls,
     });
   } catch (e) {
     const msg = (e as Error).message || "erro_ia";

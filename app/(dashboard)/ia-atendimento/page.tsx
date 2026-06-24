@@ -24,6 +24,7 @@ import { PerfilTabs, Tab } from "./_perfil-tabs";
 import ModeloPicker from "./_modelo-picker";
 import UsoTokensCard from "./_uso-tokens-card";
 import CapsulasEditor from "./_capsulas-editor";
+import ChatTesteTab from "./_chat-teste-tab";
 import { listarCapsulasPorPerfil, type Capsula } from "@/lib/ia-atendimento/capsulas";
 import { carregarUsoTokens, carregarUsoPorTicket, type IntervaloUso, type ResumoUso, type UsoPorTicket } from "@/lib/ia-atendimento/uso-tokens";
 import { formatarUsd } from "@/lib/ia-atendimento/precos";
@@ -525,8 +526,8 @@ function PerfilForm({
             ? [
                 { id: "dados", label: "Dados", icon: "ti-id-badge-2" },
                 { id: "comportamento", label: "Comportamento", icon: "ti-message-chatbot" },
-                { id: "capsulas", label: "Cápsulas", icon: "ti-capsule-horizontal" },
                 { id: "ferramentas", label: "Ferramentas", icon: "ti-tools" },
+                { id: "chat-teste", label: "Chat de Teste", icon: "ti-message-chatbot" },
                 { id: "followup", label: "Follow-up", icon: "ti-clock-bolt" },
                 { id: "analise", label: "Análise de Comportamento", icon: "ti-chart-histogram" },
               ]
@@ -581,10 +582,45 @@ function PerfilForm({
           {editandoId && <TestarApiBtn perfilId={editandoId} />}
         </fieldset>
 
+        </Tab>
+
+        {/* ABA: Comportamento — agora com modo Prompt vs Modular + whitelist produção */}
+        <Tab when="comportamento">
+        <fieldset style={fs}>
+          <legend style={legend}>Modelo IA</legend>
+          <ModeloPicker defaultProvider={provider} defaultModelo={editando?.modelo ?? undefined} />
+        </fieldset>
+
+        {/* Prompt: clássico OU modular (toggle) — apenas um é injetado no executor; ambos salvos sempre. */}
+        {editandoId ? (
+          <CapsulasEditor
+            perfilId={editandoId}
+            capsulas={capsulas}
+            identidade={perfilDetalhe?.identidade || ""}
+            objetivo={perfilDetalhe?.objetivo || ""}
+            regrasGlobais={perfilDetalhe?.regras_globais || ""}
+            modoModular={perfilDetalhe?.modo_modular ?? false}
+            promptClassico={perfilDetalhe?.prompt_sistema || ""}
+          />
+        ) : (
+          <fieldset style={fs}>
+            <legend style={legend}>Prompt do sistema</legend>
+            <PlaceholderPicker />
+            <textarea
+              name="prompt_sistema"
+              rows={10}
+              defaultValue={editando?.prompt_sistema ?? ""}
+              style={{ ...inp, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+              placeholder="Você é um atendente da empresa X..."
+            />
+          </fieldset>
+        )}
+
+        {/* Whitelist produção — pra testar IA direto no WhatsApp real sem afetar clientes */}
         <fieldset style={{ ...fs, background: "rgba(245,158,11,0.06)", border: "0.5px solid rgba(245,158,11,0.3)" }}>
-          <legend style={{ ...legend, color: "#f59e0b" }}>🧪 Modo teste — Whitelist</legend>
+          <legend style={{ ...legend, color: "#f59e0b" }}>🧪 Whitelist produção — testar no WhatsApp real</legend>
           <div>
-            <label style={lbl}>WhatsApp autorizados (1 por linha)</label>
+            <label style={lbl}>Números autorizados (1 por linha) — apenas estes conversam com a IA em produção</label>
             <textarea
               name="whatsapp_teste_lista"
               rows={3}
@@ -593,28 +629,9 @@ function PerfilForm({
               placeholder="5581991594716"
             />
             <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 4 }}>
-              Vazio = todos os contatos (produção). Cola seu número aqui pra testar sem afetar clientes.
+              <strong>Vazio = liberado pra todos os contatos (produção real).</strong> Cola seu número aqui pra IA responder só você no WhatsApp real (não afeta clientes). Pra testar in-app sem WhatsApp, use a aba <strong>Chat de Teste</strong>.
             </div>
           </div>
-        </fieldset>
-        </Tab>
-
-        {/* ABA: Comportamento */}
-        <Tab when="comportamento">
-        <fieldset style={fs}>
-          <legend style={legend}>Modelo IA</legend>
-          <ModeloPicker defaultProvider={provider} defaultModelo={editando?.modelo ?? undefined} />
-        </fieldset>
-        <fieldset style={fs}>
-          <legend style={legend}>Prompt do sistema</legend>
-          <PlaceholderPicker />
-          <textarea
-            name="prompt_sistema"
-            rows={10}
-            defaultValue={editando?.prompt_sistema ?? ""}
-            style={{ ...inp, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
-            placeholder="Você é um atendente da empresa X..."
-          />
         </fieldset>
         </Tab>
 
@@ -697,22 +714,8 @@ function PerfilForm({
         </fieldset>
         </Tab>
 
-        {/* ABA: Cápsulas (modular) — fica dentro do form pra Identidade/Objetivo/Regras submeterem junto */}
-        {editandoId && (
-        <Tab when="capsulas">
-          <CapsulasEditor
-            perfilId={editandoId}
-            capsulas={capsulas}
-            identidade={perfilDetalhe?.identidade || ""}
-            objetivo={perfilDetalhe?.objetivo || ""}
-            regrasGlobais={perfilDetalhe?.regras_globais || ""}
-            modoModular={perfilDetalhe?.modo_modular ?? false}
-          />
-        </Tab>
-        )}
-
         {/* Barra de salvar — visível nas abas do formulário */}
-        <Tab when={["dados", "comportamento", "capsulas"]}>
+        <Tab when={["dados", "comportamento"]}>
         <div style={{
           position: "sticky",
           bottom: 0,
@@ -740,6 +743,19 @@ function PerfilForm({
         </Tab>
       </form>
 
+
+      {/* ABA: Chat de Teste — inline, único perfil */}
+      {editandoId && perfilDetalhe && (
+        <Tab when="chat-teste">
+          <ChatTesteTab
+            perfilId={editandoId}
+            perfilNome={perfilDetalhe.nome}
+            provider={perfilDetalhe.provider}
+            modelo={perfilDetalhe.modelo}
+            modoModular={perfilDetalhe.modo_modular}
+          />
+        </Tab>
+      )}
 
       {/* ABA: Ferramentas + envio de resumo */}
       {editandoId && (
