@@ -11,6 +11,7 @@ PASSWORD = "Jj@28186310104"  # noqa: secret local-only
 CMD = (
     "cd /home/deploy/sonar && "
     "sudo -u deploy git pull origin main 2>&1 && "
+    "sudo -u deploy bash -lc 'cd /home/deploy/sonar && npm install --no-audit --no-fund' 2>&1 && "
     "sudo -u deploy bash -lc 'cd /home/deploy/sonar && npm run build' 2>&1 && "
     "sudo -u deploy pm2 restart sonar 2>&1 && "
     "sudo -u deploy pm2 status sonar"
