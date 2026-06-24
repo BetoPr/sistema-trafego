@@ -8,6 +8,7 @@ interface Props {
   provider: string;
   modelo: string;
   modoModular: boolean;
+  totalCapsulas: number;
 }
 
 interface ToolCall {
@@ -25,7 +26,7 @@ interface Msg {
   erro?: boolean;
 }
 
-export default function ChatTesteTab({ perfilId, perfilNome, provider, modelo, modoModular }: Props) {
+export default function ChatTesteTab({ perfilId, perfilNome, provider, modelo, modoModular, totalCapsulas }: Props) {
   const [historico, setHistorico] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -106,7 +107,14 @@ export default function ChatTesteTab({ perfilId, perfilNome, provider, modelo, m
         <i className="ti ti-message-chatbot" style={{ color: "#00E19A", fontSize: 16 }} />
         <strong style={{ fontSize: 13 }}>{perfilNome}</strong>
         <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>
-          {provider} · {modelo} {modoModular && <span style={{ color: "#00E19A", marginLeft: 4 }}>[OTIMIZADO]</span>}
+          {provider} · {modelo}
+          {modoModular ? (
+            <span style={{ color: totalCapsulas > 0 ? "#00E19A" : "#f59e0b", marginLeft: 6, fontWeight: 700 }}>
+              · MODULAR ({totalCapsulas} {totalCapsulas === 1 ? "cápsula" : "cápsulas"})
+            </span>
+          ) : (
+            <span style={{ color: "#9B7DBF", marginLeft: 6, fontWeight: 700 }}>· PROMPT ÚNICO</span>
+          )}
         </span>
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{historico.length} msgs</span>
@@ -118,6 +126,13 @@ export default function ChatTesteTab({ perfilId, perfilNome, provider, modelo, m
       <div style={{ padding: "8px 14px", borderBottom: ".5px solid var(--mk-border)", background: "rgba(245,158,11,.06)", fontSize: 11, color: "var(--mk-text-muted)" }}>
         <i className="ti ti-info-circle" style={{ color: "#f59e0b" }} /> Modo teste: ferramentas são <strong>simuladas</strong> (mostradas na resposta sem efeito real). Gasta tokens da chave do perfil. Digite <code style={{ background: "rgba(0,225,154,.12)", color: "#00E19A", padding: "1px 5px", borderRadius: 3 }}>LIMPAR</code> pra zerar.
       </div>
+
+      {modoModular && totalCapsulas === 0 && (
+        <div style={{ padding: "8px 14px", borderBottom: ".5px solid var(--mk-border)", background: "rgba(201,112,100,.08)", fontSize: 11, color: "#C97064", display: "flex", alignItems: "center", gap: 6 }}>
+          <i className="ti ti-alert-triangle" />
+          <span><strong>Modo MODULAR ON mas sem cápsulas.</strong> IA usa só Identidade + Objetivo + Regras. Pra ela responder com conhecimento específico (FAQ/produtos/horários etc.), adicione cápsulas na aba <strong>Comportamento</strong>.</span>
+        </div>
+      )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
         {historico.length === 0 && (

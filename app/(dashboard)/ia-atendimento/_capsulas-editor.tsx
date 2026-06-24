@@ -54,12 +54,12 @@ export default function CapsulasEditor({
         <i className="ti ti-sparkles" style={{ color: "#9B7DBF", fontSize: 22 }} />
         <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.55 }}>
           <strong style={{ display: "block", marginBottom: 2, fontSize: 13 }}>
-            Modo da IA: {modular ? <span style={{ color: "#00E19A" }}>OTIMIZADO (sub-agentes)</span> : <span style={{ color: "#9B7DBF" }}>PROMPT ÚNICO</span>}
+            Modo da IA: {modular ? <span style={{ color: "#00E19A" }}>MODULAR ({capsulas.length} {capsulas.length === 1 ? "cápsula" : "cápsulas"})</span> : <span style={{ color: "#9B7DBF" }}>PROMPT ÚNICO</span>}
           </strong>
           <span style={{ color: "var(--mk-text-secondary)" }}>
             {modular
-              ? "Sub-agentes internos injetam só conhecimento relevante por pergunta. Economiza tokens. Ferramentas e regras seguem funcionando igual."
-              : "Prompt do sistema clássico (1 textarea longa). Sem economia de tokens; tudo enviado a cada pergunta."}
+              ? "Identidade + Objetivo + Regras sempre injetados. Cápsulas só entram quando keyword bate na pergunta do cliente — economiza tokens. Ferramentas e regras funcionam igual."
+              : "1 prompt monolítico enviado inteiro a cada mensagem. Sem economia de tokens."}
           </span>
         </div>
         <SwitchToggle name="modo_modular" checked={modular} onChange={setModular} />

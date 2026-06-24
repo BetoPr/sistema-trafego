@@ -753,6 +753,7 @@ function PerfilForm({
             provider={perfilDetalhe.provider}
             modelo={perfilDetalhe.modelo}
             modoModular={perfilDetalhe.modo_modular}
+            totalCapsulas={capsulas.filter((c) => c.ativa).length}
           />
         </Tab>
       )}
