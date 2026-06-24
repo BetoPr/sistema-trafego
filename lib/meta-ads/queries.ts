@@ -336,6 +336,109 @@ export async function topCriativos(
   });
 }
 
+export interface LinhaAnuncio {
+  anuncio_id: string;
+  nome: string;
+  status: string | null;
+  thumbnail_url: string | null;
+  campanha_id: string;
+  campanha_nome: string;
+  conjunto_id: string;
+  conjunto_nome: string;
+  resultados: number;
+  custo_por_resultado: number | null;
+  valor_usado: number;
+  impressoes: number;
+  alcance: number;
+  cliques: number;
+  conversoes: number;
+  leads: number;
+  receita: number;
+  cpm: number | null;
+  ctr: number | null;
+  roas: number | null;
+}
+
+/** Tabela estilo Meta Ads Manager — agrega metricas_diarias por anuncio_id no periodo. */
+export async function tabelaAnuncios(
+  supabase: SupabaseClient,
+  agenciaId: string,
+  periodo: Periodo,
+  campanhaIds?: string[] | null,
+): Promise<LinhaAnuncio[]> {
+  const { inicio, fim } = rangeDe(periodo);
+  if (Array.isArray(campanhaIds) && campanhaIds.length === 0) return [];
+
+  let qm = supabase
+    .from("metricas_diarias")
+    .select("anuncio_id, campanha_id, conjunto_id, gasto, impressoes, alcance, cliques, conversoes, leads, receita")
+    .eq("agencia_id", agenciaId)
+    .gte("data", inicio)
+    .lte("data", fim)
+    .not("anuncio_id", "is", null);
+  if (campanhaIds && campanhaIds.length > 0) qm = qm.in("campanha_id", campanhaIds);
+  const { data: mets, error } = await qm;
+  if (error) throw new Error(`tabelaAnuncios: ${error.message}`);
+
+  const agg = new Map<string, { campanha_id: string; conjunto_id: string; gasto: number; impressoes: number; alcance: number; cliques: number; conversoes: number; leads: number; receita: number }>();
+  for (const m of (mets || []) as Array<{ anuncio_id: string; campanha_id: string; conjunto_id: string; gasto: number | string; impressoes: number | string; alcance: number | string; cliques: number | string; conversoes: number | string; leads: number | string; receita: number | string }>) {
+    const cur = agg.get(m.anuncio_id) ?? { campanha_id: m.campanha_id, conjunto_id: m.conjunto_id, gasto: 0, impressoes: 0, alcance: 0, cliques: 0, conversoes: 0, leads: 0, receita: 0 };
+    cur.gasto += Number(m.gasto) || 0;
+    cur.impressoes += Number(m.impressoes) || 0;
+    cur.alcance += Number(m.alcance) || 0;
+    cur.cliques += Number(m.cliques) || 0;
+    cur.conversoes += Number(m.conversoes) || 0;
+    cur.leads += Number(m.leads) || 0;
+    cur.receita += Number(m.receita) || 0;
+    agg.set(m.anuncio_id, cur);
+  }
+
+  const ids = Array.from(agg.keys());
+  if (ids.length === 0) return [];
+
+  const { data: anuncios } = await supabase
+    .from("anuncios")
+    .select("id, nome, status, criativo, conjunto:conjuntos!inner(id, nome, campanha:campanhas!inner(id, nome))")
+    .eq("agencia_id", agenciaId)
+    .in("id", ids);
+
+  type AnuncioRow = { id: string; nome: string; status: string | null; criativo: { thumbnail_url?: string; image_url?: string } | null; conjunto: { id: string; nome: string; campanha: { id: string; nome: string } | { id: string; nome: string }[] } | { id: string; nome: string; campanha: { id: string; nome: string } | { id: string; nome: string }[] }[] | null };
+  const mapaAn = new Map<string, AnuncioRow>();
+  for (const a of (anuncios || []) as AnuncioRow[]) mapaAn.set(a.id, a);
+
+  const linhas: LinhaAnuncio[] = ids.map((id) => {
+    const m = agg.get(id)!;
+    const an = mapaAn.get(id);
+    const conj = an ? (Array.isArray(an.conjunto) ? an.conjunto[0] : an.conjunto) : null;
+    const camp = conj ? (Array.isArray(conj.campanha) ? conj.campanha[0] : conj.campanha) : null;
+    const resultados = m.leads || m.conversoes || 0;
+    return {
+      anuncio_id: id,
+      nome: an?.nome || "—",
+      status: an?.status ?? null,
+      thumbnail_url: an?.criativo?.thumbnail_url || an?.criativo?.image_url || null,
+      campanha_id: camp?.id || m.campanha_id,
+      campanha_nome: camp?.nome || "—",
+      conjunto_id: conj?.id || m.conjunto_id,
+      conjunto_nome: conj?.nome || "—",
+      resultados,
+      custo_por_resultado: resultados > 0 ? m.gasto / resultados : null,
+      valor_usado: m.gasto,
+      impressoes: m.impressoes,
+      alcance: m.alcance,
+      cliques: m.cliques,
+      conversoes: m.conversoes,
+      leads: m.leads,
+      receita: m.receita,
+      cpm: m.impressoes > 0 ? (m.gasto * 1000) / m.impressoes : null,
+      ctr: m.impressoes > 0 ? m.cliques / m.impressoes : null,
+      roas: m.gasto > 0 && m.receita > 0 ? m.receita / m.gasto : null,
+    };
+  });
+
+  return linhas.sort((a, b) => b.valor_usado - a.valor_usado);
+}
+
 export interface DistribStatus {
   status: string;
   count: number;
