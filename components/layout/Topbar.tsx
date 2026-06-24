@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useCollapse } from "@/components/providers/CollapseProvider";
 import { PlatformSelector } from "./PlatformSelector";
+import { FiltroGlobal } from "./FiltroGlobal";
 
 interface TopbarProps {
   userName: string;
@@ -76,6 +77,7 @@ export function Topbar({ userName, userEmail, agencia, avatarUrl }: TopbarProps)
         </button>
       </div>
       <div className="topbar-right">
+        <FiltroGlobal />
         <PlatformSelector />
         <DropdownMenu>
           <DropdownMenuTrigger

@@ -9,6 +9,7 @@ import { CollapseProvider } from "@/components/providers/CollapseProvider";
 import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
 import { CrmOverlays } from "./_crm-overlays";
+import { FiltroAtivoProvider } from "@/lib/filtro-ativo/context";
 import { requireUserWithAgencia } from "@/lib/auth";
 import type { Plataforma } from "@/lib/platform";
 
@@ -37,6 +38,7 @@ export default async function DashboardLayout({
   return (
     <CollapseProvider>
       <PlatformProvider initialConectadas={conectadas}>
+        <FiltroAtivoProvider>
         <AudioGlobalProvider>
         <AppShell>
           <AppSidebar role={usuario.role} />
@@ -55,6 +57,7 @@ export default async function DashboardLayout({
           </main>
         </AppShell>
         </AudioGlobalProvider>
+        </FiltroAtivoProvider>
       </PlatformProvider>
     </CollapseProvider>
   );
