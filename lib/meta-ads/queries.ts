@@ -40,15 +40,23 @@ export async function kpiResumo(
   supabase: SupabaseClient,
   agenciaId: string,
   periodo: Periodo,
+  campanhaIds?: string[] | null,
 ): Promise<KpiResumo> {
   const { inicio, fim } = rangeDe(periodo);
 
-  const { data: metricas, error: errMet } = await supabase
+  // Filtro cross-aba: array vazio = nada bate -> zera tudo.
+  if (Array.isArray(campanhaIds) && campanhaIds.length === 0) {
+    return { investido: 0, faturamento: 0, lucro: 0, roas: null, leads: 0, cpl: null, cac: null, conversoes: 0, impressoes: 0, alcance: 0, cliques: 0, ctr: null, campanhas_ativas: 0, vendas: 0 };
+  }
+
+  let q = supabase
     .from("metricas_diarias")
     .select("gasto, leads, conversoes, impressoes, alcance, cliques")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim);
+  if (campanhaIds && campanhaIds.length > 0) q = q.in("campanha_id", campanhaIds);
+  const { data: metricas, error: errMet } = await q;
 
   if (errMet) throw new Error(`kpiResumo metricas: ${errMet.message}`);
 
@@ -85,11 +93,13 @@ export async function kpiResumo(
     vendas++;
   }
 
-  const { count: campanhasAtivas, error: errCamp } = await supabase
+  let qc = supabase
     .from("campanhas")
     .select("id", { count: "exact", head: true })
     .eq("agencia_id", agenciaId)
     .eq("status", "ACTIVE");
+  if (campanhaIds && campanhaIds.length > 0) qc = qc.in("id", campanhaIds);
+  const { count: campanhasAtivas, error: errCamp } = await qc;
   if (errCamp) throw new Error(`kpiResumo campanhas: ${errCamp.message}`);
 
   return {
@@ -121,16 +131,20 @@ export async function serieDiaria(
   supabase: SupabaseClient,
   agenciaId: string,
   periodo: Periodo,
+  campanhaIds?: string[] | null,
 ): Promise<PontoSerie[]> {
   const { inicio, fim } = rangeDe(periodo);
+  if (Array.isArray(campanhaIds) && campanhaIds.length === 0) return [];
 
-  const { data, error } = await supabase
+  let q = supabase
     .from("metricas_diarias")
     .select("data, gasto, leads")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim)
     .order("data", { ascending: true });
+  if (campanhaIds && campanhaIds.length > 0) q = q.in("campanha_id", campanhaIds);
+  const { data, error } = await q;
 
   if (error) throw new Error(`serieDiaria: ${error.message}`);
 
@@ -176,15 +190,19 @@ export async function topCampanhas(
   agenciaId: string,
   periodo: Periodo,
   limit = 5,
+  campanhaIds?: string[] | null,
 ): Promise<TopCampanha[]> {
   const { inicio, fim } = rangeDe(periodo);
+  if (Array.isArray(campanhaIds) && campanhaIds.length === 0) return [];
 
-  const { data, error } = await supabase
+  let q = supabase
     .from("metricas_diarias")
     .select("campanha_id, gasto, leads, conversoes, campanhas(nome, status)")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim);
+  if (campanhaIds && campanhaIds.length > 0) q = q.in("campanha_id", campanhaIds);
+  const { data, error } = await q;
 
   if (error) throw new Error(`topCampanhas: ${error.message}`);
 
@@ -239,11 +257,15 @@ export interface DistribStatus {
 export async function distribuicaoStatus(
   supabase: SupabaseClient,
   agenciaId: string,
+  campanhaIds?: string[] | null,
 ): Promise<DistribStatus[]> {
-  const { data, error } = await supabase
+  if (Array.isArray(campanhaIds) && campanhaIds.length === 0) return [];
+  let q = supabase
     .from("campanhas")
     .select("status")
     .eq("agencia_id", agenciaId);
+  if (campanhaIds && campanhaIds.length > 0) q = q.in("id", campanhaIds);
+  const { data, error } = await q;
   if (error) throw new Error(`distribuicaoStatus: ${error.message}`);
 
   const acc = new Map<string, number>();

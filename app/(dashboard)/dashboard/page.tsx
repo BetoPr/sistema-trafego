@@ -9,6 +9,7 @@ import {
   type Periodo,
 } from "@/lib/meta-ads/queries";
 import { resolverFaixa, carregarDashboardAtendimentos } from "@/lib/crm/dashboard-queries";
+import { parseFiltroSP, resolverCampanhasFiltradas } from "@/lib/filtro-ativo/server";
 import { SyncNowButton } from "@/components/shared/SyncNowButton";
 import AuroraBg from "@/components/layout/AuroraBg";
 import { DashboardKPIs } from "./_components/DashboardKPIs";
@@ -25,12 +26,14 @@ function parsePeriodo(p: string | undefined): Periodo {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periodo?: string; view?: string; de?: string; ate?: string }>;
+  searchParams: Promise<{ periodo?: string; view?: string; de?: string; ate?: string; pasta?: string; etiqueta?: string; campanha?: string; pasta_nome?: string; etiqueta_nome?: string; campanha_nome?: string }>;
 }) {
   const { supabase, usuario } = await requireUserWithAgencia();
   const primeiroNome = usuario.nome.split(" ")[0];
 
   const sp = await searchParams;
+  const filtroAtivo = parseFiltroSP(sp);
+  const campanhaIds = await resolverCampanhasFiltradas(supabase, usuario.agencia_id, filtroAtivo);
   // Atendimentos é o padrão — Campanhas fica em standby até a integração Meta ser aprovada em produção
   const view: "campanhas" | "atendimentos" = sp.view === "campanhas" ? "campanhas" : "atendimentos";
   const periodo = parsePeriodo(sp.periodo);
@@ -90,7 +93,7 @@ export default async function DashboardPage({
       {view === "campanhas" ? (
         <>
           <PeriodoToggle view={view} />
-          <ViewCampanhas agenciaId={usuario.agencia_id} supabase={supabase} periodo={periodo} periodoLabel={faixa.label} />
+          <ViewCampanhas agenciaId={usuario.agencia_id} supabase={supabase} periodo={periodo} periodoLabel={faixa.label} campanhaIds={campanhaIds} />
         </>
       ) : (
         <ViewAtendimentosLive agenciaId={usuario.agencia_id} supabase={supabase} />
@@ -137,18 +140,20 @@ async function ViewCampanhas({
   supabase,
   periodo,
   periodoLabel,
+  campanhaIds,
 }: {
   agenciaId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any;
   periodo: Periodo;
   periodoLabel: string;
+  campanhaIds?: string[] | null;
 }) {
   const [kpi, serie, top, status] = await Promise.all([
-    kpiResumo(supabase, agenciaId, periodo),
-    serieDiaria(supabase, agenciaId, periodo),
-    topCampanhas(supabase, agenciaId, periodo, 5),
-    distribuicaoStatus(supabase, agenciaId),
+    kpiResumo(supabase, agenciaId, periodo, campanhaIds),
+    serieDiaria(supabase, agenciaId, periodo, campanhaIds),
+    topCampanhas(supabase, agenciaId, periodo, 5, campanhaIds),
+    distribuicaoStatus(supabase, agenciaId, campanhaIds),
   ]);
 
   return (
