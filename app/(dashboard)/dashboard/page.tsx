@@ -6,6 +6,7 @@ import {
   kpiResumo,
   serieDiaria,
   topCampanhas,
+  topCriativos,
   type Periodo,
 } from "@/lib/meta-ads/queries";
 import { resolverFaixa, carregarDashboardAtendimentos } from "@/lib/crm/dashboard-queries";
@@ -14,6 +15,7 @@ import { SyncNowButton } from "@/components/shared/SyncNowButton";
 import AuroraBg from "@/components/layout/AuroraBg";
 import { DashboardKPIs } from "./_components/DashboardKPIs";
 import { GastoReceitaChart, StatusDonut, TopCampanhasChart } from "./_components/DashboardCharts";
+import { CriativosTop } from "./_components/CriativosTop";
 import { PeriodoToggle, ViewToggle } from "./_components/PeriodoToggle";
 import { AtendimentosLive } from "./_components/AtendimentosLive";
 import { MapaContatosEstado } from "./_components/MapaContatosEstado";
@@ -149,11 +151,12 @@ async function ViewCampanhas({
   periodoLabel: string;
   campanhaIds?: string[] | null;
 }) {
-  const [kpi, serie, top, status] = await Promise.all([
+  const [kpi, serie, top, status, criativos] = await Promise.all([
     kpiResumo(supabase, agenciaId, periodo, campanhaIds),
     serieDiaria(supabase, agenciaId, periodo, campanhaIds),
     topCampanhas(supabase, agenciaId, periodo, 5, campanhaIds),
     distribuicaoStatus(supabase, agenciaId, campanhaIds),
+    topCriativos(supabase, agenciaId, periodo, 6, campanhaIds),
   ]);
 
   return (
@@ -166,6 +169,7 @@ async function ViewCampanhas({
       <div style={{ marginTop: 14 }}>
         <TopCampanhasChart data={top} />
       </div>
+      <CriativosTop itens={criativos} />
       <MapaContatosEstado supabase={supabase} agenciaId={agenciaId} />
     </>
   );

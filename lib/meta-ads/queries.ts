@@ -249,6 +249,93 @@ export async function topCampanhas(
   return top;
 }
 
+export interface CriativoTop {
+  anuncio_id: string;
+  campanha_id: string;
+  campanha_nome: string;
+  nome: string;
+  thumbnail_url: string | null;
+  gasto: number;
+  leads: number;
+  conversoes: number;
+  impressoes: number;
+}
+
+/**
+ * Top criativos por gasto no periodo, junto com thumbnail (criativo.thumbnail_url Meta).
+ * Junta metricas_diarias agregado por anuncio_id + anuncios.criativo + campanhas.nome.
+ */
+export async function topCriativos(
+  supabase: SupabaseClient,
+  agenciaId: string,
+  periodo: Periodo,
+  limit = 6,
+  campanhaIds?: string[] | null,
+): Promise<CriativoTop[]> {
+  const { inicio, fim } = rangeDe(periodo);
+  if (Array.isArray(campanhaIds) && campanhaIds.length === 0) return [];
+
+  let q = supabase
+    .from("metricas_diarias")
+    .select("anuncio_id, campanha_id, gasto, leads, conversoes, impressoes")
+    .eq("agencia_id", agenciaId)
+    .gte("data", inicio)
+    .lte("data", fim)
+    .not("anuncio_id", "is", null);
+  if (campanhaIds && campanhaIds.length > 0) q = q.in("campanha_id", campanhaIds);
+  const { data: mets, error } = await q;
+  if (error) throw new Error(`topCriativos: ${error.message}`);
+
+  // Agrega por anuncio_id
+  const acc = new Map<string, { campanha_id: string; gasto: number; leads: number; conversoes: number; impressoes: number }>();
+  for (const m of (mets || []) as Array<{ anuncio_id: string; campanha_id: string; gasto: number | string; leads: number | string; conversoes: number | string; impressoes: number | string }>) {
+    const cur = acc.get(m.anuncio_id) ?? { campanha_id: m.campanha_id, gasto: 0, leads: 0, conversoes: 0, impressoes: 0 };
+    cur.gasto += Number(m.gasto) || 0;
+    cur.leads += Number(m.leads) || 0;
+    cur.conversoes += Number(m.conversoes) || 0;
+    cur.impressoes += Number(m.impressoes) || 0;
+    acc.set(m.anuncio_id, cur);
+  }
+
+  const topIds = Array.from(acc.entries())
+    .sort(([, a], [, b]) => b.gasto - a.gasto)
+    .slice(0, limit)
+    .map(([id]) => id);
+
+  if (topIds.length === 0) return [];
+
+  // Busca anuncios.nome + criativo + campanha.nome
+  const { data: anuncios } = await supabase
+    .from("anuncios")
+    .select("id, nome, criativo, conjunto:conjuntos!inner(campanha:campanhas!inner(nome))")
+    .eq("agencia_id", agenciaId)
+    .in("id", topIds);
+
+  const mapaAn = new Map<string, { nome: string; thumb: string | null; campanhaNome: string }>();
+  for (const a of (anuncios || []) as Array<{ id: string; nome: string; criativo: { thumbnail_url?: string; image_url?: string } | null; conjunto: { campanha: { nome: string } | { nome: string }[] } | { campanha: { nome: string } | { nome: string }[] }[] | null }>) {
+    const conj = Array.isArray(a.conjunto) ? a.conjunto[0] : a.conjunto;
+    const camp = conj ? (Array.isArray(conj.campanha) ? conj.campanha[0] : conj.campanha) : null;
+    const thumb = a.criativo?.thumbnail_url || a.criativo?.image_url || null;
+    mapaAn.set(a.id, { nome: a.nome || "—", thumb, campanhaNome: camp?.nome || "—" });
+  }
+
+  return topIds.map((id) => {
+    const m = acc.get(id)!;
+    const an = mapaAn.get(id);
+    return {
+      anuncio_id: id,
+      campanha_id: m.campanha_id,
+      campanha_nome: an?.campanhaNome || "—",
+      nome: an?.nome || "—",
+      thumbnail_url: an?.thumb || null,
+      gasto: m.gasto,
+      leads: m.leads,
+      conversoes: m.conversoes,
+      impressoes: m.impressoes,
+    };
+  });
+}
+
 export interface DistribStatus {
   status: string;
   count: number;
