@@ -41,23 +41,35 @@ export async function POST(req: Request) {
   }
 
   const provider = (row as { provider: string }).provider;
-  const cfg: Record<string, { url: string; headers: Record<string, string> }> = {
-    groq: { url: "https://api.groq.com/openai/v1/models", headers: { Authorization: `Bearer ${apiKey}` } },
-    openai: { url: "https://api.openai.com/v1/models", headers: { Authorization: `Bearer ${apiKey}` } },
-    anthropic: { url: "https://api.anthropic.com/v1/models", headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" } },
+  const cfg: Record<string, { url: string; headers: Record<string, string>; body: unknown }> = {
+    groq: {
+      url: "https://api.groq.com/openai/v1/chat/completions",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: { model: "llama-3.1-8b-instant", messages: [{ role: "user", content: "Responda apenas: OK" }], max_tokens: 5 },
+    },
+    openai: {
+      url: "https://api.openai.com/v1/chat/completions",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: { model: "gpt-4o-mini", messages: [{ role: "user", content: "Responda apenas: OK" }], max_tokens: 5 },
+    },
+    anthropic: {
+      url: "https://api.anthropic.com/v1/messages",
+      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: { model: "claude-haiku-4-5-20251001", max_tokens: 5, messages: [{ role: "user", content: "Responda apenas: OK" }] },
+    },
   };
   const c = cfg[provider];
   if (!c) return NextResponse.json({ ok: false, msg: `Provider desconhecido: ${provider}` });
 
   try {
-    const r = await fetch(c.url, { headers: c.headers });
-    const j = (await r.json().catch(() => ({}))) as { data?: unknown[]; error?: { message?: string } };
+    const r = await fetch(c.url, { method: "POST", headers: c.headers, body: JSON.stringify(c.body) });
+    const j = (await r.json().catch(() => ({}))) as { choices?: Array<{ message?: { content?: string } }>; content?: Array<{ text?: string }>; usage?: { total_tokens?: number; input_tokens?: number; output_tokens?: number }; error?: { message?: string } };
     if (!r.ok) {
-      const m = j.error?.message || `${r.status} ${r.statusText}`;
-      return NextResponse.json({ ok: false, msg: m });
+      return NextResponse.json({ ok: false, msg: j.error?.message || `${r.status} ${r.statusText}` });
     }
-    const n = Array.isArray(j.data) ? j.data.length : 0;
-    return NextResponse.json({ ok: true, msg: n ? `OK — ${n} modelos disponíveis` : "OK — chave válida" });
+    const reply = j.choices?.[0]?.message?.content || j.content?.[0]?.text || "(vazio)";
+    const tok = j.usage?.total_tokens ?? ((j.usage?.input_tokens ?? 0) + (j.usage?.output_tokens ?? 0));
+    return NextResponse.json({ ok: true, msg: `OK — "${reply}" (${tok} tokens)` });
   } catch (e) {
     return NextResponse.json({ ok: false, msg: e instanceof Error ? e.message : "Falha de rede" });
   }

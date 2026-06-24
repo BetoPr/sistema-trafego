@@ -67,15 +67,22 @@ export async function testarGroq() {
 
   let resultado: { ok: true; reply: string } | { ok: false; msg: string };
   try {
-    const r = await fetch("https://api.groq.com/openai/v1/models", {
-      headers: { Authorization: `Bearer ${apiKey}` },
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: "Responda apenas: OK" }],
+        max_tokens: 5,
+      }),
     });
-    const j = (await r.json().catch(() => ({}))) as { data?: unknown[]; error?: { message?: string } };
+    const j = (await r.json().catch(() => ({}))) as { choices?: Array<{ message?: { content?: string } }>; usage?: { total_tokens?: number }; error?: { message?: string } };
     if (!r.ok) {
       resultado = { ok: false, msg: j.error?.message || `${r.status} ${r.statusText}` };
     } else {
-      const n = Array.isArray(j.data) ? j.data.length : 0;
-      resultado = { ok: true, reply: `${n} modelos disponíveis` };
+      const reply = j.choices?.[0]?.message?.content || "(vazio)";
+      const tok = j.usage?.total_tokens ?? 0;
+      resultado = { ok: true, reply: `"${reply}" (${tok} tokens)` };
     }
   } catch (e) {
     resultado = { ok: false, msg: e instanceof Error ? e.message : String(e) };
