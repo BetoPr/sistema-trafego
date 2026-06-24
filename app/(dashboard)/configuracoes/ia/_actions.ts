@@ -67,20 +67,15 @@ export async function testarGroq() {
 
   let resultado: { ok: true; reply: string } | { ok: false; msg: string };
   try {
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: "Diga apenas: OK" }],
-        max_tokens: 10,
-      }),
+    const r = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
     });
-    const j = await r.json();
+    const j = (await r.json().catch(() => ({}))) as { data?: unknown[]; error?: { message?: string } };
     if (!r.ok) {
-      resultado = { ok: false, msg: j.error?.message || r.statusText };
+      resultado = { ok: false, msg: j.error?.message || `${r.status} ${r.statusText}` };
     } else {
-      resultado = { ok: true, reply: j.choices?.[0]?.message?.content || "(vazio)" };
+      const n = Array.isArray(j.data) ? j.data.length : 0;
+      resultado = { ok: true, reply: `${n} modelos disponíveis` };
     }
   } catch (e) {
     resultado = { ok: false, msg: e instanceof Error ? e.message : String(e) };
