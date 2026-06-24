@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { gerarBufferPdf, type PdfDados } from "./pdf";
+import { gerarBufferImagem } from "./imagem";
 
 interface RelatorioRow {
   id: string;
@@ -165,6 +166,25 @@ function dadosParaPdf(r: RelatorioRow, cliente: { nome: string } | null, d: Dado
 }
 
 /** Sobe PDF no bucket `relatorios` e retorna URL assinada de 24h. */
+async function uploadImagem(
+  sb: ReturnType<typeof createServiceClient>,
+  agenciaId: string,
+  relatorioId: string,
+  buffer: Buffer,
+): Promise<string> {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const path = `${agenciaId}/${relatorioId}/${ts}.png`;
+  const { error: upErr } = await sb.storage
+    .from("relatorios")
+    .upload(path, buffer, { contentType: "image/png", upsert: true });
+  if (upErr) throw new Error(`Upload imagem falhou: ${upErr.message}`);
+  const { data: signed, error: sigErr } = await sb.storage
+    .from("relatorios")
+    .createSignedUrl(path, 60 * 60 * 24);
+  if (sigErr || !signed) throw new Error(`URL assinada falhou: ${sigErr?.message}`);
+  return signed.signedUrl;
+}
+
 async function uploadPdf(
   sb: ReturnType<typeof createServiceClient>,
   agenciaId: string,
@@ -329,8 +349,28 @@ export async function processarRelatoriosPendentes(): Promise<ResultadoWorker> {
             },
           );
         } catch (pdfErr) {
-          // fallback pra texto se PDF/upload falhar
           console.warn(`[relatorios] PDF falhou (${r.id}), enviando texto:`, pdfErr);
+          await instanceSendText(
+            { baseUrl: canal.baseUrl, token: canal.token },
+            { number: numero, text: texto },
+          );
+        }
+      } else if (r.formato === "imagem") {
+        try {
+          const pdfDados = dadosParaPdf(r, cliente, dados);
+          const buf = gerarBufferImagem(pdfDados);
+          const url = await uploadImagem(sb, r.agencia_id, r.id, buf);
+          await instanceSendMedia(
+            { baseUrl: canal.baseUrl, token: canal.token },
+            {
+              number: numero,
+              type: "image",
+              file: url,
+              text: `📊 ${r.nome}\nPeríodo: ${fmtData(dados.inicio)} a ${fmtData(dados.fim)}`,
+            },
+          );
+        } catch (imgErr) {
+          console.warn(`[relatorios] imagem falhou (${r.id}), enviando texto:`, imgErr);
           await instanceSendText(
             { baseUrl: canal.baseUrl, token: canal.token },
             { number: numero, text: texto },
