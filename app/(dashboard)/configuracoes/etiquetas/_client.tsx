@@ -114,7 +114,7 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
             style={{ padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, maxWidth: 200 }}
             title="Vincular como Variante de uma Linha existente"
           >
-            <option value="">— Linha (sem mãe)</option>
+            <option value="">Seleciona Etiqueta</option>
             {linhasDisp.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nome}
