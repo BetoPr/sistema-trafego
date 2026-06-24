@@ -10,6 +10,8 @@ export async function salvarMarca(formData: FormData): Promise<void> {
   const ctx = await requireAdmin();
   const modo = String(formData.get("modo") || "texto") as "texto" | "logo" | "logo_texto";
   const layout = String(formData.get("layout") || "horizontal") as "horizontal" | "vertical";
+  const alturaRaw = Number(formData.get("altura") || 36);
+  const altura = Math.max(24, Math.min(80, Math.round(Number.isFinite(alturaRaw) ? alturaRaw : 36)));
   const removerLogo = formData.get("remover_logo") === "1";
   const arquivo = formData.get("logo") as File | null;
 
@@ -17,6 +19,7 @@ export async function salvarMarca(formData: FormData): Promise<void> {
   const patch: Record<string, unknown> = {
     logo_modo: ["texto", "logo", "logo_texto"].includes(modo) ? modo : "texto",
     logo_layout: ["horizontal", "vertical"].includes(layout) ? layout : "horizontal",
+    logo_altura: altura,
   };
 
   if (removerLogo) {

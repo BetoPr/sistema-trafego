@@ -44,7 +44,7 @@ function buildSections(role?: string): NavSection[] {
         { href: "/atendimentos", label: "Atendimentos", icon: "ti-messages" },
         { href: "/follow-up", label: "Follow-up", icon: "ti-clock-bolt" },
         { href: "/contatos", label: "Contatos", icon: "ti-address-book" },
-        { href: "/ia-atendimento", label: "IA", icon: "ti-brain", badge: { text: "BÁSICA", variant: "amber" } },
+        { href: "/ia-atendimento", label: "IA", icon: "ti-brain", badge: { text: "BÁSICO", variant: "amber" } },
       ],
     },
     {
@@ -98,7 +98,6 @@ function buildSections(role?: string): NavSection[] {
         { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag" },
         { href: "/configuracoes/mcp", label: "MCP / API", icon: "ti-plug-connected" },
-        { href: "/configuracoes/marca", label: "Marca / Logo", icon: "ti-photo" },
       ],
     },
   ];
@@ -110,6 +109,7 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-crown",
       iconColor: "#C97064",
       items: [
+        { href: "/configuracoes/marca", label: "Marca / Logo", icon: "ti-photo" },
         { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
         { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
         { href: "/super-admin/acessos", label: "Acessos", icon: "ti-shield-lock" },
@@ -136,6 +136,7 @@ interface MarcaConfig {
   logoUrl: string | null;
   modo: "texto" | "logo" | "logo_texto";
   layout: "horizontal" | "vertical";
+  altura?: number;
 }
 
 export function AppSidebar({ role, marca }: { role?: string; marca?: MarcaConfig } = {}) {
@@ -188,7 +189,7 @@ export function AppSidebar({ role, marca }: { role?: string; marca?: MarcaConfig
           <div className="logo-wrap">
             <span className="logo-text">
               {marca && (marca.logoUrl || marca.modo !== "texto") ? (
-                <MarcaCustom nome={marca.nome} logoUrl={marca.logoUrl} modo={marca.modo} layout={marca.layout} />
+                <MarcaCustom nome={marca.nome} logoUrl={marca.logoUrl} modo={marca.modo} layout={marca.layout} altura={marca.altura} />
               ) : (
                 <SonarLogo fontSize={18} bgRadarOpacity={0.9} bgRadarSize={220} />
               )}

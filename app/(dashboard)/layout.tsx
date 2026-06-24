@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   const agencia = Array.isArray(usuario.agencias) ? usuario.agencias[0] : usuario.agencias;
   const { data: agRow } = await supabase
     .from("agencias")
-    .select("nome, logo_url, logo_modo, logo_layout")
+    .select("nome, logo_url, logo_modo, logo_layout, logo_altura")
     .eq("id", usuario.agencia_id)
     .maybeSingle();
   const marca = {
@@ -31,6 +31,7 @@ export default async function DashboardLayout({
     logoUrl: (agRow?.logo_url as string | null) ?? null,
     modo: ((agRow?.logo_modo as "texto" | "logo" | "logo_texto") || "texto"),
     layout: ((agRow?.logo_layout as "horizontal" | "vertical") || "horizontal"),
+    altura: ((agRow?.logo_altura as number) || 36),
   };
 
   // Busca plataformas com ao menos 1 integração ativa

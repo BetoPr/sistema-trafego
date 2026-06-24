@@ -10,13 +10,16 @@ interface Props {
   logoUrl?: string | null;
   modo: LogoModo;
   layout: LogoLayout;
+  /** Altura px da logo (24-80). Default 36. */
+  altura?: number;
   /** Se true (sidebar colapsada), forca so logo OU iniciais. */
   compacto?: boolean;
 }
 
-export function MarcaCustom({ nome, logoUrl, modo, layout, compacto }: Props) {
+export function MarcaCustom({ nome, logoUrl, modo, layout, altura, compacto }: Props) {
   const semLogo = !logoUrl;
   const efetivoModo: LogoModo = semLogo ? "texto" : modo;
+  const h = Math.max(20, Math.min(80, altura || 36));
 
   if (compacto) {
     if (logoUrl) {
@@ -35,21 +38,21 @@ export function MarcaCustom({ nome, logoUrl, modo, layout, compacto }: Props) {
   if (efetivoModo === "logo") {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={logoUrl!} alt={nome} style={{ height: 36, width: "auto", maxWidth: 180, objectFit: "contain", display: "block" }} />
+      <img src={logoUrl!} alt={nome} style={{ height: h, width: "auto", maxWidth: 200, objectFit: "contain", display: "block" }} />
     );
   }
 
-  // logo_texto
   const containerStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: layout === "vertical" ? "column" : "row",
     alignItems: "center",
     gap: layout === "vertical" ? 6 : 10,
   };
+  const imgH = layout === "vertical" ? h + 4 : h;
   return (
     <div style={containerStyle}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={logoUrl!} alt={nome} style={{ height: layout === "vertical" ? 40 : 32, width: "auto", maxWidth: 180, objectFit: "contain", display: "block" }} />
+      <img src={logoUrl!} alt={nome} style={{ height: imgH, width: "auto", maxWidth: 200, objectFit: "contain", display: "block" }} />
       <span style={{ fontSize: layout === "vertical" ? 13 : 15, fontWeight: 700, color: "var(--mk-text)", lineHeight: 1.1 }}>{nome}</span>
     </div>
   );

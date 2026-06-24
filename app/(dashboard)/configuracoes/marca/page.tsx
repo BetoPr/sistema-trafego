@@ -7,7 +7,7 @@ export default async function MarcaPage({ searchParams }: { searchParams: Promis
   const { supabase, usuario } = await requireUserWithAgencia();
   const { data: ag } = await supabase
     .from("agencias")
-    .select("nome, logo_url, logo_modo, logo_layout")
+    .select("nome, logo_url, logo_modo, logo_layout, logo_altura")
     .eq("id", usuario.agencia_id)
     .single();
 
@@ -30,6 +30,7 @@ export default async function MarcaPage({ searchParams }: { searchParams: Promis
         logoUrl={ag?.logo_url ?? null}
         modo={(ag?.logo_modo as "texto" | "logo" | "logo_texto") || "texto"}
         layout={(ag?.logo_layout as "horizontal" | "vertical") || "horizontal"}
+        altura={(ag?.logo_altura as number) || 36}
         action={salvarMarca}
       />
     </section>

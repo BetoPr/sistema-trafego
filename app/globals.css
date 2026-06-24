@@ -323,6 +323,7 @@ select option { background: #ffffff; color: #111111; }
   height: 54px;
   overflow: hidden;
   white-space: nowrap;
+  padding-right: 36px;
   transition: opacity 0.2s ease;
   /* Radar de fundo é grande; fade elíptico nas bordas em vez de corte reto
      (antes o overflow:hidden cortava o radar num retângulo visível). Núcleo

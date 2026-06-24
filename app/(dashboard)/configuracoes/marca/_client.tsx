@@ -8,12 +8,14 @@ interface Props {
   logoUrl: string | null;
   modo: LogoModo;
   layout: LogoLayout;
+  altura: number;
   action: (formData: FormData) => void | Promise<void>;
 }
 
-export function MarcaCliente({ nome, logoUrl, modo, layout, action }: Props) {
+export function MarcaCliente({ nome, logoUrl, modo, layout, altura, action }: Props) {
   const [modoSel, setModoSel] = useState<LogoModo>(modo);
   const [layoutSel, setLayoutSel] = useState<LogoLayout>(layout);
+  const [alturaSel, setAlturaSel] = useState<number>(altura);
   const [preview, setPreview] = useState<string | null>(logoUrl);
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
 
@@ -81,6 +83,20 @@ export function MarcaCliente({ nome, logoUrl, modo, layout, action }: Props) {
           </div>
         </div>
 
+        {/* Tamanho (so faz sentido com logo) */}
+        {modoSel !== "texto" && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--mk-text-muted)", letterSpacing: ".5px", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+              <span>TAMANHO DA LOGO</span>
+              <span style={{ color: "#00E19A" }}>{alturaSel}px</span>
+            </div>
+            <input type="range" name="altura" min={24} max={80} step={1} value={alturaSel} onChange={(e) => setAlturaSel(Number(e.target.value))} style={{ width: "100%", accentColor: "#00E19A" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--mk-text-muted)", marginTop: 2 }}>
+              <span>24px</span><span>52px (default)</span><span>80px</span>
+            </div>
+          </div>
+        )}
+
         {/* Layout */}
         {modoSel === "logo_texto" && (
           <div style={{ marginTop: 12 }}>
@@ -114,7 +130,7 @@ export function MarcaCliente({ nome, logoUrl, modo, layout, action }: Props) {
         <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 12 }}>Como vai aparecer na sidebar:</div>
 
         <div style={{ background: "var(--mk-bg-deep)", border: ".5px solid var(--mk-border)", borderRadius: 10, padding: 18, minHeight: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <MarcaCustom nome={nome} logoUrl={preview} modo={modoSel} layout={layoutSel} />
+          <MarcaCustom nome={nome} logoUrl={preview} modo={modoSel} layout={layoutSel} altura={alturaSel} />
         </div>
 
         <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 12, lineHeight: 1.6 }}>
