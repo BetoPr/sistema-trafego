@@ -199,6 +199,10 @@ export async function sugerirFollowUpTicket(params: {
   ticketId: string;
   tom?: string;
   usuarioId?: string | null;
+  /** Reaproveita resumo+decisao+motivo existentes e gera SO uma mensagem nova. */
+  apenasMensagem?: boolean;
+  resumoExistente?: string;
+  motivoExistente?: string;
 }): Promise<{ enviar: boolean; motivo: string; resumo: string; mensagem: string; followups_enviados: number }> {
   const sb = createServiceClient();
   // Só as últimas mensagens — limita os tokens por chamada (evita estourar o TPM do Groq).
@@ -221,7 +225,7 @@ export async function sugerirFollowUpTicket(params: {
     ? `\nIMPORTANTE: já foram enviados ${jaEnviados} follow-up(s) antes nesta conversa. NÃO repita as mesmas frases — varie a abordagem e seja mais leve/breve a cada tentativa.`
     : "";
 
-  const system = `Você é um especialista em vendas e atendimento por WhatsApp. Recebe uma conversa que está PARADA e decide se vale enviar um follow-up para reengajar o cliente.
+  const systemFull = `Você é um especialista em vendas e atendimento por WhatsApp. Recebe uma conversa que está PARADA e decide se vale enviar um follow-up para reengajar o cliente.
 
 Responda APENAS um JSON válido:
 {"resumo":"...","enviar":true,"motivo":"...","mensagem":"..."}
@@ -230,6 +234,17 @@ Responda APENAS um JSON válido:
 - enviar: true se faz sentido um follow-up (cliente demonstrou interesse e sumiu, negociação aberta, dúvida/pagamento pendente); false se NÃO faz sentido (já comprou e foi atendido, recusou claramente, conversa irrelevante/spam, ou cliente pediu pra não receber mensagens).
 - motivo: justificativa curta da decisão.
 - mensagem: se enviar=true, o texto do follow-up PRONTO pra enviar — curto, cordial, em português do Brasil, tom de quem está retomando o papo, NUNCA robótico; use o nome do cliente se houver. SEMPRE termine com uma pergunta curta (padrão de follow-up, pra puxar resposta). Se enviar=false, retorne "".${tomInstr}${histInstr}`;
+
+  const systemApenas = `Você é um especialista em follow-up por WhatsApp. Já existe um resumo da conversa e a decisao foi enviar follow-up. Voce so precisa propor UMA NOVA mensagem (diferente das anteriores).
+
+Resumo da conversa: ${params.resumoExistente || "(sem resumo)"}
+${params.motivoExistente ? `Motivo: ${params.motivoExistente}\n` : ""}
+Responda APENAS um JSON valido:
+{"mensagem":"..."}
+
+A mensagem: curta, cordial, pt-BR, retomando papo, sem ser robotico, com nome do cliente quando houver, SEMPRE termina com pergunta curta. Varie da anterior.${tomInstr}${histInstr}`;
+
+  const system = params.apenasMensagem ? systemApenas : systemFull;
 
   const r = await chatGateway({
     agenciaId: params.agenciaId,
@@ -245,6 +260,15 @@ Responda APENAS um JSON válido:
 
   let p: { enviar?: boolean; motivo?: string; resumo?: string; mensagem?: string } = {};
   try { p = JSON.parse(r.content); } catch {}
+  if (params.apenasMensagem) {
+    return {
+      enviar: true,
+      motivo: params.motivoExistente || "",
+      resumo: params.resumoExistente || "",
+      mensagem: String(p.mensagem || ""),
+      followups_enviados: jaEnviados,
+    };
+  }
   return {
     enviar: !!p.enviar,
     motivo: String(p.motivo || ""),

@@ -54,7 +54,7 @@ interface FollowUpRunCtx {
   enviandoTodos: boolean;
   patch: (id: string, p: Partial<Cand>) => void;
   remover: (id: string) => void;
-  analisarUm: (id: string, tom?: string) => Promise<void>;
+  analisarUm: (id: string, tom?: string, opts?: { apenasMensagem?: boolean }) => Promise<void>;
   analisarTodas: (porMinuto: number) => Promise<void>;
   /** Gera a sugestão da IA pro 2º/3º follow-up (preenche msg2/msg3, editável). */
   gerarExtra: (id: string, qual: 2 | 3, tom: string) => Promise<void>;
@@ -98,16 +98,28 @@ export function CrmOverlays({ children }: { children: React.ReactNode }) {
   const candsRef = useRef<Cand[] | null>(null);
   candsRef.current = cands;
 
-  const analisarUm = useCallback(async (id: string, tom?: string) => {
+  const analisarUm = useCallback(async (id: string, tom?: string, opts?: { apenasMensagem?: boolean }) => {
     const c = (candsRef.current || []).find((x) => x.ticketId === id);
     patch(id, { _pendente: true });
     try {
       const r = await fetch("/api/follow-up/ia/regenerar", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ticketId: id, tom: tom ?? c?.tom ?? "" }),
+        body: JSON.stringify({
+          ticketId: id,
+          tom: tom ?? c?.tom ?? "",
+          apenasMensagem: !!opts?.apenasMensagem,
+          resumoExistente: opts?.apenasMensagem ? (c?.resumo || "") : undefined,
+          motivoExistente: opts?.apenasMensagem ? (c?.motivo || "") : undefined,
+        }),
       });
       const j = await r.json();
-      if (j.ok) patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, followups_enviados: j.followups_enviados ?? c?.followups_enviados ?? 0, _pendente: false, _analisado: true });
+      if (j.ok) {
+        if (opts?.apenasMensagem) {
+          patch(id, { mensagem: j.mensagem, _pendente: false });
+        } else {
+          patch(id, { enviar: j.enviar, motivo: j.motivo, resumo: j.resumo, mensagem: j.mensagem, followups_enviados: j.followups_enviados ?? c?.followups_enviados ?? 0, _pendente: false, _analisado: true });
+        }
+      }
       else if (ehLimiteDiario(j.error)) {
         // Limite diário do Groq: pausa a fila e deixa o card como "a analisar" (não queima como falha).
         pararRef.current = true;

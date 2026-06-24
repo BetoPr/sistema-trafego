@@ -269,7 +269,7 @@ function FollowUpIA({ etiquetas, canais }: { etiquetas: Etiqueta[]; canais: Cana
               c={c} now={now}
               onPatch={(p) => patch(c.ticketId, p)}
               onAnalisar={() => run.analisarUm(c.ticketId)}
-              onRegenerar={(tom) => run.analisarUm(c.ticketId, tom)}
+              onRegenerar={(tom) => run.analisarUm(c.ticketId, tom, { apenasMensagem: true })}
               onGerar={(qual) => run.gerarExtra(c.ticketId, qual, c.tom)}
               onEnviar={() => run.enviar(c)}
               onDescartar={() => run.descartar(c, descarteOpts)}

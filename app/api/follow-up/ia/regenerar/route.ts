@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
-  const body = (await req.json().catch(() => ({}))) as { ticketId?: string; tom?: string };
+  const body = (await req.json().catch(() => ({}))) as { ticketId?: string; tom?: string; apenasMensagem?: boolean; resumoExistente?: string; motivoExistente?: string };
   if (!body.ticketId) return NextResponse.json({ error: "ticketId_obrigatorio" }, { status: 400 });
 
   // Garante que o ticket é da agência
@@ -24,7 +24,15 @@ export async function POST(req: Request) {
   if (!tk) return NextResponse.json({ error: "ticket_nao_encontrado" }, { status: 404 });
 
   try {
-    const s = await sugerirFollowUpTicket({ agenciaId: u.agencia_id, ticketId: body.ticketId, tom: body.tom, usuarioId: auth.user.id });
+    const s = await sugerirFollowUpTicket({
+      agenciaId: u.agencia_id,
+      ticketId: body.ticketId,
+      tom: body.tom,
+      usuarioId: auth.user.id,
+      apenasMensagem: body.apenasMensagem,
+      resumoExistente: body.resumoExistente,
+      motivoExistente: body.motivoExistente,
+    });
     return NextResponse.json({ ok: true, ...s });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
