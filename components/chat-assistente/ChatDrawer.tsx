@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Bot = "suporte" | "dados";
-interface Msg { id?: string; papel: "user" | "assistant"; conteudo: string }
+interface Msg { id?: string; papel: "user" | "assistant"; conteudo: string; pensando?: boolean }
 
 const SUGESTOES_SUPORTE = [
   "Como criar uma campanha de follow-up?",
@@ -18,6 +18,9 @@ const SUGESTOES_DADOS = [
   "Top 5 criativos por gasto.",
 ];
 
+const DELAY_MIN_MS = 3000; // 3s antes de comecar
+const TYPEWRITER_MS = 18;  // delay entre cada caractere (typewriter)
+
 export function ChatDrawer() {
   const [aberto, setAberto] = useState(false);
   const [bot, setBot] = useState<Bot>("suporte");
@@ -27,6 +30,8 @@ export function ChatDrawer() {
   const [sessaoId, setSessaoId] = useState<string | null>(null);
   const [toolCall, setToolCall] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const filaTypewriterRef = useRef<string>("");
+  const typewriterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     function onToggle() { setAberto((a) => !a); }
@@ -38,20 +43,45 @@ export function ChatDrawer() {
     if (aberto) setTimeout(() => bodyRef.current?.scrollTo({ top: 99999, behavior: "smooth" }), 50);
   }, [msgs, aberto]);
 
-  // Reset ao trocar bot
   useEffect(() => {
     setMsgs([]);
     setSessaoId(null);
     setToolCall(null);
   }, [bot]);
 
+  function drainTypewriter() {
+    if (typewriterTimerRef.current) return;
+    function step() {
+      if (!filaTypewriterRef.current) {
+        typewriterTimerRef.current = null;
+        return;
+      }
+      const c = filaTypewriterRef.current[0];
+      filaTypewriterRef.current = filaTypewriterRef.current.slice(1);
+      setMsgs((m) => {
+        const arr = [...m];
+        const last = arr[arr.length - 1];
+        if (last && last.papel === "assistant") {
+          arr[arr.length - 1] = { ...last, conteudo: (last.conteudo || "") + c, pensando: false };
+        }
+        return arr;
+      });
+      typewriterTimerRef.current = setTimeout(step, TYPEWRITER_MS);
+    }
+    typewriterTimerRef.current = setTimeout(step, TYPEWRITER_MS);
+  }
+
   async function enviar(texto: string) {
     const msg = texto.trim();
     if (!msg || enviando) return;
     setEnviando(true);
     setToolCall(null);
-    setMsgs((m) => [...m, { papel: "user", conteudo: msg }, { papel: "assistant", conteudo: "" }]);
+    filaTypewriterRef.current = "";
+
+    setMsgs((m) => [...m, { papel: "user", conteudo: msg }, { papel: "assistant", conteudo: "", pensando: true }]);
     setInput("");
+
+    const inicio = Date.now();
 
     try {
       const r = await fetch("/api/chat-assistente", {
@@ -61,13 +91,15 @@ export function ChatDrawer() {
       });
       if (!r.ok || !r.body) {
         const err = await r.text();
+        await aguardarDelayMin(inicio);
         setMsgs((m) => { const c = [...m]; c[c.length - 1] = { papel: "assistant", conteudo: `Erro: ${err}` }; return c; });
         return;
       }
       const reader = r.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
-      let acum = "";
+      let primeiroToken = true;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -83,16 +115,26 @@ export function ChatDrawer() {
             if (j.sessao_id && !sessaoId) setSessaoId(j.sessao_id);
             if (j.tool_call) setToolCall(j.tool_call.name);
             if (j.delta) {
-              acum += j.delta;
-              setMsgs((m) => { const c = [...m]; c[c.length - 1] = { papel: "assistant", conteudo: acum }; return c; });
+              if (primeiroToken) {
+                primeiroToken = false;
+                await aguardarDelayMin(inicio);
+              }
+              filaTypewriterRef.current += j.delta;
+              drainTypewriter();
             }
             if (j.error) {
+              await aguardarDelayMin(inicio);
               setMsgs((m) => { const c = [...m]; c[c.length - 1] = { papel: "assistant", conteudo: `Erro: ${j.error}` }; return c; });
             }
           } catch {}
         }
       }
+      // Espera fila typewriter terminar
+      while (filaTypewriterRef.current || typewriterTimerRef.current) {
+        await new Promise((res) => setTimeout(res, 50));
+      }
     } catch (e) {
+      await aguardarDelayMin(inicio);
       setMsgs((m) => { const c = [...m]; c[c.length - 1] = { papel: "assistant", conteudo: `Erro: ${e instanceof Error ? e.message : String(e)}` }; return c; });
     } finally {
       setEnviando(false);
@@ -100,182 +142,241 @@ export function ChatDrawer() {
     }
   }
 
-  if (!aberto) return null;
+  async function aguardarDelayMin(inicio: number) {
+    const decorrido = Date.now() - inicio;
+    if (decorrido < DELAY_MIN_MS) await new Promise((res) => setTimeout(res, DELAY_MIN_MS - decorrido));
+  }
 
   const sugestoes = bot === "suporte" ? SUGESTOES_SUPORTE : SUGESTOES_DADOS;
 
   return (
-    <div
-      role="dialog"
-      aria-label="Assistente IA"
-      style={{
-        position: "fixed",
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: 420,
-        maxWidth: "100vw",
-        background: "var(--mk-bg)",
-        borderLeft: ".5px solid var(--mk-border)",
-        boxShadow: "-14px 0 40px rgba(0,0,0,.4)",
-        zIndex: 100,
-        display: "flex",
-        flexDirection: "column",
-        animation: "chat-slide-in .25s cubic-bezier(.2,.8,.2,1)",
-      }}
-    >
-      <style>{`@keyframes chat-slide-in { from { transform: translateX(100%); } to { transform: none; } }`}</style>
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderBottom: ".5px solid var(--mk-border)" }}>
-        <i className="ti ti-robot" style={{ fontSize: 20, color: "#00E19A" }} />
-        <div style={{ fontWeight: 700, fontSize: 14 }}>Assistente IA</div>
-        <button
-          type="button"
-          onClick={() => setAberto(false)}
-          aria-label="Fechar"
-          style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}
+    <>
+      <ChatFAB onClick={() => setAberto(true)} ativo={aberto} />
+      {aberto && (
+        <div
+          role="dialog"
+          aria-label="Assistente IA"
+          style={{
+            position: "fixed",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 420,
+            maxWidth: "100vw",
+            background: "var(--mk-bg)",
+            borderLeft: ".5px solid var(--mk-border)",
+            boxShadow: "-14px 0 40px rgba(0,0,0,.4)",
+            zIndex: 4500,
+            display: "flex",
+            flexDirection: "column",
+            animation: "chat-slide-in .25s cubic-bezier(.2,.8,.2,1)",
+          }}
         >
-          <i className="ti ti-x" />
-        </button>
-      </div>
+          <style>{`
+            @keyframes chat-slide-in { from { transform: translateX(100%); } to { transform: none; } }
+            @keyframes chat-dot { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+            .chat-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+            .chat-typing span { width: 6px; height: 6px; background: #00E19A; border-radius: 50%; animation: chat-dot 1.2s infinite; }
+            .chat-typing span:nth-child(2) { animation-delay: .15s; }
+            .chat-typing span:nth-child(3) { animation-delay: .3s; }
+          `}</style>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", padding: "10px 12px", gap: 6, borderBottom: ".5px solid var(--mk-border)" }}>
-        {([["suporte", "ti-help", "Suporte CRM"], ["dados", "ti-chart-bar", "Meus Dados"]] as Array<[Bot, string, string]>).map(([b, ic, lbl]) => (
-          <button
-            key={b}
-            type="button"
-            onClick={() => setBot(b)}
-            aria-pressed={bot === b}
-            style={{
-              flex: 1,
-              padding: "8px 10px",
-              border: `.5px solid ${bot === b ? "#00E19A" : "var(--mk-border)"}`,
-              background: bot === b ? "rgba(0,225,154,.10)" : "var(--mk-surface-2)",
-              color: bot === b ? "#00E19A" : "var(--mk-text-secondary)",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 600,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 5,
-              transition: "background .2s, color .2s, border-color .2s",
-            }}
-          >
-            <i className={`ti ${ic}`} />
-            {lbl}
-          </button>
-        ))}
-      </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderBottom: ".5px solid var(--mk-border)" }}>
+            <i className="ti ti-robot" style={{ fontSize: 20, color: "#00E19A" }} />
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Assistente IA</div>
+            <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}>
+              <i className="ti ti-x" />
+            </button>
+          </div>
 
-      {/* Mensagens */}
-      <div ref={bodyRef} style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-        {msgs.length === 0 && (
-          <div>
-            <div style={{ fontSize: 12, color: "var(--mk-text-muted)", marginBottom: 10 }}>
-              {bot === "suporte" ? "Tira dúvidas sobre o CRM. Tutoriais, configuração, fluxos." : "Análise dos dados da sua agência. ROAS, campanhas, criativos."}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {sugestoes.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => enviar(s)}
-                  disabled={enviando}
-                  style={{ textAlign: "left", padding: "10px 12px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 9, color: "var(--mk-text-secondary)", fontSize: 12, cursor: "pointer", transition: "background .2s" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,225,154,.06)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--mk-surface-2)")}
+          <div style={{ display: "flex", padding: "10px 12px", gap: 6, borderBottom: ".5px solid var(--mk-border)" }}>
+            {([["suporte", "ti-help", "Suporte CRM"], ["dados", "ti-chart-bar", "Meus Dados"]] as Array<[Bot, string, string]>).map(([b, ic, lbl]) => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => setBot(b)}
+                aria-pressed={bot === b}
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  border: `.5px solid ${bot === b ? "#00E19A" : "var(--mk-border)"}`,
+                  background: bot === b ? "rgba(0,225,154,.10)" : "var(--mk-surface-2)",
+                  color: bot === b ? "#00E19A" : "var(--mk-text-secondary)",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 5,
+                  transition: "background .2s, color .2s, border-color .2s",
+                }}
+              >
+                <i className={`ti ${ic}`} />
+                {lbl}
+              </button>
+            ))}
+          </div>
+
+          <div ref={bodyRef} style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+            {msgs.length === 0 && (
+              <div>
+                <div style={{ fontSize: 12, color: "var(--mk-text-muted)", marginBottom: 10 }}>
+                  {bot === "suporte" ? "Tira dúvidas sobre o CRM. Tutoriais, configuração, fluxos." : "Análise dos dados da sua agência. ROAS, campanhas, criativos."}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {sugestoes.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => enviar(s)}
+                      disabled={enviando}
+                      style={{ textAlign: "left", padding: "10px 12px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 9, color: "var(--mk-text-secondary)", fontSize: 12, cursor: "pointer", transition: "background .2s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,225,154,.06)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--mk-surface-2)")}
+                    >
+                      <i className="ti ti-sparkles" style={{ color: "#00E19A", marginRight: 6 }} />
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {msgs.map((m, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: m.papel === "user" ? "flex-end" : "flex-start" }}>
+                <div
+                  style={{
+                    maxWidth: "85%",
+                    padding: "9px 12px",
+                    borderRadius: 12,
+                    background: m.papel === "user" ? "rgba(0,225,154,.12)" : "var(--mk-surface-2)",
+                    border: m.papel === "user" ? ".5px solid rgba(0,225,154,.32)" : ".5px solid var(--mk-border)",
+                    color: "var(--mk-text)",
+                    fontSize: 12.5,
+                    lineHeight: 1.55,
+                    whiteSpace: "pre-wrap",
+                  }}
                 >
-                  <i className="ti ti-sparkles" style={{ color: "#00E19A", marginRight: 6 }} />
-                  {s}
-                </button>
-              ))}
-            </div>
+                  {m.pensando ? (
+                    <div className="chat-typing"><span /><span /><span /></div>
+                  ) : (
+                    <FormatarTexto texto={m.conteudo} />
+                  )}
+                </div>
+              </div>
+            ))}
+            {toolCall && (
+              <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "4px 8px", fontStyle: "italic", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <i className="ti ti-tool" /> Consultando: {toolCall}…
+              </div>
+            )}
           </div>
-        )}
-        {msgs.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.papel === "user" ? "flex-end" : "flex-start" }}>
-            <div
-              style={{
-                maxWidth: "85%",
-                padding: "9px 12px",
-                borderRadius: 12,
-                background: m.papel === "user" ? "rgba(0,225,154,.12)" : "var(--mk-surface-2)",
-                border: m.papel === "user" ? ".5px solid rgba(0,225,154,.32)" : ".5px solid var(--mk-border)",
-                color: "var(--mk-text)",
-                fontSize: 12.5,
-                lineHeight: 1.5,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {m.conteudo || (i === msgs.length - 1 && enviando ? "..." : "")}
-            </div>
-          </div>
-        ))}
-        {toolCall && (
-          <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "4px 8px", fontStyle: "italic" }}>
-            <i className="ti ti-tool" style={{ marginRight: 4 }} /> Consultando: {toolCall}…
-          </div>
-        )}
-      </div>
 
-      {/* Input */}
-      <div style={{ padding: 10, borderTop: ".5px solid var(--mk-border)" }}>
-        <form
-          onSubmit={(e) => { e.preventDefault(); enviar(input); }}
-          style={{ display: "flex", gap: 6 }}
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={bot === "suporte" ? "Como faço pra..." : "Analisa meus dados..."}
-            disabled={enviando}
-            style={{ flex: 1, padding: "9px 12px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 18, color: "var(--mk-text)", fontSize: 12.5 }}
-          />
-          <button
-            type="submit"
-            disabled={enviando || !input.trim()}
-            aria-label="Enviar"
-            style={{ width: 38, height: 38, border: 0, borderRadius: "50%", background: "#00E19A", color: "#0a0f10", cursor: enviando ? "wait" : "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", opacity: enviando || !input.trim() ? .5 : 1 }}
-          >
-            <i className={`ti ${enviando ? "ti-loader-2" : "ti-send"}`} style={{ fontSize: 16, animation: enviando ? "spin 1s linear infinite" : undefined }} />
-          </button>
-        </form>
-        <div style={{ fontSize: 10, color: "var(--mk-text-muted)", textAlign: "center", marginTop: 6 }}>
-          Modelo: {bot === "suporte" ? "Llama 8B (Groq)" : "Llama 70B (Groq)"} · {bot === "suporte" ? "rápido" : "com tools"}
+          <div style={{ padding: 10, borderTop: ".5px solid var(--mk-border)" }}>
+            <form onSubmit={(e) => { e.preventDefault(); enviar(input); }} style={{ display: "flex", gap: 6 }}>
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={bot === "suporte" ? "Como faço pra..." : "Analisa meus dados..."}
+                disabled={enviando}
+                style={{ flex: 1, padding: "9px 12px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 18, color: "var(--mk-text)", fontSize: 12.5 }}
+              />
+              <button
+                type="submit"
+                disabled={enviando || !input.trim()}
+                aria-label="Enviar"
+                style={{ width: 38, height: 38, border: 0, borderRadius: "50%", background: "#00E19A", color: "#0a0f10", cursor: enviando ? "wait" : "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", opacity: enviando || !input.trim() ? .5 : 1 }}
+              >
+                <i className={`ti ${enviando ? "ti-loader-2" : "ti-send"}`} style={{ fontSize: 16, animation: enviando ? "spin 1s linear infinite" : undefined }} />
+              </button>
+            </form>
+            <div style={{ fontSize: 10, color: "var(--mk-text-muted)", textAlign: "center", marginTop: 6 }}>
+              Modelo: {bot === "suporte" ? "Llama 8B (Groq)" : "Llama 70B (Groq)"} · {bot === "suporte" ? "rápido" : "com tools"}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
 
-export function ChatTopbarButton() {
+/** Formata texto com **bold**, listas e quebras. Simples markdown lite. */
+function FormatarTexto({ texto }: { texto: string }) {
+  if (!texto) return null;
+  const linhas = texto.split("\n");
+  return (
+    <>
+      {linhas.map((ln, i) => {
+        const li = ln.match(/^\s*[-*]\s+(.*)$/);
+        const num = ln.match(/^\s*(\d+)[.)]\s+(.*)$/);
+        if (li) return <div key={i} style={{ display: "flex", gap: 6, marginLeft: 4 }}><span style={{ color: "#00E19A" }}>•</span><span>{renderInline(li[1])}</span></div>;
+        if (num) return <div key={i} style={{ display: "flex", gap: 6, marginLeft: 4 }}><span style={{ color: "#00E19A", fontWeight: 700, minWidth: 18 }}>{num[1]}.</span><span>{renderInline(num[2])}</span></div>;
+        if (!ln.trim()) return <div key={i} style={{ height: 6 }} />;
+        return <div key={i}>{renderInline(ln)}</div>;
+      })}
+    </>
+  );
+}
+
+function renderInline(s: string): React.ReactNode {
+  // **bold** + `code`
+  const parts: React.ReactNode[] = [];
+  let resto = s;
+  let key = 0;
+  while (resto.length > 0) {
+    const mb = resto.match(/\*\*([^*]+)\*\*/);
+    const mc = resto.match(/`([^`]+)`/);
+    let pos = -1;
+    let tipo: "b" | "c" | null = null;
+    let m: RegExpMatchArray | null = null;
+    if (mb && (mb.index ?? -1) >= 0) { pos = mb.index!; tipo = "b"; m = mb; }
+    if (mc && (mc.index ?? -1) >= 0 && (pos === -1 || mc.index! < pos)) { pos = mc.index!; tipo = "c"; m = mc; }
+    if (pos === -1 || !m || !tipo) { parts.push(<span key={key++}>{resto}</span>); break; }
+    if (pos > 0) parts.push(<span key={key++}>{resto.slice(0, pos)}</span>);
+    if (tipo === "b") parts.push(<strong key={key++} style={{ color: "var(--mk-text)" }}>{m[1]}</strong>);
+    else parts.push(<code key={key++} style={{ background: "var(--mk-bg-deep)", padding: "1px 5px", borderRadius: 4, fontSize: ".92em" }}>{m[1]}</code>);
+    resto = resto.slice(pos + m[0].length);
+  }
+  return <>{parts}</>;
+}
+
+function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
+  if (ativo) return null;
   return (
     <button
       type="button"
-      onClick={() => window.dispatchEvent(new CustomEvent("toggle-chat-assistente"))}
-      aria-label="Abrir assistente IA"
+      onClick={onClick}
+      aria-label="Abrir Assistente IA"
       title="Assistente IA"
       style={{
-        display: "inline-flex",
+        position: "fixed",
+        right: 18,
+        bottom: 18,
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+        border: "1px solid #00E19A",
+        background: "var(--mk-bg)",
+        boxShadow: "0 10px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(0,225,154,.45)",
+        cursor: "pointer",
+        display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 34,
-        height: 34,
-        borderRadius: "50%",
-        background: "var(--mk-surface)",
-        border: ".5px solid var(--mk-border)",
-        color: "#00E19A",
-        cursor: "pointer",
-        transition: "background .2s, transform .2s",
+        zIndex: 4000,
+        animation: "chat-fab-pulse 2.4s ease-in-out infinite",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,225,154,.10)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = "var(--mk-surface)"; }}
     >
-      <i className="ti ti-robot" style={{ fontSize: 17 }} />
+      <i className="ti ti-robot" style={{ fontSize: 24, color: "#00E19A" }} />
+      <style>{`
+        @keyframes chat-fab-pulse {
+          0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(0,225,154,.45); }
+          50% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 10px rgba(0,225,154,0); }
+        }
+      `}</style>
     </button>
   );
 }
+
+// Backward compat — exporta vazio pra topbar não quebrar.
+export function ChatTopbarButton() { return null; }
