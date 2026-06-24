@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useCollapse } from "@/components/providers/CollapseProvider";
 import { PlatformSelector } from "./PlatformSelector";
 import { FiltroGlobal } from "./FiltroGlobal";
+import { ChatTopbarButton } from "@/components/chat-assistente/ChatDrawer";
 
 interface TopbarProps {
   userName: string;
@@ -78,6 +79,7 @@ export function Topbar({ userName, userEmail, agencia, avatarUrl }: TopbarProps)
       </div>
       <div className="topbar-right">
         <FiltroGlobal />
+        <ChatTopbarButton />
         <PlatformSelector />
         <DropdownMenu>
           <DropdownMenuTrigger

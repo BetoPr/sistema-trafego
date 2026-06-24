@@ -10,6 +10,7 @@ import { PlatformProvider } from "@/components/providers/PlatformProvider";
 import { AppShell } from "@/components/providers/AppShell";
 import { CrmOverlays } from "./_crm-overlays";
 import { FiltroAtivoProvider } from "@/lib/filtro-ativo/context";
+import { ChatDrawer } from "@/components/chat-assistente/ChatDrawer";
 import { requireUserWithAgencia } from "@/lib/auth";
 import type { Plataforma } from "@/lib/platform";
 
@@ -55,6 +56,7 @@ export default async function DashboardLayout({
             <HeartbeatOnline />
             <CrmOverlays>{children}</CrmOverlays>
           </main>
+          <ChatDrawer />
         </AppShell>
         </AudioGlobalProvider>
         </FiltroAtivoProvider>
