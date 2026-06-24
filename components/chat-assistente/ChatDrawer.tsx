@@ -29,6 +29,7 @@ export function ChatDrawer() {
   const [enviando, setEnviando] = useState(false);
   const [sessaoId, setSessaoId] = useState<string | null>(null);
   const [toolCall, setToolCall] = useState<string | null>(null);
+  const [areaRoteada, setAreaRoteada] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const filaTypewriterRef = useRef<string>("");
   const typewriterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,6 +77,7 @@ export function ChatDrawer() {
     if (!msg || enviando) return;
     setEnviando(true);
     setToolCall(null);
+    setAreaRoteada(null);
     filaTypewriterRef.current = "";
 
     setMsgs((m) => [...m, { papel: "user", conteudo: msg }, { papel: "assistant", conteudo: "", pensando: true }]);
@@ -111,8 +113,9 @@ export function ChatDrawer() {
           if (!chunk.startsWith("data:")) continue;
           const data = chunk.slice(5).trim();
           try {
-            const j = JSON.parse(data) as { delta?: string; done?: boolean; error?: string; tool_call?: { name: string }; sessao_id?: string };
+            const j = JSON.parse(data) as { delta?: string; done?: boolean; error?: string; tool_call?: { name: string }; sessao_id?: string; area?: string };
             if (j.sessao_id && !sessaoId) setSessaoId(j.sessao_id);
+            if (j.area) setAreaRoteada(j.area);
             if (j.tool_call) setToolCall(j.tool_call.name);
             if (j.delta) {
               if (primeiroToken) {
@@ -266,6 +269,11 @@ export function ChatDrawer() {
                 </div>
               </div>
             ))}
+            {areaRoteada && (
+              <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", padding: "2px 8px", fontStyle: "italic", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <i className="ti ti-route" /> Consultando especialista: <span style={{ color: "#00E19A" }}>{areaRoteada}</span>
+              </div>
+            )}
             {toolCall && (
               <div style={{ fontSize: 11, color: "var(--mk-text-muted)", padding: "4px 8px", fontStyle: "italic", display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <i className="ti ti-tool" /> Consultando: {toolCall}…

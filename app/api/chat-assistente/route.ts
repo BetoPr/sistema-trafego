@@ -10,8 +10,8 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolverChaves } from "@/lib/ai/keys";
-import { KB_SUPORTE } from "@/lib/chat-assistente/kb-suporte";
 import { TOOLS_DADOS, executarTool } from "@/lib/chat-assistente/tools-dados";
+import { rotearPergunta, buildSystemEspecialista } from "@/lib/chat-assistente/orquestrador-suporte";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -66,7 +66,19 @@ export async function POST(req: NextRequest) {
     .order("created_at", { ascending: true })
     .limit(40);
 
-  const systemPrompt = bot === "suporte" ? KB_SUPORTE : `Voce e o assistente de Analise de Dados do Sonar CRM. Acessa metricas reais da agencia via tools. Sempre chame tools pra dados reais — nunca invente numeros. Linguagem direta, pt-BR. Foca em insights acionaveis. Quando mostrar numero, formate BR (R$ com separador, %).`;
+  // SUPORTE: orquestrador escolhe area, especialista carrega so o KB da area.
+  // DADOS: prompt unico com tools.
+  let systemPrompt: string;
+  let rotaArea: string | null = null;
+  if (bot === "suporte") {
+    // Pega ultima msg user-assistant pra dar contexto curto ao orquestrador
+    const ctxCurto = (hist || []).slice(-4).map((m: MsgIn) => `${m.papel}: ${(m.conteudo || "").slice(0, 200)}`).join("\n");
+    const rota = await rotearPergunta(apiKey, msg, ctxCurto);
+    rotaArea = rota.area;
+    systemPrompt = buildSystemEspecialista(rota.area);
+  } else {
+    systemPrompt = `Voce e o assistente de Analise de Dados do Sonar CRM. Acessa metricas reais da agencia via tools. Sempre chame tools pra dados reais — nunca invente numeros. Linguagem direta, pt-BR. Foca em insights acionaveis. Quando mostrar numero, formate BR (R$ com separador, %).`;
+  }
 
   const messages: Array<{ role: string; content: string; tool_call_id?: string; tool_calls?: unknown[] }> = [
     { role: "system", content: systemPrompt },
@@ -91,6 +103,7 @@ export async function POST(req: NextRequest) {
 
       try {
         emit({ sessao_id: sessaoId });
+        if (rotaArea) emit({ area: rotaArea });
 
         let respostaFinal = "";
         let rounds = 0;
