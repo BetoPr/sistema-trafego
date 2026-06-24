@@ -383,31 +383,52 @@ function btnSeta(lado: "esq" | "dir"): React.CSSProperties {
 }
 
 function Lista({ itens, erroImg, onErro }: { itens: CriativoTop[]; erroImg: Set<string>; onErro: (id: string) => void }) {
+  const cols = "56px 1.5fr 70px 80px 90px 90px 80px 70px 60px 65px 1.2fr";
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "56px 1.7fr 1.2fr 90px 100px", gap: 12, padding: "8px 10px", fontSize: 9.5, fontWeight: 700, letterSpacing: ".4px", color: "var(--mk-text-muted)", borderBottom: ".5px solid var(--mk-border)" }}>
-        <span />
-        <span>ANÚNCIO</span>
-        <span>CAMPANHA</span>
-        <span style={{ textAlign: "right" }}>GASTO</span>
-        <span style={{ textAlign: "right" }}>RESULTADO</span>
-      </div>
-      {itens.map((c) => (
-        <div key={c.anuncio_id} className="criativos-row" style={{ display: "grid", gridTemplateColumns: "56px 1.7fr 1.2fr 90px 100px", gap: 12, padding: "8px 10px", alignItems: "center", borderRadius: 6, fontSize: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 6, background: "var(--mk-bg-deep)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Thumb c={c} erroImg={erroImg} onErro={onErro} size="mini" />
-          </div>
-          <div title={c.nome} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--mk-text)", fontWeight: 600 }}>
-            {c.nome}
-          </div>
-          <div title={c.campanha_nome} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--mk-text-muted)", fontSize: 11 }}>
-            <i className="ti ti-speakerphone" style={{ fontSize: 10, marginRight: 4 }} />
-            {c.campanha_nome}
-          </div>
-          <div style={{ textAlign: "right", color: "var(--mk-text)", fontWeight: 700 }}>{fmtMoeda(c.gasto)}</div>
-          <div style={{ textAlign: "right", color: "var(--mk-text-muted)", fontSize: 11 }}>{resultadoTxt(c)}</div>
+    <div style={{ overflowX: "auto" }}>
+      <div style={{ minWidth: 1100, display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 10, padding: "8px 10px", fontSize: 9.5, fontWeight: 700, letterSpacing: ".4px", color: "var(--mk-text-muted)", borderBottom: ".5px solid var(--mk-border)" }}>
+          <span />
+          <span>ANÚNCIO</span>
+          <span style={{ textAlign: "right" }}>RESULT.</span>
+          <span style={{ textAlign: "right" }}>CUSTO/R.</span>
+          <span style={{ textAlign: "right" }}>VALOR USADO</span>
+          <span style={{ textAlign: "right" }}>IMPRESSÕES</span>
+          <span style={{ textAlign: "right" }}>ALCANCE</span>
+          <span style={{ textAlign: "right" }}>CPM</span>
+          <span style={{ textAlign: "right" }}>CTR</span>
+          <span style={{ textAlign: "right" }}>ROAS</span>
+          <span>CAMPANHA</span>
         </div>
-      ))}
+        {itens.map((c) => {
+          const resultados = c.leads || c.conversoes || 0;
+          const custoPorResult = resultados > 0 ? c.gasto / resultados : null;
+          const cpm = c.impressoes > 0 ? (c.gasto * 1000) / c.impressoes : null;
+          const ctr = c.impressoes > 0 ? c.cliques / c.impressoes : null;
+          const roas = c.gasto > 0 && c.receita > 0 ? c.receita / c.gasto : null;
+          const alcance = c.alcance;
+          return (
+            <div key={c.anuncio_id} className="criativos-row" style={{ display: "grid", gridTemplateColumns: cols, gap: 10, padding: "8px 10px", alignItems: "center", borderRadius: 6, fontSize: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 6, background: "var(--mk-bg-deep)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Thumb c={c} erroImg={erroImg} onErro={onErro} size="mini" />
+              </div>
+              <div title={c.nome} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--mk-text)", fontWeight: 600 }}>{c.nome}</div>
+              <div style={{ textAlign: "right" }}>{resultados > 0 ? new Intl.NumberFormat("pt-BR").format(resultados) : "—"}</div>
+              <div style={{ textAlign: "right" }}>{custoPorResult != null ? fmtMoeda(custoPorResult) : "—"}</div>
+              <div style={{ textAlign: "right", fontWeight: 700, color: "var(--mk-text)" }}>{fmtMoeda(c.gasto)}</div>
+              <div style={{ textAlign: "right" }}>{c.impressoes > 0 ? new Intl.NumberFormat("pt-BR").format(c.impressoes) : "—"}</div>
+              <div style={{ textAlign: "right" }}>{alcance > 0 ? new Intl.NumberFormat("pt-BR").format(alcance) : "—"}</div>
+              <div style={{ textAlign: "right" }}>{cpm != null ? fmtMoeda(cpm) : "—"}</div>
+              <div style={{ textAlign: "right" }}>{ctr != null ? new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 2 }).format(ctr) : "—"}</div>
+              <div style={{ textAlign: "right", color: roas != null && roas >= 1 ? "#00E19A" : "var(--mk-text-muted)" }}>{roas != null ? `${roas.toFixed(2)}x` : "—"}</div>
+              <div title={c.campanha_nome} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--mk-text-muted)", fontSize: 11 }}>
+                <i className="ti ti-speakerphone" style={{ fontSize: 10, marginRight: 4 }} />
+                {c.campanha_nome}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -259,6 +259,9 @@ export interface CriativoTop {
   leads: number;
   conversoes: number;
   impressoes: number;
+  alcance: number;
+  cliques: number;
+  receita: number;
 }
 
 /**
@@ -277,7 +280,7 @@ export async function topCriativos(
 
   let q = supabase
     .from("metricas_diarias")
-    .select("anuncio_id, campanha_id, gasto, leads, conversoes, impressoes")
+    .select("anuncio_id, campanha_id, gasto, leads, conversoes, impressoes, alcance, cliques, receita")
     .eq("agencia_id", agenciaId)
     .gte("data", inicio)
     .lte("data", fim)
@@ -287,13 +290,16 @@ export async function topCriativos(
   if (error) throw new Error(`topCriativos: ${error.message}`);
 
   // Agrega por anuncio_id
-  const acc = new Map<string, { campanha_id: string; gasto: number; leads: number; conversoes: number; impressoes: number }>();
-  for (const m of (mets || []) as Array<{ anuncio_id: string; campanha_id: string; gasto: number | string; leads: number | string; conversoes: number | string; impressoes: number | string }>) {
-    const cur = acc.get(m.anuncio_id) ?? { campanha_id: m.campanha_id, gasto: 0, leads: 0, conversoes: 0, impressoes: 0 };
+  const acc = new Map<string, { campanha_id: string; gasto: number; leads: number; conversoes: number; impressoes: number; alcance: number; cliques: number; receita: number }>();
+  for (const m of (mets || []) as Array<{ anuncio_id: string; campanha_id: string; gasto: number | string; leads: number | string; conversoes: number | string; impressoes: number | string; alcance: number | string; cliques: number | string; receita: number | string }>) {
+    const cur = acc.get(m.anuncio_id) ?? { campanha_id: m.campanha_id, gasto: 0, leads: 0, conversoes: 0, impressoes: 0, alcance: 0, cliques: 0, receita: 0 };
     cur.gasto += Number(m.gasto) || 0;
     cur.leads += Number(m.leads) || 0;
     cur.conversoes += Number(m.conversoes) || 0;
     cur.impressoes += Number(m.impressoes) || 0;
+    cur.alcance += Number(m.alcance) || 0;
+    cur.cliques += Number(m.cliques) || 0;
+    cur.receita += Number(m.receita) || 0;
     acc.set(m.anuncio_id, cur);
   }
 
@@ -332,6 +338,9 @@ export async function topCriativos(
       leads: m.leads,
       conversoes: m.conversoes,
       impressoes: m.impressoes,
+      alcance: m.alcance,
+      cliques: m.cliques,
+      receita: m.receita,
     };
   });
 }
