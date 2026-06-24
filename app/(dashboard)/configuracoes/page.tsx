@@ -5,8 +5,12 @@ import { AgenciaForm } from "./_components/AgenciaForm";
 import { ConfigToggles } from "./_components/ConfigToggles";
 
 const ATALHOS = [
-  { href: "/configuracoes/ia", label: "Configurações de API (IA)", icon: "ti-key", cor: "#9B7DBF", desc: "Chaves de IA + transcrição de áudio (1 chave Groq faz tudo)" },
+  { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package", cor: "#F4B860", desc: "Catálogo de serviços/produtos da agência" },
+  { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag", cor: "#7FB069", desc: "Pastas e etiquetas pra organizar leads" },
+  { href: "/configuracoes/ia", label: "API IA", icon: "ti-key", cor: "#9B7DBF", desc: "Chaves Groq/OpenAI/Anthropic + transcrição áudio" },
   { href: "/configuracoes/ia-prompts", label: "Prompts IA", icon: "ti-sparkles", cor: "#9B7DBF", desc: "Personalize resumo, sentimento e reescrita" },
+  { href: "/analise-ias", label: "Análise de IAs", icon: "ti-chart-histogram", cor: "#6FA8DC", desc: "Uso de tokens + performance dos perfis" },
+  { href: "/configuracoes/mcp", label: "MCP / API", icon: "ti-plug-connected", cor: "#00E19A", desc: "Tokens pra Claude Desktop / Code consultar seu CRM" },
   { href: "/configuracoes/asaas", label: "Asaas", icon: "ti-credit-card", cor: "#5B8BA6", desc: "Cobranças PIX e cartão" },
   { href: "/configuracoes/webhooks", label: "Webhooks", icon: "ti-webhook", cor: "#00E19A", desc: "Notifique sistemas externos" },
   { href: "/integracoes", label: "Integrações", icon: "ti-plug", cor: "#00E19A", desc: "Meta Ads, Google Ads" },

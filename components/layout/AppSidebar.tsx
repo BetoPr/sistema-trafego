@@ -76,8 +76,8 @@ function buildSections(role?: string): NavSection[] {
         ]
       : []),
     {
-      id: "administracao",
-      label: "Administração",
+      id: "recursos",
+      label: "Recursos",
       icon: "ti-shield-lock",
       iconColor: "var(--mk-icon-amber)",
       items: [
@@ -86,19 +86,6 @@ function buildSections(role?: string): NavSection[] {
         { href: "/equipes", label: "Equipes", icon: "ti-users-group" },
         { href: "/usuarios", label: "Usuários", icon: "ti-user-circle" },
         { href: "/clientes", label: "Clientes", icon: "ti-building-store" },
-      ],
-    },
-    {
-      id: "configuracao",
-      label: "Configuração",
-      icon: "ti-settings",
-      iconColor: "var(--mk-icon-blue)",
-      items: [
-        { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
-        { href: "/analise-ias", label: "Análise de IAs", icon: "ti-chart-histogram" },
-        { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
-        { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag" },
-        { href: "/configuracoes/mcp", label: "MCP / API", icon: "ti-plug-connected" },
       ],
     },
   ];
@@ -126,6 +113,7 @@ function buildSections(role?: string): NavSection[] {
     items: [
       { href: "/conta", label: "Meu Perfil", icon: "ti-user-circle" },
       { href: "/plano", label: "Plano Pro", icon: "ti-credit-card" },
+      { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
     ],
   });
 
