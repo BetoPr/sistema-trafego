@@ -23,6 +23,8 @@ import FerramentaForm from "./_ferramenta-form";
 import { PerfilTabs, Tab } from "./_perfil-tabs";
 import ModeloPicker from "./_modelo-picker";
 import UsoTokensCard from "./_uso-tokens-card";
+import CapsulasEditor from "./_capsulas-editor";
+import { listarCapsulasPorPerfil, type Capsula } from "@/lib/ia-atendimento/capsulas";
 import { carregarUsoTokens, carregarUsoPorTicket, type IntervaloUso, type ResumoUso, type UsoPorTicket } from "@/lib/ia-atendimento/uso-tokens";
 import { formatarUsd } from "@/lib/ia-atendimento/precos";
 
@@ -100,6 +102,10 @@ interface PerfilDetalhe {
   provider: string;
   modelo: string;
   prompt_sistema: string;
+  identidade: string | null;
+  objetivo: string | null;
+  regras_globais: string | null;
+  modo_modular: boolean;
   delay_debounce_seg: number;
   delay_min_resposta_seg: number;
   delay_max_resposta_seg: number;
@@ -200,12 +206,13 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
   let followupSeqs: FollowupSeq[] = [];
   let followupEtapas: FollowupEtapa[] = [];
   let resumoConfig: ResumoConfig | null = null;
+  let capsulas: Capsula[] = [];
   const intervaloUso: IntervaloUso =
     sp.uso === "24h" || sp.uso === "30d" || sp.uso === "total" ? sp.uso : "7d";
   if (editando) {
     try {
       const { data } = await sb.from("ia_atendimento_perfis")
-        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista, timezone, api_key_encrypted")
+        .select("id, nome, descricao, ativo, modelo, provider, prompt_sistema, identidade, objetivo, regras_globais, modo_modular, delay_debounce_seg, delay_min_resposta_seg, delay_max_resposta_seg, max_tokens_por_resposta, temperatura, pausa_se_humano_responder, canais_ativos, filas_ativas, formato_resposta, whatsapp_teste_lista, timezone, api_key_encrypted")
         .eq("id", editando.id)
         .single();
       if (data) {
@@ -302,6 +309,11 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
       }
     } catch {}
 
+    // Cápsulas modulares
+    try {
+      capsulas = await listarCapsulasPorPerfil(editando.id);
+    } catch {}
+
     // L3: galeria por ferramenta (so pra acao=enviar_imagem_galeria)
     try {
       const idsGaleria = ferramentas.filter((f) => f.acao === "enviar_imagem_galeria").map((f) => f.id);
@@ -343,7 +355,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           <div className="mk-eyebrow">Atendimento</div>
           <h1 className="mk-page-title">
             IA de Atendimento{" "}
-            <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 999, background: "rgba(155,125,191,0.18)", color: "#9B7DBF", marginLeft: 8, verticalAlign: "middle", fontWeight: 600 }}>BÁSICA</span>
+            <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 999, background: "rgba(155,125,191,0.18)", color: "#9B7DBF", marginLeft: 8, verticalAlign: "middle", fontWeight: 600 }}>BÁSICO</span>
           </h1>
           <p className="mk-page-sub">Atendente IA que qualifica leads, etiqueta e transfere pra humano. BYOK (chave própria).</p>
         </div>
@@ -391,6 +403,8 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           followupSeqs={followupSeqs}
           followupEtapas={followupEtapas}
           resumoConfig={resumoConfig}
+          capsulas={capsulas}
+          perfilDetalhe={perfilDetalhe}
         />
       ) : (
         <ListaPerfis perfis={perfis} />
@@ -466,7 +480,7 @@ function ListaPerfis({ perfis }: { perfis: PerfilRow[] }) {
 function PerfilForm({
   editando, editandoId, canais, filas, etiquetas, ferramentas, templates, logs,
   perfilEtiquetas, resumoUso, usoPorTicket, intervaloUso, galeriaPorFerramenta,
-  followupSeqs, followupEtapas, resumoConfig,
+  followupSeqs, followupEtapas, resumoConfig, capsulas, perfilDetalhe,
 }: {
   editando: PerfilDetalhe | null;
   editandoId: string | null;
@@ -484,6 +498,8 @@ function PerfilForm({
   followupSeqs: FollowupSeq[];
   followupEtapas: FollowupEtapa[];
   resumoConfig: ResumoConfig | null;
+  capsulas: Capsula[];
+  perfilDetalhe: PerfilDetalhe | null;
 }) {
   const provider = editando?.provider || "anthropic";
   const canaisAtivos = new Set<string>(editando?.canais_ativos || []);
@@ -509,6 +525,7 @@ function PerfilForm({
             ? [
                 { id: "dados", label: "Dados", icon: "ti-id-badge-2" },
                 { id: "comportamento", label: "Comportamento", icon: "ti-message-chatbot" },
+                { id: "capsulas", label: "Cápsulas", icon: "ti-capsule-horizontal" },
                 { id: "ferramentas", label: "Ferramentas", icon: "ti-tools" },
                 { id: "followup", label: "Follow-up", icon: "ti-clock-bolt" },
                 { id: "analise", label: "Análise de Comportamento", icon: "ti-chart-histogram" },
@@ -680,8 +697,22 @@ function PerfilForm({
         </fieldset>
         </Tab>
 
+        {/* ABA: Cápsulas (modular) — fica dentro do form pra Identidade/Objetivo/Regras submeterem junto */}
+        {editandoId && (
+        <Tab when="capsulas">
+          <CapsulasEditor
+            perfilId={editandoId}
+            capsulas={capsulas}
+            identidade={perfilDetalhe?.identidade || ""}
+            objetivo={perfilDetalhe?.objetivo || ""}
+            regrasGlobais={perfilDetalhe?.regras_globais || ""}
+            modoModular={perfilDetalhe?.modo_modular ?? false}
+          />
+        </Tab>
+        )}
+
         {/* Barra de salvar — visível nas abas do formulário */}
-        <Tab when={["dados", "comportamento"]}>
+        <Tab when={["dados", "comportamento", "capsulas"]}>
         <div style={{
           position: "sticky",
           bottom: 0,

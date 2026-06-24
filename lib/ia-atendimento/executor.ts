@@ -363,6 +363,27 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
       }\n\n`
     : "";
 
+  // Modo modular: orquestrador injeta só cápsulas relevantes (economia de tokens).
+  let promptModularExtra = "";
+  if (perfil.modo_modular) {
+    const { matchKeywordsLocal, montarPromptModular, listarCapsulasPorPerfil } = await import("./capsulas");
+    const todasCapsulas = await listarCapsulasPorPerfil(perfil.id);
+    const ativas = todasCapsulas.filter((c) => c.ativa);
+    // Última mensagem do cliente decide quais cápsulas injetar.
+    const ultimaMsgCliente = b.mensagens_pendentes
+      .map((m) => m.conteudo || "")
+      .filter(Boolean)
+      .join(" ");
+    const relevantes = matchKeywordsLocal(ultimaMsgCliente, ativas);
+    promptModularExtra = montarPromptModular({
+      identidade: (perfil.identidade as string) || "",
+      objetivo: (perfil.objetivo as string) || "",
+      regrasGlobais: (perfil.regras_globais as string) || "",
+      capsulasInjetadas: relevantes,
+      todasCapsulasAtivas: ativas,
+    });
+  }
+
   // Reforço: lista as funções disponíveis pra modelos fracos (ex: gpt-4o-mini)
   // de fato CHAMAREM a ferramenta, não só responderem texto.
   const blocoFerramentas = tools.length
@@ -374,9 +395,10 @@ async function processarUm(b: BufferRow, sb: ReturnType<typeof createServiceClie
   // Sempre prepende bloco temporal (garante baseline). Tag SEM_CONTEXTO_TEMPORAL
   // no inicio suprime.
   const suprimir = /^\s*SEM_CONTEXTO_TEMPORAL\b/i.test(promptComPlaceholders);
+  const corpoPrompt = promptModularExtra || promptComPlaceholders;
   const promptSistema = suprimir
-    ? promptComPlaceholders.replace(/^\s*SEM_CONTEXTO_TEMPORAL\b/i, "").trimStart()
-    : `${ctxTemporal.block}\n\n${blocoFerramentas}${blocoEtiquetas}${promptComPlaceholders}`;
+    ? corpoPrompt.replace(/^\s*SEM_CONTEXTO_TEMPORAL\b/i, "").trimStart()
+    : `${ctxTemporal.block}\n\n${blocoFerramentas}${blocoEtiquetas}${corpoPrompt}`;
 
   const mensagens: MsgIA[] = [
     { role: "system", content: promptSistema },
