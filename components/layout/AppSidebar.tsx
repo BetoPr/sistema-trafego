@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useCollapse } from "@/components/providers/CollapseProvider";
 import SonarLogo from "@/components/layout/SonarLogo";
+import { MarcaCustom } from "@/components/layout/MarcaCustom";
 
 interface NavItem {
   href: string;
@@ -97,6 +98,7 @@ function buildSections(role?: string): NavSection[] {
         { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag" },
         { href: "/configuracoes/mcp", label: "MCP / API", icon: "ti-plug-connected" },
+        { href: "/configuracoes/marca", label: "Marca / Logo", icon: "ti-photo" },
       ],
     },
   ];
@@ -129,7 +131,14 @@ function buildSections(role?: string): NavSection[] {
   return list;
 }
 
-export function AppSidebar({ role }: { role?: string } = {}) {
+interface MarcaConfig {
+  nome: string;
+  logoUrl: string | null;
+  modo: "texto" | "logo" | "logo_texto";
+  layout: "horizontal" | "vertical";
+}
+
+export function AppSidebar({ role, marca }: { role?: string; marca?: MarcaConfig } = {}) {
   const pathname = usePathname();
   const { collapsed, toggle, mobileOpen, closeMobile } = useCollapse();
   const handleCollapseBtn = () => {
@@ -178,7 +187,11 @@ export function AppSidebar({ role }: { role?: string } = {}) {
         <div className="mk-logo">
           <div className="logo-wrap">
             <span className="logo-text">
-              <SonarLogo fontSize={18} bgRadarOpacity={0.9} bgRadarSize={220} />
+              {marca && (marca.logoUrl || marca.modo !== "texto") ? (
+                <MarcaCustom nome={marca.nome} logoUrl={marca.logoUrl} modo={marca.modo} layout={marca.layout} />
+              ) : (
+                <SonarLogo fontSize={18} bgRadarOpacity={0.9} bgRadarSize={220} />
+              )}
             </span>
           </div>
           <button

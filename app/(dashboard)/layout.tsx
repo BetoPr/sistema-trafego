@@ -21,6 +21,17 @@ export default async function DashboardLayout({
 }) {
   const { supabase, usuario } = await requireUserWithAgencia();
   const agencia = Array.isArray(usuario.agencias) ? usuario.agencias[0] : usuario.agencias;
+  const { data: agRow } = await supabase
+    .from("agencias")
+    .select("nome, logo_url, logo_modo, logo_layout")
+    .eq("id", usuario.agencia_id)
+    .maybeSingle();
+  const marca = {
+    nome: (agRow?.nome as string) || "Sonar",
+    logoUrl: (agRow?.logo_url as string | null) ?? null,
+    modo: ((agRow?.logo_modo as "texto" | "logo" | "logo_texto") || "texto"),
+    layout: ((agRow?.logo_layout as "horizontal" | "vertical") || "horizontal"),
+  };
 
   // Busca plataformas com ao menos 1 integração ativa
   const { data: integs } = await supabase
@@ -42,7 +53,7 @@ export default async function DashboardLayout({
         <FiltroAtivoProvider>
         <AudioGlobalProvider>
         <AppShell>
-          <AppSidebar role={usuario.role} />
+          <AppSidebar role={usuario.role} marca={marca} />
           <RouteProgress />
           <main className="mk-main">
             <Topbar
