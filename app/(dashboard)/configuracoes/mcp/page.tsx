@@ -1,5 +1,6 @@
 import { requireUserWithAgencia } from "@/lib/auth";
-import { criarTokenMCP, revogarTokenMCP } from "./_actions";
+import { criarTokenMCP } from "./_actions";
+import { RevogarBtn } from "./_revogar-btn";
 
 export default async function MCPPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const sp = await searchParams;
@@ -76,14 +77,7 @@ export default async function MCPPage({ searchParams }: { searchParams: Promise<
                     </span>
                   </td>
                   <td style={{ padding: "8px 6px", textAlign: "right" }}>
-                    {t.ativo && (
-                      <form action={revogarTokenMCP} style={{ display: "inline" }} onSubmit={(e) => { if (!confirm(`Revogar "${t.nome}"? O token deixa de funcionar imediatamente.`)) e.preventDefault(); }}>
-                        <input type="hidden" name="id" value={t.id} />
-                        <button type="submit" className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}>
-                          <i className="ti ti-trash" /> Revogar
-                        </button>
-                      </form>
-                    )}
+                    {t.ativo && <RevogarBtn id={t.id} nome={t.nome} />}
                   </td>
                 </tr>
               ))}

@@ -5,6 +5,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-24
+
+- **08:40** — **Fix MCP page 500 + Meta icon limpo.**
+  - `/configuracoes/mcp`: extraiu botão Revogar pra Client Component (`_revogar-btn.tsx`). Server Component não aceita `onSubmit` handler → 500 quando havia pelo menos 1 token na lista. Agora confirm() roda no client.
+  - `PlatformSelector`: ícone Meta Ads no topbar virou SVG inline (logo infinito azul brand, gradient `#0064E0 → #00A1F6`), fundo transparente. Era PNG sobre fundo branco `#FFFDF8` — substituído pelo logo oficial sem caixa.
+
+---
+
 ## 2026-06-23
 
 - **13:30** — **R3+R5 + ONBOARDING-TESTE.md.**
