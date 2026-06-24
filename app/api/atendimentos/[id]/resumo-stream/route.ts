@@ -9,24 +9,14 @@
  */
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { formatConversaParaIA } from "@/lib/groq/llm";
+import { resolverChaves } from "@/lib/ai/keys";
 
 export const runtime = "nodejs";
 
 async function getGroqKeyInline(agenciaId: string): Promise<string | null> {
-  const sb = createServiceClient();
-  const { data } = await sb
-    .from("configuracoes_agencia")
-    .select("groq_key_encrypted")
-    .eq("agencia_id", agenciaId)
-    .maybeSingle();
-  if (data?.groq_key_encrypted) {
-    try {
-      return decryptToken(byteaToBuffer(data.groq_key_encrypted));
-    } catch {}
-  }
-  return process.env.GROQ_API_KEY || null;
+  const chaves = await resolverChaves(agenciaId);
+  return chaves.groq[0]?.key ?? null;
 }
 
 async function getPromptResumo(agenciaId: string): Promise<{ conteudo: string; modelo: string | null }> {

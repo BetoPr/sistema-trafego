@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
-import { testarGroq } from "./_actions";
 import { TranscricaoCard } from "./_transcricao";
 import { ChavesManager, type ChaveItem } from "./_chaves";
 import { ProviderCard } from "./_provider";
@@ -102,7 +101,6 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
               <li>Menu → <strong>API Keys</strong> → <strong>Create API Key</strong></li>
               <li>Copia (<code>gsk_</code>) e cola acima. Pra mais tokens/dia, crie chaves em contas diferentes e adicione todas.</li>
             </ol>
-            <TestarGroqBtn temGroq={groq.length > 0} />
           </>
         }
       />
@@ -137,17 +135,6 @@ export default async function IAConfigPage({ searchParams }: PageProps) {
         ajuda={<>Opcional. Ainda não entra na rotação de chat/transcrição — guardada pra uso futuro.</>}
       />
     </section>
-  );
-}
-
-function TestarGroqBtn({ temGroq }: { temGroq: boolean }) {
-  if (!temGroq) return null;
-  return (
-    <form action={testarGroq} style={{ marginTop: 10 }}>
-      <button type="submit" className="ghost-btn" style={{ fontSize: 11 }}>
-        <i className="ti ti-plug-connected" /> Testar conectividade Groq
-      </button>
-    </form>
   );
 }
 

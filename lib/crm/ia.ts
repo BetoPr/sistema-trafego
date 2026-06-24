@@ -8,26 +8,14 @@ import { formatConversaParaIA } from "@/lib/groq/llm";
 import { analisarSentimentoGW, gerarResumoGW, chatGateway, transcreverGW } from "@/lib/ai/gateway";
 
 /**
- * Carrega API key Groq da agência (preferida) ou cai pro env.
- * Mantida pro /api/ia/reescrever e resumo-stream (single-key). O resto usa o
- * gateway (lib/ai/gateway) com rotação + fallback OpenAI.
+ * Carrega 1a chave Groq valida usando resolverChaves (ia_chaves -> legado -> env).
+ * tentaDecrypt pula chaves com ENCRYPTION_KEY antiga; gateway de rotacao garante
+ * que /api/ia/reescrever e resumo-stream pulem chaves quebradas automatico.
  */
 export async function getGroqKey(agenciaId: string): Promise<string | null> {
-  const sb = createServiceClient();
-  const { data } = await sb
-    .from("configuracoes_agencia")
-    .select("groq_key_encrypted")
-    .eq("agencia_id", agenciaId)
-    .maybeSingle();
-
-  if (data?.groq_key_encrypted) {
-    try {
-      return decryptToken(byteaToBuffer(data.groq_key_encrypted));
-    } catch {
-      // continua
-    }
-  }
-  return process.env.GROQ_API_KEY || null;
+  const { resolverChaves } = await import("@/lib/ai/keys");
+  const chaves = await resolverChaves(agenciaId);
+  return chaves.groq[0]?.key ?? null;
 }
 
 async function getPrompt(agenciaId: string, chave: "sentimento" | "resumo"): Promise<{ conteudo: string; modelo: string | null }> {
