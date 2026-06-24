@@ -96,6 +96,7 @@ function buildSections(role?: string): NavSection[] {
         { href: "/analise-ias", label: "Análise de IAs", icon: "ti-chart-histogram" },
         { href: "/configuracoes/servicos", label: "Serviços", icon: "ti-package" },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag" },
+        { href: "/configuracoes/mcp", label: "MCP / API", icon: "ti-plug-connected" },
       ],
     },
   ];
