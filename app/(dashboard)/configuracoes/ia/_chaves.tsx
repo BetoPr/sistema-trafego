@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { adicionarChaveIA, removerChaveIA, atualizarLimiteChaveIA } from "./_actions";
+import { adicionarChaveIA, removerChaveIA, atualizarLimiteChaveIA, editarChaveIA, revelarChaveIA } from "./_actions";
 
 export interface ChaveItem {
   id: string;
@@ -35,6 +35,18 @@ export function ChavesManager({
 }) {
   const [aberto, setAberto] = useState(chaves.length === 0);
   const [testes, setTestes] = useState<Record<string, { loading?: boolean; ok?: boolean; msg?: string }>>({});
+  const [editando, setEditando] = useState<string | null>(null);
+  const [reveladas, setReveladas] = useState<Record<string, string>>({});
+
+  async function revelar(id: string) {
+    if (reveladas[id]) {
+      setReveladas((r) => { const n = { ...r }; delete n[id]; return n; });
+      return;
+    }
+    const r = await revelarChaveIA(id);
+    if (r.ok && r.key) setReveladas((rr) => ({ ...rr, [id]: r.key! }));
+    else alert(r.msg || "Falha ao revelar");
+  }
 
   async function testar(id: string) {
     setTestes((t) => ({ ...t, [id]: { loading: true } }));
@@ -75,10 +87,16 @@ export function ChavesManager({
                   <span style={{ fontSize: 11, fontWeight: 700, color: cor || "var(--mk-accent)", minWidth: 18 }}>#{i + 1}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, color: "var(--mk-text)", fontWeight: 600 }}>{c.rotulo || `Chave ${i + 1}`}</div>
-                    <div style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace" }}>
-                      •••••••••• · add {new Date(c.criado_em).toLocaleDateString("pt-BR")}
+                    <div style={{ fontSize: 10, color: "var(--mk-text-muted)", fontFamily: "monospace", wordBreak: "break-all" }}>
+                      {reveladas[c.id] ? reveladas[c.id] : "••••••••••"} · add {new Date(c.criado_em).toLocaleDateString("pt-BR")}
                     </div>
                   </div>
+                  <button type="button" onClick={() => revelar(c.id)} className="ghost-btn" style={{ fontSize: 11, padding: "4px 9px" }} title={reveladas[c.id] ? "Ocultar" : "Revelar chave"}>
+                    <i className={`ti ${reveladas[c.id] ? "ti-eye-off" : "ti-eye"}`} />
+                  </button>
+                  <button type="button" onClick={() => setEditando(editando === c.id ? null : c.id)} className="ghost-btn" style={{ fontSize: 11, padding: "4px 9px" }} title="Editar chave">
+                    <i className="ti ti-pencil" />
+                  </button>
                   <button type="button" onClick={() => testar(c.id)} disabled={t?.loading} className="ghost-btn" style={{ fontSize: 11, padding: "4px 9px" }} title="Testar só esta chave">
                     <i className="ti ti-plug-connected" /> {t?.loading ? "Testando…" : "Testar"}
                   </button>
@@ -99,6 +117,17 @@ export function ChavesManager({
                     />
                     <button type="submit" className="ghost-btn" style={{ fontSize: 10.5, padding: "3px 8px" }}>Salvar</button>
                     <span style={{ opacity: 0.7 }}>0 = sem limite · bate o teto → cai pra próxima chave/OpenAI</span>
+                  </form>
+                )}
+                {editando === c.id && (
+                  <form action={editarChaveIA} style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, padding: 8, background: "var(--mk-bg-deep)", borderRadius: 6 }}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <input name="rotulo" defaultValue={c.rotulo || ""} placeholder="Apelido" style={{ ...inp, fontFamily: "inherit" }} />
+                    <input type="password" name="key" placeholder={`${placeholder} (deixe vazio pra manter atual)`} style={inp} autoComplete="off" />
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button type="submit" className="cta-btn" style={{ fontSize: 11 }}>Salvar</button>
+                      <button type="button" onClick={() => setEditando(null)} className="ghost-btn" style={{ fontSize: 11 }}>Cancelar</button>
+                    </div>
                   </form>
                 )}
                 {t && !t.loading && (

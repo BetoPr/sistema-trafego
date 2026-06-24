@@ -156,6 +156,62 @@ export async function atualizarLimiteChaveIA(formData: FormData) {
   redirect("/configuracoes/ia?ok=limite_set");
 }
 
+/** Edita rotulo e/ou valor da chave. Vazio em key = mantem atual. */
+export async function editarChaveIA(formData: FormData) {
+  const ctx = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const rotulo = String(formData.get("rotulo") || "").trim();
+  const key = String(formData.get("key") || "").trim();
+  if (!id) redirect("/configuracoes/ia");
+
+  const sb = createServiceClient();
+  const patch: Record<string, unknown> = {};
+  if (rotulo) patch.rotulo = rotulo;
+  if (key) patch.key_encrypted = bufferToBytea(encryptToken(key));
+  if (Object.keys(patch).length === 0) {
+    redirect("/configuracoes/ia?erro=" + encodeURIComponent("Nada pra atualizar"));
+  }
+  await sb.from("ia_chaves").update(patch).eq("id", id).eq("agencia_id", ctx.agenciaId);
+
+  await audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "config_change",
+    entidade: "ia_chaves",
+    payload: { acao: "editar", id, trocou_key: !!key, trocou_rotulo: !!rotulo },
+  });
+
+  revalidatePath("/configuracoes/ia");
+  redirect("/configuracoes/ia?ok=chave_edit");
+}
+
+/** Revela chave em texto plano. Auditavel. */
+export async function revelarChaveIA(id: string): Promise<{ ok: boolean; key?: string; msg?: string }> {
+  const ctx = await requireAdmin();
+  const sb = createServiceClient();
+  const { data } = await sb
+    .from("ia_chaves")
+    .select("id, key_encrypted")
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle();
+  if (!data) return { ok: false, msg: "Chave nao encontrada" };
+  try {
+    const { decryptToken, byteaToBuffer } = await import("@/lib/crypto/tokens");
+    const key = decryptToken(byteaToBuffer(data.key_encrypted as unknown as { data: number[] } | Buffer));
+    await audit({
+      agenciaId: ctx.agenciaId,
+      usuarioId: ctx.userId,
+      acao: "config_change",
+      entidade: "ia_chaves",
+      payload: { acao: "revelar", id },
+    });
+    return { ok: true, key };
+  } catch (e) {
+    return { ok: false, msg: e instanceof Error ? e.message : "Falha decrypt" };
+  }
+}
+
 /** Remove uma chave de IA (só da própria agência). */
 export async function removerChaveIA(formData: FormData) {
   const ctx = await requireAdmin();
