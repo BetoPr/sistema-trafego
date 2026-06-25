@@ -98,7 +98,7 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Criar nova */}
-      <div>
+      <div data-guide="etiqueta-form-criar">
         <div style={{ fontSize: 11, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 8, fontFamily: "monospace" }}>NOVA ETIQUETA</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <input
@@ -106,11 +106,13 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
             onChange={(ev) => setNome(ev.target.value)}
             onKeyDown={(ev) => ev.key === "Enter" && adicionar()}
             placeholder="Nome (Linha: 'Restauração' · Variante: 'Restauração/Bebê')"
+            data-guide="etiqueta-nome-input"
             style={{ flex: 1, minWidth: 180, padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5 }}
           />
           <select
             value={paiId}
             onChange={(ev) => setPaiId(ev.target.value)}
+            data-guide="etiqueta-pai-select"
             style={{ padding: "8px 12px", borderRadius: 8, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12.5, maxWidth: 200 }}
             title="Vincular como Variante de uma Linha existente"
           >
@@ -121,8 +123,10 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
               </option>
             ))}
           </select>
-          <Swatches valor={cor} onChange={setCor} />
-          <button onClick={adicionar} disabled={criando || !nome.trim()} className="cta-btn" style={{ fontSize: 12 }}>
+          <span data-guide="etiqueta-cor-picker" style={{ display: "inline-flex" }}>
+            <Swatches valor={cor} onChange={setCor} />
+          </span>
+          <button onClick={adicionar} disabled={criando || !nome.trim()} className="cta-btn" data-guide="etiqueta-criar-btn" style={{ fontSize: 12 }}>
             <i className="ti ti-plus" /> {criando ? "Criando…" : "Criar"}
           </button>
         </div>

@@ -340,6 +340,23 @@ export function RoboGuia() {
             done: "Pasta = mãe. Etiqueta = filha. Não tem tipo 'pasta' no banco — é etiqueta normal que outras apontam pra ela. ✅",
           },
           {
+            id: "etiqueta_criar",
+            intents: ["criar etiqueta", "nova etiqueta", "tag", "rotulo", "como crio etiqueta", "criar pasta etiqueta", "criar tag"],
+            steps: [
+              { target: "menu-conta-configuracoes", text: "Primeiro clique em **Configurações** no menu lateral." },
+              { target: "config-etiquetas", text: "Agora clique em **Etiquetas** dentro de Mais configurações." },
+              { text: "Aqui é a área onde você **cria etiquetas e pastas** pra organizar atendimentos, contatos e atribuir campanhas. Vou te mostrar como criar uma etiqueta simples, uma pasta, e depois vincular as duas.", btn: "Começar ▸" },
+              { target: "etiqueta-nome-input", requireClick: false, text: "Digite aqui o **nome da etiqueta**. Ex: `Cliente VIP`, `Aguardando pagamento`, `Promoção Verão`." },
+              { target: "etiqueta-pai-select", requireClick: false, text: "Esse seletor vincula a etiqueta dentro de uma **Pasta (Linha mãe)**. Deixa em branco se for etiqueta solta. Marca uma pasta pra ela virar **Variante** dela." },
+              { target: "etiqueta-cor-picker", requireClick: false, text: "Escolhe uma **cor** pra identificar visualmente. Cada paleta tem 6 opções + botão custom." },
+              { target: "etiqueta-criar-btn", text: "Pronto. Agora clica em **Criar** pra salvar a primeira etiqueta." },
+              { text: "**Agora vamos criar uma pasta** (etiqueta-mãe).\n\nPasta = etiqueta que agrupa outras (Variantes). Ex: pasta `Restauração` agrupa `Restauração/Bebê`, `Restauração/Mofo`.\n\nPra criar pasta: digite o nome, **deixe o seletor 'Selecione a Etiqueta' em branco**, escolhe cor → Criar. Pronto, virou pasta-mãe automaticamente.", btn: "Entendi ▸" },
+              { text: "**Vincular etiqueta a uma pasta:**\n\n1) Digite o nome da nova etiqueta.\n\n2) No seletor 'Selecione a Etiqueta', escolhe a **pasta-mãe** que você criou antes.\n\n3) Escolhe cor → Criar.\n\nA etiqueta vira **Variante** da pasta. Quando você aplicar a Variante num contato, a pasta também é aplicada automático.", btn: "Próximo ▸" },
+              { text: "**Bônus: etiqueta automática por palavra-chave.**\n\nDepois de criar, clica no ícone ✏️ ao lado dela na lista. No balão que abrir:\n\n• Vai pra seção **Palavras-chave gatilho**\n• Digita palavras (ex: `desconto`, `cancelar`)\n• Aceita regex tipo `(promo|desc)`\n• Marca ☑️ Ativo → Salvar\n\nQuando cliente mandar mensagem com a palavra, etiqueta é aplicada automático no contato.", btn: "Fechar ▸" },
+            ],
+            done: "Pronto. Você já sabe criar etiqueta, pasta, vincular e configurar etiqueta automática. ✅",
+          },
+          {
             id: "etiqueta_auto",
             intents: ["etiqueta automatica", "auto etiqueta", "palavra chave", "etiqueta palavra", "gatilho etiqueta", "como crio etiqueta automatica"],
             steps: [

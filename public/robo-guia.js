@@ -77,7 +77,8 @@
   '#rg-bubble.rg-center::after{display:none;}' +
   '#rg-bubble::after{content:"";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);border:9px solid transparent;border-top-color:var(--rg-c,#25ffa8);}' +
   '#rg-bubble strong{color:var(--rg-c,#25ffa8);}' +
-  '#rg-bubble .rg-go{margin-top:8px;display:inline-flex;gap:6px;align-items:center;background:var(--rg-c,#25ffa8);color:#04140d;border:0;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;}' +
+  '#rg-bubble .rg-go{margin-top:12px;display:flex;gap:6px;align-items:center;justify-content:center;width:fit-content;background:var(--rg-c,#25ffa8);color:#04140d;border:0;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:800;cursor:pointer;clear:both;}' +
+  '#rg-bubble .rg-go-wrap{margin-top:10px;display:flex;justify-content:flex-end;}' +
   '#rg-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#04140d;color:var(--rg-c,#25ffa8);border:1px solid var(--rg-c,#25ffa8);padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;}' +
   '#rg-toast.rg-on{opacity:1;transform:translateX(-50%) translateY(0);}' +
   '#rg-aria{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}' +
@@ -277,8 +278,8 @@
       var px = parkPos();
       await flyTo(px.x, px.y);
       bubble.classList.add('rg-center');
-      var label = 'Entendi ▸';
-      say(st.text + '<button class="rg-go">' + label + '</button>'); announce(st.text);
+      var label = st.btn || 'Entendi ▸';
+      say(st.text + '<div class="rg-go-wrap"><button class="rg-go">' + label + '</button></div>'); announce(st.text);
       bubble.querySelector('.rg-go').onclick = function () { bubble._adv && bubble._adv(); };
       await new Promise(function (res) { bubble._adv = res; });
       bubble.classList.remove('rg-center');
@@ -302,7 +303,8 @@
     await flyTo(p.x, p.y);
     var c = center(el);
     aimArm(c.x, c.y); showSpot(el); showRing(el); showPtr(c.x, c.y);
-    say(st.text + '<button class="rg-go">Cliquei ▸</button>'); announce(st.text);
+    var btnLabel = st.btn || (st.requireClick === false ? 'Próximo ▸' : 'Cliquei ▸');
+    say(st.text + '<div class="rg-go-wrap"><button class="rg-go">' + btnLabel + '</button></div>'); announce(st.text);
     bubble.querySelector('.rg-go').onclick = function () { bubble._adv && bubble._adv(); };
     if (st.requireClick === false) await new Promise(function (res) { bubble._adv = res; });
     else await waitAdvance(el);
@@ -319,7 +321,7 @@
   async function done(msg) {
     await flyTo(innerWidth - 78, innerHeight - 120);
     pip.classList.add('rg-happy');
-    say(msg + '<button class="rg-go">Fechar ▸</button>'); announce(strip(msg));
+    say(msg + '<div class="rg-go-wrap"><button class="rg-go">Fechar ▸</button></div>'); announce(strip(msg));
     bubble.querySelector('.rg-go').onclick = function () { bubble._adv && bubble._adv(); };
     await new Promise(function (res) { bubble._adv = res; });
     hush(); pip.classList.remove('rg-happy');
@@ -372,7 +374,7 @@
   function noMatch() {
     if (chat) chat.classList.add('rg-hide');
     flyTo(innerWidth * 0.5, innerHeight * 0.4).then(function () {
-      say((opts.fallback || 'Ainda não sei te ensinar isso 😅') + '<button class="rg-go">Ok ▸</button>');
+      say((opts.fallback || 'Ainda não sei te ensinar isso 😅') + '<div class="rg-go-wrap"><button class="rg-go">Ok ▸</button></div>');
       bubble.querySelector('.rg-go').onclick = function () { hush(); if (chat) chat.classList.remove('rg-hide'); };
     });
   }
