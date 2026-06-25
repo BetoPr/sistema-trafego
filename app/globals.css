@@ -1414,15 +1414,15 @@ a:focus-visible {
   /* Topbar pill mais compacto */
   .date-pill { padding: 6px 10px !important; font-size: 11.5px !important; }
 
-  /* Tabs flutuantes do perfil IA: scroll horizontal em vez de quebrar linha */
-  .mk-page > div[style*="border-bottom"][style*="flex-wrap"] {
+  /* Tabs flutuantes (PerfilTabs, etc.): scroll horizontal em vez de quebrar linha */
+  div[style*="border-bottom"][style*="flex-wrap: wrap"] {
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  .mk-page > div[style*="border-bottom"][style*="flex-wrap"]::-webkit-scrollbar { display: none; }
-  .mk-page > div[style*="border-bottom"][style*="flex-wrap"] button {
+  div[style*="border-bottom"][style*="flex-wrap: wrap"]::-webkit-scrollbar { display: none; }
+  div[style*="border-bottom"][style*="flex-wrap: wrap"] button {
     flex-shrink: 0 !important;
   }
 
@@ -1446,6 +1446,22 @@ a:focus-visible {
   /* Inputs grandes em forma de balão */
   input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input[type="url"], select, textarea {
     font-size: 16px !important; /* evita zoom iOS */
+  }
+}
+
+/* mk-page-head com botão à direita: quebra pra coluna em mobile */
+@media (max-width: 768px) {
+  .mk-page-head[style*="space-between"],
+  .mk-page-head[style*="flex"] {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  .mk-page-head[style*="space-between"] > a.cta-btn,
+  .mk-page-head[style*="space-between"] > button.cta-btn,
+  .mk-page-head[style*="flex"] > a.cta-btn,
+  .mk-page-head[style*="flex"] > button.cta-btn {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 }
 
