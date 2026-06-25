@@ -50,7 +50,8 @@
   '#rg-fx{position:fixed;inset:0;pointer-events:none;}' +
   '#rg-ptr{animation:rg-march .6s linear infinite;}' +
   '@keyframes rg-march{to{stroke-dashoffset:-20;}}' +
-  '#rg-pip{position:fixed;left:0;top:0;width:92px;height:101px;transform-origin:46px 50px;pointer-events:none;will-change:transform;color:var(--rg-c,#25ffa8);}' +
+  '#rg-pip{position:fixed;left:0;top:0;width:92px;height:101px;transform-origin:46px 50px;pointer-events:none;will-change:transform;color:var(--rg-c,#25ffa8);opacity:0;transition:opacity .3s;}' +
+  'body.rg-touring #rg-pip{opacity:1;}' +
   '#rg-pip svg{width:100%;height:100%;overflow:visible;}' +
   '#rg-pip .rg-arm{transition:transform .35s cubic-bezier(.34,1.3,.5,1);transform-box:view-box;}' +
   '#rg-armL{transform-origin:48px 68px;}#rg-armR{transform-origin:72px 68px;}' +
@@ -286,12 +287,13 @@
 
   async function runTour(t) {
     if (busy) return; busy = true;
+    document.body.classList.add('rg-touring');
     if (chat) chat.classList.add('rg-hide');
     document.querySelectorAll('.rg-was-open').forEach(function (e) { e.classList.remove('rg-was-open'); });
     await flyTo(innerWidth * 0.5, innerHeight * 0.45);
     say('Bora! Me segue 👀'); announce('Vou te mostrar.'); await sleep(800); hush();
     try { for (var i = 0; i < t.steps.length; i++) await step(t.steps[i]); if (t.done) await done(t.done); }
-    finally { busy = false; }
+    finally { busy = false; document.body.classList.remove('rg-touring'); }
   }
 
   /* ---------- intent matching ---------- */

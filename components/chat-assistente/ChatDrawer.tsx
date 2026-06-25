@@ -211,7 +211,6 @@ export function ChatDrawer() {
           `}</style>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderBottom: ".5px solid var(--mk-border)" }}>
-            <MascoteRoboMini size={36} ativo />
             <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}>
               <i className="ti ti-x" />
             </button>

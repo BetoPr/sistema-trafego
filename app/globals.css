@@ -1482,6 +1482,13 @@ a:focus-visible {
   }
 }
 
+/* Durante tour RoboGuia: esconde FAB chat-assistente pra ficar só 1 robô na tela */
+body.rg-touring button[aria-label="Abrir Assistente IA"] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity .25s;
+}
+
 /* Telas muito pequenas (≤420) */
 @media (max-width: 420px) {
   .mk-page-title { font-size: 17px !important; }
