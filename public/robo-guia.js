@@ -183,7 +183,12 @@
     pip.style.transform = 'translate3d(' + (S.x - HW).toFixed(2) + 'px,' + (S.y - HH + bob).toFixed(2) + 'px,0) rotate(' + S.tilt.toFixed(2) + 'deg)';
     if (!S.flying && !busy) { S.lookX += (glanceX - S.lookX) * 0.05; S.lookY += (glanceY - S.lookY) * 0.05; }
     eyes.style.transform = 'translate(' + S.lookX.toFixed(2) + 'px,' + S.lookY.toFixed(2) + 'px)';
-    if (bubble.classList.contains('rg-on')) { bubble.style.left = S.x + 'px'; bubble.style.top = (S.y - HH + bob + 10) + 'px'; }
+    if (bubble.classList.contains('rg-on') && !bubble.classList.contains('rg-center')) {
+      // Clamp horizontal pra bubble nunca sair da viewport
+      var bw = bubble.offsetWidth || 240; var halfBw = bw / 2 + 12;
+      var bx = Math.max(halfBw, Math.min(innerWidth - halfBw, S.x));
+      bubble.style.left = bx + 'px'; bubble.style.top = (S.y - HH + bob + 10) + 'px';
+    }
     if (activeRing) { var r = activeRing.getBoundingClientRect(); ring.style.left = (r.left - 4) + 'px'; ring.style.top = (r.top - 4) + 'px'; ring.style.width = (r.width + 8) + 'px'; ring.style.height = (r.height + 8) + 'px';
       var sp = window._rgSpot; if (sp && sp.classList.contains('rg-on')) { sp.style.left = (r.left - 6) + 'px'; sp.style.top = (r.top - 6) + 'px'; sp.style.width = (r.width + 12) + 'px'; sp.style.height = (r.height + 12) + 'px'; }
     }

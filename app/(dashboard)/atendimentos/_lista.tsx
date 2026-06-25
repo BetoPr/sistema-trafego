@@ -319,14 +319,16 @@ export function ListaAtendimentos(p: Props) {
       <div style={sep}>
         <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 6 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--mk-text)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Atendimentos</h2>
-          <button onClick={toggleSom} className="ghost-btn" style={btnHdr} title={somOn ? "Som de notificação ligado" : "Som mutado"}>
+          <button onClick={toggleSom} className="ghost-btn" style={btnHdr} title={somOn ? "Som de notificação ligado" : "Som mutado"} data-guide="atd-btn-som">
             <i className={`ti ${somOn ? "ti-bell" : "ti-bell-off"}`} style={{ color: somOn ? "#00E19A" : "var(--mk-text-muted)" }} />
           </button>
-          <NovaConversa canais={p.canais} />
-          <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos">
+          <span data-guide="atd-btn-nova-conversa" style={{ display: "inline-flex" }}>
+            <NovaConversa canais={p.canais} />
+          </span>
+          <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos" data-guide="atd-btn-log-fechamentos">
             <i className="ti ti-receipt-2" />
           </button>
-          <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros">
+          <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros" data-guide="atd-btn-filtros">
             <i className="ti ti-filter" />{!compactTabs && " Filtros"}
             {filtrosAtivos > 0 && <span style={{ fontSize: 9.5, background: "#00E19A", color: "#fff", borderRadius: 8, padding: "0 5px", marginLeft: 4 }}>{filtrosAtivos}</span>}
           </button>
@@ -336,7 +338,7 @@ export function ListaAtendimentos(p: Props) {
       {/* Busca + Buscar msg + Indicador canais + Refresh */}
       <div style={sep}>
         <div style={{ display: "flex", alignItems: "center", padding: "8px 10px", gap: 4 }}>
-          <div style={{ flex: 1, position: "relative" }}>
+          <div style={{ flex: 1, position: "relative" }} data-guide="atd-busca-contato">
             <i className="ti ti-search" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--mk-text-muted)", fontSize: 12 }} />
             <input
               value={searchQ}
@@ -345,10 +347,10 @@ export function ListaAtendimentos(p: Props) {
               style={{ width: "100%", padding: "6px 8px 6px 28px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 11.5 }}
             />
           </div>
-          <button onClick={() => setSearchModal(true)} title="Buscar mensagem" style={iconBtn}>
+          <button onClick={() => setSearchModal(true)} title="Buscar mensagem" style={iconBtn} data-guide="atd-btn-buscar-msg">
             <i className="ti ti-message-search" />
           </button>
-          <div ref={canaisRef} style={{ position: "relative" }}>
+          <div ref={canaisRef} style={{ position: "relative" }} data-guide="atd-btn-conexao">
             <button
               onClick={ciclarTipoConexao}
               onMouseEnter={() => setShowCanais(true)}
@@ -375,7 +377,7 @@ export function ListaAtendimentos(p: Props) {
               </div>
             )}
           </div>
-          <button onClick={refresh} title="Atualizar" style={iconBtn}>
+          <button onClick={refresh} title="Atualizar" style={iconBtn} data-guide="atd-btn-refresh">
             <i className={`ti ti-refresh ${refreshing ? "spin" : ""}`} style={{ animation: refreshing ? "spin 0.6s linear" : undefined }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </button>
@@ -384,7 +386,7 @@ export function ListaAtendimentos(p: Props) {
 
       {/* Abas de status — fixas, mas funcionam como toggle (clica = inclui/remove o status do filtro) */}
       <div style={sep}>
-        <div style={{ display: "flex", padding: "6px 8px", gap: 4, overflowX: "auto", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", padding: "6px 8px", gap: 4, overflowX: "auto", scrollbarWidth: "none" }} data-guide="atd-abas-status">
           {TABS.map((t) => {
             const ativo = statusSel.includes(t.id);
             const cor = t.id === "fechado" ? "var(--mk-text-muted)" : "#00E19A";
