@@ -1,45 +1,14 @@
 export const DASHBOARD = `# Dashboard — painel principal
 
-Rota: /dashboard (também home após login)
+Rota: /dashboard (home após login)
 
-KPIs + gráficos de performance de tráfego + atendimentos/vendas.
+## O que já está disponível
+- **View Atendimentos** — métricas de vendas/fechamentos no CRM (fechamentos do chat, valor total, ticket médio, top vendedores, atendimentos live em tempo real).
+- **Filtros de período** — Hoje / 7 dias / 30 dias / custom (De/Até).
+- **Atualização** — Atendimentos Live realtime (Supabase channel). Refresh manual com F5.
 
-## Filtros
-- **Período**: botões Hoje / 7 dias / 30 dias. Ou "Período X a Y" abre date inputs custom (De / Até + Aplicar).
-- **View toggle**: Atendimentos vs Campanhas
-  - Atendimentos — métricas vendas/serviços fechados no CRM
-  - Campanhas — métricas de ads (Meta + Google)
-- **Plataforma** (Meta / Google) seletor
+## Em fase de testes (beta — em breve)
+- **View Campanhas** (Tráfego/Ads): KPIs Financeiros (Investido em ads, Faturamento, Lucro Bruto, ROAS) + KPIs Tráfego (Impressões, Cliques, CPL, CAC) + gráficos (Gasto vs Receita, Status Donut, Top Campanhas, Criativos Top).
 
-Selecionou 1 cliente → todos KPIs recalculam pra ele.
-
-## KPIs Financeiros
-- **Investido** (R$ gasto em ads)
-- **Faturamento** (R$ vendas CRM)
-- **Lucro Bruto** (Faturamento - Investido)
-- **ROAS Bruto** (retorno múltiplo)
-
-## KPIs Tráfego
-- **Impressões** (alcance ads)
-- **Cliques** (CTR%)
-- **CPL** (custo por lead)
-- **CAC** (custo aquisição)
-
-## Gráficos
-- **Gasto vs Receita** — line chart série diária
-- **Status Donut** — donut campanhas (ativas / pausadas / encerradas)
-- **Top Campanhas** — bar top 5 por gasto
-- **Criativos Top** — grid 6 melhores ads (imagens + métricas)
-- **Atendimentos Live** — vendas em tempo real
-
-## Atualização
-- KPIs financeiros: polling 60s
-- Atendimentos Live: realtime (Supabase channel)
-- Refresh manual: F5
-
-## ROAS "—"?
-Cálculo precisa de **Investido > 0** E **Faturamento > 0**. Se um zerou no período, mostra —.
-
-## CountUp animação
-KPIs animam contagem 0→valor ao carregar (também em Atendimentos e Análise IAs).
+A parte de Tráfego ainda não está liberada pra acesso geral. Em breve. Por enquanto use o Dashboard pra acompanhar vendas/atendimentos do CRM.
 `;

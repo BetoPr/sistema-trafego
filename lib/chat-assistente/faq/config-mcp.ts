@@ -1,26 +1,8 @@
-export const CONFIG_MCP = `# MCP — Acesso Programático
+export const CONFIG_MCP = `# MCP / API Programática — recurso avançado
 
-Rota: /configuracoes/mcp
+MCP (Model Context Protocol) é um recurso **avançado** pra integrar o CRM com Claude / Cursor / outros LLMs externos via tokens de API.
 
-Tokens pra integrar CRM com **Claude / Cursor / outros LLMs externos** via API.
+Por enquanto está disponível só pra contas com permissão especial. Se você precisa de integração programática, fale com o suporte que avaliamos liberar.
 
-Útil pra automação avançada (ex: Claude na sua máquina ler tickets do CRM).
-
-Geralmente uso interno super_admin.
-
-## Gerar token
-Form:
-- **Nome** (rótulo)
-- **Dias expiração** (TTL)
-
-**Gerar token** → mostra token **uma única vez**. Copia + guarda em lugar seguro.
-
-## Revogar
-Tabela → **Revogar** → invalida imediatamente.
-
-Tabela mostra prefix do token + status.
-
-## Não confundir com chaves API IA
-- **API IA** (/configuracoes/ia) = chaves Groq/OpenAI/Anthropic pra IA atendente
-- **MCP** = tokens pro CRM ser consumido por LLMs externos
+Pra automação dentro do CRM, foque em: ferramentas da IA Atendimento (transferir humano, aplicar etiqueta automática, enviar imagem da galeria, biscoito).
 `;

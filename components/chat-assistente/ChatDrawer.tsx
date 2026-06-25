@@ -13,12 +13,12 @@ const SUGESTOES_SUPORTE = [
   "Como crio etiqueta automática por palavra?",
   "Como agendo follow-up automático?",
   "Como cobro cliente via PIX no chat?",
-  "Como agendo relatório semanal?",
-  "Como configurar alerta de gasto?",
+  "Como aplicar etiqueta num contato?",
   "Como criar usuário novo no CRM?",
+  "Como criar mensagem rápida?",
+  "Como importar contatos do WhatsApp?",
   "Como trocar logo da agência?",
   "Quanto custa o plano?",
-  "O que é CTWA / Pixel & Vendas?",
 ];
 const SUGESTOES_DADOS = [
   "Qual o ROAS dos últimos 7 dias?",

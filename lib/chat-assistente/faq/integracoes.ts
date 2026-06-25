@@ -1,7 +1,7 @@
-export const INTEGRACOES = `# Integrações + Canais (WhatsApp UAZAPI, Meta Ads, Google Ads)
+export const INTEGRACOES = `# Canais (WhatsApp UAZAPI)
 
 ## Canais (WhatsApp) — /canais
-**Apenas admin / super_admin acessa.**
+**Apenas Usuários com permissão admin acessam.**
 
 Cada canal = 1 número WhatsApp conectado via UAZAPI.
 
@@ -18,57 +18,44 @@ Cada canal = 1 número WhatsApp conectado via UAZAPI.
 - Status verificado a cada 4s.
 - Fechou janela? Card → **Ver QR Code** reabre.
 
-QR não conecta? Cheque: celular com internet, câmera focada, WhatsApp atualizado, servidor UAZAPI ativo (super_admin verifica /super-admin/servidores).
-
-### Conectar por código (sem QR)
-Suporta no client.ts mas UI ainda não expõe. Hoje só QR.
+QR não conecta? Cheque: celular com internet, câmera focada no QR inteiro, WhatsApp atualizado.
 
 ### Cards de canal — ações
 - ⭐ Definir como padrão
-- 🔗 Revalidar webhook (reconfigura URL no UAZAPI quando msgs param)
-- 🔄 Transferir tickets (move TODOS tickets pra outro canal — irreversível, faça quando ninguém atendendo)
-- ♻️ Reconectar (se WhatsApp ainda logado no celular = só sincroniza, sem QR; se caiu = QR novo)
-- 🔌 Desconectar (status disconnected, WhatsApp do celular intacto, dá pra reconectar)
-- 🗑️ Deletar (apaga DB + remove instância UAZAPI — irreversível, considere Transferir tickets antes)
+- 🔗 Revalidar webhook (quando msgs param de chegar)
+- 🔄 Transferir tickets (move TODOS tickets pra outro canal — irreversível)
+- ♻️ Reconectar (se ainda logado = só sincroniza; se caiu = QR novo)
+- 🔌 Desconectar (status disconnected, dá pra reconectar)
+- 🗑️ Deletar (apaga DB + instância UAZAPI — irreversível)
 
 ### Plataforma (iOS/Android/Web)
-Detectada automático. iOS mostra aviso: desativar notificações do WhatsApp Business no iPhone (iOS pausa app em bg).
+Detectada automático. iOS mostra aviso: desativar notificações do WhatsApp Business no iPhone.
 
 ### Múltiplos canais
-- Plano padrão: **1 sessão/conta**. Super_admin = ilimitado.
-- Pricing: R$29/mês padrão. R$19 cada extra (2-7). LITE R$138 (até 100 msg/dia). PRO R$195 (até 300/dia).
-- Mensagens de todos canais caem unificado em /atendimentos.
-- Cada ticket tem badge do canal.
-- Filtrar: Atendimentos > Filtros > Conexões.
+- Plano padrão: **1 sessão/conta**. Extras: R$19 cada (2-7).
+- Pricing: R$29/mês padrão. LITE R$138 (até 100 msg/dia). PRO R$195 (até 300/dia).
+- Mensagens de todos canais caem unificadas em /atendimentos.
+- Filtrar 1 canal: Atendimentos > Filtros > Conexões.
 
 ### Backfill mídias
-Topo página → **Baixar mídias pendentes**. Lotes de 30. Progresso live (✅ X / ⚠️ Y / ⏳ Z). Para após 2 falhas seguidas (UAZAPI não consegue). Mídias > 7 dias geralmente não recupera.
+Topo página → **Baixar mídias pendentes**. Lotes de 30. Mídias > 7 dias geralmente não recupera.
 
 ### Webhook
-Configurado automático ao criar canal. URL: NEXT_PUBLIC_APP_URL/api/webhooks/uazapi/{secret}. Eventos: messages, messages_update, connection. Exclui wasSentByApi (evita loop).
-
-Revalidar quando msgs param de chegar de repente.
+Configurado automático ao criar canal. Revalidar quando msgs param.
 
 ### FAQ comum
 - WhatsApp Business e comum funcionam ambos.
-- WhatsApp do celular continua funcionando (CRM espelha igual WhatsApp Web).
-- Não recomendado fazer envio massa pra estranhos (risco ban).
-- Mensagens não chegam: 1) status CONECTADO 2) Revalidar webhook 3) teste de outro número 4) super_admin verifica servidor UAZAPI.
-- Quem acessa: só admin / super_admin. Operador comum não vê.
+- Celular continua funcionando (CRM espelha igual WhatsApp Web).
+- Mensagens não chegam: 1) status CONECTADO 2) Revalidar webhook 3) teste de outro número.
 
 ---
 
-## Meta Ads — /integracoes/meta
-- **Conectar Meta Ads** → OAuth Facebook → autoriza → seleciona ad accounts.
-- **Sincronizar** → puxa campanhas, ad sets, ads, métricas (gasto, impressões, cliques, conversões).
-- **Sincronizar Pages** → puxa fanpages vinculadas.
-- **Desconectar** → revoga OAuth. Métricas antigas ficam.
+## Meta Ads / Google Ads — em fase de testes
 
-## Google Ads — /integracoes/google
-Wizard pré-OAuth existe mas integração real é roadmap futuro.
+Integração com Meta Ads (Facebook/Instagram) e Google Ads **ainda está em fase de testes** e não está liberada pra acesso geral. Em breve.
+
+---
 
 ## Asaas (pagamentos) — /configuracoes/asaas
-Detalhes em area config-asaas.
-
-Cobrar pelo chat: /atendimentos > ticket > painel direito > Cobrança (precisa Asaas ativo).
+Veja área "config-asaas". Cobrar pelo chat: /atendimentos > ticket > painel direito > Cobrança.
 `;

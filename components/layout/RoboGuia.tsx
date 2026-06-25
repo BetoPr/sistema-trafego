@@ -244,55 +244,14 @@ export function RoboGuia() {
             done: "JID copiável. Use no Resumo IA pra grupo. **Listar Participantes** → membros + admins. ✅",
           },
 
-          // ===== PIXEL & VENDAS / RELATÓRIOS / ALERTAS =====
+          // ===== TRÁFEGO / ADS — em fase de testes =====
           {
-            id: "campanha_pixel",
-            intents: ["conectar meta", "meta ads", "conectar facebook"],
+            id: "trafego_beta",
+            intents: ["pixel vendas", "pixel", "capi", "ctwa", "atribuicao venda", "conversao", "pixel campanhas", "campanha pixel", "campanhas", "ads", "anuncios", "creativos", "meta ads", "google ads", "conectar meta", "conectar facebook", "conectar google", "agendar relatorio", "novo relatorio", "relatorio", "report", "alertas", "notificacoes ads", "alarmes", "criar alerta", "gasto alerta", "alerta gasto", "limite gasto", "roas", "cpl", "cac", "impressoes"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Clique em **Configurações**." },
-              { target: "config-integracoes", text: "Depois em **Integrações**." },
+              { text: "Essa área (**Tráfego / Ads** — Pixel, Campanhas Meta/Google, Relatórios automáticos, Alertas de gasto, ROAS, CPL) ainda está em **fase de testes** e não está liberada pra acesso geral.\n\nEm breve será adicionada.\n\nPor enquanto foca em: **Atendimentos, IA, Contatos, WhatsApp, Etiquetas, Cobrança Asaas, Plano.**", btn: "Entendi ▸" },
             ],
-            done: "Conecte Meta Ads via OAuth, escolhe ad accounts. ✅",
-          },
-          {
-            id: "pixel_vendas",
-            intents: ["pixel vendas", "capi", "ctwa", "atribuicao venda", "conversao"],
-            steps: [
-              { target: "nav-pixel", text: "Clique em **Pixel & Campanhas**. KPIs: gasto, faturamento, ROAS. Feed de Purchase enviados ao Meta." },
-            ],
-            done: "Só super_admin acessa. Sem CTWA click-id, venda fica sem atribuição. Use Etiquetas por campanha como fallback. ✅",
-          },
-          {
-            id: "campanhas",
-            intents: ["campanhas", "ads", "anuncios", "creativos"],
-            steps: [
-              { target: "nav-pixel", text: "Clique em **Pixel & Campanhas**." },
-            ],
-            done: "Campanhas Meta + Google aparecem aqui. ✅",
-          },
-          {
-            id: "relatorio_novo",
-            intents: ["agendar relatorio", "novo relatorio", "relatorio", "report"],
-            steps: [
-              { target: "nav-relatorios", text: "Clique em **Relatórios** → **Criar Relatório**." },
-            ],
-            done: "Frequência diário/semanal/mensal, hora, formato PDF/Imagem/Texto, destinatário (cliente ou telefone direto). ✅",
-          },
-          {
-            id: "alertas_criar",
-            intents: ["alertas", "notificacoes", "limite", "alarmes", "criar alerta", "gasto alerta"],
-            steps: [
-              { target: "nav-alertas", text: "Clique em **Alertas** → **Novo**. Tipo (Gasto dia/mês), limite R$, conta Meta, WhatsApp destino." },
-            ],
-            done: "Template com placeholders {{gasto}} {{limite}} {{conta}}. Preview tempo real. Botão **Testar agora** força disparo. ✅",
-          },
-          {
-            id: "alertas",
-            intents: ["alerta"],
-            steps: [
-              { target: "nav-alertas", text: "Clique em **Alertas** no menu." },
-            ],
-            done: "Configure limites e notificações via WhatsApp. ✅",
+            done: "Tráfego/Ads em beta — em breve disponível. ✅",
           },
 
           // ===== FILAS / EQUIPES / USUÁRIOS =====
@@ -435,13 +394,12 @@ export function RoboGuia() {
             done: "Configure chave PIX padrão + CPF/CNPJ + Mensagem auto pós-pagamento. Agora dá pra cobrar pelo chat. ✅",
           },
           {
-            id: "mcp_token",
+            id: "mcp_avancado",
             intents: ["mcp", "claude desktop", "claude code", "token api", "cursor crm", "programatico"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Clique em **Configurações**." },
-              { target: "config-mcp", text: "Depois em **MCP / API**. Preencha Nome + Dias expiração → **Gerar token**." },
+              { text: "**MCP / Token de API programática** é um recurso avançado disponível só pra contas com permissão especial.\n\nSe você precisa integrar o CRM com Claude / Cursor / outros LLMs externos, fale com o suporte que a gente avalia liberar.", btn: "Entendi ▸" },
             ],
-            done: "Copia token uma única vez (não mostra de novo). Use em Claude Desktop/Cursor pra ler tickets do CRM. ✅",
+            done: "MCP é recurso avançado. ✅",
           },
 
           // ===== MARCA / PERFIL / PLANO / DASHBOARD =====
