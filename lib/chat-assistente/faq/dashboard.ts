@@ -1,28 +1,45 @@
-export const DASHBOARD = `# Dashboard
+export const DASHBOARD = `# Dashboard — painel principal
 
-KPIs + graficos + top criativos da agencia.
+Rota: /dashboard (também home após login)
 
-## O que mostra
-- 2 views: **Atendimentos** (vendas/funil CRM) e **Campanhas** (metricas Meta Ads).
-- Periodo: Hoje / 7d / 30d (botoes acima dos KPIs).
-- KPIs Campanhas: Investido, Faturamento, Lucro, ROAS, CPL, CAC, Impressoes, Cliques, CTR.
-- Graficos: Investido x Faturamento diario, Status das campanhas (donut), Top campanhas (barra).
-- **Top Criativos**: thumbs dos anuncios Meta. 3 modos (grade/carrossel/lista). Filtro por campanha (checkbox verde) e ordenacao por gasto.
+KPIs + gráficos de performance de tráfego + atendimentos/vendas.
 
-## Filtro cross-aba
-- O pill no topo da topbar filtra Dashboard por Pasta/Etiqueta/Campanha. Os KPIs e graficos respeitam.
+## Filtros
+- **Período**: botões Hoje / 7 dias / 30 dias. Ou "Período X a Y" abre date inputs custom (De / Até + Aplicar).
+- **View toggle**: Atendimentos vs Campanhas
+  - Atendimentos — métricas vendas/serviços fechados no CRM
+  - Campanhas — métricas de ads (Meta + Google)
+- **Plataforma** (Meta / Google) seletor
 
-## Botoes
-- **Sincronizar agora** — forca pull Meta Ads na hora (so view Campanhas).
-- **CountUp animation** nos KPIs ao carregar.
+Selecionou 1 cliente → todos KPIs recalculam pra ele.
 
-## Onde vem o dado
-- Investido/imp/clicks: \`metricas_diarias\` (sync Meta).
-- Faturamento: soma \`tickets.valor_fechado\` no periodo (CRM real, nao Meta).
-- ROAS = faturamento / investido.
-- CAC = investido / conversoes.
+## KPIs Financeiros
+- **Investido** (R$ gasto em ads)
+- **Faturamento** (R$ vendas CRM)
+- **Lucro Bruto** (Faturamento - Investido)
+- **ROAS Bruto** (retorno múltiplo)
 
-## Problemas comuns
-- KPIs zerados: sem integracao Meta ativa OU periodo errado OU filtro cross-aba sem match.
-- Thumb de criativo quebrado: URL Meta CDN expirou, proxima sync atualiza.
+## KPIs Tráfego
+- **Impressões** (alcance ads)
+- **Cliques** (CTR%)
+- **CPL** (custo por lead)
+- **CAC** (custo aquisição)
+
+## Gráficos
+- **Gasto vs Receita** — line chart série diária
+- **Status Donut** — donut campanhas (ativas / pausadas / encerradas)
+- **Top Campanhas** — bar top 5 por gasto
+- **Criativos Top** — grid 6 melhores ads (imagens + métricas)
+- **Atendimentos Live** — vendas em tempo real
+
+## Atualização
+- KPIs financeiros: polling 60s
+- Atendimentos Live: realtime (Supabase channel)
+- Refresh manual: F5
+
+## ROAS "—"?
+Cálculo precisa de **Investido > 0** E **Faturamento > 0**. Se um zerou no período, mostra —.
+
+## CountUp animação
+KPIs animam contagem 0→valor ao carregar (também em Atendimentos e Análise IAs).
 `;

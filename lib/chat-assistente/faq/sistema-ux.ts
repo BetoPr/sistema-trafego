@@ -1,55 +1,67 @@
-export const SISTEMA_UX = `# Sistema / UX / Atalhos
+export const SISTEMA_UX = `# Sistema / UX / Navegação
 
-Navegacao, filtros globais, atalhos, configuracao geral.
+## Menu lateral (sidebar)
+Áreas principais:
+- Dashboard
+- Atendimentos
+- Follow-up
+- IA Atendimento
+- Contatos
+- Envio em Massa
+- Mensagens Rápidas
+- Grupos
+- Pixel & Vendas (super_admin)
+- Relatórios
+- Alertas
+- Canais (admin)
+- Filas (admin)
+- Equipes (admin)
+- Usuários (admin)
+- Clientes (admin — em Tráfego Ads)
+- Configurações (Etiquetas, API IA, Prompts IA, Asaas, MCP)
+- Marca/Logo
+- Meu Perfil
+- Plano Pro
 
-## Topbar (topo)
-- **Busca** (Cmd+K / Ctrl+K): paleta de paginas e sessoes.
-- **Filtro Global**: pill verde no centro-direita. Filtra Pasta/Etiqueta/Campanha cross-aba.
-- **Plataforma**: seletor Meta Ads / Google Ads / etc.
-- **Avatar**: menu usuario (perfil, sair).
-- **FAB Assistente IA**: bolha bottom-right pra abrir o chat.
+Colapsa horizontalmente. Tema escuro padrão.
 
-## Sidebar
-- Esquerda. Organizada em grupos: Principal, Atendimento, Comunicacao, Trafego, Administracao.
-- Toggle colapsar/expandir (icone hamburguer).
-- Modo escuro/claro (botao no rodape sidebar).
+## Topbar
+- Logo/marca agência (esquerda)
+- Avatar usuário (direita) → menu: Meu Perfil, Sair, tema
+- Notificações (futuro)
 
-## Filtro Global Cross-Aba
-- Click no pill > busca + grupos Pasta/Etiqueta/Campanha.
-- Selecionado: persiste em URL (deep-link) + localStorage.
-- Afeta: Dashboard view Campanhas, /campanhas, em breve mais.
-- X dentro do pill: limpa.
+## Robô flutuante (canto inferior direito)
+Botão verde com robô voando = Assistente IA. Abre drawer com 2 bots:
+- **Suporte CRM** — tira dúvidas do sistema (esse que tá te respondendo agora)
+- **Meus Dados** — análise dos dados da agência via tools
 
-## Atalhos teclado
-- **Cmd/Ctrl + K**: paleta de busca.
-- **Esc**: fecha balao/dropdown.
-- **Enter**: confirma form.
+Robô esconde em rotas com composer próprio (/atendimentos, /chat-teste, /envio-massa, /grupos).
+
+## Logout
+Avatar canto superior direito → **Sair**.
+
+## Tema claro/escuro
+Avatar → ⚙️ → tema. Padrão: escuro.
 
 ## Mobile
-- Sidebar vira hamburguer.
-- Filtro global vira icone na topbar.
-- Tabelas largas tem scroll-x.
+CRM web 100% responsivo. "Adicionar à tela inicial" (Chrome/Safari) vira PWA. Não tem app nativo.
 
-## Tema
-- Botao "Modo Escuro" / "Modo Claro" no rodape sidebar.
-- Persistente via next-themes.
+Funciona offline? **Não.** Precisa internet (Supabase + UAZAPI).
 
-## PWA
-- Pode instalar como app no celular (Add to Home Screen).
-- Service worker registrado em /public/sw.js.
+## Multi-agência
+Hoje 1 conta = 1 agência. Super_admin gerencia várias num painel administrativo separado.
 
-## Plano e cobranca
-- /plano: assinatura R$29/mes por canal WhatsApp.
-- Bloqueio de acesso ao expirar (configurado em super-admin).
+## Integrações externas
+Hoje só via MCP tokens. Notion/Sheets/Zapier = roadmap.
 
-## Notificacao mensagens
-- Bell no topbar mostra unread.
-- Som configuravel.
+## Atalhos
+Sem atalhos de teclado nativos hoje. Cmd+K busca = roadmap.
 
-## Heartbeat online
-- Sistema marca usuario online a cada 30s. Aparece em /equipes.
+## Idioma
+Português BR. Erros em PT-BR. Não tem multi-idioma.
 
-## Problemas
-- Pagina nao carrega: refresh + verifica console F12 + checa /api/health (se existir).
-- Sidebar travada: clica no logo pra resetar.
+## Formatação
+- Moeda: Intl.NumberFormat pt-BR (R$ 1.234,56)
+- Datas: date-fns locale ptBR
+- Decimais: vírgula. Milhares: ponto.
 `;

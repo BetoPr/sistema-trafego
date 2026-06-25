@@ -1,47 +1,54 @@
-export const CONFIG_ETIQUETAS = `# Etiquetas (Pasta / Etiqueta)
+export const CONFIG_ETIQUETAS = `# Etiquetas — Pasta + Etiqueta + Automática
 
-Hierarquia de 2 niveis pra organizar contatos, campanhas, anuncios.
+Rota: /configuracoes/etiquetas
 
 ## Pasta vs Etiqueta
-- **Pasta**: etiqueta-mae que agrupa filhas. Ex: "Restauracao".
-- **Etiqueta**: filha de uma Pasta OU solta. Ex: "Restauracao/Bebe", "Restauracao/Mofo".
+- **Pasta** (etiqueta-mãe) — agrupa similares. Ex: "Tráfego Pago"
+- **Etiqueta** (filha) — dentro da pasta. Ex: "Camp Verão", "Camp Inverno"
 
-## Criar
-- /configuracoes/etiquetas > Nova etiqueta.
-- Nome (ex: "Restauracao" pra Pasta, "Restauracao/Bebe" pra Filha).
-- Cor + Pasta-mae opcional (select no card).
-- Salva. Pasta-mae com filhas vira automatic Pasta.
+Hierarquia visual:
+- Tráfego Pago (pasta)
+  - Camp Verão 2026
+  - Camp Inverno 2026
+- Suporte (pasta)
+  - Cliente irritado
+  - Bug reportado
 
-## Heranca automatica
-- Aplicar **filha** num contato/campanha → Pasta-mae e aplicada junto.
-- Ex: aplicar "Restauracao/Bebe" → tambem aplica "Restauracao".
+Pasta = etiqueta-mãe sem ser filha de ninguém. Não tem tipo "pasta" no banco — é etiqueta normal que outras apontam pra ela.
 
-## Gatilho de palavra-chave (Biscoito)
-- Cada etiqueta pode ter \`palavra_gatilho\` (varias separadas por virgula).
-- Quando cliente envia mensagem com a palavra, etiqueta + Pasta-mae aplicadas automatic.
-- \`mensagem_resposta\` opcional: dispara resposta automatica na 1a vez que aplica.
+## Criar etiqueta
+Topo: **NOVA ETIQUETA** form:
+- **Nome** (input texto)
+- **Pai** (dropdown — escolhe pasta ou deixa raiz)
+- **Cor** — paleta 6 swatches + color picker custom
 
-## Aplicar manual
-- Edita contato > campo Etiquetas > marca/desmarca.
+**Criar**.
 
-## Em Pixel & Vendas
-- Vincula Pasta a campanha Meta + Etiqueta a anuncio/conjunto.
-- Lead via CTWA recebe Pasta + Etiqueta automatic.
+## Editar (palavras-chave gatilho + mensagem auto)
+Linha → ✏️ Editar (Balão).
 
-## Editar/trocar Pasta-mae
-- Lista etiquetas > Select coluna direita > escolhe Pasta nova.
-- Pasta (etiqueta-mae com filhas) NAO tem select — mostra chip "Pasta" estatico.
+### Palavras-chave gatilho (automática)
+Seção **Palavras-chave gatilho**:
+- Input por palavra/regex (ex: desconto, reclamação, cancelar)
+- **+ Adicionar mais** linha nova
+- **Remover** por linha
 
-## Excluir
-- Cuidado: deletar Pasta nao deleta filhas (orfaos). Filhas viram "soltas".
+Cliente manda msg com qualquer palavra/regex → etiqueta aplicada **automaticamente** no contato.
 
-## Cores
-- Picker rapido com 8 cores padrao. Hex custom opcional.
+Aceita regex simples. Ex: \`(desc|promo)\` casa "desconto" ou "promoção".
 
-## Padrao de nome
-- "Pasta" sozinho ou "Pasta/Filha" (barra como separador).
+### Mensagem automática (textarea)
+Quando etiqueta aplicada (manual ou auto), IA pode usar essa msg como resposta padrão.
 
-## Problemas
-- Filha nao puxa Pasta-mae: bug ja fix. Reaplica etiqueta.
-- Duplicata: nomes parecidos com/sem acento. Padroniza UMA forma.
+Hoje serve mais como **referência interna** — IA só dispara auto em fluxos configurados em ferramentas (/ia-atendimento).
+
+### Cor + Ativo
+- **Cor** color picker + hex manual
+- ☑️ **Ativo** — desativada some da UI mas tickets antigos preservam
+
+## Mover pra outra pasta
+Linha → dropdown **Pasta** → escolhe destino.
+
+## Deletar
+🗑️ → confirma.
 `;

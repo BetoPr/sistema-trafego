@@ -1,45 +1,51 @@
-export const CONFIG_IA = `# Configuracao de IA (Chaves Groq/OpenAI/Anthropic)
+export const CONFIG_IA = `# Configurações de API (IA) — Multi-chave Groq/OpenAI/Anthropic + Prompts
 
-Onde voce coloca suas chaves de LLM. CRM usa essas chaves pra IA atendente, follow-up, resumo, chat assistente.
+Rota: /configuracoes/ia + /configuracoes/ia-prompts
 
-## Providers suportados
-- **Groq**: gratuito ate limite diario (~100k tokens/dia por chave). Llama 3.x.
-- **OpenAI**: pago. GPT-4o-mini barato, GPT-4o caro.
-- **Anthropic**: pago. Claude Sonnet 4.5, Haiku 4.5.
+## API IA Multi-chave
+Cards por provider: **Groq / OpenAI / Anthropic**.
 
-## Multi-chave (rotacao Groq)
-- Pode cadastrar varias chaves Groq de contas diferentes.
-- Sistema rotaciona automatico: 3 chaves = ~300k tokens/dia.
-- Quando uma bate limite (429), pula pra proxima.
-- Esgotadas todas: cai pra OpenAI (fallback).
+### Por que ter várias chaves
+**Rotação + fallback.** Se 1 chave atingir limite diário, sistema usa próxima da fila. Aumenta capacidade total + reduz risco de IA parar.
 
-## Limite por chave (Fase 3)
-- Cada chave Groq tem limite_followup_dia configuravel (0 = sem limite).
-- Chave atinge limite: pausa proativa, evita 429.
+Útil pra Groq: limite gratuito por chave generoso, várias chaves multiplicam.
 
-## Como adicionar
-- /configuracoes/ia > Adicionar chave (rotacao).
-- Cola gsk_... (Groq), sk-... (OpenAI), sk-ant-... (Anthropic).
-- Rotulo: apelido pra identificar (ex: "Conta principal").
+### Adicionar chave
+Card do provider → **+ Adicionar chave** (expande form):
+- **Apelido** (opcional — ex: "Groq pessoal", "OpenAI agência")
+- **Chave** (campo password)
 
-## Como obter
-- Groq: console.groq.com > API Keys > Create.
-- OpenAI: platform.openai.com > API keys.
-- Anthropic: console.anthropic.com > API keys.
+**Adicionar chave**.
 
-## Olho + lapis (visualizar/editar)
-- Olho: revela chave em texto plano (auditado).
-- Lapis: edita rotulo ou troca valor da chave inline.
+### Ações por chave
+- **Testar** — chamada dummy ao provider, OK ou erro
+- **Revelar** (toggle) — mostra chave em texto claro
+- **Editar** inline — muda apelido / chave nova (vazio = mantém)
+- 🗑️ **Deletar** — sistema usa próxima da fila automático
 
-## Testar
-- Botao Testar bate POST /v1/chat/completions com 5 tokens reais. Retorna "OK — N tokens" ou erro.
+### Limite diário follow-ups por chave
+Campo **Máx. follow-ups/dia** → digita número → **Salvar**.
+- 0 = ilimitado
+- 100 = para de usar depois de 100 follow-ups/dia
 
-## Provider de chat / transcricao
-- Escolhe se chat usa Groq ou OpenAI por padrao.
-- Transcricao audio: Groq Whisper ou OpenAI Whisper.
+Não conta atendimentos normais — só follow-ups automáticos.
 
-## Problemas
-- "Unsupported state or unable to authenticate data": ENCRYPTION_KEY do VPS foi trocada, chave nao decripta mais. Reinsere a chave.
-- "Invalid API Key": chave esta errada/revogada. Edita e cola nova.
-- "Rate limit exceeded": chave bateu limite diario. Adiciona outra chave ou aguarda 24h.
+### Provider padrão (chat vs transcrição)
+Provider Card topo da página:
+- **Provider chat** — padrão IA conversar (Groq / OpenAI / Anthropic)
+- **Provider transcrição** — padrão pra áudio (geralmente OpenAI Whisper)
+
+## Prompts IA — /configuracoes/ia-prompts
+3 prompts internos customizáveis:
+- **Sentimento** — analisa humor do cliente (Atendimentos > painel direito > Atend. > Analisar sentimento)
+- **Resumo** — gera resumo de conversa (Resumo pra grupo em /ia-atendimento)
+- **Sugestão** — IA Assist pra atendente (Atendimentos > input > IA Assist)
+
+Cada prompt:
+- **Escopo** — agência (só sua) ou global (super_admin)
+- **Modelo Groq** — padrão llama-3.3-70b
+- **Conteúdo** — textarea editável
+
+**Salvar** persiste override agência.
+**Voltar ao default** remove override, usa global.
 `;

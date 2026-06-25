@@ -1,40 +1,43 @@
-export const RELATORIOS = `# Relatorios
+export const RELATORIOS = `# Relatórios agendados
 
-Agenda envio automatico de relatorios pelo WhatsApp.
+Rota: /relatorios
 
-## Frequencias
-- **Diario**: hora especifica do dia.
-- **Semanal**: dia da semana + hora.
-- **Mensal**: dia do mes + hora.
+Mensagens automáticas que CRM envia em horários definidos com KPIs Meta/Google. Ex: "Toda segunda 9h manda performance da semana pro WhatsApp do cliente Fulano".
+
+## Criar
+**Criar Relatório**. Form:
+- **Nome** (ex: "Relatório Felipe Boulanger")
+- **Cliente cadastrado** dropdown OU **Telefone destino** (+55 11 99999-9999) — mutuamente exclusivos
+- **Plataforma** (Meta Ads / Google Ads)
+- **Canal WhatsApp** ("Qualquer ativo" ou específico)
+- **Frequência** (Diário / Semanal / Mensal)
+  - Semanal → Dia da Semana
+  - Mensal → Dia do Mês (1-31)
+- **Hora** (HH:MM)
+- **Formato** (PDF / Imagem / Texto)
+- **Período (dias)** lookback (1-90)
+
+**Salvar**.
 
 ## Formatos
-- **Texto**: mensagem WhatsApp simples com KPIs.
-- **PDF**: documento Sonar com layout (KPIs financeiro + trafego + topo).
-- **Imagem (PNG)**: foto formato 1080x1200 com KPIs (gerada via canvas server-side).
+- **PDF** — relatório completo com gráficos + tabelas. Anexo no WhatsApp.
+- **Imagem** — captura PNG com KPIs. Aparece direto no chat.
+- **Texto** — só texto formatado, mais leve.
 
-## Destino
-- Telefone direto: digita numero.
-- Cliente do CRM: pega 1o contato vinculado.
+PDF e Imagem usam Puppeteer pra renderizar — gera mais lento.
 
-## Periodo do relatorio
-- Configuravel em dias retroativos (padrao 7d).
+## Ações por linha
+- **Enviar** — dispara agora sem esperar horário (desabilita se ativo=false)
+- ✏️ Editar
+- Toggle 🟢/⚫ ativo/inativo
+- 🗑️ Deletar (confirma)
 
-## Como criar
-- /relatorios > Novo > escolhe nome, frequencia, formato, periodo, destino, canal WhatsApp.
+## Busca e filtros
+Topo: "Buscar relatório…" + chips "Todos / Ativos / Inativos".
 
-## Editar/desativar
-- Click no relatorio > Balao com config + botao Ativar/Desativar.
+## Quem pode criar
+Qualquer Usuário CRM com agencia_id (não exige admin).
 
-## Status
-- Coluna ultimo_status: enviado, falhou, enviando, agendado.
-- Coluna ultimo_erro: motivo da ultima falha.
-
-## Worker
-- Roda via /api/cron/relatorios (Bearer CRON_SECRET).
-- Pega ativos com proximo_envio <= now, gera, envia, agenda proximo.
-
-## Problemas
-- "Nenhum canal WhatsApp conectado": canal usado nao esta connected. Reconecta em /canais.
-- "mime type image/png is not supported": bucket relatorios precisa permitir image/png (ja fix).
-- Texto chegou em vez de imagem/PDF: fallback automatico quando geracao falha.
+## Mobile
+Layout cards 1 coluna no celular. Mesmas ferramentas.
 `;

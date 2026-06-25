@@ -7,16 +7,18 @@ type Bot = "suporte" | "dados";
 interface Msg { id?: string; papel: "user" | "assistant"; conteudo: string; pensando?: boolean }
 
 const SUGESTOES_SUPORTE = [
-  "Como atender um cliente?",
-  "Como conectar WhatsApp?",
-  "Como criar uma IA?",
-  "O que é Pasta vs Etiqueta?",
-  "Como criar uma campanha de follow-up?",
-  "Como configurar a IA atendente?",
-  "Como aplicar etiqueta automática por palavra?",
-  "Como trocar a logo?",
-  "Como agendar relatório?",
-  "Como ver o Dashboard?",
+  "Como conecto meu WhatsApp?",
+  "Como faço pra IA começar a responder?",
+  "Diferença entre Prompt Único e Modular?",
+  "Como crio etiqueta automática por palavra?",
+  "Como agendo follow-up automático?",
+  "Como cobro cliente via PIX no chat?",
+  "Como agendo relatório semanal?",
+  "Como configurar alerta de gasto?",
+  "Como criar usuário novo no CRM?",
+  "Como trocar logo da agência?",
+  "Quanto custa o plano?",
+  "O que é CTWA / Pixel & Vendas?",
 ];
 const SUGESTOES_DADOS = [
   "Qual o ROAS dos últimos 7 dias?",

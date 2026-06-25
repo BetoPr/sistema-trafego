@@ -1,31 +1,75 @@
-export const CONTATOS = `# Contatos
+export const CONTATOS = `# Contatos — base unificada de pessoas
 
-Cadastro de contatos WhatsApp (clientes da agencia).
+Rota: /contatos
 
-## O que tem
-- Nome, numero, etiquetas, ultima mensagem, data de cadastro, cliente_id (vinculacao).
-- Aniversario opcional.
-- Aba **Midias/Docs**: arquivos enviados/recebidos por esse contato.
+Cada contato = pessoa (nome + número + etiquetas + histórico fechamentos + follow-ups). Persiste sempre. Diferente de **Atendimento (ticket)** que é conversa específica.
 
-## Como criar
-- Manual: botao **Novo contato** em /contatos. Nome + numero.
-- Automatico: quando cliente manda 1a mensagem, ja vira contato.
-- Import em massa: /contatos/importar (CSV).
+Um contato pode ter vários tickets ao longo do tempo.
+
+## Lista/tabela
+- Header: "Contatos ({total})"
+- Busca tempo real: nome ou número
+- Carrega 300 por vez (chunked scroll)
+- Por linha: ✏️ Editar | 🗑️ Deletar (soft-delete)
+
+## Importar do WhatsApp
+Botão **Importar do WhatsApp** (ícone WhatsApp verde) aparece SÓ se tem canal conectado sem importação ainda.
+
+Modal:
+- Canal (precisa conectado)
+- ☑️ Pular etiquetas nativas (Não lidas, Grupos, Favoritos) — recomendado on
+
+**Importar agora** → resumo: contatos totais, novos, etiquetas criadas, duração.
+
+**Importa só dados de contato.** Mensagens vêm em tempo real depois (WhatsApp não dá API pra histórico).
+
+Importar várias vezes não duplica — usa número como chave.
+
+## CSV / Excel
+Hoje **não pela UI**. Workaround: salva no WhatsApp do celular, importa via UAZAPI. Ou peça pro suporte (rota admin).
+
+## Criar manual
+**Adicionar contato**:
+- Nome (obrigatório)
+- WhatsApp (qualquer formato, sistema limpa pra dígitos)
+- Estado (DDD) auto-detecta
+
+Opcional **Fechamento inicial**: Valor R$, Serviço, Quantidade (cria ticket fechado já com fechamento).
 
 ## Editar
-- Click no contato abre Balao com nome, etiquetas, vincular cliente, follow-up agendado.
-- **Follow-up avulso**: agenda mensagem unica pra esse contato em data X.
+Linha → ✏️ Editar. Form pré-preenchido + seções:
+- **Etiquetas** (checkboxes com cor)
+- **Histórico fechamentos**: Total R$, count, qtd serviços, último, breakdown por serviço
 
-## Buscar
-- Input no topo. Busca por nome ou numero.
+Etiqueta nova → link "/etiquetas" no rodapé do form.
 
-## Etiquetas
-- Aplica pasta + etiqueta inline. Pasta-mae aplicada automatico ao aplicar filha.
+## Deletar
+🗑️ → soft-delete. Histórico tickets continua.
 
-## Vincular a cliente
-- Cliente = cadastro de empresa cliente da agencia. Contato pode vincular a 1 cliente.
-- Util pra relatorios filtrados por cliente.
+## Follow-up avulso (no contato)
+Edita contato → seção Follow-up (ou ícone 📅 na linha).
 
-## Soft delete
-- Deletar contato faz soft delete (deleted_at). Recupera no super-admin se precisar.
+Form: Quando disparar (data+hora, min 2min futuro), Quantas mensagens (1/2/3 botões), Aguardar X seg entre (min 2).
+
+**Agendar follow-up**.
+
+Status:
+- 🟡 Agendado
+- ✅ Enviado
+- 🚫 Cancelado
+- 💬 Respondido (cliente respondeu → cancela auto)
+- ⚠️ Falha
+
+Cancelar: card status Agendado → **Cancelar**.
+
+Diferente do follow-up automático IA (sequências em /ia-atendimento) — esse é manual único por contato.
+
+## Filtros etiqueta em massa
+Hoje só busca simples (nome/número). Filtro por etiqueta = roadmap. Workaround: /atendimentos > Filtros > Etiqueta.
+
+## Limite
+Sem limite explícito por plano (só limite de envio massa/dia). Plano padrão suporta dezenas de milhares.
+
+## Exportar
+Sem botão UI. Workaround: /grupos > Exportar XLS (se tá em grupo). Ou pede suporte.
 `;

@@ -1,35 +1,42 @@
-export const ALERTAS = `# Alertas
+export const ALERTAS = `# Alertas Inteligentes
 
-Regras automaticas que disparam mensagem WhatsApp quando metrica bate criterio.
+Rota: /alertas
 
-## Tipos de regra
-- **Gasto subiu acima de X%**: compara periodo atual vs anterior.
-- **Queda de leads**: leads abaixo de X em N dias.
-- **CPL alto**: custo por lead acima de R$ X.
-- **ROAS baixo**: ROAS abaixo de Y.
-- **Campanha pausada**: detecta pausa inesperada.
+Notifica via WhatsApp quando algo importante acontece em campanhas. Ex: gasto diário ultrapassou R$500 → manda msg pro seu WhatsApp.
 
-## Como criar
-- /alertas > Nova regra. Escolhe metrica + condicao + threshold + canal/numero destino + mensagem custom.
+## Tipos hoje
+- **Gasto do dia** — dispara quando gasto do dia ≥ limite configurado
+- **Gasto do mês** — dispara quando gasto mês ≥ limite
 
-## Anti-spam
-- Cada regra so dispara 1x a cada 24h por padrao (configuravel).
-- Botao "Testar agora" valida envio sem trigger real.
+Futuro: leads sem resposta, queda CPL, etc.
 
-## Mensagem custom
-- Suporta variaveis: {gasto}, {cpl}, {roas}, {campanha}, {periodo}.
-- Use Markdown WhatsApp: *bold*, _italico_, ~strike~.
+## Criar
+**Novo**. Form:
+- **Nome do alerta** (ex: "Gasto diário Studios Festas")
+- **Tipo** (Gasto do dia / mês)
+- **Limite (R$)** decimal vírgula BR
+- **Conta Meta Ads** (dropdown integrações)
+- **Cliente** (opcional)
+- **WhatsApp destino** (5511999990000 — DDI+DDD+número)
+- **Canal de envio** (qual WhatsApp dispara)
+- **Mensagem** template com placeholders:
+  - {{conta}} — nome da conta Meta
+  - {{gasto}} — valor atual gasto
+  - {{limite}} — limite configurado
+  - {{tipo}} — dia / mês
 
-## Emoji picker
-- Botao emoji ao lado do input mensagem.
+Preview WhatsApp em tempo real ao lado.
 
-## WhatsApp preview
-- Antes de salvar, ve como vai chegar no WhatsApp.
+**Salvar**.
 
-## Disparos historico
-- /alertas > Disparos: log dos ultimos envios (data, regra, status).
+## Ações por linha
+- ✏️ Editar
+- **Testar agora** — força dispatch sem esperar threshold
+- Toggle 🟢/⚫ ativo/inativo
+- 🗑️ Deletar
 
-## Problemas
-- Alerta nao dispara: regra pode estar com anti-spam ativo (24h). Veja log /alertas/disparos.
-- Mensagem feia: usa preview pra ajustar antes.
+Linha mostra "último disparo" + "último observado" pra debug.
+
+## Stats topo
+"Alertas configurados" — X ativo(s) · Y já disparou.
 `;

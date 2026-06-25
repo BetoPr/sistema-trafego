@@ -5,6 +5,18 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-25
+
+- **16:10** — **FAQ completo do CRM + plugado no bot Suporte (Fase 1).**
+  - `docs/FAQ-CRM.md`: tutorial passo-a-passo cobrindo CRM inteiro. ~260 entradas P/R organizadas em 7 sprints (Atendimentos, IA Atendimento, Canais, Contatos/Massa/Rápidas/Grupos, Pixel/Relatórios/Alertas/Filas/Equipes/Usuários, Configurações, Marca/Conta/Plano/Dashboard). Cada entrada tem cliques exatos + ⚠️ pegadinhas + 💡 dicas + 📍 links internos. Fonte canônica do conteúdo.
+  - `lib/chat-assistente/faq/*`: KBs por área reescritos a partir do FAQ-CRM.md. 12 arquivos atualizados (atendimentos, ia-atendimento, integracoes, contatos, pixel-vendas, relatorios, alertas, dashboard, config-ia, config-etiquetas, config-mcp, sistema-ux) + 10 novos (envio-massa, mensagens-rapidas, grupos, filas, equipes, usuarios, config-asaas, config-marca, conta-perfil, plano). Cada KB foca em 1 área pra orquestrador rotear barato (~80 tok) + especialista carregar só ~1.5-3k tokens.
+  - `lib/chat-assistente/faq/index.ts`: registra 25 áreas (era 15) com keywords expandidas pra matching melhor do roteador Llama 8B.
+  - `components/chat-assistente/ChatDrawer.tsx`: SUGESTOES_SUPORTE reformuladas — 12 perguntas cobrindo as áreas principais (WhatsApp, IA, modular, follow-up, PIX, relatório, alerta, usuário, logo, plano, CTWA).
+  - Termo "Admins" → "Usuários do CRM" mantido em todo conteúdo (preferência terminológica).
+  - Próximo (Fase 2): expandir tours RoboGuia.tsx apontando botões por fluxo.
+
+---
+
 ## 2026-06-24
 
 - **08:40** — **Fix MCP page 500 + Meta icon limpo.**
