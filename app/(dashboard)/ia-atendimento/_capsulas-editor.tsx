@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   adicionarCapsula,
   salvarCapsula,
@@ -33,9 +34,48 @@ export default function CapsulasEditor({
   const [modular, setModular] = useState<boolean>(modoModular);
   const [aberta, setAberta] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   const usadas = new Set(capsulas.map((c) => c.slug));
   const disponiveis = CAPSULA_TEMPLATES.filter((t) => !usadas.has(t.slug));
+
+  function adicionar(slug: string, nome?: string) {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("perfil_id", perfilId);
+      fd.set("slug", slug);
+      if (nome) fd.set("nome", nome);
+      try { await adicionarCapsula(fd); } catch {}
+      setAddOpen(false);
+      router.refresh();
+    });
+  }
+  function salvar(fd: FormData) {
+    startTransition(async () => {
+      try { await salvarCapsula(fd); } catch {}
+      router.refresh();
+    });
+  }
+  function alternar(id: string) {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("id", id);
+      fd.set("perfil_id", perfilId);
+      try { await alternarAtivaCapsula(fd); } catch {}
+      router.refresh();
+    });
+  }
+  function deletar(id: string, nome: string) {
+    if (!confirm(`Deletar cápsula "${nome}"?`)) return;
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("id", id);
+      fd.set("perfil_id", perfilId);
+      try { await deletarCapsula(fd); } catch {}
+      router.refresh();
+    });
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -221,73 +261,14 @@ export default function CapsulasEditor({
                 </div>
 
                 {open && (
-                  <form
-                    action={salvarCapsula}
-                    style={{ padding: 12, borderTop: ".5px solid var(--mk-border)", display: "flex", flexDirection: "column", gap: 10 }}
-                  >
-                    <input type="hidden" name="id" value={cap.id} />
-                    <input type="hidden" name="perfil_id" value={perfilId} />
-
-                    <div>
-                      <label style={lbl}>NOME</label>
-                      <input name="nome" defaultValue={cap.nome} style={inp} />
-                    </div>
-
-                    <div>
-                      <label style={lbl}>CONTEÚDO (será injetado quando cápsula for relevante)</label>
-                      <textarea
-                        name="conteudo"
-                        rows={6}
-                        defaultValue={cap.conteudo}
-                        style={{ ...inp, fontFamily: "monospace", fontSize: 12 }}
-                        placeholder={CAPSULA_TEMPLATES.find((t) => t.slug === cap.slug)?.placeholder || "Cole aqui o conhecimento desta cápsula"}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={lbl}>
-                        KEYWORDS (separadas por vírgula) — orquestrador usa pra detectar quando ativar
-                      </label>
-                      <input
-                        name="keywords"
-                        defaultValue={cap.keywords.join(", ")}
-                        style={inp}
-                        placeholder="preço, valor, quanto custa"
-                      />
-                    </div>
-
-                    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                      <input type="checkbox" name="ativa" defaultChecked={cap.ativa} />
-                      Cápsula ativa
-                    </label>
-
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <button type="submit" className="cta-btn" style={{ fontSize: 12, fontWeight: 700 }}>
-                        <i className="ti ti-device-floppy" /> Salvar cápsula
-                      </button>
-                      <span style={{ flex: 1 }} />
-                      <button
-                        type="submit"
-                        formAction={alternarAtivaCapsula}
-                        className="ghost-btn"
-                        style={{ fontSize: 11 }}
-                        title="Liga/desliga"
-                      >
-                        <i className="ti ti-power" /> {cap.ativa ? "Pausar" : "Ativar"}
-                      </button>
-                      <button
-                        type="submit"
-                        formAction={deletarCapsula}
-                        className="ghost-btn"
-                        style={{ fontSize: 11, color: "#C97064" }}
-                        onClick={(e) => {
-                          if (!confirm(`Deletar cápsula "${cap.nome}"?`)) e.preventDefault();
-                        }}
-                      >
-                        <i className="ti ti-trash" /> Deletar
-                      </button>
-                    </div>
-                  </form>
+                  <CapsulaEditarBox
+                    cap={cap}
+                    perfilId={perfilId}
+                    onSalvar={salvar}
+                    onAlternar={() => alternar(cap.id)}
+                    onDeletar={() => deletar(cap.id, cap.nome)}
+                    pending={pending}
+                  />
                 )}
               </div>
             );
@@ -319,37 +300,35 @@ export default function CapsulasEditor({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: 6 }}>
               {disponiveis.map((t) => (
-                <form key={t.slug} action={adicionarCapsula}>
-                  <input type="hidden" name="perfil_id" value={perfilId} />
-                  <input type="hidden" name="slug" value={t.slug} />
-                  <button
-                    type="submit"
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "8px 10px",
-                      background: "var(--mk-surface-2)",
-                      border: ".5px solid var(--mk-border)",
-                      borderRadius: 7,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: 12,
-                      color: "var(--mk-text)",
-                    }}
-                  >
-                    <i className={`ti ${t.icone}`} style={{ color: t.cor, fontSize: 15 }} />
-                    {t.nome}
-                  </button>
-                </form>
-              ))}
-              <form action={adicionarCapsula}>
-                <input type="hidden" name="perfil_id" value={perfilId} />
-                <input type="hidden" name="slug" value="custom" />
-                <input type="hidden" name="nome" value="Cápsula custom" />
                 <button
-                  type="submit"
+                  key={t.slug}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => adicionar(t.slug)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 10px",
+                    background: "var(--mk-surface-2)",
+                    border: ".5px solid var(--mk-border)",
+                    borderRadius: 7,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 12,
+                    color: "var(--mk-text)",
+                    opacity: pending ? 0.5 : 1,
+                  }}
+                >
+                  <i className={`ti ${t.icone}`} style={{ color: t.cor, fontSize: 15 }} />
+                  {t.nome}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => adicionar("custom", "Cápsula custom")}
                   style={{
                     width: "100%",
                     textAlign: "left",
@@ -369,7 +348,6 @@ export default function CapsulasEditor({
                   <i className="ti ti-plus" />
                   Cápsula custom (você nomeia)
                 </button>
-              </form>
             </div>
             <button
               type="button"
@@ -388,6 +366,74 @@ export default function CapsulasEditor({
           </div>
         )}
       </fieldset>
+      </div>
+    </div>
+  );
+}
+
+function CapsulaEditarBox({
+  cap, perfilId, onSalvar, onAlternar, onDeletar, pending,
+}: {
+  cap: Capsula;
+  perfilId: string;
+  onSalvar: (fd: FormData) => void;
+  onAlternar: () => void;
+  onDeletar: () => void;
+  pending: boolean;
+}) {
+  const [nome, setNome] = useState(cap.nome);
+  const [conteudo, setConteudo] = useState(cap.conteudo);
+  const [keywords, setKeywords] = useState(cap.keywords.join(", "));
+  const [ativa, setAtiva] = useState(cap.ativa);
+
+  function salvar() {
+    const fd = new FormData();
+    fd.set("id", cap.id);
+    fd.set("perfil_id", perfilId);
+    fd.set("nome", nome);
+    fd.set("conteudo", conteudo);
+    fd.set("keywords", keywords);
+    if (ativa) fd.set("ativa", "on");
+    onSalvar(fd);
+  }
+
+  const placeholder = CAPSULA_TEMPLATES.find((t) => t.slug === cap.slug)?.placeholder || "Cole aqui o conhecimento desta cápsula";
+
+  return (
+    <div style={{ padding: 12, borderTop: ".5px solid var(--mk-border)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div>
+        <label style={lbl}>NOME</label>
+        <input value={nome} onChange={(e) => setNome(e.target.value)} style={inp} />
+      </div>
+      <div>
+        <label style={lbl}>CONTEÚDO (será injetado quando cápsula for relevante)</label>
+        <textarea
+          rows={6}
+          value={conteudo}
+          onChange={(e) => setConteudo(e.target.value)}
+          style={{ ...inp, fontFamily: "monospace", fontSize: 12 }}
+          placeholder={placeholder}
+        />
+      </div>
+      <div>
+        <label style={lbl}>KEYWORDS (separadas por vírgula) — orquestrador usa pra detectar quando ativar</label>
+        <input value={keywords} onChange={(e) => setKeywords(e.target.value)} style={inp} placeholder="preço, valor, quanto custa" />
+      </div>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+        <input type="checkbox" checked={ativa} onChange={(e) => setAtiva(e.target.checked)} />
+        Cápsula ativa
+      </label>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <button type="button" disabled={pending} onClick={salvar} className="cta-btn" style={{ fontSize: 12, fontWeight: 700, opacity: pending ? 0.5 : 1 }}>
+          <i className="ti ti-device-floppy" /> Salvar cápsula
+        </button>
+        <span style={{ flex: 1 }} />
+        <button type="button" disabled={pending} onClick={onAlternar} className="ghost-btn" style={{ fontSize: 11 }} title="Liga/desliga">
+          <i className="ti ti-power" /> {cap.ativa ? "Pausar" : "Ativar"}
+        </button>
+        <button type="button" disabled={pending} onClick={onDeletar} className="ghost-btn" style={{ fontSize: 11, color: "#C97064" }}>
+          <i className="ti ti-trash" /> Deletar
+        </button>
       </div>
     </div>
   );
