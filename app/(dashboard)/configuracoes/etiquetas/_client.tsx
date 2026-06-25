@@ -143,7 +143,7 @@ export function EtiquetasManager({ inicial }: { inicial: Etiqueta[] }) {
       {/* Lista hierárquica: Linhas (com filhas) + Órfãs */}
       <div>
         <div style={{ fontSize: 11, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 8, fontFamily: "monospace" }}>
-          PASTAS COM ETIQUETAS ({lista.length})
+          PASTA COM ETIQUETAS ({lista.length})
         </div>
         {lista.length === 0 ? (
           <div style={{ fontSize: 12, color: "var(--mk-text-muted)", padding: "16px 0", textAlign: "center" }}>Nenhuma etiqueta criada ainda.</div>
