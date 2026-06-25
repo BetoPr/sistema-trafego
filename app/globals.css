@@ -1379,6 +1379,87 @@ a:focus-visible {
 }
 
 /* ============================================
+   MOBILE GLOBAL SWEEP (≤768px)
+   Quebra grids inline 2-col p/ 1-col, ajusta padding,
+   tap targets, formulários e novas páginas.
+   ============================================ */
+@media (max-width: 768px) {
+  /* Grids inline 2-col viram 1-col */
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns: 1.2fr 1fr"],
+  [style*="grid-template-columns: 1fr 1.2fr"],
+  [style*="grid-template-columns: 1fr 2fr"],
+  [style*="grid-template-columns: 2fr 1fr"],
+  [style*="grid-template-columns: 260px 1fr"],
+  [style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* 3-col vira 1 ou 2 conforme densidade */
+  [style*="grid-template-columns: 1fr 1fr 1fr"],
+  [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Card padding reduzido pra ganhar área útil */
+  .mk-card, .mk-card-lg {
+    padding: 12px !important;
+  }
+  .mk-page { padding-left: 12px !important; padding-right: 12px !important; }
+  .mk-page-head { margin-bottom: 12px !important; }
+  .mk-page-title { font-size: 19px !important; line-height: 1.25 !important; }
+
+  /* Tap targets: botões com fonte ≥12 + padding mínimo */
+  .cta-btn, .ghost-btn { min-height: 38px; }
+
+  /* Topbar pill mais compacto */
+  .date-pill { padding: 6px 10px !important; font-size: 11.5px !important; }
+
+  /* Tabs flutuantes do perfil IA: scroll horizontal em vez de quebrar linha */
+  .mk-page > div[style*="border-bottom"][style*="flex-wrap"] {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mk-page > div[style*="border-bottom"][style*="flex-wrap"]::-webkit-scrollbar { display: none; }
+  .mk-page > div[style*="border-bottom"][style*="flex-wrap"] button {
+    flex-shrink: 0 !important;
+  }
+
+  /* Cápsulas template buttons já são auto-fill 180px — deixa 1col em telas pequenas */
+  [style*="minmax(180px,1fr)"] { grid-template-columns: 1fr !important; }
+
+  /* Chat Teste tab: ajusta altura útil */
+  .mk-card-lg[style*="70vh"] { height: 60vh !important; min-height: 420px !important; }
+
+  /* Marca/Logo preview: dropdown card vertical */
+  .mk-page form[encType*="multipart"] { gap: 10px !important; }
+
+  /* Tabela responsiva: scroll horizontal em vez de espremer */
+  .mk-page table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Inputs grandes em forma de balão */
+  input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input[type="url"], select, textarea {
+    font-size: 16px !important; /* evita zoom iOS */
+  }
+}
+
+/* Telas muito pequenas (≤420) */
+@media (max-width: 420px) {
+  .mk-page-title { font-size: 17px !important; }
+  .mk-card, .mk-card-lg { padding: 10px !important; }
+  [style*="grid-template-columns: 1fr 1fr 1fr"],
+  [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================
    CHECKBOX VERDE CUSTOM (global)
    - Estiliza TODOS os <input type="checkbox"> do site
    - Use <input type="checkbox" data-native> pra forçar nativo
