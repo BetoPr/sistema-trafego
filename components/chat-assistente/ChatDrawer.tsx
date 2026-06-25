@@ -228,8 +228,27 @@ export function ChatDrawer() {
             .chat-typing span:nth-child(3) { animation-delay: .3s; }
           `}</style>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderBottom: ".5px solid var(--mk-border)" }}>
-            <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: ".5px solid var(--mk-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,225,154,.10)", border: "1px solid rgba(0,225,154,.3)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#00E19A" }}>
+                <i className={`ti ${bot === "suporte" ? "ti-help" : "ti-chart-bar"}`} style={{ fontSize: 14 }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--mk-text)" }}>{bot === "suporte" ? "Suporte CRM" : "Meus Dados"}</span>
+                <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>{bot === "suporte" ? "Tutorial + dúvidas" : "Análise da agência"}</span>
+              </div>
+            </div>
+            {msgs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => { setMsgs([]); setSessaoId(null); setToolCall(null); }}
+                title="Nova conversa"
+                style={{ marginLeft: "auto", background: "transparent", border: ".5px solid var(--mk-border)", color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 11, padding: "4px 8px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                <i className="ti ti-refresh" style={{ fontSize: 11 }} /> Novo
+              </button>
+            )}
+            <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ marginLeft: msgs.length > 0 ? 6 : "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}>
               <i className="ti ti-x" />
             </button>
           </div>
@@ -277,11 +296,11 @@ export function ChatDrawer() {
                       type="button"
                       onClick={() => enviar(s)}
                       disabled={enviando}
-                      style={{ textAlign: "left", padding: "10px 12px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 9, color: "var(--mk-text-secondary)", fontSize: 12, cursor: "pointer", transition: "background .2s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,225,154,.06)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--mk-surface-2)")}
+                      style={{ textAlign: "left", padding: "9px 11px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text-secondary)", fontSize: 12, cursor: "pointer", transition: "border-color .15s, color .15s" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--mk-text-muted)"; e.currentTarget.style.color = "var(--mk-text)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--mk-border)"; e.currentTarget.style.color = "var(--mk-text-secondary)"; }}
                     >
-                      <i className="ti ti-sparkles" style={{ color: "#00E19A", marginRight: 6 }} />
+                      <i className="ti ti-chevron-right" style={{ color: "var(--mk-text-muted)", marginRight: 6, fontSize: 11 }} />
                       {s}
                     </button>
                   ))}
