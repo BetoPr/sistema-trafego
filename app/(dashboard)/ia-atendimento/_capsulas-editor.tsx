@@ -7,6 +7,7 @@ import {
   salvarCapsula,
   alternarAtivaCapsula,
   deletarCapsula,
+  salvarConfigModular,
 } from "./_capsulas-actions";
 import type { Capsula } from "@/lib/ia-atendimento/capsulas";
 import { CAPSULA_TEMPLATES } from "@/lib/ia-atendimento/capsulas";
@@ -76,6 +77,24 @@ export default function CapsulasEditor({
       router.refresh();
     });
   }
+  function autoSalvarModular(novo: boolean) {
+    setModular(novo);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("perfil_id", perfilId);
+      fd.set("modo_modular", novo ? "1" : "0");
+      try { await salvarConfigModular(fd); } catch {}
+      router.refresh();
+    });
+  }
+  function autoSalvarBloco(campo: "identidade" | "objetivo" | "regras_globais", valor: string) {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("perfil_id", perfilId);
+      fd.set(campo, valor);
+      try { await salvarConfigModular(fd); } catch {}
+    });
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -102,7 +121,7 @@ export default function CapsulasEditor({
               : "1 prompt monolítico enviado inteiro a cada mensagem. Sem economia de tokens."}
           </span>
         </div>
-        <SwitchToggle name="modo_modular" checked={modular} onChange={setModular} />
+        <SwitchToggle name="modo_modular" checked={modular} onChange={autoSalvarModular} />
       </div>
 
       {/* Modo prompt único — sempre montado (submete) mas só visível quando OFF */}
@@ -145,6 +164,7 @@ export default function CapsulasEditor({
             cor="#6FA8DC"
             name="identidade"
             defaultValue={identidade}
+            onBlur={(v) => autoSalvarBloco("identidade", v)}
             placeholder="Ex.: Você é o atendente virtual da Loja X, especialista em moda feminina. Sempre simpático, direto, usa emoji moderadamente."
           />
           <CampoBloco
@@ -153,6 +173,7 @@ export default function CapsulasEditor({
             cor="#7FB069"
             name="objetivo"
             defaultValue={objetivo}
+            onBlur={(v) => autoSalvarBloco("objetivo", v)}
             placeholder="Ex.: Qualificar lead → mostrar produto certo → fechar venda no WhatsApp. Se cliente já é comprador antigo, oferecer cross-sell."
           />
           <CampoBloco
@@ -161,6 +182,7 @@ export default function CapsulasEditor({
             cor="#E07A5F"
             name="regras_globais"
             defaultValue={regrasGlobais}
+            onBlur={(v) => autoSalvarBloco("regras_globais", v)}
             placeholder="Ex.: Nunca prometer prazo de entrega. Não inventar promoção. Se cliente pedir desconto > 10%, transferir pra humano."
           />
         </div>
@@ -507,6 +529,7 @@ function CampoBloco({
   name,
   defaultValue,
   placeholder,
+  onBlur,
 }: {
   label: string;
   icone: string;
@@ -514,6 +537,7 @@ function CampoBloco({
   name: string;
   defaultValue: string;
   placeholder: string;
+  onBlur?: (valor: string) => void;
 }) {
   return (
     <div>
@@ -537,6 +561,7 @@ function CampoBloco({
         rows={3}
         defaultValue={defaultValue}
         placeholder={placeholder}
+        onBlur={onBlur ? (e) => onBlur(e.target.value) : undefined}
         style={{ ...inp, fontSize: 12, resize: "vertical", borderLeft: `2px solid ${cor}` }}
       />
     </div>

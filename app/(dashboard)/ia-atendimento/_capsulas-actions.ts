@@ -13,6 +13,50 @@ function templateBySlug(slug: string) {
   return CAPSULA_TEMPLATES.find((t) => t.slug === slug);
 }
 
+/**
+ * Auto-salva config modular do perfil (toggle modo_modular OU blocos fixos).
+ * Usado pelo CapsulasEditor pra refletir mudança no Chat de Teste sem precisar
+ * do botão Salvar do form principal.
+ */
+export async function salvarConfigModular(formData: FormData) {
+  const ctx = await requireRole("admin", "super_admin");
+  const perfilId = String(formData.get("perfil_id") || "");
+  if (!perfilId) return;
+
+  const sb = createServiceClient();
+  const { data: perfil } = await sb
+    .from("ia_atendimento_perfis")
+    .select("id, agencia_id")
+    .eq("id", perfilId)
+    .single();
+  if (!perfil || perfil.agencia_id !== ctx.agenciaId) return;
+
+  const patch: Record<string, unknown> = {};
+  if (formData.has("modo_modular")) {
+    patch.modo_modular = formData.get("modo_modular") === "1";
+  }
+  if (formData.has("identidade")) {
+    patch.identidade = String(formData.get("identidade") || "").trim() || null;
+  }
+  if (formData.has("objetivo")) {
+    patch.objetivo = String(formData.get("objetivo") || "").trim() || null;
+  }
+  if (formData.has("regras_globais")) {
+    patch.regras_globais = String(formData.get("regras_globais") || "").trim() || null;
+  }
+  if (Object.keys(patch).length === 0) return;
+
+  await sb.from("ia_atendimento_perfis").update(patch).eq("id", perfilId);
+  void audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "update",
+    entidade: "ia_perfil_modular",
+    entidadeId: perfilId,
+    payload: { campos: Object.keys(patch) },
+  });
+}
+
 export async function adicionarCapsula(formData: FormData) {
   const ctx = await requireRole("admin", "super_admin");
   const perfilId = String(formData.get("perfil_id") || "");
