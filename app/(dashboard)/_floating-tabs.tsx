@@ -71,10 +71,15 @@ export function FloatingTabs() {
   const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
   const resizing = useRef<{ dir: string; sx: number; sy: number; w: number; h: number; x: number; y: number } | null>(null);
 
+  const [vw, setVw] = useState(0);
   useEffect(() => {
     setMounted(true);
     setPos({ x: window.innerWidth - LW - 18, y: window.innerHeight - LW - 18 - 76 });
     setSize(clampSize(PW_DEF, Math.min(PH_DEF, Math.round(window.innerHeight * 0.82))));
+    setVw(window.innerWidth);
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   // Ponte "inserir atalho no chat": o iframe (Mensagens Rápidas) posta o texto.
@@ -148,6 +153,8 @@ export function FloatingTabs() {
   }, [W, H, aberto]);
 
   if (!mounted || !pos || pathname !== "/atendimentos") return null;
+  // Mobile: esconde abas flutuantes — overlap com composer do chat.
+  if (vw > 0 && vw <= 768) return null;
 
   const onDown = (e: React.PointerEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
