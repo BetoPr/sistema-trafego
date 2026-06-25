@@ -7,6 +7,23 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-25
 
+- **16:29** — **Fase 2: Tours RoboGuia expandidos (41 tours cobrindo todo o CRM).**
+  - `components/layout/RoboGuia.tsx`: lista de tours cresceu de 20 → 41. Cobertura completa de fluxos do FAQ.
+  - Novos tours por área:
+    - **Atendimentos**: `transferir_humano`, `pausar_ia_ticket`, `cobranca_chat`, `registrar_fechamento`
+    - **IA Atendimento**: `ia_modular` (cápsulas), `ia_whitelist`, `ia_chat_teste`, `ia_ferramentas`, `ia_followup_seq`, `ia_resumo_grupo`
+    - **Canais**: `multi_numero`, `reconectar_whatsapp`
+    - **Contatos**: `importar_contatos`, `criar_contato`, `followup_avulso`
+    - **Grupos**: `listar_grupos`
+    - **Pixel & Vendas**: `pixel_vendas` (CTWA + atribuição)
+    - **Alertas**: `alertas_criar` (gasto dia/mês + template + testar)
+    - **Usuários**: `usuario_criar`, `resetar_senha_outro`
+    - **Configurações avançadas**: `chaves_api` (multi-chave), `prompts_ia`, `asaas_setup`, `mcp_token`
+  - Intents expandidas em tours existentes — mais sinônimos (ex: "como conecto", "quanto custa", "ver dashboard").
+  - Cada tour com `done:` explicativo + cliques exatos via `data-guide`.
+  - Aproveitou data-guides já existentes (sidebar nav-X + auto-gerados `config-{slug}` em /configuracoes).
+  - Fluxo: usuário pergunta no Suporte CRM → `RoboGuia.ask()` tenta tour primeiro → match → fecha drawer + robô voa apontando botão → senão cai no orquestrador FAQ (Fase 1).
+
 - **16:10** — **FAQ completo do CRM + plugado no bot Suporte (Fase 1).**
   - `docs/FAQ-CRM.md`: tutorial passo-a-passo cobrindo CRM inteiro. ~260 entradas P/R organizadas em 7 sprints (Atendimentos, IA Atendimento, Canais, Contatos/Massa/Rápidas/Grupos, Pixel/Relatórios/Alertas/Filas/Equipes/Usuários, Configurações, Marca/Conta/Plano/Dashboard). Cada entrada tem cliques exatos + ⚠️ pegadinhas + 💡 dicas + 📍 links internos. Fonte canônica do conteúdo.
   - `lib/chat-assistente/faq/*`: KBs por área reescritos a partir do FAQ-CRM.md. 12 arquivos atualizados (atendimentos, ia-atendimento, integracoes, contatos, pixel-vendas, relatorios, alertas, dashboard, config-ia, config-etiquetas, config-mcp, sistema-ux) + 10 novos (envio-massa, mensagens-rapidas, grupos, filas, equipes, usuarios, config-asaas, config-marca, conta-perfil, plano). Cada KB foca em 1 área pra orquestrador rotear barato (~80 tok) + especialista carregar só ~1.5-3k tokens.
