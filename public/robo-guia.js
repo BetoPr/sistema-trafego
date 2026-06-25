@@ -285,7 +285,16 @@
       hideVeil(); flightArms(); hush(); await sleep(160);
       return;
     }
+    // Retry resolve por ate 3.5s — espera Next.js client-side nav + render.
     var el = resolve(st.target);
+    if (!el) {
+      var t0 = performance.now();
+      while (performance.now() - t0 < 3500) {
+        await sleep(150);
+        el = resolve(st.target);
+        if (el) break;
+      }
+    }
     if (!el) { await missing(st.target); return; }
     await scrollIfNeeded(el);
     var rect = el.getBoundingClientRect();
