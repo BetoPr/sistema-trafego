@@ -211,8 +211,7 @@ export function ChatDrawer() {
           `}</style>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderBottom: ".5px solid var(--mk-border)" }}>
-            <MascoteRoboMini size={28} />
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Assistente IA</div>
+            <MascoteRoboMini size={36} ativo />
             <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}>
               <i className="ti ti-x" />
             </button>
@@ -401,7 +400,7 @@ function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
         animation: "chat-fab-pulse 2.4s ease-in-out infinite",
       }}
     >
-      <MascoteRoboMini size={36} />
+      <MascoteRoboMini size={36} ativo={false} />
       <style>{`
         @keyframes chat-fab-pulse {
           0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(0,225,154,.45); }
@@ -428,14 +427,14 @@ function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
  * Mascote-robô mini — mesmo visual do RoboGuia em SVG inline.
  * Idle: bobbing leve + tilt + braço acena random.
  */
-function MascoteRoboMini({ size = 36 }: { size?: number }) {
+function MascoteRoboMini({ size = 36, ativo = true }: { size?: number; ativo?: boolean }) {
   return (
     <svg
       width={size}
       height={(size * 132) / 120}
       viewBox="0 0 120 132"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ animation: "mascote-bob 3.2s ease-in-out infinite", display: "block" }}
+      style={{ animation: ativo ? "mascote-bob 3.2s ease-in-out infinite" : undefined, display: "block" }}
       aria-hidden
     >
       <defs>
@@ -452,7 +451,7 @@ function MascoteRoboMini({ size = 36 }: { size?: number }) {
         <path d="M51,94 L57,94 L59,100 L49,100 Z" />
         <path d="M63,94 L69,94 L71,100 L61,100 Z" />
         <path d="M48,68 L35,86" />
-        <path d="M72,68 L85,86" style={{ animation: "mascote-wave 4.8s ease-in-out infinite", transformOrigin: "72px 68px" }} />
+        <path d="M72,68 L85,86" style={ativo ? { animation: "mascote-wave 4.8s ease-in-out infinite", transformOrigin: "72px 68px" } : undefined} />
         <rect x={42} y={34} width={36} height={27} rx={9} />
         <circle cx={52} cy={47.5} r={3.1} fill="#00E19A" stroke="none" />
         <circle cx={68} cy={47.5} r={3.1} fill="#00E19A" stroke="none" />

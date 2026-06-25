@@ -185,7 +185,7 @@ export function NovoCanalBalao({ filas, usuarios, disabled }: { filas: Opt[]; us
 
   return (
     <>
-      <button onClick={() => setEtapa("form")} disabled={disabled} className="cta-btn">
+      <button onClick={() => setEtapa("form")} disabled={disabled} className="cta-btn" data-guide="canais-adicionar">
         <i className="ti ti-plus" /> Adicionar canal
       </button>
 
