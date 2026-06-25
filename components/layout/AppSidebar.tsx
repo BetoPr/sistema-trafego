@@ -33,7 +33,7 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-layout-grid",
       iconColor: "var(--mk-icon-green)",
       items: [
-        { href: "/dashboard", label: "Dashboard", icon: "ti-home" },
+        { href: "/dashboard", label: "Dashboard", icon: "ti-home", guide: "nav-dashboard" },
       ],
     },
     {
@@ -54,9 +54,9 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-send",
       iconColor: "var(--mk-icon-blue)",
       items: [
-        { href: "/envio-massa", label: "Envio em Massa", icon: "ti-rocket" },
-        { href: "/mensagens-rapidas", label: "Mensagens Rápidas", icon: "ti-bolt" },
-        { href: "/grupos", label: "Grupos", icon: "ti-users-group" },
+        { href: "/envio-massa", label: "Envio em Massa", icon: "ti-rocket", guide: "nav-envio-massa" },
+        { href: "/mensagens-rapidas", label: "Mensagens Rápidas", icon: "ti-bolt", guide: "nav-mensagens-rapidas" },
+        { href: "/grupos", label: "Grupos", icon: "ti-users-group", guide: "nav-grupos" },
       ],
     },
     // Tráfego (Ads) — visível só pra super_admin
@@ -81,11 +81,11 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-shield-lock",
       iconColor: "var(--mk-icon-amber)",
       items: [
-        { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp" },
-        { href: "/filas", label: "Filas", icon: "ti-list-tree" },
-        { href: "/equipes", label: "Equipes", icon: "ti-users-group" },
-        { href: "/usuarios", label: "Usuários", icon: "ti-user-circle" },
-        { href: "/clientes", label: "Clientes", icon: "ti-building-store" },
+        { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp", guide: "nav-canais" },
+        { href: "/filas", label: "Filas", icon: "ti-list-tree", guide: "nav-filas" },
+        { href: "/equipes", label: "Equipes", icon: "ti-users-group", guide: "nav-equipes" },
+        { href: "/usuarios", label: "Usuários", icon: "ti-user-circle", guide: "nav-usuarios" },
+        { href: "/clientes", label: "Clientes", icon: "ti-building-store", guide: "nav-clientes" },
       ],
     },
   ];

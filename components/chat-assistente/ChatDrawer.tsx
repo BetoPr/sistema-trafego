@@ -7,10 +7,16 @@ type Bot = "suporte" | "dados";
 interface Msg { id?: string; papel: "user" | "assistant"; conteudo: string; pensando?: boolean }
 
 const SUGESTOES_SUPORTE = [
-  "Como criar uma campanha de follow-up?",
+  "Como atender um cliente?",
+  "Como conectar WhatsApp?",
+  "Como criar uma IA?",
   "O que é Pasta vs Etiqueta?",
-  "Como aplicar etiqueta automática por palavra?",
+  "Como criar uma campanha de follow-up?",
   "Como configurar a IA atendente?",
+  "Como aplicar etiqueta automática por palavra?",
+  "Como trocar a logo?",
+  "Como agendar relatório?",
+  "Como ver o Dashboard?",
 ];
 const SUGESTOES_DADOS = [
   "Qual o ROAS dos últimos 7 dias?",
@@ -84,6 +90,17 @@ export function ChatDrawer() {
   async function enviar(texto: string) {
     const msg = texto.trim();
     if (!msg || enviando) return;
+
+    // 1) Tenta tour do RoboGuia primeiro (bot Suporte) — robô voa até elemento
+    if (bot === "suporte" && typeof window !== "undefined" && window.RoboGuia) {
+      const matched = window.RoboGuia.ask(msg);
+      if (matched) {
+        setAberto(false); // fecha drawer pra robô ter palco
+        setInput("");
+        return;
+      }
+    }
+
     setEnviando(true);
     setToolCall(null);
     setAreaRoteada(null);
@@ -194,7 +211,7 @@ export function ChatDrawer() {
           `}</style>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, borderBottom: ".5px solid var(--mk-border)" }}>
-            <i className="ti ti-robot" style={{ fontSize: 20, color: "#00E19A" }} />
+            <MascoteRoboMini size={28} />
             <div style={{ fontWeight: 700, fontSize: 14 }}>Assistente IA</div>
             <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 18 }}>
               <i className="ti ti-x" />
@@ -384,14 +401,66 @@ function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
         animation: "chat-fab-pulse 2.4s ease-in-out infinite",
       }}
     >
-      <i className="ti ti-robot" style={{ fontSize: 24, color: "#00E19A" }} />
+      <MascoteRoboMini size={36} />
       <style>{`
         @keyframes chat-fab-pulse {
           0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(0,225,154,.45); }
           50% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 10px rgba(0,225,154,0); }
         }
+        @keyframes mascote-bob {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-2px) rotate(-3deg); }
+          50% { transform: translateY(0) rotate(0deg); }
+          75% { transform: translateY(-1px) rotate(3deg); }
+        }
+        @keyframes mascote-wave {
+          0%, 80%, 100% { transform: rotate(18deg); }
+          85% { transform: rotate(-30deg); }
+          90% { transform: rotate(-10deg); }
+          95% { transform: rotate(-30deg); }
+        }
       `}</style>
     </button>
+  );
+}
+
+/**
+ * Mascote-robô mini — mesmo visual do RoboGuia em SVG inline.
+ * Idle: bobbing leve + tilt + braço acena random.
+ */
+function MascoteRoboMini({ size = 36 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={(size * 132) / 120}
+      viewBox="0 0 120 132"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ animation: "mascote-bob 3.2s ease-in-out infinite", display: "block" }}
+      aria-hidden
+    >
+      <defs>
+        <filter id="ch-neon" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="1.6" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g fill="none" stroke="#00E19A" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" filter="url(#ch-neon)">
+        <line x1={60} y1={34} x2={60} y2={25} />
+        <path d="M51,94 L57,94 L59,100 L49,100 Z" />
+        <path d="M63,94 L69,94 L71,100 L61,100 Z" />
+        <path d="M48,68 L35,86" />
+        <path d="M72,68 L85,86" style={{ animation: "mascote-wave 4.8s ease-in-out infinite", transformOrigin: "72px 68px" }} />
+        <rect x={42} y={34} width={36} height={27} rx={9} />
+        <circle cx={52} cy={47.5} r={3.1} fill="#00E19A" stroke="none" />
+        <circle cx={68} cy={47.5} r={3.1} fill="#00E19A" stroke="none" />
+        <rect x={47} y={64} width={26} height={24} rx={7} />
+        <line x1={54} y1={88} x2={54} y2={97} />
+        <line x1={66} y1={88} x2={66} y2={97} />
+      </g>
+    </svg>
   );
 }
 
