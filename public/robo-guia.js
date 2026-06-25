@@ -51,7 +51,7 @@
   '#rg-ptr{animation:rg-march .6s linear infinite;}' +
   '@keyframes rg-march{to{stroke-dashoffset:-20;}}' +
   '#rg-pip{position:fixed;left:0;top:0;width:92px;height:101px;transform-origin:46px 50px;pointer-events:none;will-change:transform;color:var(--rg-c,#25ffa8);opacity:0;transition:opacity .3s;}' +
-  'body.rg-touring #rg-pip{opacity:1;}' +
+  'body.rg-touring #rg-pip, body.rg-drawer-open #rg-pip{opacity:1;}' +
   '#rg-pip svg{width:100%;height:100%;overflow:visible;}' +
   '#rg-pip .rg-arm{transition:transform .35s cubic-bezier(.34,1.3,.5,1);transform-box:view-box;}' +
   '#rg-armL{transform-origin:48px 68px;}#rg-armR{transform-origin:72px 68px;}' +
@@ -293,7 +293,26 @@
     await flyTo(innerWidth * 0.5, innerHeight * 0.45);
     say('Bora! Me segue 👀'); announce('Vou te mostrar.'); await sleep(800); hush();
     try { for (var i = 0; i < t.steps.length; i++) await step(t.steps[i]); if (t.done) await done(t.done); }
-    finally { busy = false; document.body.classList.remove('rg-touring'); }
+    finally {
+      busy = false;
+      document.body.classList.remove('rg-touring');
+      // Volta pra ponto de espera se drawer continua aberto
+      if (document.body.classList.contains('rg-drawer-open')) {
+        var park = parkPos();
+        flyTo(park.x, park.y);
+      }
+    }
+  }
+
+  function parkPos() {
+    // Posição de espera: do lado de fora do drawer (drawer = 420px right).
+    var drawerW = 420;
+    var pad = 60;
+    if (innerWidth - drawerW - pad - HW < 40) {
+      // Mobile: drawer ocupa quase tudo. Park ao topo-esquerda.
+      return { x: HW + 24, y: HH + 80 };
+    }
+    return { x: innerWidth - drawerW - pad, y: innerHeight / 2 };
   }
 
   /* ---------- intent matching ---------- */
@@ -335,6 +354,11 @@
     },
     registerTours: function (arr) { (arr || []).forEach(function (t) { byId[t.id] = t; tours.push(t); }); return API; },
     start: function (id) { var t = byId[id]; if (t) runTour(t); return !!t; },
+    parkAt: function (x, y) {
+      if (typeof x !== 'number') { var p = parkPos(); x = p.x; y = p.y; }
+      if (root) flyTo(x, y);
+    },
+    parkOutsideDrawer: function () { var p = parkPos(); if (root) flyTo(p.x, p.y); },
     ask: function (text) { var id = matchIntent(text); if (id) { API.start(id); return true; } return false; },
     stop: function () { busy = false; hidePtr(); hideRing(); hush(); flightArms(); },
     showToast: showToast,

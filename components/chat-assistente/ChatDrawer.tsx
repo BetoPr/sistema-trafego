@@ -55,6 +55,22 @@ export function ChatDrawer() {
     return () => window.removeEventListener("toggle-chat-assistente", onToggle as EventListener);
   }, []);
 
+  // Sincroniza body class + park do robô quando drawer abre/fecha
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (aberto) {
+      document.body.classList.add("rg-drawer-open");
+      // espera 1 frame pra robô parkar — dá tempo do CSS aplicar
+      setTimeout(() => {
+        if (typeof window !== "undefined" && (window.RoboGuia as unknown as { parkOutsideDrawer?: () => void })?.parkOutsideDrawer) {
+          (window.RoboGuia as unknown as { parkOutsideDrawer: () => void }).parkOutsideDrawer();
+        }
+      }, 100);
+    } else {
+      document.body.classList.remove("rg-drawer-open");
+    }
+  }, [aberto]);
+
   useEffect(() => {
     if (aberto) setTimeout(() => bodyRef.current?.scrollTo({ top: 99999, behavior: "smooth" }), 50);
   }, [msgs, aberto]);
@@ -417,6 +433,10 @@ function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
           90% { transform: rotate(-10deg); }
           95% { transform: rotate(-30deg); }
         }
+        @keyframes mascote-flame {
+          from { opacity: .55; }
+          to { opacity: 1; }
+        }
       `}</style>
     </button>
   );
@@ -444,9 +464,31 @@ function MascoteRoboMini({ size = 36, ativo = true }: { size?: number; ativo?: b
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <linearGradient id="ch-flmOut" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#bff0ff" />
+          <stop offset="0.45" stopColor="#5cd0ff" />
+          <stop offset="1" stopColor="#5cd0ff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="ch-flmIn" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.55" stopColor="#dff8ff" />
+          <stop offset="1" stopColor="#9fe6ff" stopOpacity="0" />
+        </linearGradient>
+        <filter id="ch-flmBlur" x="-90%" y="-50%" width="280%" height="230%">
+          <feGaussianBlur stdDeviation="1.4" />
+        </filter>
       </defs>
       <g fill="none" stroke="#00E19A" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" filter="url(#ch-neon)">
         <line x1={60} y1={34} x2={60} y2={25} />
+        {/* Chamas dos propulsores */}
+        <g style={{ animation: "mascote-flame .16s ease-in-out infinite alternate" }}>
+          <path d="M48,99 Q54,121 54,127 Q54,121 60,99 Z" fill="url(#ch-flmOut)" stroke="none" filter="url(#ch-flmBlur)" />
+          <path d="M50.5,99 Q54,114 54,119 Q54,114 57.5,99 Z" fill="url(#ch-flmIn)" stroke="none" />
+        </g>
+        <g style={{ animation: "mascote-flame .16s ease-in-out infinite alternate", animationDelay: ".08s" }}>
+          <path d="M60,99 Q66,121 66,127 Q66,121 72,99 Z" fill="url(#ch-flmOut)" stroke="none" filter="url(#ch-flmBlur)" />
+          <path d="M62.5,99 Q66,114 66,119 Q66,114 69.5,99 Z" fill="url(#ch-flmIn)" stroke="none" />
+        </g>
         <path d="M51,94 L57,94 L59,100 L49,100 Z" />
         <path d="M63,94 L69,94 L71,100 L61,100 Z" />
         <path d="M48,68 L35,86" />
