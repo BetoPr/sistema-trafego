@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type Bot = "suporte" | "dados";
 interface Msg { id?: string; papel: "user" | "assistant"; conteudo: string; pensando?: boolean }
@@ -22,6 +23,14 @@ const DELAY_MIN_MS = 3000; // 3s antes de comecar
 const TYPEWRITER_MS = 18;  // delay entre cada caractere (typewriter)
 
 export function ChatDrawer() {
+  const pathname = usePathname() || "";
+  // Esconde FAB em rotas com composer próprio (atendimentos, chat-teste, etc.)
+  // pra não sobrepor o input de mensagem.
+  const ocultarFab =
+    pathname.startsWith("/atendimentos") ||
+    pathname.startsWith("/chat-teste") ||
+    pathname.startsWith("/envio-massa") ||
+    pathname.startsWith("/grupos");
   const [aberto, setAberto] = useState(false);
   const [bot, setBot] = useState<Bot>("suporte");
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -154,7 +163,7 @@ export function ChatDrawer() {
 
   return (
     <>
-      <ChatFAB onClick={() => setAberto(true)} ativo={aberto} />
+      {!ocultarFab && <ChatFAB onClick={() => setAberto(true)} ativo={aberto} />}
       {aberto && (
         <div
           role="dialog"
