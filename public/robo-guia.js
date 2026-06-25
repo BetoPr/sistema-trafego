@@ -64,11 +64,17 @@
   '#rg-pip.rg-boost #rg-flameL,#rg-pip.rg-boost #rg-flameR{transform:scaleY(1.05);}' +
   '@keyframes rg-flk{from{opacity:.6;}to{opacity:1;}}' +
   '#rg-eyesHappy{opacity:0;}#rg-pip.rg-happy #rg-eyesHappy{opacity:1;}#rg-pip.rg-happy .rg-eye{opacity:0;}' +
+  '#rg-spot{position:fixed;border-radius:11px;pointer-events:none;opacity:0;transition:opacity .25s;box-shadow:0 0 0 9999px rgba(0,0,0,.72);will-change:left,top,width,height;}' +
+  '#rg-spot.rg-on{opacity:1;}' +
+  '#rg-veil{position:fixed;inset:0;background:rgba(0,0,0,.72);pointer-events:none;opacity:0;transition:opacity .25s;}' +
+  '#rg-veil.rg-on{opacity:1;}' +
   '#rg-ring{position:fixed;border-radius:11px;pointer-events:none;opacity:0;transition:opacity .2s;box-shadow:0 0 0 2px var(--rg-c,#25ffa8);}' +
   '#rg-ring.rg-on{opacity:1;animation:rg-pulse 1.2s ease-in-out infinite;}' +
   '@keyframes rg-pulse{0%,100%{box-shadow:0 0 0 2px var(--rg-c,#25ffa8),0 0 0 4px rgba(37,255,168,.4);}50%{box-shadow:0 0 0 2px var(--rg-c,#25ffa8),0 0 0 12px rgba(37,255,168,0);}}' +
-  '#rg-bubble{position:fixed;left:0;top:0;max-width:230px;background:#0c1512;border:1.5px solid var(--rg-c,#25ffa8);color:#e9fff7;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.4;font-weight:500;box-shadow:0 10px 26px rgba(0,0,0,.5);transform:translate(-50%,-100%) scale(.5);opacity:0;transition:opacity .2s,transform .22s cubic-bezier(.34,1.5,.5,1);pointer-events:none;}' +
+  '#rg-bubble{position:fixed;left:0;top:0;max-width:360px;background:#0c1512;border:1.5px solid var(--rg-c,#25ffa8);color:#e9fff7;padding:12px 15px;border-radius:14px;font-size:13px;line-height:1.5;font-weight:500;box-shadow:0 10px 26px rgba(0,0,0,.5);transform:translate(-50%,-100%) scale(.5);opacity:0;transition:opacity .2s,transform .22s cubic-bezier(.34,1.5,.5,1);pointer-events:none;white-space:pre-line;}' +
   '#rg-bubble.rg-on{opacity:1;transform:translate(-50%,-100%) scale(1);pointer-events:auto;}' +
+  '#rg-bubble.rg-center{left:50%!important;top:50%!important;transform:translate(-50%,-50%) scale(1)!important;max-width:min(440px,calc(100vw - 40px));}' +
+  '#rg-bubble.rg-center::after{display:none;}' +
   '#rg-bubble::after{content:"";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);border:9px solid transparent;border-top-color:var(--rg-c,#25ffa8);}' +
   '#rg-bubble strong{color:var(--rg-c,#25ffa8);}' +
   '#rg-bubble .rg-go{margin-top:8px;display:inline-flex;gap:6px;align-items:center;background:var(--rg-c,#25ffa8);color:#04140d;border:0;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;}' +
@@ -126,6 +132,8 @@
     root.innerHTML =
       '<svg id="rg-fx"><defs><marker id="rg-arrow" markerWidth="12" markerHeight="12" refX="8" refY="6" orient="auto"><path d="M2,2 L9,6 L2,10 Z" fill="' + (opts.color || '#25ffa8') + '"/></marker></defs>' +
       '<line id="rg-ptr" x1="0" y1="0" x2="0" y2="0" stroke="' + (opts.color || '#25ffa8') + '" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round" marker-end="url(#rg-arrow)" opacity="0"/></svg>' +
+      '<div id="rg-veil"></div>' +
+      '<div id="rg-spot"></div>' +
       '<div id="rg-ring"></div>' +
       '<div id="rg-pip">' + SVG + '</div>' +
       '<div id="rg-bubble"></div>' +
@@ -135,6 +143,8 @@
 
     pip = byq('#rg-pip'); eyes = byq('#rg-eyes'); armL = byq('#rg-armL'); armR = byq('#rg-armR');
     bubble = byq('#rg-bubble'); ptr = byq('#rg-ptr'); ring = byq('#rg-ring'); toast = byq('#rg-toast'); aria = byq('#rg-aria');
+    var veil = byq('#rg-veil'); var spot = byq('#rg-spot');
+    window._rgVeil = veil; window._rgSpot = spot;
 
     if (opts.chat !== false) buildChat();
 
@@ -173,7 +183,9 @@
     if (!S.flying && !busy) { S.lookX += (glanceX - S.lookX) * 0.05; S.lookY += (glanceY - S.lookY) * 0.05; }
     eyes.style.transform = 'translate(' + S.lookX.toFixed(2) + 'px,' + S.lookY.toFixed(2) + 'px)';
     if (bubble.classList.contains('rg-on')) { bubble.style.left = S.x + 'px'; bubble.style.top = (S.y - HH + bob + 10) + 'px'; }
-    if (activeRing) { var r = activeRing.getBoundingClientRect(); ring.style.left = (r.left - 4) + 'px'; ring.style.top = (r.top - 4) + 'px'; ring.style.width = (r.width + 8) + 'px'; ring.style.height = (r.height + 8) + 'px'; }
+    if (activeRing) { var r = activeRing.getBoundingClientRect(); ring.style.left = (r.left - 4) + 'px'; ring.style.top = (r.top - 4) + 'px'; ring.style.width = (r.width + 8) + 'px'; ring.style.height = (r.height + 8) + 'px';
+      var sp = window._rgSpot; if (sp && sp.classList.contains('rg-on')) { sp.style.left = (r.left - 6) + 'px'; sp.style.top = (r.top - 6) + 'px'; sp.style.width = (r.width + 12) + 'px'; sp.style.height = (r.height + 12) + 'px'; }
+    }
     requestAnimationFrame(render);
   }
 
@@ -219,6 +231,10 @@
   function hidePtr() { ptr.style.opacity = 0; }
   function showRing(el) { activeRing = el; ring.classList.add('rg-on'); }
   function hideRing() { activeRing = null; ring.classList.remove('rg-on'); }
+  function showSpot(el) { var sp = window._rgSpot; if (!sp || !el) return; var r = el.getBoundingClientRect(); sp.style.left = (r.left - 6) + 'px'; sp.style.top = (r.top - 6) + 'px'; sp.style.width = (r.width + 12) + 'px'; sp.style.height = (r.height + 12) + 'px'; sp.classList.add('rg-on'); }
+  function hideSpot() { var sp = window._rgSpot; if (sp) sp.classList.remove('rg-on'); }
+  function showVeil() { var v = window._rgVeil; if (v) v.classList.add('rg-on'); }
+  function hideVeil() { var v = window._rgVeil; if (v) v.classList.remove('rg-on'); }
   function showToast(m) { toast.textContent = m; toast.classList.add('rg-on'); clearTimeout(toast._t); toast._t = setTimeout(function () { toast.classList.remove('rg-on'); }, 2200); }
 
   function park(rect) {
@@ -253,6 +269,22 @@
 
   /* ---------- step + tour ---------- */
   async function step(st) {
+    // Step sem target: só explicação central com veil escurecido.
+    if (!st.target) {
+      hideSpot(); hideRing(); hidePtr();
+      showVeil();
+      // Robô fica fora da tela durante explicação central pra não tampar
+      var px = parkPos();
+      await flyTo(px.x, px.y);
+      bubble.classList.add('rg-center');
+      var label = 'Entendi ▸';
+      say(st.text + '<button class="rg-go">' + label + '</button>'); announce(st.text);
+      bubble.querySelector('.rg-go').onclick = function () { bubble._adv && bubble._adv(); };
+      await new Promise(function (res) { bubble._adv = res; });
+      bubble.classList.remove('rg-center');
+      hideVeil(); flightArms(); hush(); await sleep(160);
+      return;
+    }
     var el = resolve(st.target);
     if (!el) { await missing(st.target); return; }
     await scrollIfNeeded(el);
@@ -260,12 +292,12 @@
     var p = park(rect);
     await flyTo(p.x, p.y);
     var c = center(el);
-    aimArm(c.x, c.y); showRing(el); showPtr(c.x, c.y);
+    aimArm(c.x, c.y); showSpot(el); showRing(el); showPtr(c.x, c.y);
     say(st.text + '<button class="rg-go">Cliquei ▸</button>'); announce(st.text);
     bubble.querySelector('.rg-go').onclick = function () { bubble._adv && bubble._adv(); };
     if (st.requireClick === false) await new Promise(function (res) { bubble._adv = res; });
     else await waitAdvance(el);
-    hidePtr(); hideRing(); flightArms(); hush(); await sleep(160);
+    hidePtr(); hideRing(); hideSpot(); flightArms(); hush(); await sleep(160);
   }
   async function missing(key) {
     await flyTo(innerWidth * 0.5, innerHeight * 0.42);
@@ -295,6 +327,7 @@
     try { for (var i = 0; i < t.steps.length; i++) await step(t.steps[i]); if (t.done) await done(t.done); }
     finally {
       busy = false;
+      hideVeil(); hideSpot();
       document.body.classList.remove('rg-touring');
       // Volta pra ponto de espera se drawer continua aberto
       if (document.body.classList.contains('rg-drawer-open')) {
@@ -305,8 +338,8 @@
   }
 
   function parkPos() {
-    // Posição de espera: do lado de fora do drawer (drawer = 420px right).
-    var drawerW = 420;
+    // Posição de espera: do lado de fora do drawer (drawer = 360px right).
+    var drawerW = 360;
     var pad = 60;
     if (innerWidth - drawerW - pad - HW < 40) {
       // Mobile: drawer ocupa quase tudo. Park ao topo-esquerda.

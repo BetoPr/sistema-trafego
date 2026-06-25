@@ -7,6 +7,20 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-25
 
+- **17:26** — **RoboGuia spotlight + step explicativo central + drawer 360px.**
+  - `public/robo-guia.js`:
+    - Novo overlay `#rg-veil` (escurece tela inteira) + `#rg-spot` (recorta o elemento ativo com `box-shadow: 0 0 0 9999px rgba(0,0,0,.72)`).
+    - `step()` agora aceita step **sem target**: mostra bubble centralizado + veil escurecido + robô estacionado fora. Botão "Entendi ▸".
+    - `#rg-bubble` cresceu (max-width 360px) + `white-space: pre-line` (mantém quebras de linha). Modo central tem max-width 440px e sem seta.
+    - `parkPos()` ajustado pra drawer 360px.
+    - Tour finaliza limpando veil + spot.
+  - `components/layout/RoboGuia.tsx`: tour `etiqueta_auto` reformulado:
+    - **Step 1**: clica **Configurações** (sidebar) — spotlight + escuro fora
+    - **Step 2**: clica **Etiquetas** (em "Mais configurações") — spotlight + escuro fora
+    - **Step 3**: explicação multi-linha centralizada (passos pra adicionar palavra-chave gatilho + Salvar) — só veil escurecido
+    - Done: "Pronto. Quando cliente mandar mensagem com a palavra, etiqueta é aplicada automático no contato. ✅"
+  - `components/chat-assistente/ChatDrawer.tsx`: largura do drawer 420px → 360px (menos invasivo).
+
 - **16:29** — **Fase 2: Tours RoboGuia expandidos (41 tours cobrindo todo o CRM).**
   - `components/layout/RoboGuia.tsx`: lista de tours cresceu de 20 → 41. Cobertura completa de fluxos do FAQ.
   - Novos tours por área:

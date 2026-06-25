@@ -208,7 +208,7 @@ export function ChatDrawer() {
             right: 0,
             top: 0,
             bottom: 0,
-            width: 420,
+            width: 360,
             maxWidth: "100vw",
             background: "var(--mk-bg)",
             borderLeft: ".5px solid var(--mk-border)",

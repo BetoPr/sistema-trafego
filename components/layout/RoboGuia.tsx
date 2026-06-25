@@ -341,12 +341,13 @@ export function RoboGuia() {
           },
           {
             id: "etiqueta_auto",
-            intents: ["etiqueta automatica", "auto etiqueta", "palavra chave", "etiqueta palavra", "gatilho etiqueta"],
+            intents: ["etiqueta automatica", "auto etiqueta", "palavra chave", "etiqueta palavra", "gatilho etiqueta", "como crio etiqueta automatica"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Clique em **Configurações**." },
-              { target: "config-etiquetas", text: "Em **Etiquetas** → edita uma → seção **Palavras-chave gatilho** → adiciona palavras/regex." },
+              { target: "menu-conta-configuracoes", text: "Primeiro clique em **Configurações** no menu lateral." },
+              { target: "config-etiquetas", text: "Agora clique em **Etiquetas** dentro de Mais configurações." },
+              { text: "**Como criar etiqueta automática por palavra-chave:**\n\n1) Clique no ícone ✏️ pra **editar uma etiqueta existente** (ou crie nova no topo).\n\n2) No balão de edição, role até a seção **Palavras-chave gatilho**.\n\n3) Digite uma palavra que dispare a etiqueta (ex: `desconto`, `cancelar`, `reclamação`).\n\n4) Clique **+ Adicionar mais** pra incluir mais palavras. Aceita regex simples como `(desc|promo)`.\n\n5) Marque ☑️ **Ativo** e clique em **Salvar**." },
             ],
-            done: "Cliente manda msg com a palavra → etiqueta aplicada automático no contato. Aceita regex simples. ✅",
+            done: "Pronto. Quando cliente mandar mensagem com a palavra, etiqueta é aplicada automático no contato. ✅",
           },
 
           // ===== CONFIGURAÇÕES AVANÇADAS =====
