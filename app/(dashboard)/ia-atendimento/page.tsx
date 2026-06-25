@@ -361,7 +361,7 @@ export default async function IAAtendimentoPage({ searchParams }: PageProps) {
           <p className="mk-page-sub">Atendente IA que qualifica leads, etiqueta e transfere pra humano. BYOK (chave própria).</p>
         </div>
         {!mostrarForm && (
-          <Link href="/ia-atendimento?novo=1" className="cta-btn">
+          <Link href="/ia-atendimento?novo=1" className="cta-btn" data-guide="ia-novo-perfil">
             <i className="ti ti-plus" /> Novo perfil
           </Link>
         )}

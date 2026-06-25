@@ -11,6 +11,7 @@ import { AppShell } from "@/components/providers/AppShell";
 import { CrmOverlays } from "./_crm-overlays";
 import { FiltroAtivoProvider } from "@/lib/filtro-ativo/context";
 import { ChatDrawer } from "@/components/chat-assistente/ChatDrawer";
+import { RoboGuia } from "@/components/layout/RoboGuia";
 import { requireUserWithAgencia } from "@/lib/auth";
 import type { Plataforma } from "@/lib/platform";
 
@@ -69,6 +70,7 @@ export default async function DashboardLayout({
             <CrmOverlays>{children}</CrmOverlays>
           </main>
           <ChatDrawer />
+          <RoboGuia />
         </AppShell>
         </AudioGlobalProvider>
         </FiltroAtivoProvider>

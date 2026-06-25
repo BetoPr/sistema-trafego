@@ -384,7 +384,7 @@ export function ListaAtendimentos(p: Props) {
 
       {/* Abas de status — fixas, mas funcionam como toggle (clica = inclui/remove o status do filtro) */}
       <div style={sep}>
-        <div style={{ display: "flex", padding: "6px 8px", gap: 4 }}>
+        <div style={{ display: "flex", padding: "6px 8px", gap: 4, overflowX: "auto", scrollbarWidth: "none" }}>
           {TABS.map((t) => {
             const ativo = statusSel.includes(t.id);
             const cor = t.id === "fechado" ? "var(--mk-text-muted)" : "#00E19A";
@@ -394,7 +394,8 @@ export function ListaAtendimentos(p: Props) {
                 onClick={() => toggleStatus(t.id)}
                 title={`${t.label} — ${ativo ? "clique pra ocultar" : "clique pra mostrar"}`}
                 style={{
-                  flex: 1,
+                  flex: "1 1 auto",
+                  minWidth: 0,
                   padding: "6px 8px",
                   borderRadius: 6,
                   textAlign: "center",
@@ -409,6 +410,7 @@ export function ListaAtendimentos(p: Props) {
                   justifyContent: "center",
                   gap: 4,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
                 <i className={`ti ${ativo ? (t.id === "aberto" ? "ti-message" : t.id === "pendente" ? "ti-clock" : "ti-check") : "ti-eye-off"}`} />

@@ -67,6 +67,7 @@ export default async function ConfiguracoesPage() {
             <Link
               key={a.href}
               href={a.href}
+              data-guide={`config-${a.href.split("/").pop() || ""}`}
               style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface)", textDecoration: "none", color: "var(--mk-text)", transition: "border-color 0.15s ease" }}
             >
               <span style={{ width: 34, height: 34, borderRadius: 9, background: `${a.cor}22`, color: a.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>

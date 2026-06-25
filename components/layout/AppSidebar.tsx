@@ -14,6 +14,7 @@ interface NavItem {
   icon: string;
   badge?: { text: string; variant?: "default" | "amber" | "red" };
   dot?: boolean;
+  guide?: string;
 }
 
 interface NavSection {
@@ -41,10 +42,10 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-message",
       iconColor: "var(--mk-icon-pink)",
       items: [
-        { href: "/atendimentos", label: "Atendimentos", icon: "ti-messages" },
-        { href: "/follow-up", label: "Follow-up", icon: "ti-clock-bolt" },
-        { href: "/ia-atendimento", label: "IA", icon: "ti-brain", badge: { text: "BÁSICO", variant: "amber" } },
-        { href: "/contatos", label: "Contatos", icon: "ti-address-book" },
+        { href: "/atendimentos", label: "Atendimentos", icon: "ti-messages", guide: "nav-atendimentos" },
+        { href: "/follow-up", label: "Follow-up", icon: "ti-clock-bolt", guide: "nav-followup" },
+        { href: "/ia-atendimento", label: "IA", icon: "ti-brain", badge: { text: "BÁSICO", variant: "amber" }, guide: "nav-ia-atendimento" },
+        { href: "/contatos", label: "Contatos", icon: "ti-address-book", guide: "nav-contatos" },
       ],
     },
     {
@@ -67,9 +68,9 @@ function buildSections(role?: string): NavSection[] {
             icon: "ti-speakerphone",
             iconColor: "var(--mk-icon-purple)",
             items: [
-              { href: "/pixel-vendas", label: "Pixel & Campanhas", icon: "ti-target-arrow" },
-              { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list" },
-              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing" },
+              { href: "/pixel-vendas", label: "Pixel & Campanhas", icon: "ti-target-arrow", guide: "nav-pixel" },
+              { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list", guide: "nav-relatorios" },
+              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", guide: "nav-alertas" },
             ],
           } as NavSection,
         ]
@@ -96,7 +97,7 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-crown",
       iconColor: "#C97064",
       items: [
-        { href: "/configuracoes/marca", label: "Marca / Logo", icon: "ti-photo" },
+        { href: "/configuracoes/marca", label: "Marca / Logo", icon: "ti-photo", guide: "nav-marca" },
         { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
         { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
         { href: "/super-admin/acessos", label: "Acessos", icon: "ti-shield-lock" },
@@ -110,9 +111,9 @@ function buildSections(role?: string): NavSection[] {
     icon: "ti-user",
     iconColor: "var(--mk-icon-green)",
     items: [
-      { href: "/conta", label: "Meu Perfil", icon: "ti-user-circle" },
-      { href: "/plano", label: "Plano Pro", icon: "ti-credit-card" },
-      { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments" },
+      { href: "/conta", label: "Meu Perfil", icon: "ti-user-circle", guide: "nav-conta" },
+      { href: "/plano", label: "Plano Pro", icon: "ti-credit-card", guide: "nav-plano" },
+      { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments", guide: "menu-conta-configuracoes" },
     ],
   });
 
@@ -216,6 +217,7 @@ export function AppSidebar({ role, marca }: { role?: string; marca?: MarcaConfig
                   <Link
                     key={item.href}
                     href={item.href}
+                    data-guide={item.guide}
                     className={`nav-item${isActive(item.href) ? " active" : ""}`}
                   >
                     <i className={`ti ${item.icon}`} />
