@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-26
 
+- **18:55** — **OAuth Google plugado em login + cadastro.**
+  - `app/auth/callback/route.ts`: handler do callback OAuth Supabase. Troca code → session. Se usuário novo, cria agência (com tipo_cliente da query `perfil`) + usuarios.admin com trial automático. Bloqueia se agência tiver `acesso_bloqueado`. Redireciona pra `next` (default `/dashboard`).
+  - Login `/login`: adicionado componente `BtnGoogle` no topo do form (acima do email/senha). Botão pill claro com SVG oficial. `supabase.auth.signInWithOAuth({provider:'google'})` com `redirectTo = /auth/callback?next=/dashboard`.
+  - Cadastro `/cadastro`: mesmo `BtnGoogle` no passo 2, recebe perfil escolhido no passo 1. `redirectTo = /auth/callback?perfil=X&next=/dashboard`.
+  - Pendente Roberto: criar OAuth Client no Google Cloud Console + colar Client ID/Secret no Supabase Dashboard (Authentication > Providers > Google). Authorized redirect URI: `https://nnswiakwjvoqwcjscbqq.supabase.co/auth/v1/callback`.
+
 - **18:20** — **Cadastro automático LP→CRM + ciclo de vida de trial completo.**
   - Migration `20260626180000_agencias_tipo_cliente_trial.sql`: agencias ganha `tipo_cliente` (empreendedor/autonomo/agencia), `trial_acaba_em`, `apagar_em`, `trial_avisado_em` + indexes pra cron.
   - `lib/auth/trial.ts`: helpers — `calcularTrialAcabaEm()`, `calcularApagarEm()`, `isTrialExpirado()`, `diasRestantesTrial()`, `tipoClienteLabel()`. Empreendedor/Autônomo = 14d, Agência = 21d, 30d pra apagar.

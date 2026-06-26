@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { loginAction, type LoginState } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Login page — mesmo visual do modal de cadastro da LP (lp.sonarcrm.com.br).
@@ -27,8 +28,17 @@ export default function LoginPage() {
           <p style={subStyle}>Entre com suas credenciais para acessar o sistema.</p>
         </div>
 
+        <div style={bodyStyle}>
+          <BtnGoogle texto="Entrar com Google" />
+          <div style={dividerStyle}>
+            <span style={dividerLine} />
+            <span style={dividerTxt}>ou com email</span>
+            <span style={dividerLine} />
+          </div>
+        </div>
+
         {/* FORM */}
-        <form action={formAction} style={bodyStyle}>
+        <form action={formAction} style={{ ...bodyStyle, paddingTop: 0 }}>
           <div style={fieldStyle}>
             <label htmlFor="email" style={labelStyle}>Email</label>
             <input
@@ -250,6 +260,78 @@ const legalStyle: React.CSSProperties = {
 const legalLinkStyle: React.CSSProperties = {
   color: "#6B7A75",
   textDecoration: "underline",
+};
+
+/* ---------------------- Botão Google OAuth ---------------------- */
+function BtnGoogle({ texto, perfil }: { texto: string; perfil?: "empreendedor" | "agencia" | "autonomo" }) {
+  const [carregando, setCarregando] = useState(false);
+  async function entrar() {
+    setCarregando(true);
+    const sb = createClient();
+    const next = "/dashboard";
+    const params = new URLSearchParams();
+    if (perfil) params.set("perfil", perfil);
+    params.set("next", next);
+    const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo, queryParams: { prompt: "select_account" } },
+    });
+    if (error) {
+      alert("Erro Google: " + error.message);
+      setCarregando(false);
+    }
+  }
+  return (
+    <button type="button" onClick={entrar} disabled={carregando} style={btnGoogleStyle}>
+      <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+      </svg>
+      {carregando ? "Conectando…" : texto}
+    </button>
+  );
+}
+
+const btnGoogleStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
+  width: "100%",
+  padding: "12px 16px",
+  background: "#F0F5F2",
+  color: "#1F1F1F",
+  border: "1px solid #2A3530",
+  borderRadius: 10,
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+  fontFamily: "inherit",
+  transition: "background 200ms ease, transform 200ms ease",
+};
+
+const dividerStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  margin: "18px 0 6px",
+};
+
+const dividerLine: React.CSSProperties = {
+  flex: 1,
+  height: 1,
+  background: "#1F2926",
+};
+
+const dividerTxt: React.CSSProperties = {
+  color: "#6B7A75",
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: 1,
+  fontWeight: 500,
 };
 
 /* ---------------------- Slide-to-verify ---------------------- */
