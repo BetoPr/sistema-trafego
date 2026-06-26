@@ -166,8 +166,8 @@ export const WahaProvider: WhatsAppProvider = {
             body: {},
           });
         });
-        // Aguarda baileys gerar novo QR
-        await new Promise((res) => setTimeout(res, 2500));
+        // Aguarda baileys gerar novo QR (latência mínima — baileys é rápido)
+        await new Promise((res) => setTimeout(res, 1200));
       }
     } catch {
       // Status check falhou — segue tentando QR mesmo assim
