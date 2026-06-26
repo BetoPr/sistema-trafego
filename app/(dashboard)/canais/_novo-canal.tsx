@@ -98,51 +98,82 @@ function QrBalao({ canalId, nome, onClose }: { canalId: string; nome: string; on
           <div style={{ fontSize: 14, fontWeight: 600, marginTop: 10, color: "#00E19A" }}>Conectado!</div>
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-          <div style={{ position: "relative", width: 240, height: 240 }}>
+        <div style={{ display: "flex", gap: 22, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "center" }}>
+          {/* QR Code + countdown */}
+          <div style={{ position: "relative", width: 240, height: 240, flexShrink: 0 }}>
             {qr ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={qr.startsWith("data:") ? qr : `data:image/png;base64,${qr}`}
                 alt="QR Code"
-                style={{ width: 240, height: 240, borderRadius: 12, background: "#FFFDF8", padding: 12, opacity: gerando ? 0.4 : 1, transition: "opacity 0.2s" }}
+                style={{ width: 240, height: 240, borderRadius: 14, background: "#FFFDF8", padding: 14, opacity: gerando ? 0.35 : 1, transition: "opacity 0.25s", boxShadow: "0 6px 20px rgba(0,0,0,0.35)" }}
               />
             ) : (
-              <div style={{ width: 240, height: 240, borderRadius: 12, background: "var(--mk-surface-2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--mk-text-muted)", fontSize: 12 }}>
-                {erro ? "Falha ao gerar" : "Gerando QR…"}
+              <div style={{ width: 240, height: 240, borderRadius: 14, background: "var(--mk-surface-2)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--mk-text-muted)", fontSize: 12, gap: 8 }}>
+                <i className={`ti ${erro ? "ti-alert-triangle" : "ti-loader-2"}`} style={{ fontSize: 32, color: erro ? "#C97064" : "#00E19A", animation: erro ? undefined : "spin 1s linear infinite" }} />
+                <span>{erro ? "Falha ao gerar" : "Gerando QR…"}</span>
+                <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               </div>
             )}
             {/* Countdown badge */}
             {qr && (
-              <span style={{ position: "absolute", top: -8, right: -8, minWidth: 34, height: 34, borderRadius: "50%", background: restante <= 5 ? "#C97064" : "var(--mk-accent)", color: "#1a1a1a", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }}>
-                {gerando ? "…" : `${restante}s`}
+              <span style={{ position: "absolute", top: -10, right: -10, minWidth: 38, height: 38, borderRadius: "50%", background: restante <= 5 ? "#C97064" : "#00E19A", color: "#0a0f10", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.5)", border: "3px solid var(--mk-bg)" }}>
+                {gerando ? <i className="ti ti-refresh" style={{ animation: "spin 0.6s linear infinite" }} /> : `${restante}s`}
               </span>
             )}
           </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <ol style={{ fontSize: 12, color: "var(--mk-text-secondary)", lineHeight: 1.9, paddingLeft: 20 }}>
-              <li>Abra o WhatsApp no celular dedicado</li>
-              <li>Menu → <strong>Dispositivos conectados</strong></li>
-              <li>Toque em <strong>Conectar um aparelho</strong></li>
-              <li>Aponte a câmera pro QR ao lado</li>
-            </ol>
-            <div style={{ marginTop: 10, fontSize: 10.5, color: "var(--mk-text-muted)", lineHeight: 1.6 }}>
-              <i className="ti ti-refresh" style={{ marginRight: 4 }} />
-              O QR renova sozinho a cada {QR_TTL}s até conectar. Feche no X pra parar.
-            </div>
-            <div style={{ marginTop: 10, background: "rgba(16,185,129,0.14)", borderLeft: "3px solid #00E19A", padding: 10, borderRadius: 6, fontSize: 10.5, color: "var(--mk-text-secondary)", lineHeight: 1.65 }}>
-              <strong style={{ color: "#00E19A" }}><i className="ti ti-device-mobile" style={{ marginRight: 4 }} />Está acessando pelo celular?</strong>
-              <div style={{ marginTop: 4 }}>
-                Você não consegue escanear o QR na mesma tela. Use um computador ou um segundo celular pra ler:
+
+          {/* Instruções */}
+          <div style={{ flex: 1, minWidth: 240, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", textTransform: "uppercase", letterSpacing: 0.7, fontWeight: 600, marginBottom: 10 }}>
+                Como escanear
               </div>
-              <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-                <li>Tire um print desta tela.</li>
-                <li>Envie pra um amigo, ou pro WhatsApp/computador de alguém de confiança.</li>
-                <li>Abra o WhatsApp do número que vai conectar e escaneie o QR por esse outro aparelho.</li>
-              </ol>
+              {[
+                <>Abra o <strong style={{ color: "var(--mk-text)" }}>WhatsApp</strong> no celular dedicado</>,
+                <>Vá em <strong style={{ color: "var(--mk-text)" }}>Menu → Dispositivos conectados</strong></>,
+                <>Toque em <strong style={{ color: "var(--mk-text)" }}>Conectar um aparelho</strong></>,
+                <>Aponte a câmera pro <strong style={{ color: "var(--mk-text)" }}>QR Code</strong> ao lado</>,
+              ].map((texto, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 7 }}>
+                  <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,225,154,0.14)", border: "1px solid rgba(0,225,154,0.5)", color: "#00E19A", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                    {i + 1}
+                  </span>
+                  <span style={{ fontSize: 12.5, color: "var(--mk-text-secondary)", lineHeight: 1.55, paddingTop: 2 }}>
+                    {texto}
+                  </span>
+                </div>
+              ))}
             </div>
+
+            {/* Renew hint */}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--mk-text-muted)", padding: "6px 10px", background: "var(--mk-surface-2)", borderRadius: 6, alignSelf: "flex-start" }}>
+              <i className="ti ti-refresh" style={{ fontSize: 12, color: "#00E19A" }} />
+              <span>QR renova automático a cada {QR_TTL}s</span>
+            </div>
+
+            {/* Aviso mobile */}
+            <details style={{ background: "rgba(0,225,154,0.08)", border: "1px solid rgba(0,225,154,0.28)", borderRadius: 8, padding: "8px 12px", fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
+              <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 8, color: "#00E19A", fontWeight: 600 }}>
+                <i className="ti ti-device-mobile" style={{ fontSize: 14 }} />
+                <span>Acessando pelo celular?</span>
+                <i className="ti ti-chevron-down" style={{ fontSize: 12, marginLeft: "auto" }} />
+              </summary>
+              <div style={{ marginTop: 8, lineHeight: 1.6 }}>
+                Não dá pra escanear o QR na mesma tela. Você precisa de um <strong style={{ color: "var(--mk-text)" }}>segundo aparelho</strong>:
+                <ol style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                  <li>Tire print desta tela</li>
+                  <li>Envie pra outro celular ou computador</li>
+                  <li>No WhatsApp do número a conectar → escaneie o print pelo segundo aparelho</li>
+                </ol>
+              </div>
+            </details>
+
             {erro && (
-              <div style={{ marginTop: 8, padding: 8, background: "rgba(201,112,100,0.12)", borderRadius: 6, fontSize: 11, color: "#C97064" }}>{erro}</div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", background: "rgba(201,112,100,0.12)", border: "1px solid rgba(201,112,100,0.32)", borderRadius: 8, fontSize: 11.5, color: "#C97064" }}>
+                <i className="ti ti-alert-triangle" style={{ fontSize: 14 }} />
+                <span>{erro}</span>
+              </div>
             )}
           </div>
         </div>
