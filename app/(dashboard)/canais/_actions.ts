@@ -15,6 +15,8 @@ import {
   instanceSetWebhook,
   adminListInstances,
 } from "@/lib/uazapi/client";
+import { getProvider, PROVIDER_DEFAULT, type ProviderTipo } from "@/lib/whatsapp";
+import { getWahaServer, gerarSessionNameWaha, webhookUrlForProvider, loadInstanceRef } from "@/lib/whatsapp/config";
 import { audit } from "@/lib/crm/audit";
 
 interface ServidorRow {
@@ -437,12 +439,15 @@ export async function criarCanalJson(input: {
   filaId?: string | null;
   usuarioId?: string | null;
   mensagemDespedida?: string | null;
+  /** Provider opcional. Default = PROVIDER_DEFAULT (waha). */
+  provider?: ProviderTipo;
 }): Promise<{ ok: true; canalId: string } | { ok: false; msg: string }> {
   const ctx = await requireAdmin();
   const nome = input.nome.trim();
   if (!nome) return { ok: false, msg: "Nome obrigatório." };
 
   const sb = createServiceClient();
+  const provider: ProviderTipo = input.provider || PROVIDER_DEFAULT;
 
   // Plano atual: 1 sessão por conta (super_admin ilimitado)
   if (ctx.role !== "super_admin") {
@@ -455,6 +460,61 @@ export async function criarCanalJson(input: {
     }
   }
 
+  // === WAHA path ===
+  if (provider === "waha") {
+    let wahaServer;
+    try { wahaServer = getWahaServer(); }
+    catch (e) { return { ok: false, msg: e instanceof Error ? e.message : String(e) }; }
+    const wahaSvc = getProvider("waha");
+    const sessionName = gerarSessionNameWaha(ctx.agenciaId);
+
+    try {
+      await wahaSvc.criarInstancia(wahaServer, sessionName);
+    } catch (e) {
+      return { ok: false, msg: e instanceof Error ? e.message : String(e) };
+    }
+
+    if (input.padrao) {
+      await sb.from("canais").update({ padrao: false }).eq("agencia_id", ctx.agenciaId).eq("padrao", true);
+    }
+
+    const { data: novo, error } = await sb
+      .from("canais")
+      .insert({
+        agencia_id: ctx.agenciaId,
+        servidor_id: null, // WAHA não usa super_admin_servidores
+        nome,
+        tipo: "waha",
+        status: "pending_qr",
+        provider: "waha",
+        instance_id: sessionName, // espelha pra compat
+        waha_session_name: sessionName,
+        waha_base_url: wahaServer.baseUrl,
+        // instance_token_encrypted: NULL pra WAHA (apiKey vem do env)
+        padrao: !!input.padrao,
+        fila_id: input.filaId || null,
+        usuario_id: input.usuarioId || null,
+        mensagem_despedida: input.mensagemDespedida || null,
+      })
+      .select("id, webhook_secret")
+      .single();
+    if (error) return { ok: false, msg: error.message };
+
+    try {
+      await wahaSvc.setWebhook(
+        { tipo: "waha", baseUrl: wahaServer.baseUrl, token: wahaServer.adminToken, sessionName },
+        webhookUrlForProvider("waha", novo.webhook_secret),
+      );
+    } catch (e) {
+      console.error("[canais waha] setWebhook falhou:", e);
+    }
+
+    await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "canal", entidadeId: novo.id, payload: { nome, provider: "waha", sessionName } });
+    revalidatePath("/canais");
+    return { ok: true, canalId: novo.id };
+  }
+
+  // === UAZAPI path (legado) ===
   let servidor: { id: string; baseUrl: string; adminToken: string };
   try {
     servidor = await getServidorAtivo(ctx.agenciaId);
@@ -488,6 +548,7 @@ export async function criarCanalJson(input: {
       nome,
       tipo: "uazapi",
       status: "pending_qr",
+      provider: "uazapi",
       instance_id: instanceId,
       instance_token_encrypted: bufferToBytea(encryptToken(instanceToken)),
       padrao: !!input.padrao,
@@ -509,7 +570,7 @@ export async function criarCanalJson(input: {
     console.error("[canais] setWebhook falhou:", e);
   }
 
-  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "canal", entidadeId: novo.id, payload: { nome, instanceId } });
+  await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "create", entidade: "canal", entidadeId: novo.id, payload: { nome, instanceId, provider: "uazapi" } });
   revalidatePath("/canais");
   return { ok: true, canalId: novo.id };
 }
@@ -517,68 +578,46 @@ export async function criarCanalJson(input: {
 /** Gera (ou renova) o QR Code do canal. Retorna QR base64 ou connected=true. */
 export async function gerarQrCanal(canalId: string): Promise<{ ok: true; qr: string | null; connected: boolean } | { ok: false; msg: string }> {
   const ctx = await requireAdmin();
-  const sb = createServiceClient();
-  const { data: canal } = await sb
-    .from("canais")
-    .select("id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
-    .eq("id", canalId)
-    .eq("agencia_id", ctx.agenciaId)
-    .single();
-  if (!canal) return { ok: false, msg: "Canal não encontrado." };
-
-  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
-  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
-
   try {
-    const r = await instanceConnect({ baseUrl, token });
-    const connected = !!r.connected;
-    const qr = r.instance?.qrcode || r.instance?.paircode || null;
-    await sb
+    const { provider, inst } = await loadInstanceRef(canalId, ctx.agenciaId);
+    const svc = getProvider(provider);
+    const r = await svc.connect(inst);
+    const qr = r.qrcode || r.paircode || null;
+    const sb2 = createServiceClient();
+    await sb2
       .from("canais")
       .update({
-        qr_code_atual: connected ? null : qr,
+        qr_code_atual: r.connected ? null : qr,
         qr_atualizado_em: new Date().toISOString(),
-        status: connected ? "connected" : "pending_qr",
+        status: r.connected ? "connected" : "pending_qr",
       })
       .eq("id", canalId);
-    return { ok: true, qr, connected };
+    return { ok: true, qr, connected: r.connected };
   } catch (e) {
     return { ok: false, msg: e instanceof Error ? e.message : String(e) };
   }
 }
 
-/** Consulta status do canal no UAZAPI e sincroniza o banco. */
+/** Consulta status do canal no provider e sincroniza o banco. */
 export async function statusCanalJson(canalId: string): Promise<{ ok: true; connected: boolean; numero: string | null } | { ok: false; msg: string }> {
   const ctx = await requireAdmin();
-  const sb = createServiceClient();
-  const { data: canal } = await sb
-    .from("canais")
-    .select("id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
-    .eq("id", canalId)
-    .eq("agencia_id", ctx.agenciaId)
-    .single();
-  if (!canal) return { ok: false, msg: "Canal não encontrado." };
-
-  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
-  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
-
   try {
-    const r = await instanceGetStatus({ baseUrl, token });
-    const connected = !!r?.status?.connected;
-    const numero = r?.status?.jid?.user || null;
-    // undefined = não toca no campo (preserva nome/foto já salvos quando a API vier vazia)
-    await sb
-      .from("canais")
-      .update({
-        status: connected ? "connected" : "pending_qr",
-        numero_conectado: numero || undefined,
-        nome_perfil: r?.instance?.profileName || undefined,
-        foto_perfil_url: r?.instance?.profilePicUrl || undefined,
-        wa_plataforma: r?.instance?.plataform || undefined,
-        qr_code_atual: connected ? null : undefined,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", canalId);
+    const { provider, inst } = await loadInstanceRef(canalId, ctx.agenciaId);
+    const svc = getProvider(provider);
+    const s = await svc.getStatus(inst);
+    const connected = s.estado === "connected";
+    const numero = s.numeroConectado || null;
+    const sb2 = createServiceClient();
+    const upd: Record<string, unknown> = {
+      status: connected ? "connected" : "pending_qr",
+      updated_at: new Date().toISOString(),
+    };
+    if (numero) upd.numero_conectado = numero;
+    if (s.nomePerfil) upd.nome_perfil = s.nomePerfil;
+    if (s.fotoPerfilUrl) upd.foto_perfil_url = s.fotoPerfilUrl;
+    if (s.plataforma) upd.wa_plataforma = s.plataforma;
+    if (connected) upd.qr_code_atual = null;
+    await sb2.from("canais").update(upd).eq("id", canalId);
     if (connected) revalidatePath("/canais");
     return { ok: true, connected, numero };
   } catch (e) {
@@ -764,16 +803,16 @@ export async function desconectarCanal(formData: FormData) {
   const ctx = await requireAdmin();
   const id = String(formData.get("id") || "");
   const sb = createServiceClient();
-  const { data: canal } = await sb
-    .from("canais")
-    .select("id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
-    .eq("id", id)
-    .eq("agencia_id", ctx.agenciaId)
-    .single();
-  if (!canal) redirect("/canais?erro=nao_encontrado");
 
-  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor.base_url;
-  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+  let provider: ProviderTipo;
+  let inst: Awaited<ReturnType<typeof loadInstanceRef>>["inst"];
+  try {
+    const ref = await loadInstanceRef(id, ctx.agenciaId);
+    provider = ref.provider;
+    inst = ref.inst;
+  } catch {
+    redirect("/canais?erro=nao_encontrado");
+  }
 
   // Banco primeiro (UI responde já); disconnect no provedor em background
   await sb
@@ -789,7 +828,7 @@ export async function desconectarCanal(formData: FormData) {
 
   after(async () => {
     try {
-      await instanceDisconnect({ baseUrl, token });
+      await getProvider(provider).disconnect(inst);
     } catch (e) {
       console.error("[canais] disconnect (bg):", e);
     }
@@ -805,15 +844,15 @@ export async function deletarCanal(formData: FormData) {
   const id = String(formData.get("id") || "");
   const sb = createServiceClient();
 
-  const { data: canal } = await sb
-    .from("canais")
-    .select("id, instance_id, instance_token_encrypted, servidor:super_admin_servidores(base_url)")
-    .eq("id", id)
-    .eq("agencia_id", ctx.agenciaId)
-    .maybeSingle();
-
-  // Idempotente: segundo clique/refresh acha o canal já removido → sucesso, não erro
-  if (!canal) {
+  // Carrega instância antes de deletar pra fazer cleanup remoto em bg
+  let provider: ProviderTipo | null = null;
+  let inst: Awaited<ReturnType<typeof loadInstanceRef>>["inst"] | null = null;
+  try {
+    const ref = await loadInstanceRef(id, ctx.agenciaId);
+    provider = ref.provider;
+    inst = ref.inst;
+  } catch {
+    // Idempotente: já não existe → sucesso silencioso
     revalidatePath("/canais");
     redirect("/canais?ok=deletado");
   }
@@ -822,16 +861,15 @@ export async function deletarCanal(formData: FormData) {
   await sb.from("canais").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
   await audit({ agenciaId: ctx.agenciaId, usuarioId: ctx.userId, acao: "delete", entidade: "canal", entidadeId: id });
 
-  // Limpeza da instância no provedor em BACKGROUND (era o que travava 3-8s)
-  const s = (canal as unknown as { servidor: { base_url: string } }).servidor;
-  const tokenEnc = canal.instance_token_encrypted;
-  if (tokenEnc) {
+  // Limpeza no provedor em background
+  if (provider && inst) {
+    const provFinal = provider;
+    const instFinal = inst;
     after(async () => {
       try {
-        const token = decryptToken(byteaToBuffer(tokenEnc));
-        await instanceDelete({ baseUrl: s.base_url, token });
+        await getProvider(provFinal).deleteInstance(instFinal);
       } catch (e) {
-        console.error("[canais] instanceDelete (bg):", e);
+        console.error("[canais] deleteInstance (bg):", e);
       }
     });
   }
