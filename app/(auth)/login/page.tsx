@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState, useEffect } from "react";
 import { loginAction, type LoginState } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,6 +12,21 @@ import { createClient } from "@/lib/supabase/client";
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(loginAction, undefined);
   const [verificado, setVerificado] = useState(false);
+
+  // Workaround: se Supabase mandou OAuth code pra /login em vez de /auth/callback,
+  // redireciona internamente pra route handler correto. Acontece quando Redirect
+  // URLs whitelist do Supabase Auth nao tem /auth/callback configurado.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+    if (code) {
+      const next = url.searchParams.get("next") || "/dashboard";
+      const perfil = url.searchParams.get("perfil") || "";
+      const target = `/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}${perfil ? `&perfil=${encodeURIComponent(perfil)}` : ""}`;
+      window.location.replace(target);
+    }
+  }, []);
 
   return (
     <div style={pageStyle}>
@@ -110,7 +125,8 @@ export default function LoginPage() {
 
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
-  background: "#060A08",
+  background:
+    "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,225,154,0.18) 0%, rgba(0,225,154,0.08) 35%, #060A08 75%), #060A08",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
