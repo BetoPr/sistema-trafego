@@ -2,101 +2,239 @@
 
 import { useActionState, useRef, useState } from "react";
 import { loginAction, type LoginState } from "./actions";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
+/**
+ * Login page — mesmo visual do modal de cadastro da LP (lp.sonarcrm.com.br).
+ * Dark premium: card centralizado, logo + wordmark, inputs com focus verde,
+ * slide-to-verify, botão verde Sonar.
+ */
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(loginAction, undefined);
   const [verificado, setVerificado] = useState(false);
 
   return (
-    <Card>
-      <CardHeader>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, paddingTop: 6 }}>
-          <LogoS />
-          <div style={{ textAlign: "center" }}>
-            <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--mk-text)", letterSpacing: "-0.3px" }}>Faça o seu login</h1>
-            <p style={{ fontSize: 13, color: "var(--mk-text-secondary)", marginTop: 2 }}>
-              Entre com suas credenciais para acessar o sistema
-            </p>
+    <div style={pageStyle}>
+      <div style={modalStyle}>
+        {/* HEAD */}
+        <div style={headStyle}>
+          <div style={brandStyle}>
+            <img src="/sonar-mark.png" alt="Sonar" style={brandLogoStyle} />
+            <span style={brandWordmarkStyle}>
+              sonar<span style={{ color: "#00E19A" }}>.</span>
+            </span>
           </div>
+          <h1 style={titleStyle}>Faça seu login</h1>
+          <p style={subStyle}>Entre com suas credenciais para acessar o sistema.</p>
         </div>
-      </CardHeader>
-      <form action={formAction}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
+
+        {/* FORM */}
+        <form action={formAction} style={bodyStyle}>
+          <div style={fieldStyle}>
+            <label htmlFor="email" style={labelStyle}>Email</label>
+            <input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
               required
               placeholder="voce@empresa.com"
+              style={inputStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#00E19A"; e.currentTarget.style.background = "rgba(0,225,154,0.04)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#1F2926"; e.currentTarget.style.background = "#11181A"; }}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
+
+          <div style={fieldStyle}>
+            <label htmlFor="password" style={labelStyle}>Senha</label>
+            <input
               id="password"
               name="password"
               type="password"
               autoComplete="current-password"
               required
+              placeholder="Sua senha"
+              style={inputStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#00E19A"; e.currentTarget.style.background = "rgba(0,225,154,0.04)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#1F2926"; e.currentTarget.style.background = "#11181A"; }}
             />
           </div>
 
           <SlideToVerify verificado={verificado} onVerificar={() => setVerificado(true)} />
 
           {state?.error && (
-            <p className="text-sm text-destructive" role="alert">
+            <p style={errorStyle} role="alert">
+              <i className="ti ti-alert-circle" style={{ marginRight: 6 }} />
               {state.error}
             </p>
           )}
-        </CardContent>
-        <CardFooter className="mt-4">
-          <Button type="submit" className="w-full" disabled={pending || !verificado}>
+
+          <button
+            type="submit"
+            disabled={pending || !verificado}
+            style={{
+              ...btnPrimaryStyle,
+              opacity: pending || !verificado ? 0.55 : 1,
+              cursor: pending || !verificado ? "not-allowed" : "pointer",
+            }}
+          >
             {pending ? "Entrando..." : "Entrar"}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+            {!pending && <i className="ti ti-arrow-right" style={{ marginLeft: 6 }} />}
+          </button>
+
+          <div style={footerStyle}>
+            Ainda não tem conta?{" "}
+            <a href="https://sonarcrm.com.br" style={linkStyle}>
+              Criar grátis →
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
-/** Marca "S" — recriação vetorial (esmeralda), em fita dupla serpenteada. */
-function LogoS() {
-  const c = "var(--mk-accent, #00E19A)";
-  return (
-    <svg width="50" height="50" viewBox="0 0 100 100" fill="none" aria-label="Logo" role="img">
-      {/* Fita principal em S */}
-      <path
-        d="M74 26 C74 15, 56 12, 43 19 C28 27, 31 43, 49 49 C67 55, 70 70, 56 78 C44 85, 28 82, 26 72"
-        stroke={c}
-        strokeWidth="12"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Corte diagonal — dá o efeito de fita do logo */}
-      <path d="M34 32 L70 66" stroke={c} strokeWidth="5" strokeLinecap="round" opacity="0.45" />
-      {/* Faíscas (canto superior direito) */}
-      <circle cx="82" cy="30" r="4.2" fill={c} />
-      <circle cx="88" cy="43" r="2.6" fill={c} opacity="0.7" />
-    </svg>
-  );
-}
+/* ---------------------- Styles inline (idênticos ao modal LP) ---------------------- */
 
-/**
- * Slide-to-verify: arrasta o botão até o fim → preenche esmeralda → "Verificado".
- * Libera o botão Entrar. Pointer events (mouse + toque).
- */
+const pageStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#060A08",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 24,
+  backgroundImage:
+    "radial-gradient(circle at 20% 10%, rgba(0,225,154,0.06) 0%, transparent 30%), radial-gradient(circle at 80% 90%, rgba(0,225,154,0.04) 0%, transparent 30%)",
+};
+
+const modalStyle: React.CSSProperties = {
+  background: "#0D1311",
+  border: "1px solid #2A3530",
+  borderRadius: 22,
+  maxWidth: 460,
+  width: "100%",
+  boxShadow: "0 24px 64px rgba(0,0,0,0.6), 0 0 80px rgba(0,225,154,0.10)",
+  overflow: "hidden",
+};
+
+const headStyle: React.CSSProperties = {
+  padding: "32px 32px 8px",
+  textAlign: "center",
+};
+
+const brandStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 0,
+  marginBottom: 18,
+};
+
+const brandLogoStyle: React.CSSProperties = {
+  height: 56,
+  width: "auto",
+  marginRight: -8,
+  filter: "drop-shadow(0 0 8px rgba(0,225,154,0.35))",
+};
+
+const brandWordmarkStyle: React.CSSProperties = {
+  fontSize: 28,
+  fontWeight: 700,
+  letterSpacing: "-1px",
+  color: "#F0F5F2",
+  lineHeight: 1,
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: 24,
+  fontWeight: 700,
+  letterSpacing: "-0.6px",
+  color: "#F0F5F2",
+  marginBottom: 6,
+};
+
+const subStyle: React.CSSProperties = {
+  fontSize: 14,
+  color: "#A6B0AC",
+  marginBottom: 24,
+};
+
+const bodyStyle: React.CSSProperties = {
+  padding: "0 32px 32px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+};
+
+const fieldStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#A6B0AC",
+  letterSpacing: "0.3px",
+};
+
+const inputStyle: React.CSSProperties = {
+  fontFamily: "inherit",
+  fontSize: 14,
+  padding: "12px 14px",
+  background: "#11181A",
+  border: "1.5px solid #1F2926",
+  borderRadius: 10,
+  color: "#F0F5F2",
+  outline: "none",
+  transition: "border-color 200ms ease, background 200ms ease",
+};
+
+const errorStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: "#FF5C72",
+  background: "rgba(255,92,114,0.10)",
+  border: "1px solid rgba(255,92,114,0.30)",
+  padding: "10px 14px",
+  borderRadius: 10,
+  display: "flex",
+  alignItems: "center",
+  lineHeight: 1.4,
+};
+
+const btnPrimaryStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  fontWeight: 600,
+  fontSize: 15,
+  padding: "13px 24px",
+  background: "#00E19A",
+  color: "#060A08",
+  border: "1px solid #00E19A",
+  borderRadius: 10,
+  minHeight: 48,
+  marginTop: 4,
+  boxShadow: "0 4px 16px rgba(0,225,154,0.18)",
+  transition: "all 200ms ease",
+  fontFamily: "inherit",
+};
+
+const footerStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "#6B7A75",
+  textAlign: "center",
+  marginTop: 10,
+};
+
+const linkStyle: React.CSSProperties = {
+  color: "#00E19A",
+  fontWeight: 600,
+  textDecoration: "none",
+};
+
+/* ---------------------- Slide-to-verify ---------------------- */
+
 function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVerificar: () => void }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const arrastando = useRef(false);
@@ -106,7 +244,6 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
   function maxX() {
     return Math.max(0, (trackRef.current?.clientWidth ?? 0) - HANDLE - 6);
   }
-
   function onDown(e: React.PointerEvent) {
     if (verificado) return;
     arrastando.current = true;
@@ -133,9 +270,9 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
   const preenchido = verificado ? "100%" : `${x + HANDLE}px`;
 
   return (
-    <div>
-      <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 6 }}>
-        {verificado ? "Verificação concluída." : "Arraste o slider até o final para liberar o login:"}
+    <div style={{ marginTop: 4 }}>
+      <p style={{ fontSize: 11, color: "#6B7A75", marginBottom: 8, letterSpacing: 0.2 }}>
+        {verificado ? "Verificação concluída." : "Arraste o slider para liberar o login:"}
       </p>
       <div
         ref={trackRef}
@@ -143,14 +280,13 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
           position: "relative",
           height: 44,
           borderRadius: 10,
-          background: "var(--mk-surface-2)",
-          border: "0.5px solid var(--mk-border)",
+          background: "#11181A",
+          border: "1.5px solid #1F2926",
           overflow: "hidden",
           userSelect: "none",
           touchAction: "none",
         }}
       >
-        {/* Preenchimento */}
         <div
           style={{
             position: "absolute",
@@ -158,11 +294,10 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
             left: 0,
             bottom: 0,
             width: preenchido,
-            background: "rgba(16,185,129,0.22)",
+            background: "rgba(0,225,154,0.18)",
             transition: arrastando.current ? "none" : "width 0.2s ease",
           }}
         />
-        {/* Texto central */}
         <div
           style={{
             position: "absolute",
@@ -172,8 +307,9 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
             justifyContent: "center",
             fontSize: 12.5,
             fontWeight: 600,
-            color: verificado ? "var(--mk-accent)" : "var(--mk-text-muted)",
+            color: verificado ? "#00E19A" : "#6B7A75",
             pointerEvents: "none",
+            letterSpacing: 0.3,
           }}
         >
           {verificado ? (
@@ -182,7 +318,6 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
             "Deslize para verificar →"
           )}
         </div>
-        {/* Handle */}
         <div
           onPointerDown={onDown}
           onPointerMove={onMove}
@@ -195,15 +330,15 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
             width: HANDLE - 6,
             height: HANDLE - 6,
             borderRadius: 8,
-            background: verificado ? "var(--mk-accent)" : "var(--mk-accent)",
-            color: "#04140d",
+            background: "#00E19A",
+            color: "#060A08",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: verificado ? "default" : "grab",
             transform: `translateX(${verificado ? maxX() : x}px)`,
             transition: arrastando.current ? "none" : "transform 0.2s ease",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3), 0 0 12px rgba(0,225,154,0.4)",
             touchAction: "none",
           }}
         >

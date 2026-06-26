@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-26
 
+- **17:35** — **Página de login refeita no formato do modal de cadastro da LP.** Dark premium centralizado: card #0D1311 com glow verde sutil, logo PNG + wordmark "sonar.", inputs com focus verde, slide-to-verify estilizado, botão verde Sonar pill 10px. Link "Criar grátis →" pra LP (sonarcrm.com.br). Mantém action server `loginAction` intacto.
+
 - **17:20** — **Favicon + ícone do app trocados pelo hexágono verde (logo-verde2).** `app/icon.svg` e `app/apple-icon.svg` substituídos por PNG. `public/icons/logo-s-{180,192,512}.png` atualizados. PWA + tab do browser agora mostram hexágono S verde.
 
 - **17:10** — **Marca/logo refeita no formato aprovado da LP.** SonarLogo.tsx agora renderiza `<img src="/sonar-mark.png">` (S verde sólido) + wordmark "sonar." Poppins bold com ponto verde. Drop-shadow verde sutil. Mesmo formato da landing page `lp.sonarcrm.com.br`.
