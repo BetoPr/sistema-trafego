@@ -7,6 +7,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-26
 
+- **18:20** — **Cadastro automático LP→CRM + ciclo de vida de trial completo.**
+  - Migration `20260626180000_agencias_tipo_cliente_trial.sql`: agencias ganha `tipo_cliente` (empreendedor/autonomo/agencia), `trial_acaba_em`, `apagar_em`, `trial_avisado_em` + indexes pra cron.
+  - `lib/auth/trial.ts`: helpers — `calcularTrialAcabaEm()`, `calcularApagarEm()`, `isTrialExpirado()`, `diasRestantesTrial()`, `tipoClienteLabel()`. Empreendedor/Autônomo = 14d, Agência = 21d, 30d pra apagar.
+  - `app/api/signup/route.ts`: endpoint público (CORS LP+localhost) que cria agencia + auth user + usuario.admin. Rollback em falha. Recebe `{nome, email, whatsapp, password, perfil}`.
+  - `app/api/cron/trial-vencidos/route.ts`: cron diário (header `X-CRON-SECRET`) — bloqueia agencias com trial_acaba_em < now() + deleta agencias com apagar_em < now().
+  - `app/(auth)/cadastro/page.tsx`: tela 3-passos espelhando modal LP. Empreendedor/Agência/Autônomo com badges 14/21 dias.
+  - Super Admin Acessos: query agencias agora traz tipo_cliente + trial_acaba_em + apagar_em. Tipo `AgenciaCobranca` atualizado em `_cobrancas.tsx`.
+  - LP modal cadastro: JS chama `POST sonarcrm.com.br/api/signup` real, mostra erro do backend, redireciona pra /login?signup=ok.
+  - Robô RoboGuia ganhou 4 partículas azuis caindo nos propulsores (igual mascote da LP).
+
 - **17:50** — **Páginas legais /termos e /privacidade + fix login.** Criados `app/termos/page.tsx` e `app/privacidade/page.tsx` usando componente compartilhado `components/legal/LegalShell.tsx` (Server Components, Next 16). Mesma identidade dark premium das páginas estáticas da LP. Conteúdo LGPD completo: dados coletados, finalidade, compartilhamento (Supabase/Asaas/Groq/UAZAPI/WAHA/Meta/Google), direitos do titular, retenção, exclusão (trial expira → 30 dias → deleta). Termos com cláusulas de uso permitido, WhatsApp não oficial, IA, propriedade, foro Recife-PE. Fix login: removido radial-gradient esquisito do background, adicionado footer LGPD com links pra /termos e /privacidade.
 
 - **17:35** — **Página de login refeita no formato do modal de cadastro da LP.** Dark premium centralizado: card #0D1311 com glow verde sutil, logo PNG + wordmark "sonar.", inputs com focus verde, slide-to-verify estilizado, botão verde Sonar pill 10px. Link "Criar grátis →" pra LP (sonarcrm.com.br). Mantém action server `loginAction` intacto.

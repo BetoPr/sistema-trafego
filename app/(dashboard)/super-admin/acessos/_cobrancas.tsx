@@ -13,12 +13,15 @@ import {
 export interface AgenciaCobranca {
   id: string;
   nome: string;
+  tipo_cliente: "empreendedor" | "autonomo" | "agencia" | null;
   valor_mensal: number | null;
   vencimento_em: string | null;
   ultimo_pagamento_em: string | null;
   whatsapp_cobranca: string | null;
   cobranca_ativa: boolean;
   acesso_bloqueado: boolean;
+  trial_acaba_em: string | null;
+  apagar_em: string | null;
   ultima_cobranca_status: "enviada" | "falha" | "pulada" | null;
   ultima_cobranca_em: string | null;
 }

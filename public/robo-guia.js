@@ -109,6 +109,23 @@
       '<line x1="60" y1="34" x2="60" y2="25"/>' +
       '<g class="rg-flame" id="rg-flameL"><path d="M48,99 Q54,121 54,127 Q54,121 60,99 Z" fill="url(#rg-flmOut)" stroke="none" filter="url(#rg-flmBlur)"/><path d="M50.5,99 Q54,114 54,119 Q54,114 57.5,99 Z" fill="url(#rg-flmIn)" stroke="none"/></g>' +
       '<g class="rg-flame" id="rg-flameR"><path d="M60,99 Q66,121 66,127 Q66,121 72,99 Z" fill="url(#rg-flmOut)" stroke="none" filter="url(#rg-flmBlur)"/><path d="M62.5,99 Q66,114 66,119 Q66,114 69.5,99 Z" fill="url(#rg-flmIn)" stroke="none"/></g>' +
+      /* particulas de exaustao (4 circles azuis caindo, igual mascote da LP) */
+      '<circle cx="54" cy="125" r="1.6" fill="#bff0ff" stroke="none" opacity="0.85">' +
+        '<animate attributeName="cy" values="125;140" dur="0.9s" repeatCount="indefinite"/>' +
+        '<animate attributeName="opacity" values="0.85;0" dur="0.9s" repeatCount="indefinite"/>' +
+      '</circle>' +
+      '<circle cx="66" cy="125" r="1.6" fill="#bff0ff" stroke="none" opacity="0.85">' +
+        '<animate attributeName="cy" values="125;142" dur="1.1s" repeatCount="indefinite" begin="0.4s"/>' +
+        '<animate attributeName="opacity" values="0.85;0" dur="1.1s" repeatCount="indefinite" begin="0.4s"/>' +
+      '</circle>' +
+      '<circle cx="50" cy="125" r="1.2" fill="#5cd0ff" stroke="none" opacity="0.7">' +
+        '<animate attributeName="cy" values="125;144" dur="1.3s" repeatCount="indefinite" begin="0.7s"/>' +
+        '<animate attributeName="opacity" values="0.7;0" dur="1.3s" repeatCount="indefinite" begin="0.7s"/>' +
+      '</circle>' +
+      '<circle cx="70" cy="125" r="1.2" fill="#5cd0ff" stroke="none" opacity="0.7">' +
+        '<animate attributeName="cy" values="125;143" dur="1.2s" repeatCount="indefinite" begin="0.2s"/>' +
+        '<animate attributeName="opacity" values="0.7;0" dur="1.2s" repeatCount="indefinite" begin="0.2s"/>' +
+      '</circle>' +
       '<path d="M51,94 L57,94 L59,100 L49,100 Z"/><path d="M63,94 L69,94 L71,100 L61,100 Z"/>' +
       '<path id="rg-armL" class="rg-arm" d="M48,68 L35,86"/>' +
       '<path id="rg-armR" class="rg-arm" d="M72,68 L85,86"/>' +

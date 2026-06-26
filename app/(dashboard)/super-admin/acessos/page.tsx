@@ -34,7 +34,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
 
   const [{ data: usuarios }, { data: agencias }, { data: cobrancaConfig }, { data: canaisRaw }, { data: ultimasCobrancas }] = await Promise.all([
     sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, tipo_cliente, ultimo_login, ultimo_logout, created_at, deleted_at").order("nome"),
-    sb.from("agencias").select("id, nome, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado").order("nome"),
+    sb.from("agencias").select("id, nome, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado, trial_acaba_em, apagar_em").order("nome"),
     sb.from("super_admin_cobranca_config").select("canal_id, horario, template_texto, ativo").eq("id", 1).maybeSingle(),
     sb.from("canais").select("id, nome, numero_conectado, status, agencia_id").order("nome"),
     sb
@@ -62,12 +62,15 @@ export default async function AcessosPage({ searchParams }: PageProps) {
     return {
       id: a.id as string,
       nome: a.nome as string,
+      tipo_cliente: (a.tipo_cliente as "empreendedor" | "autonomo" | "agencia" | null) ?? null,
       valor_mensal: a.valor_mensal as number | null,
       vencimento_em: a.vencimento_em as string | null,
       ultimo_pagamento_em: a.ultimo_pagamento_em as string | null,
       whatsapp_cobranca: a.whatsapp_cobranca as string | null,
       cobranca_ativa: !!a.cobranca_ativa,
       acesso_bloqueado: !!a.acesso_bloqueado,
+      trial_acaba_em: a.trial_acaba_em as string | null,
+      apagar_em: a.apagar_em as string | null,
       ultima_cobranca_status: (u?.status as AgenciaCobranca["ultima_cobranca_status"]) || null,
       ultima_cobranca_em: u?.enviada_em || null,
     };
