@@ -59,12 +59,12 @@ function buildSections(role?: string): NavSection[] {
         { href: "/grupos", label: "Grupos", icon: "ti-users-group", guide: "nav-grupos" },
       ],
     },
-    // Tráfego (Ads) — visível só pra super_admin
-    ...(role === "super_admin"
+    // Tráfego (Meta Ads) — liberado pra admin + super_admin
+    ...(role === "admin" || role === "super_admin"
       ? [
           {
             id: "trafego",
-            label: "Tráfego (Ads)",
+            label: "Tráfego (Meta Ads)",
             icon: "ti-speakerphone",
             iconColor: "var(--mk-icon-purple)",
             items: [

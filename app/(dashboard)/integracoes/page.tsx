@@ -9,7 +9,6 @@ export default async function IntegracoesPage() {
     .eq("status", "ativa");
 
   const metaCount = integracoes?.filter((i) => i.plataforma === "meta_ads").length ?? 0;
-  const googleCount = integracoes?.filter((i) => i.plataforma === "google_ads").length ?? 0;
 
   return (
     <section className="mk-page">
@@ -32,17 +31,6 @@ export default async function IntegracoesPage() {
           href="/integracoes/meta"
           dificuldade="Fácil — ~5 min"
           complexidade="green"
-        />
-        <PlataformaCard
-          nome="Google Ads"
-          desc="Search, Display, YouTube e Discovery. Requer Developer Token (aprovação Google)."
-          icon="ti-brand-google"
-          iconBg="linear-gradient(135deg, #4285F4, #34A853)"
-          conectada={googleCount > 0}
-          contas={googleCount}
-          href="/integracoes/google"
-          dificuldade="Médio — 1-2 semanas (aprovação)"
-          complexidade="amber"
         />
       </div>
 
