@@ -28,17 +28,14 @@ export default function LoginPage() {
           <p style={subStyle}>Entre com suas credenciais para acessar o sistema.</p>
         </div>
 
-        <div style={bodyStyle}>
+        {/* FORM */}
+        <form action={formAction} style={bodyStyle}>
           <BtnGoogle texto="Entrar com Google" />
           <div style={dividerStyle}>
             <span style={dividerLine} />
             <span style={dividerTxt}>ou com email</span>
             <span style={dividerLine} />
           </div>
-        </div>
-
-        {/* FORM */}
-        <form action={formAction} style={{ ...bodyStyle, paddingTop: 0 }}>
           <div style={fieldStyle}>
             <label htmlFor="email" style={labelStyle}>Email</label>
             <input
@@ -93,7 +90,7 @@ export default function LoginPage() {
 
           <div style={footerStyle}>
             Ainda não tem conta?{" "}
-            <a href="https://sonarcrm.com.br" style={linkStyle}>
+            <a href="/cadastro" style={linkStyle}>
               Criar grátis →
             </a>
           </div>
