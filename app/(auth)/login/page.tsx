@@ -87,6 +87,12 @@ export default function LoginPage() {
               Criar grátis →
             </a>
           </div>
+
+          <div style={legalStyle}>
+            Ao entrar, você concorda com nossos{" "}
+            <a href="/termos" style={legalLinkStyle}>Termos</a> e{" "}
+            <a href="/privacidade" style={legalLinkStyle}>Política de Privacidade</a> (LGPD).
+          </div>
         </form>
       </div>
     </div>
@@ -102,8 +108,8 @@ const pageStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: 24,
-  backgroundImage:
-    "radial-gradient(circle at 20% 10%, rgba(0,225,154,0.06) 0%, transparent 30%), radial-gradient(circle at 80% 90%, rgba(0,225,154,0.04) 0%, transparent 30%)",
+  position: "relative",
+  overflow: "hidden",
 };
 
 const modalStyle: React.CSSProperties = {
@@ -231,6 +237,19 @@ const linkStyle: React.CSSProperties = {
   color: "#00E19A",
   fontWeight: 600,
   textDecoration: "none",
+};
+
+const legalStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: "#44504C",
+  textAlign: "center",
+  marginTop: 14,
+  lineHeight: 1.5,
+};
+
+const legalLinkStyle: React.CSSProperties = {
+  color: "#6B7A75",
+  textDecoration: "underline",
 };
 
 /* ---------------------- Slide-to-verify ---------------------- */

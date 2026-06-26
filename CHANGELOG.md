@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-26
 
+- **17:50** — **Páginas legais /termos e /privacidade + fix login.** Criados `app/termos/page.tsx` e `app/privacidade/page.tsx` usando componente compartilhado `components/legal/LegalShell.tsx` (Server Components, Next 16). Mesma identidade dark premium das páginas estáticas da LP. Conteúdo LGPD completo: dados coletados, finalidade, compartilhamento (Supabase/Asaas/Groq/UAZAPI/WAHA/Meta/Google), direitos do titular, retenção, exclusão (trial expira → 30 dias → deleta). Termos com cláusulas de uso permitido, WhatsApp não oficial, IA, propriedade, foro Recife-PE. Fix login: removido radial-gradient esquisito do background, adicionado footer LGPD com links pra /termos e /privacidade.
+
 - **17:35** — **Página de login refeita no formato do modal de cadastro da LP.** Dark premium centralizado: card #0D1311 com glow verde sutil, logo PNG + wordmark "sonar.", inputs com focus verde, slide-to-verify estilizado, botão verde Sonar pill 10px. Link "Criar grátis →" pra LP (sonarcrm.com.br). Mantém action server `loginAction` intacto.
 
 - **17:20** — **Favicon + ícone do app trocados pelo hexágono verde (logo-verde2).** `app/icon.svg` e `app/apple-icon.svg` substituídos por PNG. `public/icons/logo-s-{180,192,512}.png` atualizados. PWA + tab do browser agora mostram hexágono S verde.
