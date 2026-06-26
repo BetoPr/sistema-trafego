@@ -8,9 +8,14 @@
 #
 # .env (mesma pasta) precisa ter:
 #   WAHA_API_KEY=<uuid gerado: uuidgen | tr -d '-'>
-#   WAHA_DASHBOARD_USERNAME=admin
+#   WHATSAPP_SWAGGER_USERNAME=admin           # auth pra /api-docs (swagger)
+#   WHATSAPP_SWAGGER_PASSWORD=<senha forte>
+#   WAHA_DASHBOARD_USERNAME=admin             # auth pra /dashboard
 #   WAHA_DASHBOARD_PASSWORD=<senha forte>
 #   WAHA_POSTGRES_URL=postgresql://waha:<senha>@host.docker.internal:5432/waha_sessions
+#
+# WAHA 2026.6+ TEM 2 AUTHS SEPARADOS — swagger + dashboard. Setar AMBOS
+# senão WAHA gera senha nova a cada restart (loga no terminal).
 
 services:
   waha:
@@ -23,6 +28,8 @@ services:
     environment:
       # === Auth ===
       WAHA_API_KEY: ${WAHA_API_KEY}
+      WHATSAPP_SWAGGER_USERNAME: ${WHATSAPP_SWAGGER_USERNAME}
+      WHATSAPP_SWAGGER_PASSWORD: ${WHATSAPP_SWAGGER_PASSWORD}
       WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME}
       WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
 
@@ -38,13 +45,12 @@ services:
       # === Comportamento ===
       WHATSAPP_RESTART_ALL_SESSIONS: "true"
       WAHA_PRINT_QR: "false"
-      WHATSAPP_FILES_LIFETIME: "3600"  # mídias 1h (default 180s)
+      WHATSAPP_FILES_LIFETIME: "3600"
 
       # === Webhook retry config (override via session) ===
       WHATSAPP_HOOK_RETRIES_DELAY_SECONDS: "2"
       WHATSAPP_HOOK_RETRIES_ATTEMPTS: "5"
     volumes:
-      # Sessions persistidos em disco (WAHA usa Postgres mas mantém auth files local)
       - ./sessions:/app/.sessions
       - ./media:/tmp/whatsapp-files
     healthcheck:
@@ -54,5 +60,4 @@ services:
       retries: 3
       start_period: 60s
     extra_hosts:
-      # Pra Postgres rodando no host (não em outro container)
       - "host.docker.internal:host-gateway"
