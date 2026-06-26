@@ -98,7 +98,7 @@ function buildSections(role?: string): NavSection[] {
       iconColor: "#C97064",
       items: [
         { href: "/configuracoes/marca", label: "Marca / Logo", icon: "ti-photo", guide: "nav-marca" },
-        { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
+        { href: "/super-admin/servidores", label: "Servidores", icon: "ti-server" },
         { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
         { href: "/super-admin/acessos", label: "Acessos", icon: "ti-shield-lock" },
       ],

@@ -5,6 +5,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-26
+
+- **00:10** — **Renomeia "Servidores UAZAPI"/"Instâncias UAZAPI" → "Servidores"/"Instâncias".** Com o suporte multi-provider (UAZAPI + WAHA, futuramente API Oficial/Instagram/Telegram), a seção passa a ser genérica. Sidebar, command palette e títulos de página atualizados.
+
+---
+
 ## 2026-06-25
 
 - **17:26** — **RoboGuia spotlight + step explicativo central + drawer 360px.**

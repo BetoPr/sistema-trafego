@@ -11,7 +11,7 @@ export default function Loading() {
     <section className="mk-page">
       <div className="mk-page-head">
         <div className="mk-eyebrow" style={{ color: "#C97064" }}>Super Admin · Acesso exclusivo</div>
-        <h1 className="mk-page-title">Instâncias UAZAPI</h1>
+        <h1 className="mk-page-title">Instâncias</h1>
         <p className="mk-page-sub">Carregando instâncias dos servidores…</p>
       </div>
 

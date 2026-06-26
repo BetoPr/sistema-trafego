@@ -49,9 +49,9 @@ export default async function ServidoresPage({ searchParams }: PageProps) {
           Voltar ao dashboard
         </Link>
         <div className="mk-eyebrow" style={{ color: "#C97064" }}>Super Admin · Acesso exclusivo</div>
-        <h1 className="mk-page-title">Servidores UAZAPI</h1>
+        <h1 className="mk-page-title">Servidores</h1>
         <p className="mk-page-sub">
-          Cadastre os servidores UAZAPI usados pelo sistema. Apenas Super Admin enxerga essa tela.
+          Cadastre os servidores de WhatsApp (UAZAPI, WAHA e outros) usados pelo sistema. Apenas Super Admin enxerga essa tela.
           Admin token fica criptografado at-rest.
         </p>
       </div>

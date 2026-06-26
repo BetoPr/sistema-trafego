@@ -60,7 +60,7 @@ function buildItems(role?: string): PaletteItem[] {
   ]);
   if (role === "super_admin") {
     push("Super Admin", "#C97064", [
-      { href: "/super-admin/servidores", label: "Servidores UAZAPI", icon: "ti-server" },
+      { href: "/super-admin/servidores", label: "Servidores", icon: "ti-server" },
       { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
     ]);
   }

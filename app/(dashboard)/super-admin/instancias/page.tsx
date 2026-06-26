@@ -42,7 +42,7 @@ export default async function InstanciasPage({ searchParams }: PageProps) {
           <i className="ti ti-arrow-left" /> Servidores
         </Link>
         <div className="mk-eyebrow" style={{ color: "#C97064" }}>Super Admin · Acesso exclusivo</div>
-        <h1 className="mk-page-title">Instâncias UAZAPI</h1>
+        <h1 className="mk-page-title">Instâncias</h1>
         <p className="mk-page-sub">
           Veja todas as instâncias dos seus servidores. Marque como <strong>favoritas</strong> as que mais usa, ou esconda
           as que não interessam pra não poluir a lista.
