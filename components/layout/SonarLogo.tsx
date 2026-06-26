@@ -1,7 +1,7 @@
 /**
- * SonarLogo — brand oficial Sonar:
- * - Símbolo: hexágono outline verde + letra "S" verde estilizada + bolhinhas decorativas
- * - Wordmark: "sonar." (so branco · nar. verde)
+ * SonarLogo — brand oficial Sonar (formato LP aprovado pelo Roberto, 26/06):
+ * - Símbolo: PNG do S verde sólido (`/sonar-mark.png`), com leve drop-shadow verde
+ * - Wordmark: "sonar." em Poppins bold, ponto verde de assinatura
  * - Cor accent: #00E19A
  *
  * Uso:
@@ -11,45 +11,6 @@
 import type { CSSProperties } from "react";
 
 const ACCENT = "#00E19A";
-
-function SonarMark({ size = 32 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      aria-hidden="true"
-      style={{ flex: "none" }}
-    >
-      {/* Hexágono outline */}
-      <polygon
-        points="50,4 91.5,27 91.5,73 50,96 8.5,73 8.5,27"
-        fill="none"
-        stroke={ACCENT}
-        strokeWidth={4}
-        strokeLinejoin="round"
-      />
-      {/* Letra S estilizada — fonte bold em verde */}
-      <text
-        x="50"
-        y="74"
-        textAnchor="middle"
-        fontFamily="Inter, system-ui, -apple-system, sans-serif"
-        fontSize="64"
-        fontWeight={900}
-        fontStyle="italic"
-        fill={ACCENT}
-        style={{ letterSpacing: "-0.04em" }}
-      >
-        S
-      </text>
-      {/* Bolhinhas decorativas (splash effect) */}
-      <circle cx={70} cy={36} r={3} fill={ACCENT} />
-      <circle cx={75} cy={42} r={1.6} fill={ACCENT} />
-    </svg>
-  );
-}
 
 export interface SonarLogoProps {
   collapsed?: boolean;
@@ -70,23 +31,40 @@ export default function SonarLogo({
   letterColor = "#fff",
   frameHeight,
 }: SonarLogoProps) {
-  const markSize = Math.round(fontSize * 1.6);
+  const markSize = Math.round(fontSize * 2);
 
   const wordmarkStyle: CSSProperties = {
     fontSize,
-    fontWeight: 800,
+    fontWeight: 700,
     letterSpacing: "-0.04em",
     lineHeight: 1,
     fontFamily: "inherit",
+    color: letterColor,
   };
 
+  const markImg = (
+    <img
+      src="/sonar-mark.png"
+      alt="Sonar"
+      width={markSize}
+      height={markSize}
+      style={{
+        height: markSize,
+        width: "auto",
+        marginRight: collapsed ? 0 : -Math.round(fontSize * 0.25),
+        filter: `drop-shadow(0 0 8px ${ACCENT}40)`,
+        flex: "none",
+      }}
+    />
+  );
+
   const content = collapsed ? (
-    <SonarMark size={markSize} />
+    markImg
   ) : (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: Math.round(fontSize * 0.4) }}>
-      <SonarMark size={markSize} />
-      <span style={{ ...wordmarkStyle, color: letterColor }}>
-        so<span style={{ color: ACCENT }}>nar.</span>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 0 }}>
+      {markImg}
+      <span style={wordmarkStyle}>
+        sonar<span style={{ color: ACCENT }}>.</span>
       </span>
     </span>
   );

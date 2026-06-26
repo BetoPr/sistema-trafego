@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-26
 
+- **17:10** — **Marca/logo refeita no formato aprovado da LP.** SonarLogo.tsx agora renderiza `<img src="/sonar-mark.png">` (S verde sólido) + wordmark "sonar." Poppins bold com ponto verde. Drop-shadow verde sutil. Mesmo formato da landing page `lp.sonarcrm.com.br`.
+
 - **00:10** — **Renomeia "Servidores UAZAPI"/"Instâncias UAZAPI" → "Servidores"/"Instâncias".** Com o suporte multi-provider (UAZAPI + WAHA, futuramente API Oficial/Instagram/Telegram), a seção passa a ser genérica. Sidebar, command palette e títulos de página atualizados.
 
 ---
