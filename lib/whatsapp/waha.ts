@@ -143,8 +143,37 @@ export const WahaProvider: WhatsAppProvider = {
   async connect(inst, _opts): Promise<ConnectResult> {
     // WAHA: ao criar session com start:true ela já entra em SCAN_QR_CODE.
     // QR é obtido via GET /api/sessions/{name}/auth/qr (PNG ou base64).
+    // Se session FAILED ou STOPPED (QR expirou sem scan), restart antes.
     if (!inst.sessionName) throw new Error("WAHA connect: sessionName obrigatório");
-    // Pega QR como base64 (formato image)
+
+    // 1) Checa status atual. Se FAILED/STOPPED, restart pra regenerar QR.
+    try {
+      const st = await call(inst.baseUrl, `/api/sessions/${inst.sessionName}`, {
+        method: "GET",
+        apiKey: inst.token,
+      }) as { status?: string };
+      const norm = (st.status || "").toUpperCase();
+      if (norm === "FAILED" || norm === "STOPPED") {
+        await call(inst.baseUrl, `/api/sessions/${inst.sessionName}/restart`, {
+          method: "POST",
+          apiKey: inst.token,
+          body: {},
+        }).catch(async () => {
+          // Algumas versões WAHA usam /start em vez de /restart
+          await call(inst.baseUrl, `/api/sessions/${inst.sessionName}/start`, {
+            method: "POST",
+            apiKey: inst.token,
+            body: {},
+          });
+        });
+        // Aguarda baileys gerar novo QR
+        await new Promise((res) => setTimeout(res, 2500));
+      }
+    } catch {
+      // Status check falhou — segue tentando QR mesmo assim
+    }
+
+    // 2) Pega QR como base64 (formato image)
     const r = await call(inst.baseUrl, `/api/${inst.sessionName}/auth/qr?format=image`, {
       method: "GET",
       apiKey: inst.token,
