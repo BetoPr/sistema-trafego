@@ -1,0 +1,58 @@
+# WAHA — WhatsApp HTTP API self-hosted.
+# Roda na VPS Hostinger ao lado do pm2 sonar.
+# Acesso público via Nginx em https://waha.sonarcrm.com.br
+#
+# Engine: NOWEB (escala bem, menos RAM que WEBJS).
+# Store: Postgres local (compartilhado com Sonar) → histórico de mensagens.
+# Mídia: TTL 3600s (1h) — quem precisa baixa pro bucket Supabase no webhook.
+#
+# .env (mesma pasta) precisa ter:
+#   WAHA_API_KEY=<uuid gerado: uuidgen | tr -d '-'>
+#   WAHA_DASHBOARD_USERNAME=admin
+#   WAHA_DASHBOARD_PASSWORD=<senha forte>
+#   WAHA_POSTGRES_URL=postgresql://waha:<senha>@host.docker.internal:5432/waha_sessions
+
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha
+    restart: unless-stopped
+    ports:
+      # Bind localhost — Nginx faz proxy reverso público via 443.
+      - "127.0.0.1:3001:3000"
+    environment:
+      # === Auth ===
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+
+      # === Engine ===
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+
+      # === Store (histórico mensagens via Postgres) ===
+      WAHA_BASE_URL: https://waha.sonarcrm.com.br
+      WHATSAPP_NOWEB_STORE_ENABLED: "true"
+      WHATSAPP_NOWEB_STORE_FULL_SYNC: "false"
+      WHATSAPP_SESSIONS_POSTGRESQL_URL: ${WAHA_POSTGRES_URL}
+
+      # === Comportamento ===
+      WHATSAPP_RESTART_ALL_SESSIONS: "true"
+      WAHA_PRINT_QR: "false"
+      WHATSAPP_FILES_LIFETIME: "3600"  # mídias 1h (default 180s)
+
+      # === Webhook retry config (override via session) ===
+      WHATSAPP_HOOK_RETRIES_DELAY_SECONDS: "2"
+      WHATSAPP_HOOK_RETRIES_ATTEMPTS: "5"
+    volumes:
+      # Sessions persistidos em disco (WAHA usa Postgres mas mantém auth files local)
+      - ./sessions:/app/.sessions
+      - ./media:/tmp/whatsapp-files
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:3000/api/sessions"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    extra_hosts:
+      # Pra Postgres rodando no host (não em outro container)
+      - "host.docker.internal:host-gateway"
