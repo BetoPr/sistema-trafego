@@ -4,7 +4,11 @@ import { createServerClient } from "@supabase/ssr";
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
+  "/cadastro",
+  "/auth", // /auth/callback do OAuth — handler cria sessão antes de redirecionar
   "/oauth",
+  "/termos",
+  "/privacidade",
   "/api", // todas API routes — cada handler valida sua própria auth
   // (webhooks via secret no path, cron via Bearer header, user routes via getUser)
   "/_next",
