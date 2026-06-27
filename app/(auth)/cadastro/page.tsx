@@ -136,6 +136,10 @@ export default function CadastroPage() {
               >
                 Continuar <i className="ti ti-arrow-right" />
               </button>
+              <div style={loginLinkWrap}>
+                Já tem uma conta?{" "}
+                <a href="/login" style={loginLinkBtn}>Faça o login aqui</a>
+              </div>
             </>
           )}
 
@@ -192,8 +196,12 @@ export default function CadastroPage() {
                   <i className="ti ti-arrow-left" /> Voltar
                 </button>
                 <button type="submit" disabled={enviando} style={{ ...btnPrimaryStyle, flex: 1, opacity: enviando ? 0.6 : 1 }}>
-                  {enviando ? "Criando..." : "Criar conta"} {!enviando && <i className="ti ti-arrow-right" />}
+                  {enviando ? "Criando..." : "Criar acesso gratuito"}
                 </button>
+              </div>
+              <div style={loginLinkWrap}>
+                Já tem uma conta?{" "}
+                <a href="/login" style={loginLinkBtn}>Faça o login aqui</a>
               </div>
 
               <div style={tosStyle}>
@@ -416,6 +424,19 @@ const btnSecondaryStyle: React.CSSProperties = {
 };
 const tosStyle: React.CSSProperties = { fontSize: 11, color: "#6B7A75", textAlign: "center", lineHeight: 1.5, marginTop: 4 };
 const tosLink: React.CSSProperties = { color: "#00E19A", textDecoration: "underline" };
+const loginLinkWrap: React.CSSProperties = {
+  textAlign: "center",
+  fontSize: 13,
+  color: "#A6B0AC",
+  marginTop: 16,
+  paddingTop: 16,
+  borderTop: "1px solid #1F2926",
+};
+const loginLinkBtn: React.CSSProperties = {
+  color: "#00E19A",
+  fontWeight: 700,
+  textDecoration: "none",
+};
 const checkStyle: React.CSSProperties = {
   width: 84,
   height: 84,
