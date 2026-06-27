@@ -125,8 +125,7 @@ export default function LoginPage() {
 
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
-  background:
-    "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,225,154,0.18) 0%, rgba(0,225,154,0.08) 35%, #060A08 75%), #060A08",
+  background: "#060A08",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
