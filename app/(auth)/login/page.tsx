@@ -137,15 +137,15 @@ const pageStyle: React.CSSProperties = {
 const modalStyle: React.CSSProperties = {
   background: "#0D1311",
   border: "1px solid #2A3530",
-  borderRadius: 22,
-  maxWidth: 460,
+  borderRadius: 18,
+  maxWidth: 380,
   width: "100%",
-  boxShadow: "0 24px 64px rgba(0,0,0,0.6), 0 0 80px rgba(0,225,154,0.10)",
+  boxShadow: "0 20px 48px rgba(0,0,0,0.6), 0 0 60px rgba(0,225,154,0.08)",
   overflow: "hidden",
 };
 
 const headStyle: React.CSSProperties = {
-  padding: "32px 32px 8px",
+  padding: "22px 22px 6px",
   textAlign: "center",
 };
 
@@ -153,53 +153,53 @@ const brandStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 0,
-  marginBottom: 18,
+  marginBottom: 12,
 };
 
 const brandLogoStyle: React.CSSProperties = {
-  height: 56,
+  height: 40,
   width: "auto",
-  marginRight: -8,
-  filter: "drop-shadow(0 0 8px rgba(0,225,154,0.35))",
+  marginRight: -6,
+  filter: "drop-shadow(0 0 6px rgba(0,225,154,0.35))",
 };
 
 const brandWordmarkStyle: React.CSSProperties = {
-  fontSize: 28,
+  fontSize: 20,
   fontWeight: 700,
-  letterSpacing: "-1px",
+  letterSpacing: "-0.8px",
   color: "#F0F5F2",
   lineHeight: 1,
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 24,
+  fontSize: 18,
   fontWeight: 700,
-  letterSpacing: "-0.6px",
+  letterSpacing: "-0.4px",
   color: "#F0F5F2",
-  marginBottom: 6,
+  marginBottom: 4,
 };
 
 const subStyle: React.CSSProperties = {
-  fontSize: 14,
+  fontSize: 12,
   color: "#A6B0AC",
-  marginBottom: 24,
+  marginBottom: 16,
 };
 
 const bodyStyle: React.CSSProperties = {
-  padding: "0 32px 32px",
+  padding: "0 22px 22px",
   display: "flex",
   flexDirection: "column",
-  gap: 14,
+  gap: 10,
 };
 
 const fieldStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 6,
+  gap: 4,
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 600,
   color: "#A6B0AC",
   letterSpacing: "0.3px",
@@ -207,23 +207,23 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   fontFamily: "inherit",
-  fontSize: 14,
-  padding: "12px 14px",
+  fontSize: 13,
+  padding: "9px 12px",
   background: "#11181A",
   border: "1.5px solid #1F2926",
-  borderRadius: 10,
+  borderRadius: 9,
   color: "#F0F5F2",
   outline: "none",
   transition: "border-color 200ms ease, background 200ms ease",
 };
 
 const errorStyle: React.CSSProperties = {
-  fontSize: 13,
+  fontSize: 12,
   color: "#FF5C72",
   background: "rgba(255,92,114,0.10)",
   border: "1px solid rgba(255,92,114,0.30)",
-  padding: "10px 14px",
-  borderRadius: 10,
+  padding: "8px 12px",
+  borderRadius: 9,
   display: "flex",
   alignItems: "center",
   lineHeight: 1.4,
@@ -233,26 +233,26 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
+  gap: 6,
   fontWeight: 600,
-  fontSize: 15,
-  padding: "13px 24px",
+  fontSize: 13,
+  padding: "10px 18px",
   background: "#00E19A",
   color: "#060A08",
   border: "1px solid #00E19A",
-  borderRadius: 10,
-  minHeight: 48,
-  marginTop: 4,
-  boxShadow: "0 4px 16px rgba(0,225,154,0.18)",
+  borderRadius: 9,
+  minHeight: 40,
+  marginTop: 2,
+  boxShadow: "0 3px 12px rgba(0,225,154,0.18)",
   transition: "all 200ms ease",
   fontFamily: "inherit",
 };
 
 const footerStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 11,
   color: "#6B7A75",
   textAlign: "center",
-  marginTop: 10,
+  marginTop: 8,
 };
 
 const linkStyle: React.CSSProperties = {
@@ -262,10 +262,10 @@ const linkStyle: React.CSSProperties = {
 };
 
 const legalStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 10,
   color: "#44504C",
   textAlign: "center",
-  marginTop: 14,
+  marginTop: 10,
   lineHeight: 1.5,
 };
 
@@ -311,15 +311,15 @@ const btnGoogleStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 10,
+  gap: 8,
   width: "100%",
-  padding: "12px 16px",
+  padding: "9px 14px",
   background: "#F0F5F2",
   color: "#1F1F1F",
   border: "1px solid #2A3530",
-  borderRadius: 10,
+  borderRadius: 9,
   fontWeight: 600,
-  fontSize: 14,
+  fontSize: 13,
   cursor: "pointer",
   fontFamily: "inherit",
   transition: "background 200ms ease, transform 200ms ease",
@@ -391,8 +391,8 @@ function SlideToVerify({ verificado, onVerificar }: { verificado: boolean; onVer
         ref={trackRef}
         style={{
           position: "relative",
-          height: 44,
-          borderRadius: 10,
+          height: 36,
+          borderRadius: 9,
           background: "#11181A",
           border: "1.5px solid #1F2926",
           overflow: "hidden",

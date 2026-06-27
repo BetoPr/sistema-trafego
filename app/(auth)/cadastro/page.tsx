@@ -152,7 +152,7 @@ export default function CadastroPage() {
                 <span style={dividerTxtCad}>ou com email</span>
                 <span style={dividerLineCad} />
               </div>
-            <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={fieldStyle}>
                 <label style={labelStyle}>Nome completo</label>
                 <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome" style={inputStyle} required />
@@ -270,21 +270,21 @@ const btnGoogleStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 10,
+  gap: 8,
   width: "100%",
-  padding: "12px 16px",
+  padding: "9px 14px",
   background: "#F0F5F2",
   color: "#1F1F1F",
   border: "1px solid #2A3530",
-  borderRadius: 10,
+  borderRadius: 9,
   fontWeight: 600,
-  fontSize: 14,
+  fontSize: 13,
   cursor: "pointer",
   fontFamily: "inherit",
 };
-const dividerWrap: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, margin: "16px 0 8px" };
+const dividerWrap: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, margin: "12px 0 6px" };
 const dividerLineCad: React.CSSProperties = { flex: 1, height: 1, background: "#1F2926" };
-const dividerTxtCad: React.CSSProperties = { color: "#6B7A75", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 500 };
+const dividerTxtCad: React.CSSProperties = { color: "#6B7A75", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, fontWeight: 500 };
 
 // ---------- Styles ----------
 const pageStyle: React.CSSProperties = {
@@ -298,47 +298,47 @@ const pageStyle: React.CSSProperties = {
 const modalStyle: React.CSSProperties = {
   background: "#0D1311",
   border: "1px solid #2A3530",
-  borderRadius: 22,
-  maxWidth: 540,
+  borderRadius: 18,
+  maxWidth: 400,
   width: "100%",
-  boxShadow: "0 24px 64px rgba(0,0,0,0.6), 0 0 80px rgba(0,225,154,0.10)",
+  boxShadow: "0 20px 48px rgba(0,0,0,0.6), 0 0 60px rgba(0,225,154,0.08)",
   overflow: "hidden",
 };
-const headStyle: React.CSSProperties = { padding: "32px 32px 0", textAlign: "center" };
+const headStyle: React.CSSProperties = { padding: "22px 22px 0", textAlign: "center" };
 const brandStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 0,
-  marginBottom: 18,
+  marginBottom: 12,
 };
 const brandLogoStyle: React.CSSProperties = {
-  height: 56,
+  height: 40,
   width: "auto",
-  marginRight: -8,
-  filter: "drop-shadow(0 0 8px rgba(0,225,154,0.35))",
+  marginRight: -6,
+  filter: "drop-shadow(0 0 6px rgba(0,225,154,0.35))",
 };
 const brandWordmarkStyle: React.CSSProperties = {
-  fontSize: 28,
+  fontSize: 20,
   fontWeight: 700,
-  letterSpacing: "-1px",
+  letterSpacing: "-0.8px",
   color: "#F0F5F2",
 };
-const titleStyle: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: "#F0F5F2", marginBottom: 6 };
-const subStyle: React.CSSProperties = { fontSize: 14, color: "#A6B0AC", marginBottom: 20 };
-const stepsStyle: React.CSSProperties = { display: "flex", gap: 6, justifyContent: "center", padding: "0 32px", marginBottom: 24 };
-const dotStyle: React.CSSProperties = { width: 32, height: 4, borderRadius: 2, background: "#11181A" };
+const titleStyle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: "#F0F5F2", marginBottom: 4 };
+const subStyle: React.CSSProperties = { fontSize: 12, color: "#A6B0AC", marginBottom: 14 };
+const stepsStyle: React.CSSProperties = { display: "flex", gap: 5, justifyContent: "center", padding: "0 22px", marginBottom: 18 };
+const dotStyle: React.CSSProperties = { width: 26, height: 3, borderRadius: 2, background: "#11181A" };
 const dotActive: React.CSSProperties = { background: "#00E19A" };
-const bodyStyle: React.CSSProperties = { padding: "0 32px 32px" };
-const miniLeadStyle: React.CSSProperties = { fontSize: 13, color: "#A6B0AC", textAlign: "center", marginBottom: 18 };
-const perfilGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr", gap: 10 };
+const bodyStyle: React.CSSProperties = { padding: "0 22px 22px" };
+const miniLeadStyle: React.CSSProperties = { fontSize: 12, color: "#A6B0AC", textAlign: "center", marginBottom: 12 };
+const perfilGrid: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr", gap: 8 };
 const perfilOpt: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 14,
-  padding: "16px 18px",
+  gap: 10,
+  padding: "11px 13px",
   background: "#11181A",
   border: "1.5px solid #1F2926",
-  borderRadius: 14,
+  borderRadius: 11,
   cursor: "pointer",
   width: "100%",
   textAlign: "left",
@@ -350,46 +350,46 @@ const perfilOptSelected: React.CSSProperties = {
   background: "rgba(0,225,154,0.10)",
 };
 const perfilIco: React.CSSProperties = {
-  width: 44,
-  height: 44,
-  borderRadius: 11,
+  width: 34,
+  height: 34,
+  borderRadius: 9,
   background: "rgba(0,225,154,0.10)",
   border: "1px solid rgba(0,225,154,0.25)",
   color: "#00E19A",
   display: "grid",
   placeItems: "center",
-  fontSize: 22,
+  fontSize: 17,
   flexShrink: 0,
 };
-const perfilName: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: "#F0F5F2" };
-const perfilDesc: React.CSSProperties = { fontSize: 12, color: "#6B7A75", marginTop: 2 };
+const perfilName: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#F0F5F2" };
+const perfilDesc: React.CSSProperties = { fontSize: 11, color: "#6B7A75", marginTop: 1 };
 const perfilTrial: React.CSSProperties = {
   background: "#00E19A",
   color: "#060A08",
-  padding: "3px 10px",
-  borderRadius: 12,
-  fontSize: 10,
+  padding: "2px 8px",
+  borderRadius: 10,
+  fontSize: 9,
   fontWeight: 700,
 };
-const fieldStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6 };
-const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "#A6B0AC" };
+const fieldStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4 };
+const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#A6B0AC" };
 const inputStyle: React.CSSProperties = {
   fontFamily: "inherit",
-  fontSize: 14,
-  padding: "12px 14px",
+  fontSize: 13,
+  padding: "9px 12px",
   background: "#11181A",
   border: "1.5px solid #1F2926",
-  borderRadius: 10,
+  borderRadius: 9,
   color: "#F0F5F2",
   outline: "none",
 };
 const errorStyle: React.CSSProperties = {
-  fontSize: 13,
+  fontSize: 12,
   color: "#FF5C72",
   background: "rgba(255,92,114,0.10)",
   border: "1px solid rgba(255,92,114,0.30)",
-  padding: "10px 14px",
-  borderRadius: 10,
+  padding: "8px 12px",
+  borderRadius: 9,
   display: "flex",
   alignItems: "center",
 };
@@ -397,39 +397,39 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
+  gap: 6,
   fontWeight: 600,
-  fontSize: 14,
-  padding: "13px 24px",
+  fontSize: 13,
+  padding: "10px 18px",
   background: "#00E19A",
   color: "#060A08",
   border: "1px solid #00E19A",
-  borderRadius: 10,
+  borderRadius: 9,
   fontFamily: "inherit",
 };
 const btnSecondaryStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
+  gap: 6,
   fontWeight: 600,
-  fontSize: 14,
-  padding: "13px 24px",
+  fontSize: 13,
+  padding: "10px 18px",
   background: "transparent",
   color: "#A6B0AC",
   border: "1.5px solid #2A3530",
-  borderRadius: 10,
+  borderRadius: 9,
   cursor: "pointer",
   fontFamily: "inherit",
 };
-const tosStyle: React.CSSProperties = { fontSize: 11, color: "#6B7A75", textAlign: "center", lineHeight: 1.5, marginTop: 4 };
+const tosStyle: React.CSSProperties = { fontSize: 10, color: "#6B7A75", textAlign: "center", lineHeight: 1.5, marginTop: 3 };
 const tosLink: React.CSSProperties = { color: "#00E19A", textDecoration: "underline" };
 const loginLinkWrap: React.CSSProperties = {
   textAlign: "center",
-  fontSize: 13,
+  fontSize: 12,
   color: "#A6B0AC",
-  marginTop: 16,
-  paddingTop: 16,
+  marginTop: 12,
+  paddingTop: 12,
   borderTop: "1px solid #1F2926",
 };
 const loginLinkBtn: React.CSSProperties = {
