@@ -62,7 +62,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
     return {
       id: a.id as string,
       nome: a.nome as string,
-      tipo_cliente: (a.tipo_cliente as "empreendedor" | "autonomo" | "agencia" | null) ?? null,
+      tipo_cliente: (a.tipo_cliente as "autonomo" | "agencia" | null) ?? null,
       valor_mensal: a.valor_mensal as number | null,
       vencimento_em: a.vencimento_em as string | null,
       ultimo_pagamento_em: a.ultimo_pagamento_em as string | null,

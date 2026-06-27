@@ -1,19 +1,20 @@
 /**
  * Helpers de trial e ciclo de vida de agencias.
  *
- * Politica de trial (decisao Roberto 2026-06-26):
- *   - empreendedor: 14 dias
- *   - autonomo:     14 dias
- *   - agencia:      21 dias
+ * Politica de trial (decisao Roberto 2026-06-27):
+ *   - autonomo: 14 dias
+ *   - agencia:  21 dias
+ *
+ * "empreendedor" foi removido do produto. Linhas legadas em agencias com
+ * tipo_cliente='empreendedor' sao tratadas como 'autonomo' em labels.
  *
  * Apos trial_acaba_em sem pagamento: acesso_bloqueado = true (login bloqueia).
  * Apos apagar_em (trial_acaba_em + 30d): agencia deletada do banco.
  */
 
-export type TipoCliente = "empreendedor" | "autonomo" | "agencia";
+export type TipoCliente = "autonomo" | "agencia";
 
 export const TRIAL_DIAS_POR_TIPO: Record<TipoCliente, number> = {
-  empreendedor: 14,
   autonomo: 14,
   agencia: 21,
 };
@@ -57,7 +58,6 @@ export function diasRestantesTrial(trialAcabaEm: string | Date | null, agora: Da
 export function tipoClienteLabel(tipo: TipoCliente | string | null): string {
   switch (tipo) {
     case "empreendedor":
-      return "Empreendedor";
     case "autonomo":
       return "Autônomo";
     case "agencia":

@@ -13,7 +13,7 @@ import {
 export interface AgenciaCobranca {
   id: string;
   nome: string;
-  tipo_cliente: "empreendedor" | "autonomo" | "agencia" | null;
+  tipo_cliente: "autonomo" | "agencia" | null;
   valor_mensal: number | null;
   vencimento_em: string | null;
   ultimo_pagamento_em: string | null;

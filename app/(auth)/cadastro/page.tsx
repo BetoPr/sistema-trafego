@@ -10,7 +10,7 @@ import { ForcaSenha, validarSenhaForte } from "../_password-strength";
  * Passo 2: nome / email / whatsapp / senha
  * Passo 3: sucesso + redirect /login
  */
-type Perfil = "empreendedor" | "agencia" | "autonomo";
+type Perfil = "agencia" | "autonomo";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -25,12 +25,10 @@ export default function CadastroPage() {
   const [enviando, setEnviando] = useState(false);
 
   const trialDias: Record<Perfil, number> = {
-    empreendedor: 14,
     agencia: 21,
     autonomo: 14,
   };
   const perfilLabel: Record<Perfil, string> = {
-    empreendedor: "Empreendedor",
     agencia: "Agência",
     autonomo: "Autônomo",
   };
@@ -83,8 +81,29 @@ export default function CadastroPage() {
 
   return (
     <div style={pageStyle}>
-      <div style={modalStyle}>
-        <div style={headStyle}>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; max-height: 0; transform: translateY(-6px); }
+          to { opacity: 1; max-height: 400px; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.94); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .modal-in { animation: scaleIn 360ms ease both; }
+        .head-in { animation: fadeUp 360ms ease 60ms both; }
+        .steps-in { animation: fadeUp 360ms ease 140ms both; }
+      `}</style>
+      <div style={modalStyle} className="modal-in">
+        <div style={headStyle} className="head-in">
           <div style={brandStyle}>
             <img src="/sonar-mark.png" alt="Sonar" style={brandLogoStyle} />
             <span style={brandWordmarkStyle}>
@@ -92,10 +111,9 @@ export default function CadastroPage() {
             </span>
           </div>
           <h1 style={titleStyle}>Crie sua conta grátis</h1>
-          <p style={subStyle}>14 dias de trial · sem cartão · cancela quando quiser.</p>
         </div>
 
-        <div style={stepsStyle}>
+        <div style={stepsStyle} className="steps-in">
           <span style={{ ...dotStyle, ...(passo >= 1 ? dotActive : {}) }} />
           <span style={{ ...dotStyle, ...(passo >= 2 ? dotActive : {}) }} />
           <span style={{ ...dotStyle, ...(passo >= 3 ? dotActive : {}) }} />
@@ -111,7 +129,7 @@ export default function CadastroPage() {
                 <strong style={{ color: "#F0F5F2" }}>Você é?</strong>
               </p>
               <div style={perfilGrid}>
-                {(["empreendedor", "agencia", "autonomo"] as Perfil[]).map((p) => (
+                {(["agencia", "autonomo"] as Perfil[]).map((p, i) => (
                   <button
                     key={p}
                     type="button"
@@ -119,17 +137,16 @@ export default function CadastroPage() {
                     style={{
                       ...perfilOpt,
                       ...(perfil === p ? perfilOptSelected : {}),
+                      animation: `fadeUp 360ms ease ${i * 80}ms both`,
                     }}
                   >
                     <div style={perfilIco}>
-                      <i className={`ti ${p === "empreendedor" ? "ti-user" : p === "agencia" ? "ti-building" : "ti-briefcase"}`} />
+                      <i className={`ti ${p === "agencia" ? "ti-building" : "ti-briefcase"}`} />
                     </div>
                     <div style={{ flex: 1, textAlign: "left" }}>
                       <div style={perfilName}>{perfilLabel[p]}</div>
                       <div style={perfilDesc}>
-                        {p === "empreendedor"
-                          ? "Vende sozinho ou com 1-2 ajudantes"
-                          : p === "agencia"
+                        {p === "agencia"
                           ? "Atende múltiplos clientes + time comercial"
                           : "Profissional liberal, consultor"}
                       </div>

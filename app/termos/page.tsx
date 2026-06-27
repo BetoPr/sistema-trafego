@@ -34,10 +34,9 @@ export default function TermosPage() {
           Para utilizar a plataforma é necessário criar uma conta informando dados verídicos. Você é
           responsável por manter as credenciais em sigilo e por todas as atividades realizadas com sua conta.
         </P>
-        <P>Ao se cadastrar, você escolhe um dos três perfis disponíveis:</P>
+        <P>Ao se cadastrar, você escolhe um dos perfis disponíveis:</P>
         <Lista
           items={[
-            <><b>Empreendedor</b> — 14 dias de trial gratuito</>,
             <><b>Autônomo</b> — 14 dias de trial gratuito</>,
             <><b>Agência</b> — 21 dias de trial gratuito</>,
           ]}

@@ -20,7 +20,7 @@ import {
   type TipoCliente,
 } from "@/lib/auth/trial";
 
-const PERFIS_VALIDOS: TipoCliente[] = ["empreendedor", "autonomo", "agencia"];
+const PERFIS_VALIDOS: TipoCliente[] = ["autonomo", "agencia"];
 
 function corsHeaders(origin: string | null) {
   // Lista permissiva: LP standalone (sonarcrm.com.br, lp.sonarcrm.com.br) + dev local.

@@ -282,7 +282,7 @@ const legalLinkStyle: React.CSSProperties = {
 };
 
 /* ---------------------- Botão Google OAuth ---------------------- */
-function BtnGoogle({ texto, perfil }: { texto: string; perfil?: "empreendedor" | "agencia" | "autonomo" }) {
+function BtnGoogle({ texto, perfil }: { texto: string; perfil?: "agencia" | "autonomo" }) {
   const [carregando, setCarregando] = useState(false);
   async function entrar() {
     setCarregando(true);

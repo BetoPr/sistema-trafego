@@ -56,8 +56,30 @@ export function ForcaSenha({ senha }: { senha: string }) {
   const barras = 5;
   const preenchidas = Math.min(r.score, barras);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-      {/* Barra de força */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        marginTop: 4,
+        animation: "forcaIn 320ms ease both",
+        overflow: "hidden",
+      }}
+    >
+      <style>{`
+        @keyframes forcaIn {
+          from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+          to   { opacity: 1; transform: translateY(0); max-height: 400px; }
+        }
+        @keyframes barFill {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
+        }
+        @keyframes ruleIn {
+          from { opacity: 0; transform: translateX(-6px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
       <div style={{ display: "flex", gap: 4 }}>
         {Array.from({ length: barras }).map((_, i) => (
           <div
@@ -67,14 +89,25 @@ export function ForcaSenha({ senha }: { senha: string }) {
               height: 5,
               borderRadius: 3,
               background: i < preenchidas ? r.cor : "#1F2926",
-              transition: "background 200ms ease",
+              transformOrigin: "left",
+              transition: "background 250ms ease",
+              animation: i < preenchidas ? `barFill 260ms ease ${i * 50}ms both` : undefined,
             }}
           />
         ))}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 11, color: "#A6B0AC" }}>Força da senha:</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: r.cor }}>{r.nivel}</span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: r.cor,
+            transition: "color 250ms ease",
+          }}
+        >
+          {r.nivel}
+        </span>
       </div>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 4 }}>
         {r.regras.map((rule, i) => (
@@ -86,7 +119,8 @@ export function ForcaSenha({ senha }: { senha: string }) {
               gap: 6,
               fontSize: 11,
               color: rule.ok ? "#00E19A" : "#6B7A75",
-              transition: "color 200ms ease",
+              transition: "color 250ms ease",
+              animation: `ruleIn 280ms ease ${i * 50}ms both`,
             }}
           >
             <i className={`ti ${rule.ok ? "ti-circle-check-filled" : "ti-circle"}`} style={{ fontSize: 13 }} />

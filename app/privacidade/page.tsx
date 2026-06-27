@@ -33,7 +33,7 @@ export default function PrivacidadePage() {
             "Email",
             "Número de WhatsApp",
             "Senha (armazenada criptografada via hash bcrypt)",
-            "Perfil de uso (Empreendedor, Agência ou Autônomo)",
+            "Perfil de uso (Agência ou Autônomo)",
           ]}
         />
         <P>Durante o uso da plataforma, coletamos também:</P>

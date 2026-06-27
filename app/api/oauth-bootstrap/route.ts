@@ -20,7 +20,7 @@ import {
   type TipoCliente,
 } from "@/lib/auth/trial";
 
-const PERFIS_VALIDOS: TipoCliente[] = ["empreendedor", "autonomo", "agencia"];
+const PERFIS_VALIDOS: TipoCliente[] = ["autonomo", "agencia"];
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   let body: { perfil?: string } = {};
   try { body = await req.json(); } catch { /* sem body */ }
   const perfilRaw = String(body.perfil ?? "").toLowerCase();
-  const perfil = (PERFIS_VALIDOS.includes(perfilRaw as TipoCliente) ? perfilRaw : "empreendedor") as TipoCliente;
+  const perfil = (PERFIS_VALIDOS.includes(perfilRaw as TipoCliente) ? perfilRaw : "autonomo") as TipoCliente;
 
   const nome =
     (user.user_metadata?.full_name as string) ||
