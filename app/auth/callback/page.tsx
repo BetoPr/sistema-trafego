@@ -32,12 +32,21 @@ export default function AuthCallbackPage() {
       }
 
       const sb = createClient();
-      const { error: errExchange } = await sb.auth.exchangeCodeForSession(code);
-      if (errExchange) {
-        console.error("exchange:", errExchange);
-        setMsg("Falha ao validar login. Tente novamente.");
-        setTimeout(() => window.location.replace("/login?erro=oauth_falhou"), 1500);
-        return;
+
+      // Se ja existe sessao ativa (refresh com code velho), pula exchange e segue.
+      const { data: { session: sessAtual } } = await sb.auth.getSession();
+      if (!sessAtual) {
+        const { error: errExchange } = await sb.auth.exchangeCodeForSession(code);
+        if (errExchange) {
+          console.error("exchange:", errExchange);
+          // Se exchange falhou mas tem sessao agora (race condition), segue
+          const { data: { session: s2 } } = await sb.auth.getSession();
+          if (!s2) {
+            setMsg("Falha ao validar login. Tente novamente.");
+            setTimeout(() => window.location.replace("/login?erro=oauth_falhou"), 1500);
+            return;
+          }
+        }
       }
 
       setMsg("Sessão criada. Configurando sua conta...");
