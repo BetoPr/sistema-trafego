@@ -104,9 +104,16 @@ export default function LoginPage() {
           </button>
 
           <div style={footerStyle}>
+            Esqueceu sua senha?{" "}
+            <a href="/esqueci-senha" style={linkStyle}>
+              Recupere aqui
+            </a>
+          </div>
+
+          <div style={footerStyle}>
             Ainda não tem conta?{" "}
             <a href="/cadastro" style={linkStyle}>
-              Criar grátis →
+              Criar acesso →
             </a>
           </div>
 

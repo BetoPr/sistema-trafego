@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForcaSenha, validarSenhaForte } from "../_password-strength";
 
 /**
  * Cadastro CRM — mesmo formato do modal LP.
@@ -19,6 +20,7 @@ export default function CadastroPage() {
   const [email, setEmail] = useState("");
   const [whats, setWhats] = useState("");
   const [pass, setPass] = useState("");
+  const [conf, setConf] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -45,8 +47,17 @@ export default function CadastroPage() {
     e.preventDefault();
     setErro(null);
     if (!perfil) return;
-    if (!nome.trim() || !email.trim() || !whats.trim() || pass.length < 8) {
-      setErro("Preencha tudo. Senha mínima 8 caracteres.");
+    if (!nome.trim() || !email.trim() || !whats.trim()) {
+      setErro("Preencha todos os campos.");
+      return;
+    }
+    const check = validarSenhaForte(pass);
+    if (!check.ok) {
+      setErro("Senha precisa atender todos os requisitos abaixo.");
+      return;
+    }
+    if (pass !== conf) {
+      setErro("As senhas não conferem.");
       return;
     }
     setEnviando(true);
@@ -171,11 +182,36 @@ export default function CadastroPage() {
                   value={pass}
                   onChange={(e) => setPass(e.target.value)}
                   type="password"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Crie uma senha forte"
                   style={inputStyle}
                   required
                   minLength={8}
                 />
+              </div>
+
+              <ForcaSenha senha={pass} />
+
+              <div style={fieldStyle}>
+                <label style={labelStyle}>Confirmar senha</label>
+                <input
+                  value={conf}
+                  onChange={(e) => setConf(e.target.value)}
+                  type="password"
+                  placeholder="Digite a senha novamente"
+                  style={{
+                    ...inputStyle,
+                    borderColor: conf && conf !== pass ? "#FF5C72" : "#1F2926",
+                  }}
+                  required
+                />
+                {conf && conf !== pass && (
+                  <span style={{ fontSize: 11, color: "#FF5C72" }}>As senhas não conferem.</span>
+                )}
+                {conf && conf === pass && pass.length > 0 && (
+                  <span style={{ fontSize: 11, color: "#00E19A" }}>
+                    <i className="ti ti-check" style={{ marginRight: 2 }} />Senhas conferem.
+                  </span>
+                )}
               </div>
 
               {erro && (
