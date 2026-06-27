@@ -21,6 +21,8 @@ export default function CadastroPage() {
   const [whats, setWhats] = useState("");
   const [pass, setPass] = useState("");
   const [conf, setConf] = useState("");
+  const [aceitaTermos, setAceitaTermos] = useState(false);
+  const [aceitaMarketing, setAceitaMarketing] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -58,12 +60,20 @@ export default function CadastroPage() {
       setErro("As senhas não conferem.");
       return;
     }
+    if (!aceitaTermos) {
+      setErro("Você precisa aceitar os Termos de Uso e Política de Privacidade.");
+      return;
+    }
     setEnviando(true);
     try {
       const r = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email, whatsapp: whats, password: pass, perfil }),
+        body: JSON.stringify({
+          nome, email, whatsapp: whats, password: pass, perfil,
+          aceite_termos: true,
+          aceita_marketing: aceitaMarketing,
+        }),
       });
       const j = await r.json();
       if (!r.ok) {
@@ -250,11 +260,31 @@ export default function CadastroPage() {
                 <a href="/login" style={loginLinkBtn}>Faça o login aqui</a>
               </div>
 
-              <div style={tosStyle}>
-                Ao criar conta, você concorda com nossos{" "}
-                <a href="/termos" style={tosLink}>Termos</a> e{" "}
-                <a href="/privacidade" style={tosLink}>Política de Privacidade</a> (LGPD).
-              </div>
+              <label style={consentItemStyle}>
+                <input
+                  type="checkbox"
+                  checked={aceitaTermos}
+                  onChange={(e) => setAceitaTermos(e.target.checked)}
+                  style={consentChkStyle}
+                  required
+                />
+                <span>
+                  Li e aceito os{" "}
+                  <a href="/termos" target="_blank" style={tosLink}>Termos de Uso</a> e a{" "}
+                  <a href="/privacidade" target="_blank" style={tosLink}>Política de Privacidade</a> (LGPD).
+                </span>
+              </label>
+              <label style={consentItemStyle}>
+                <input
+                  type="checkbox"
+                  checked={aceitaMarketing}
+                  onChange={(e) => setAceitaMarketing(e.target.checked)}
+                  style={consentChkStyle}
+                />
+                <span style={{ color: "#A6B0AC" }}>
+                  Quero receber novidades, atualizações e dicas de uso do Sonar por email/WhatsApp. <em style={{ color: "#6B7A75" }}>(opcional, posso cancelar a qualquer momento)</em>
+                </span>
+              </label>
             </form>
             </>
           )}
@@ -420,6 +450,24 @@ const btnSecondaryStyle: React.CSSProperties = {
 };
 const tosStyle: React.CSSProperties = { fontSize: 10, color: "#6B7A75", textAlign: "center", lineHeight: 1.5, marginTop: 3 };
 const tosLink: React.CSSProperties = { color: "#00E19A", textDecoration: "underline" };
+const consentItemStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 8,
+  fontSize: 11,
+  color: "#F0F5F2",
+  lineHeight: 1.5,
+  cursor: "pointer",
+  marginTop: 6,
+};
+const consentChkStyle: React.CSSProperties = {
+  accentColor: "#00E19A",
+  width: 14,
+  height: 14,
+  marginTop: 2,
+  flexShrink: 0,
+  cursor: "pointer",
+};
 const loginLinkWrap: React.CSSProperties = {
   textAlign: "center",
   fontSize: 12,

@@ -51,6 +51,8 @@ type SignupPayload = {
   whatsapp?: string;
   password?: string;
   perfil?: string;
+  aceite_termos?: boolean;
+  aceita_marketing?: boolean;
 };
 
 export async function POST(req: Request) {
@@ -85,9 +87,22 @@ export async function POST(req: Request) {
   if (!PERFIS_VALIDOS.includes(perfilRaw as TipoCliente)) {
     return NextResponse.json({ error: "Perfil inválido." }, { status: 400, headers: cors });
   }
+  const aceiteTermos = body.aceite_termos === true;
+  const aceitaMarketing = body.aceita_marketing === true;
+  if (!aceiteTermos) {
+    return NextResponse.json(
+      { error: "Você precisa aceitar os Termos de Uso e Política de Privacidade." },
+      { status: 400, headers: cors },
+    );
+  }
 
   const perfil = perfilRaw as TipoCliente;
   const svc = createServiceClient();
+
+  const ipAceite =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    null;
 
   // Verifica se email ja existe.
   const { data: jaExiste } = await svc
@@ -147,6 +162,7 @@ export async function POST(req: Request) {
   }
 
   // 3. Cria registro em usuarios linkado a agencia.
+  const agoraIso = new Date().toISOString();
   const { error: errUsuario } = await svc.from("usuarios").insert({
     id: authData.user.id,
     nome,
@@ -155,6 +171,10 @@ export async function POST(req: Request) {
     agencia_id: agencia.id,
     role: "admin",
     ativo: true,
+    aceite_termos_em: agoraIso,
+    aceita_marketing: aceitaMarketing,
+    aceite_marketing_em: aceitaMarketing ? agoraIso : null,
+    aceite_ip: ipAceite,
   });
 
   if (errUsuario) {
