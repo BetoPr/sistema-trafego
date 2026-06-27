@@ -79,7 +79,13 @@ export async function POST(req: Request) {
 
   if (errAgencia || !agencia) {
     console.error("[oauth-bootstrap] agencia:", errAgencia);
-    return NextResponse.json({ error: "Falha ao criar agência." }, { status: 500 });
+    return NextResponse.json({
+      error: "Falha ao criar agência.",
+      details: errAgencia?.message ?? null,
+      code: errAgencia?.code ?? null,
+      hint: errAgencia?.hint ?? null,
+      stage: "insert_agencia",
+    }, { status: 500 });
   }
 
   const { error: errUsuario } = await svc.from("usuarios").insert({
@@ -94,7 +100,13 @@ export async function POST(req: Request) {
   if (errUsuario) {
     console.error("[oauth-bootstrap] usuario:", errUsuario);
     await svc.from("agencias").delete().eq("id", agencia.id);
-    return NextResponse.json({ error: "Falha ao criar usuário." }, { status: 500 });
+    return NextResponse.json({
+      error: "Falha ao criar usuário.",
+      details: errUsuario.message,
+      code: errUsuario.code ?? null,
+      hint: errUsuario.hint ?? null,
+      stage: "insert_usuario",
+    }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, criado: true, perfil });
