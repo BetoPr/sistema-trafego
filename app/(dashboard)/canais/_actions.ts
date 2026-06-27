@@ -18,6 +18,7 @@ import {
 import { getProvider, PROVIDER_DEFAULT, type ProviderTipo } from "@/lib/whatsapp";
 import { getWahaServer, gerarSessionNameWaha, webhookUrlForProvider, loadInstanceRef } from "@/lib/whatsapp/config";
 import { audit } from "@/lib/crm/audit";
+import { assertPodeAdicionarCanal } from "@/lib/canais/limite";
 
 interface ServidorRow {
   id: string;
@@ -73,6 +74,13 @@ export async function criarCanal(formData: FormData) {
   const mensagemDespedida = String(formData.get("mensagem_despedida") || "").trim() || null;
 
   if (!nome) redirect("/canais?erro=nome_vazio");
+
+  // Enforce limite de conexões antes de provisionar instância.
+  try {
+    await assertPodeAdicionarCanal(ctx.agenciaId);
+  } catch (e) {
+    redirect(`/canais?erro=limite&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
 
   const sb = createServiceClient();
   let servidor: { id: string; baseUrl: string; adminToken: string };
@@ -186,6 +194,13 @@ export async function importarCanalExistente(formData: FormData) {
 
   if (!nome || !instanceToken) {
     redirect("/canais?erro=campos_obrigatorios");
+  }
+
+  // Enforce limite de conexões da agência.
+  try {
+    await assertPodeAdicionarCanal(ctx.agenciaId);
+  } catch (e) {
+    redirect(`/canais?erro=limite&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
   }
 
   const sb = createServiceClient();
@@ -449,14 +464,12 @@ export async function criarCanalJson(input: {
   const sb = createServiceClient();
   const provider: ProviderTipo = input.provider || PROVIDER_DEFAULT;
 
-  // Plano atual: 1 sessão por conta (super_admin ilimitado)
+  // Enforce limite de conexões da agência (super_admin ilimitado).
   if (ctx.role !== "super_admin") {
-    const { count } = await sb
-      .from("canais")
-      .select("id", { count: "exact", head: true })
-      .eq("agencia_id", ctx.agenciaId);
-    if ((count || 0) >= 1) {
-      return { ok: false, msg: "Seu plano permite 1 sessão de WhatsApp. Pra trocar de número, exclua a sessão atual (use Transferir Canal antes pra preservar o histórico) ou fale com o suporte pra adicionar sessões extras." };
+    try {
+      await assertPodeAdicionarCanal(ctx.agenciaId);
+    } catch (e) {
+      return { ok: false, msg: e instanceof Error ? e.message : String(e) };
     }
   }
 

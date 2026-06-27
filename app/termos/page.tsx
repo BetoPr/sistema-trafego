@@ -247,8 +247,17 @@ export default function TermosPage() {
 
       <Secao titulo="11. IA de atendimento">
         <P>
-          A Plataforma inclui IAs treináveis baseadas em modelos de linguagem de terceiros. Você é
-          responsável pelo conteúdo configurado em suas IAs, pelas respostas geradas e pelo cumprimento
+          A Plataforma inclui IAs treináveis baseadas em modelos de linguagem de terceiros. Custos de IA:
+        </P>
+        <Lista
+          items={[
+            <><b>Groq</b> — incluso no Plano, sem custo adicional pro Cliente. Limites de uso podem ser aplicados conforme a política do provedor.</>,
+            <><b>OpenAI</b> e outros provedores pagos — o Cliente pode usar via chave própria (custo direto com o provedor) ou via gateway da Plataforma, com custo repassado conforme tabela vigente no painel.</>,
+            <><b>MCP (Model Context Protocol)</b> — recurso em <b>beta</b>, sem garantia de estabilidade nem cobertura de suporte enquanto não for promovido a release oficial.</>,
+          ]}
+        />
+        <P>
+          Você é responsável pelo conteúdo configurado em suas IAs, pelas respostas geradas e pelo cumprimento
           das leis aplicáveis ao seu nicho de atuação (saúde, jurídico, financeiro, educação etc.).
         </P>
         <P>

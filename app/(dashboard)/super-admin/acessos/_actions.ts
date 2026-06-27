@@ -215,6 +215,41 @@ export async function atualizarCobrancaAgencia(formData: FormData) {
   redirect("/super-admin/acessos?ok=cobranca_atualizada");
 }
 
+export async function atualizarCanaisAgencia(formData: FormData) {
+  const ctx = await requireRole("super_admin");
+  const agenciaId = String(formData.get("agencia_id") || "");
+  if (!agenciaId) redirect("/super-admin/acessos?erro=id");
+  const sb = createServiceClient();
+
+  const inclusosRaw = String(formData.get("canais_inclusos") || "").trim();
+  const pagosRaw = String(formData.get("canais_extras_pagos") || "").trim();
+  const cortesiaRaw = String(formData.get("canais_extras_cortesia") || "").trim();
+
+  const patch: Record<string, unknown> = {};
+  if (inclusosRaw) {
+    const n = parseInt(inclusosRaw, 10);
+    if (!isNaN(n) && n >= 0) patch.canais_inclusos = n;
+  }
+  if (pagosRaw) {
+    const n = parseInt(pagosRaw, 10);
+    if (!isNaN(n) && n >= 0) patch.canais_extras_pagos = n;
+  }
+  if (cortesiaRaw) {
+    const n = parseInt(cortesiaRaw, 10);
+    if (!isNaN(n) && n >= 0) patch.canais_extras_cortesia = n;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    redirect("/super-admin/acessos?erro=sem_dados");
+  }
+
+  const { error } = await sb.from("agencias").update(patch).eq("id", agenciaId);
+  if (error) redirect(`/super-admin/acessos?erro=db&msg=${encodeURIComponent(error.message)}`);
+  await audit({ agenciaId, usuarioId: ctx.userId, acao: "update", entidade: "agencia_canais_limite", entidadeId: agenciaId, payload: patch });
+  revalidatePath("/super-admin/acessos");
+  redirect("/super-admin/acessos?ok=canais_atualizados");
+}
+
 export async function atualizarConfigCobranca(formData: FormData) {
   const ctx = await requireRole("super_admin");
   const sb = createServiceClient();
