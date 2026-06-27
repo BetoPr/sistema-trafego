@@ -7,6 +7,7 @@ import {
   marcarPagoAgencia,
   estenderVencimentoAgencia,
   atualizarCobrancaAgencia,
+  atualizarCanaisAgencia,
   atualizarConfigCobranca,
 } from "./_actions";
 
@@ -24,6 +25,11 @@ export interface AgenciaCobranca {
   apagar_em: string | null;
   ultima_cobranca_status: "enviada" | "falha" | "pulada" | null;
   ultima_cobranca_em: string | null;
+  canais_inclusos: number;
+  canais_extras_pagos: number;
+  canais_extras_cortesia: number;
+  limite_canais: number;
+  canais_usados: number;
 }
 
 export interface CanalOpcao {
@@ -348,6 +354,37 @@ export function CobrancasBloco({ agencias, config, canais }: Props) {
               <button type="submit" className="cta-btn" style={{ fontSize: 12 }}>Salvar</button>
             </div>
           </form>
+        )}
+
+        {editando && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--mk-border)" }}>
+            <div style={{ fontSize: 12, color: "var(--mk-text-secondary)", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span><i className="ti ti-brand-whatsapp" style={{ color: "#00E19A", marginRight: 4 }} />Conexões de WhatsApp</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: editando.canais_usados >= editando.limite_canais ? "#C97064" : "#00E19A" }}>
+                {editando.canais_usados}/{editando.limite_canais} em uso
+              </span>
+            </div>
+            <form action={atualizarCanaisAgencia} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <input type="hidden" name="agencia_id" value={editando.id} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={lbl}>Inclusas no plano</label>
+                  <input name="canais_inclusos" defaultValue={editando.canais_inclusos} type="number" min="0" style={inp} />
+                </div>
+                <div>
+                  <label style={lbl}>Extras pagas (R$19/mês cada)</label>
+                  <input name="canais_extras_pagos" defaultValue={editando.canais_extras_pagos} type="number" min="0" style={inp} />
+                </div>
+                <div>
+                  <label style={lbl}>Cortesia</label>
+                  <input name="canais_extras_cortesia" defaultValue={editando.canais_extras_cortesia} type="number" min="0" style={inp} />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button type="submit" className="cta-btn" style={{ fontSize: 12 }}>Atualizar conexões</button>
+              </div>
+            </form>
+          </div>
         )}
       </Balao>
 

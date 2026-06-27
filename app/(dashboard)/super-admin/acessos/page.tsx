@@ -34,7 +34,7 @@ export default async function AcessosPage({ searchParams }: PageProps) {
 
   const [{ data: usuarios }, { data: agencias }, { data: cobrancaConfig }, { data: canaisRaw }, { data: ultimasCobrancas }] = await Promise.all([
     sb.from("usuarios").select("id, nome, email, telefone, role, ativo, permissoes_menu, agencia_id, tipo_cliente, ultimo_login, ultimo_logout, created_at, deleted_at").order("nome"),
-    sb.from("agencias").select("id, nome, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado, trial_acaba_em, apagar_em").order("nome"),
+    sb.from("agencias").select("id, nome, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, whatsapp_cobranca, cobranca_ativa, acesso_bloqueado, trial_acaba_em, apagar_em, canais_inclusos, canais_extras_pagos, canais_extras_cortesia, limite_canais").order("nome"),
     sb.from("super_admin_cobranca_config").select("canal_id, horario, template_texto, ativo").eq("id", 1).maybeSingle(),
     sb.from("canais").select("id, nome, numero_conectado, status, agencia_id").order("nome"),
     sb
@@ -57,6 +57,12 @@ export default async function AcessosPage({ searchParams }: PageProps) {
     }
   }
 
+  // Contagem de canais usados por agência (qualquer status, slot ocupado no UAZAPI/WAHA)
+  const canaisUsadosPorAgencia = new Map<string, number>();
+  for (const c of (canaisRaw || []) as Array<{ agencia_id: string }>) {
+    canaisUsadosPorAgencia.set(c.agencia_id, (canaisUsadosPorAgencia.get(c.agencia_id) || 0) + 1);
+  }
+
   const agenciasCobranca: AgenciaCobranca[] = (agencias || []).map((a) => {
     const u = ultimaPorAgencia.get(a.id);
     return {
@@ -73,6 +79,11 @@ export default async function AcessosPage({ searchParams }: PageProps) {
       apagar_em: a.apagar_em as string | null,
       ultima_cobranca_status: (u?.status as AgenciaCobranca["ultima_cobranca_status"]) || null,
       ultima_cobranca_em: u?.enviada_em || null,
+      canais_inclusos: (a.canais_inclusos as number) ?? 1,
+      canais_extras_pagos: (a.canais_extras_pagos as number) ?? 0,
+      canais_extras_cortesia: (a.canais_extras_cortesia as number) ?? 0,
+      limite_canais: (a.limite_canais as number) ?? 1,
+      canais_usados: canaisUsadosPorAgencia.get(a.id as string) || 0,
     };
   });
 
