@@ -146,7 +146,7 @@ export default function CadastroPage() {
           {/* PASSO 2 */}
           {passo === 2 && (
             <>
-              <BtnGoogle texto="Continuar com Google" perfil={perfil!} />
+              <BtnGoogle texto="Criar com Google" perfil={perfil!} />
               <div style={dividerWrap}>
                 <span style={dividerLineCad} />
                 <span style={dividerTxtCad}>ou com email</span>
