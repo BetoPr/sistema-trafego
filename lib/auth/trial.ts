@@ -1,9 +1,9 @@
 /**
  * Helpers de trial e ciclo de vida de agencias.
  *
- * Politica de trial (decisao Roberto 2026-06-27):
- *   - autonomo: 14 dias
- *   - agencia:  21 dias
+ * Politica de trial (decisao Roberto 2026-06-27 v2):
+ *   - autonomo: 7 dias  (14 dias se entrou nos 10 primeiros - promo lancamento)
+ *   - agencia: 14 dias  (28 dias se entrou nos 10 primeiros - promo lancamento)
  *
  * "empreendedor" foi removido do produto. Linhas legadas em agencias com
  * tipo_cliente='empreendedor' sao tratadas como 'autonomo' em labels.
@@ -15,8 +15,13 @@
 export type TipoCliente = "autonomo" | "agencia";
 
 export const TRIAL_DIAS_POR_TIPO: Record<TipoCliente, number> = {
+  autonomo: 7,
+  agencia: 14,
+};
+
+export const TRIAL_DIAS_PROMO_LANCAMENTO: Record<TipoCliente, number> = {
   autonomo: 14,
-  agencia: 21,
+  agencia: 28,
 };
 
 /** Dias entre trial_acaba_em e exclusao automatica da conta. */

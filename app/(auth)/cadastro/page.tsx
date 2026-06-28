@@ -27,8 +27,8 @@ export default function CadastroPage() {
   const [enviando, setEnviando] = useState(false);
 
   const trialDias: Record<Perfil, number> = {
-    agencia: 21,
-    autonomo: 14,
+    agencia: 14,
+    autonomo: 7,
   };
   const perfilLabel: Record<Perfil, string> = {
     agencia: "Agência",

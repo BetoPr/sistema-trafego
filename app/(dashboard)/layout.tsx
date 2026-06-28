@@ -35,6 +35,16 @@ export default async function DashboardLayout({
     altura: ((agRow?.logo_altura as number) || 36),
   };
 
+  // Status do limite de conexões pra mostrar no badge da sidebar
+  const [{ data: agLimite }, { count: canaisUsadosCount }] = await Promise.all([
+    supabase.from("agencias").select("limite_canais").eq("id", usuario.agencia_id).maybeSingle(),
+    supabase.from("canais").select("id", { count: "exact", head: true }).eq("agencia_id", usuario.agencia_id),
+  ]);
+  const canaisStatus = {
+    usados: canaisUsadosCount ?? 0,
+    limite: (agLimite?.limite_canais as number | null) ?? 1,
+  };
+
   // Busca plataformas com ao menos 1 integração ativa
   const { data: integs } = await supabase
     .from("integracoes")
@@ -55,7 +65,7 @@ export default async function DashboardLayout({
         <FiltroAtivoProvider>
         <AudioGlobalProvider>
         <AppShell>
-          <AppSidebar role={usuario.role} marca={marca} />
+          <AppSidebar role={usuario.role} marca={marca} canaisStatus={canaisStatus} />
           <RouteProgress />
           <main className="mk-main">
             <Topbar

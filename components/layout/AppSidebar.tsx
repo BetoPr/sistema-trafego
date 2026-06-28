@@ -12,9 +12,14 @@ interface NavItem {
   href: string;
   label: string;
   icon: string;
-  badge?: { text: string; variant?: "default" | "amber" | "red" };
+  badge?: { text: string; variant?: "default" | "amber" | "red" | "count" };
   dot?: boolean;
   guide?: string;
+}
+
+export interface CanaisStatus {
+  usados: number;
+  limite: number;
 }
 
 interface NavSection {
@@ -25,7 +30,14 @@ interface NavSection {
   items: NavItem[];
 }
 
-function buildSections(role?: string): NavSection[] {
+function buildSections(role?: string, canaisStatus?: CanaisStatus): NavSection[] {
+  const canaisBadge = canaisStatus
+    ? {
+        text: `${canaisStatus.usados}/${canaisStatus.limite}`,
+        variant: (canaisStatus.usados >= canaisStatus.limite ? "amber" : "count") as "amber" | "count",
+      }
+    : undefined;
+
   const list: NavSection[] = [
     {
       id: "principal",
@@ -81,7 +93,7 @@ function buildSections(role?: string): NavSection[] {
       icon: "ti-shield-lock",
       iconColor: "var(--mk-icon-amber)",
       items: [
-        { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp", guide: "nav-canais" },
+        { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp", badge: canaisBadge, guide: "nav-canais" },
         { href: "/filas", label: "Filas", icon: "ti-list-tree", guide: "nav-filas" },
         { href: "/equipes", label: "Equipes", icon: "ti-users-group", guide: "nav-equipes" },
         { href: "/usuarios", label: "Usuários", icon: "ti-user-circle", guide: "nav-usuarios" },
@@ -128,7 +140,11 @@ interface MarcaConfig {
   altura?: number;
 }
 
-export function AppSidebar({ role, marca }: { role?: string; marca?: MarcaConfig } = {}) {
+export function AppSidebar({
+  role,
+  marca,
+  canaisStatus,
+}: { role?: string; marca?: MarcaConfig; canaisStatus?: CanaisStatus } = {}) {
   const pathname = usePathname();
   const { collapsed, toggle, mobileOpen, closeMobile } = useCollapse();
   const handleCollapseBtn = () => {
@@ -154,7 +170,7 @@ export function AppSidebar({ role, marca }: { role?: string; marca?: MarcaConfig
   }, []);
   const isDark = mounted && resolvedTheme === "dark";
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>({});
-  const SECTIONS = buildSections(role);
+  const SECTIONS = buildSections(role, canaisStatus);
 
   const toggleSection = (id: string) => {
     if (collapsed) return;
