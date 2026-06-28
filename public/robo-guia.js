@@ -381,17 +381,38 @@
     return { x: innerWidth - drawerW - pad, y: innerHeight / 2 };
   }
 
-  /* ---------- intent matching ---------- */
+  /* ---------- intent matching ----------
+     Scoring: intent mais espec\u00edfica vence.
+     - kw inteira como substring + word-boundary: score = kw.length * 2
+     - todas as palavras separadas presentes: score = soma das palavras
+     Empate \u2192 tour declarado primeiro vence (compatibilidade). */
   function matchIntent(text) {
     var t = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    function hasWord(haystack, needle) {
+      if (!needle) return false;
+      var re = new RegExp('(^|[^a-z0-9])' + needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)');
+      return re.test(haystack);
+    }
+    var melhor = null;
     for (var i = 0; i < tours.length; i++) {
       var arr = tours[i].intents || [];
       for (var j = 0; j < arr.length; j++) {
-        var kw = arr[j].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        if (t.indexOf(kw) !== -1 || kw.split(' ').every(function (w) { return w && t.indexOf(w) !== -1; })) return tours[i].id;
+        var kw = arr[j].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        if (!kw) continue;
+        var score = 0;
+        if (hasWord(t, kw)) {
+          score = kw.length * 2;
+        } else {
+          var palavras = kw.split(/\s+/);
+          var todas = palavras.length > 1 && palavras.every(function (w) { return w && hasWord(t, w); });
+          if (todas) score = palavras.reduce(function (acc, w) { return acc + w.length; }, 0);
+        }
+        if (score > 0 && (!melhor || score > melhor.score)) {
+          melhor = { id: tours[i].id, score: score, ordem: i };
+        }
       }
     }
-    return null;
+    return melhor ? melhor.id : null;
   }
   function noMatch() {
     if (chat) chat.classList.add('rg-hide');

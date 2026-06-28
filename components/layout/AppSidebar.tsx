@@ -156,11 +156,13 @@ export function AppSidebar({
   marca,
   canaisStatus,
   usuariosStatus,
+  licencaTrancada,
 }: {
   role?: string;
   marca?: MarcaConfig;
   canaisStatus?: CanaisStatus;
   usuariosStatus?: UsuariosStatus;
+  licencaTrancada?: boolean;
 } = {}) {
   const pathname = usePathname();
   const { collapsed, toggle, mobileOpen, closeMobile } = useCollapse();
@@ -246,23 +248,45 @@ export function AppSidebar({
                 <i className="ti ti-chevron-down chevron" />
               </button>
               <div className="nav-items">
-                {section.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    data-guide={item.guide}
-                    className={`nav-item${isActive(item.href) ? " active" : ""}`}
-                  >
-                    <i className={`ti ${item.icon}`} />
-                    <span className="nav-label">{item.label}</span>
-                    {item.badge && (
-                      <span className={`nav-badge${item.badge.variant ? " " + item.badge.variant : ""}`}>
-                        {item.badge.text}
+                {section.items.map((item) => {
+                  const liberadoSeTrancado = item.href === "/pagamentos" || item.href === "/conta";
+                  const trancado = !!licencaTrancada && !liberadoSeTrancado;
+                  if (trancado) {
+                    return (
+                      <span
+                        key={item.href}
+                        className={`nav-item nav-item-trancado${isActive(item.href) ? " active" : ""}`}
+                        title="Licença trancada — regularize o pagamento pra liberar"
+                        style={{ cursor: "not-allowed", opacity: 0.55, position: "relative" }}
+                      >
+                        <i className={`ti ${item.icon}`} />
+                        <span className="nav-label">{item.label}</span>
+                        <i
+                          className="ti ti-lock-filled"
+                          style={{ marginLeft: "auto", fontSize: 13, color: "#FF5C72" }}
+                          aria-hidden
+                        />
                       </span>
-                    )}
-                    {item.dot && <span className="nav-dot" />}
-                  </Link>
-                ))}
+                    );
+                  }
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      data-guide={item.guide}
+                      className={`nav-item${isActive(item.href) ? " active" : ""}`}
+                    >
+                      <i className={`ti ${item.icon}`} />
+                      <span className="nav-label">{item.label}</span>
+                      {item.badge && (
+                        <span className={`nav-badge${item.badge.variant ? " " + item.badge.variant : ""}`}>
+                          {item.badge.text}
+                        </span>
+                      )}
+                      {item.dot && <span className="nav-dot" />}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           );

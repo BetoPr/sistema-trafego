@@ -90,7 +90,7 @@ export default async function DashboardLayout({
         <FiltroAtivoProvider>
         <AudioGlobalProvider>
         <AppShell>
-          <AppSidebar role={usuario.role} marca={marca} canaisStatus={canaisStatus} usuariosStatus={usuariosStatus} />
+          <AppSidebar role={usuario.role} marca={marca} canaisStatus={canaisStatus} usuariosStatus={usuariosStatus} licencaTrancada={usuario.role !== "super_admin" && (licenca === "bloqueada" || licenca === "atrasada")} />
           <RouteProgress />
           <main className="mk-main">
             <Topbar
