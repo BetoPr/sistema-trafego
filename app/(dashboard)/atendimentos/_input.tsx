@@ -199,9 +199,21 @@ export function InputBar(p: Props) {
     }
   }
 
+  const MAX_LOTE = 10;
+
   async function addAnexos(files: FileList | File[]) {
     const novos: Anexo[] = [];
-    for (const original of Array.from(files)) {
+    const arr = Array.from(files);
+    const espaco = MAX_LOTE - anexos.length;
+    if (espaco <= 0) {
+      alert(`Limite de ${MAX_LOTE} arquivos por envio atingido. Manda esse lote primeiro e depois envia os próximos.`);
+      return;
+    }
+    const lote = arr.slice(0, espaco);
+    if (arr.length > espaco) {
+      alert(`Você selecionou ${arr.length} arquivos, mas o limite é ${MAX_LOTE} por envio. Só os primeiros ${espaco} entraram na fila — manda esse lote e depois envia o resto.`);
+    }
+    for (const original of lote) {
       let f = original;
       const tipoOriginal = detectarTipo(f);
       // Imagem: converte formato incompatível + redimensiona/recomprime se grande
@@ -267,34 +279,49 @@ export function InputBar(p: Props) {
     setEnviandoAnexos(true);
     const caption = textoFinal().trim();
     const fila = [...anexos];
+    // Delay entre envios pra evitar rate limit da UAZAPI / parecer spam
+    // (instância hiberna/timeout quando recebe rajada de mídias).
+    const DELAY_MS = 1200;
+    const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    async function enviarUm(payload: object, tentativa = 1): Promise<{ ok: boolean; status: number; data: { error?: string; msg?: string } }> {
+      const r = await fetch(`/api/canais/${p.canalId}/send`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json().catch(() => ({}));
+      // 502 = uazapi engasgou. Tenta de novo 1x com espera maior.
+      if (r.status === 502 && tentativa === 1) {
+        await sleep(2500);
+        return enviarUm(payload, 2);
+      }
+      return { ok: r.ok, status: r.status, data: j };
+    }
     try {
       for (let i = 0; i < fila.length; i++) {
         const a = fila[i];
         const base64 = await fileToBase64(a.file);
-        const r = await fetch(`/api/canais/${p.canalId}/send`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            ticketId: p.ticketId,
-            media: {
-              type: a.tipo,
-              fileBase64: base64,
-              filename: a.file.name,
-              mimetype: a.file.type || undefined,
-              caption: i === 0 && caption ? caption : undefined,
-            },
-            // citação e visu única só na primeira mídia da fila
-            replyid: i === 0 ? p.replyId || undefined : undefined,
-            viewOnce: visuUnica || undefined,
-          }),
+        const res = await enviarUm({
+          ticketId: p.ticketId,
+          media: {
+            type: a.tipo,
+            fileBase64: base64,
+            filename: a.file.name,
+            mimetype: a.file.type || undefined,
+            caption: i === 0 && caption ? caption : undefined,
+          },
+          // citação e visu única só na primeira mídia da fila
+          replyid: i === 0 ? p.replyId || undefined : undefined,
+          viewOnce: visuUnica || undefined,
         });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok) {
-          alert(`Falha ao enviar "${a.file.name}": ${j.error || j.msg || r.statusText}`);
+        if (!res.ok) {
+          alert(`Falha ao enviar "${a.file.name}": ${res.data.error || res.data.msg || `status ${res.status}`}`);
           setEnviandoAnexos(false);
           return; // mantém os restantes na fila
         }
         removerAnexo(a.id);
+        // Pausa antes do próximo (exceto se for o último)
+        if (i < fila.length - 1) await sleep(DELAY_MS);
       }
       p.setText("");
       setVisuUnica(false);
