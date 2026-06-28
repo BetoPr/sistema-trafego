@@ -95,6 +95,31 @@ export async function deletarCard(id: string): Promise<{ ok: boolean; msg?: stri
   return { ok: true };
 }
 
+/** Salva regras de etiqueta pra coluna: idempotente (replace all). */
+export async function salvarRegrasEtiqueta(colunaId: string, etiquetaIds: string[]): Promise<{ ok: boolean; msg?: string; total?: number }> {
+  const ctx = await requireAuth();
+  const sb = createServiceClient();
+  // valida ownership da coluna
+  const { data: col } = await sb.from("kanban_colunas").select("id").eq("id", colunaId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+  if (!col) return { ok: false, msg: "Coluna não encontrada" };
+  // delete + reinsert
+  await sb.from("kanban_regras_entrada").delete().eq("coluna_id", colunaId);
+  if (etiquetaIds.length === 0) {
+    revalidatePath("/kanban");
+    return { ok: true, total: 0 };
+  }
+  const linhas = etiquetaIds.map((eid) => ({
+    coluna_id: colunaId,
+    agencia_id: ctx.agenciaId,
+    etiqueta_id: eid,
+    ativo: true,
+  }));
+  const { error } = await sb.from("kanban_regras_entrada").insert(linhas);
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/kanban");
+  return { ok: true, total: etiquetaIds.length };
+}
+
 /** Move card pra outra coluna + atualiza ordem. */
 export async function moverCard(cardId: string, novaColunaId: string, novaOrdem: number): Promise<{ ok: boolean; msg?: string }> {
   const ctx = await requireAuth();

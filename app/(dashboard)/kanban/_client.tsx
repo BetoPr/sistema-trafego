@@ -3,23 +3,27 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
-import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, criarCard, deletarCard, moverCard } from "./_actions";
+import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta } from "./_actions";
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
 interface Coluna { id: string; nome: string; cor: string; ordem: number }
 interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null }
+
+interface Etiqueta { id: string; nome: string; cor: string }
 
 interface Props {
   quadros: Quadro[];
   quadroAtivoId: string | null;
   colunas: Coluna[];
   cards: Card[];
+  etiquetas: Etiqueta[];
+  regrasPorColuna: Record<string, string[]>;
 }
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PALETA = ["#00E19A", "#5cd0ff", "#9B7DBF", "#FFB547", "#FF5C72", "#6B8E4E"];
 
-export function KanbanClient({ quadros, quadroAtivoId, colunas, cards }: Props) {
+export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas, regrasPorColuna }: Props) {
   const router = useRouter();
   const [novoQuadroAberto, setNovoQuadroAberto] = useState(false);
   const [novoQuadroNome, setNovoQuadroNome] = useState("");
@@ -29,6 +33,9 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards }: Props) 
   const [novaColunaNome, setNovaColunaNome] = useState("");
   const [novaColunaCor, setNovaColunaCor] = useState(PALETA[1]);
   const [novoCardAberto, setNovoCardAberto] = useState<{ colunaId: string } | null>(null);
+  const [regrasAberto, setRegrasAberto] = useState<{ colunaId: string; colunaNome: string } | null>(null);
+  const [regrasSelecionadas, setRegrasSelecionadas] = useState<Set<string>>(new Set());
+  const [salvandoRegras, setSalvandoRegras] = useState(false);
   const [novoCardTitulo, setNovoCardTitulo] = useState("");
   const [novoCardDesc, setNovoCardDesc] = useState("");
   const [, startTransition] = useTransition();
@@ -167,18 +174,34 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards }: Props) 
                     <span style={{ fontSize: 12, fontWeight: 700 }}>{col.nome}</span>
                     <span style={{ fontSize: 10, color: "var(--mk-text-muted)", padding: "1px 6px", background: "var(--mk-surface-2)", borderRadius: 999 }}>{cardsDaCol.length}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!confirm(`Deletar coluna "${col.nome}" e todos os ${cardsDaCol.length} cards?`)) return;
-                      await deletarColuna(col.id);
-                      router.refresh();
-                    }}
-                    title="Deletar coluna"
-                    style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
-                  >
-                    <i className="ti ti-trash" />
-                  </button>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegrasAberto({ colunaId: col.id, colunaNome: col.nome });
+                        setRegrasSelecionadas(new Set(regrasPorColuna[col.id] || []));
+                      }}
+                      title="Conectar etiquetas → entrada automática"
+                      style={{ background: "transparent", border: 0, color: (regrasPorColuna[col.id]?.length || 0) > 0 ? "#00E19A" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2, display: "inline-flex", alignItems: "center", gap: 2 }}
+                    >
+                      <i className="ti ti-link" />
+                      {(regrasPorColuna[col.id]?.length || 0) > 0 && (
+                        <span style={{ fontSize: 9, fontWeight: 700 }}>{regrasPorColuna[col.id].length}</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm(`Deletar coluna "${col.nome}" e todos os ${cardsDaCol.length} cards?`)) return;
+                        await deletarColuna(col.id);
+                        router.refresh();
+                      }}
+                      title="Deletar coluna"
+                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
+                    >
+                      <i className="ti ti-trash" />
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, minHeight: 60 }}>
                   {cardsDaCol.map((card) => (
@@ -299,6 +322,80 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards }: Props) 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button type="button" onClick={() => setNovaColunaAberto(false)} style={btnGhost}>Cancelar</button>
             <button type="button" onClick={criarColunaSubmit} className="cta-btn" style={{ fontSize: 12.5, padding: "8px 16px" }}>Criar</button>
+          </div>
+        </div>
+      </Balao>
+
+      {/* Balão Conectar Etiquetas */}
+      <Balao open={!!regrasAberto} onClose={() => setRegrasAberto(null)} titulo={`Conectar etiquetas → "${regrasAberto?.colunaNome || ""}"`} icone="ti-link" largura={520}>
+        <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ padding: 12, background: "rgba(0,225,154,0.06)", border: ".5px solid rgba(0,225,154,0.25)", borderRadius: 8, fontSize: 12, color: "var(--mk-text)", lineHeight: 1.5 }}>
+            Quando um contato receber qualquer uma das etiquetas marcadas, vira card automaticamente nesta coluna. Não duplica: se já existe card desse contato no quadro, ignora.
+          </div>
+          {etiquetas.length === 0 ? (
+            <div style={{ padding: 20, textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12 }}>
+              Nenhuma etiqueta cadastrada ainda. Cria em <strong>Configurações → Etiquetas</strong>.
+            </div>
+          ) : (
+            <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4, padding: 4, background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8 }}>
+              {etiquetas.map((etq) => {
+                const marcada = regrasSelecionadas.has(etq.id);
+                return (
+                  <label
+                    key={etq.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "7px 10px",
+                      background: marcada ? `${etq.cor}15` : "transparent",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={marcada}
+                      onChange={() => {
+                        const novo = new Set(regrasSelecionadas);
+                        if (marcada) novo.delete(etq.id);
+                        else novo.add(etq.id);
+                        setRegrasSelecionadas(novo);
+                      }}
+                      style={{ accentColor: etq.cor }}
+                    />
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mk-text)" }}>
+                      <i className="ti ti-tag" style={{ color: etq.cor }} />
+                      {etq.nome}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
+            {regrasSelecionadas.size} etiqueta{regrasSelecionadas.size === 1 ? "" : "s"} selecionada{regrasSelecionadas.size === 1 ? "" : "s"}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button type="button" onClick={() => setRegrasAberto(null)} disabled={salvandoRegras} style={btnGhost}>Cancelar</button>
+            <button
+              type="button"
+              disabled={salvandoRegras}
+              onClick={async () => {
+                if (!regrasAberto) return;
+                setSalvandoRegras(true);
+                const r = await salvarRegrasEtiqueta(regrasAberto.colunaId, Array.from(regrasSelecionadas));
+                setSalvandoRegras(false);
+                if (r.ok) {
+                  setRegrasAberto(null);
+                  router.refresh();
+                } else alert(r.msg);
+              }}
+              className="cta-btn"
+              style={{ fontSize: 12.5, padding: "8px 16px" }}
+            >
+              {salvandoRegras ? "Salvando..." : "Salvar conexões"}
+            </button>
           </div>
         </div>
       </Balao>
