@@ -44,10 +44,7 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
   const [{ count: canaisAtivos }, { count: usuariosAtivos }, { data: agencia }, { data: historico }] = await Promise.all([
     sb.from("canais").select("id", { count: "exact", head: true }).eq("agencia_id", ctx.agenciaId),
     sb.from("usuarios").select("id", { count: "exact", head: true }).eq("agencia_id", ctx.agenciaId).is("deleted_at", null),
-    sb.from("agencias").select(
-      "tipo_plano, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, dia_pagamento, " +
-      "canais_inclusos, usuarios_inclusos, preco_travado, acesso_bloqueado, trial_acaba_em",
-    ).eq("id", ctx.agenciaId).maybeSingle(),
+    sb.from("agencias").select("tipo_plano, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, dia_pagamento, canais_inclusos, usuarios_inclusos, preco_travado, acesso_bloqueado, trial_acaba_em").eq("id", ctx.agenciaId).maybeSingle(),
     sb.from("super_admin_cobrancas_log").select("status, enviada_em, valor, observacao")
       .eq("agencia_id", ctx.agenciaId).order("enviada_em", { ascending: false }).limit(12),
   ]);
