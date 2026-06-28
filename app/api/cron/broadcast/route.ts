@@ -112,7 +112,7 @@ async function processar() {
     for (const item of itens) {
       const it = item as { id: string; destinatario_whatsapp: string; mensagem_renderizada: string; tentativas: number };
       try {
-        await provider.sendText({ baseUrl, token }, { number: it.destinatario_whatsapp, text: it.mensagem_renderizada });
+        await provider.sendText({ tipo: providerTipo, baseUrl, token }, { number: it.destinatario_whatsapp, text: it.mensagem_renderizada });
         await sb.from("super_admin_broadcast_itens").update({
           status: "enviado",
           enviado_em: new Date().toISOString(),

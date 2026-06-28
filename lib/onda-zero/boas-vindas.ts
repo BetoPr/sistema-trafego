@@ -130,7 +130,7 @@ export async function processarFilaBoasVindas(): Promise<ProcessarResult> {
       });
 
       const r = await provider.sendText(
-        { baseUrl, token },
+        { tipo: providerTipo, baseUrl, token },
         { number: e.destinatario_whatsapp, text: mensagem },
       );
 
