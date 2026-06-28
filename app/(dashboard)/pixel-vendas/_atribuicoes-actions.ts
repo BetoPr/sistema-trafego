@@ -120,3 +120,210 @@ export async function salvarEtiquetasDoAlvo(
   revalidatePath("/pixel-vendas");
   return { ok: true };
 }
+
+/**
+ * Espelhamento Meta → Pasta/Etiqueta.
+ * Cria 1 Pasta (etiqueta-mãe) por Campanha e 1 Etiqueta filha por Conjunto,
+ * vinculando automaticamente. Idempotente: roda quantas vezes quiser.
+ */
+
+const PALETA_ESPELHO = ["#00E19A", "#5cd0ff", "#9B7DBF", "#FFB547", "#FF5C72", "#6B8E4E", "#C97064", "#3b82f6"];
+
+function corPorIndice(i: number): string {
+  return PALETA_ESPELHO[i % PALETA_ESPELHO.length];
+}
+
+interface PreviewEspelhamento {
+  pastasNovas: number;
+  etiquetasNovas: number;
+  vinculosCampanha: number;
+  vinculosConjunto: number;
+  pastasExistentes: number;
+  etiquetasExistentes: number;
+}
+
+async function carregarEstadoEspelhamento(agenciaId: string) {
+  const sb = createServiceClient();
+  const [{ data: camps }, { data: conjs }, { data: etqs }, { data: vincC }, { data: vincCj }] = await Promise.all([
+    sb.from("campanhas").select("id, nome").eq("agencia_id", agenciaId),
+    sb.from("conjuntos").select("id, nome, campanha_id").eq("agencia_id", agenciaId),
+    sb.from("etiquetas").select("id, nome, etiqueta_pai_id, cor").eq("agencia_id", agenciaId).eq("categoria", "etiqueta"),
+    sb.from("etiqueta_campanhas").select("etiqueta_id, campanha_id").eq("agencia_id", agenciaId),
+    sb.from("etiqueta_conjuntos").select("etiqueta_id, conjunto_id").eq("agencia_id", agenciaId),
+  ]);
+  return {
+    sb,
+    campanhas: (camps || []) as Array<{ id: string; nome: string }>,
+    conjuntos: (conjs || []) as Array<{ id: string; nome: string; campanha_id: string }>,
+    etiquetas: (etqs || []) as Array<{ id: string; nome: string; etiqueta_pai_id: string | null; cor: string }>,
+    vincCamp: (vincC || []) as Array<{ etiqueta_id: string; campanha_id: string }>,
+    vincConj: (vincCj || []) as Array<{ etiqueta_id: string; conjunto_id: string }>,
+  };
+}
+
+export async function previewEspelhamentoMeta(): Promise<{
+  ok: boolean;
+  msg?: string;
+  preview?: PreviewEspelhamento;
+}> {
+  const ctx = await requireAdmin();
+  const { campanhas, conjuntos, etiquetas, vincCamp, vincConj } = await carregarEstadoEspelhamento(ctx.agenciaId);
+
+  // Pastas atuais (etiquetas sem pai) por nome
+  const pastasPorNome = new Map<string, string>();
+  for (const e of etiquetas) {
+    if (!e.etiqueta_pai_id) pastasPorNome.set(e.nome.toLowerCase(), e.id);
+  }
+  // Etiquetas filhas por (pai, nome)
+  const filhasPorChave = new Map<string, string>();
+  for (const e of etiquetas) {
+    if (e.etiqueta_pai_id) filhasPorChave.set(`${e.etiqueta_pai_id}::${e.nome.toLowerCase()}`, e.id);
+  }
+  // Vinculos existentes
+  const vincCampSet = new Set(vincCamp.map((v) => `${v.etiqueta_id}::${v.campanha_id}`));
+  const vincConjSet = new Set(vincConj.map((v) => `${v.etiqueta_id}::${v.conjunto_id}`));
+
+  let pastasNovas = 0;
+  let pastasExistentes = 0;
+  let etiquetasNovas = 0;
+  let etiquetasExistentes = 0;
+  let vinculosCampanha = 0;
+  let vinculosConjunto = 0;
+
+  for (const c of campanhas) {
+    const nome = c.nome.toLowerCase();
+    const pastaId = pastasPorNome.get(nome);
+    if (pastaId) {
+      pastasExistentes++;
+      if (!vincCampSet.has(`${pastaId}::${c.id}`)) vinculosCampanha++;
+    } else {
+      pastasNovas++;
+      vinculosCampanha++;
+    }
+  }
+
+  for (const cj of conjuntos) {
+    const camp = campanhas.find((c) => c.id === cj.campanha_id);
+    if (!camp) continue;
+    const pastaId = pastasPorNome.get(camp.nome.toLowerCase());
+    const chave = pastaId ? `${pastaId}::${cj.nome.toLowerCase()}` : `nova-pasta::${cj.nome.toLowerCase()}`;
+    const filhaId = pastaId ? filhasPorChave.get(chave) : undefined;
+    if (filhaId) {
+      etiquetasExistentes++;
+      if (!vincConjSet.has(`${filhaId}::${cj.id}`)) vinculosConjunto++;
+    } else {
+      etiquetasNovas++;
+      vinculosConjunto++;
+    }
+  }
+
+  return {
+    ok: true,
+    preview: { pastasNovas, etiquetasNovas, vinculosCampanha, vinculosConjunto, pastasExistentes, etiquetasExistentes },
+  };
+}
+
+export async function espelharDoMeta(): Promise<{
+  ok: boolean;
+  msg?: string;
+  resumo?: PreviewEspelhamento;
+}> {
+  const ctx = await requireAdmin();
+  const { sb, campanhas, conjuntos, etiquetas, vincCamp, vincConj } = await carregarEstadoEspelhamento(ctx.agenciaId);
+
+  const pastasPorNome = new Map<string, { id: string; cor: string }>();
+  for (const e of etiquetas) {
+    if (!e.etiqueta_pai_id) pastasPorNome.set(e.nome.toLowerCase(), { id: e.id, cor: e.cor });
+  }
+  const filhasPorChave = new Map<string, string>();
+  for (const e of etiquetas) {
+    if (e.etiqueta_pai_id) filhasPorChave.set(`${e.etiqueta_pai_id}::${e.nome.toLowerCase()}`, e.id);
+  }
+  const vincCampSet = new Set(vincCamp.map((v) => `${v.etiqueta_id}::${v.campanha_id}`));
+  const vincConjSet = new Set(vincConj.map((v) => `${v.etiqueta_id}::${v.conjunto_id}`));
+
+  let pastasNovas = 0, etiquetasNovas = 0, vinculosCampanha = 0, vinculosConjunto = 0;
+  let pastasExistentes = 0, etiquetasExistentes = 0;
+
+  // 1) Pastas — uma por Campanha (sem duplicar)
+  for (let i = 0; i < campanhas.length; i++) {
+    const c = campanhas[i];
+    const chave = c.nome.toLowerCase();
+    let pasta = pastasPorNome.get(chave);
+    if (!pasta) {
+      const cor = corPorIndice(i);
+      const { data, error } = await sb
+        .from("etiquetas")
+        .insert({ agencia_id: ctx.agenciaId, nome: c.nome, cor, categoria: "etiqueta", etiqueta_pai_id: null })
+        .select("id, cor")
+        .single();
+      if (error || !data) continue;
+      pasta = { id: data.id as string, cor: (data.cor as string) || cor };
+      pastasPorNome.set(chave, pasta);
+      pastasNovas++;
+    } else {
+      pastasExistentes++;
+    }
+    // Vinculo etiqueta_campanhas (pasta-mae ↔ campanha)
+    if (!vincCampSet.has(`${pasta.id}::${c.id}`)) {
+      const { error: vErr } = await sb
+        .from("etiqueta_campanhas")
+        .insert({ agencia_id: ctx.agenciaId, etiqueta_id: pasta.id, campanha_id: c.id });
+      if (!vErr) {
+        vinculosCampanha++;
+        vincCampSet.add(`${pasta.id}::${c.id}`);
+      }
+    }
+  }
+
+  // 2) Etiquetas filhas — uma por Conjunto
+  for (const cj of conjuntos) {
+    const camp = campanhas.find((c) => c.id === cj.campanha_id);
+    if (!camp) continue;
+    const pasta = pastasPorNome.get(camp.nome.toLowerCase());
+    if (!pasta) continue;
+    const chaveFilha = `${pasta.id}::${cj.nome.toLowerCase()}`;
+    let filhaId = filhasPorChave.get(chaveFilha);
+    if (!filhaId) {
+      const { data, error } = await sb
+        .from("etiquetas")
+        .insert({
+          agencia_id: ctx.agenciaId,
+          nome: cj.nome,
+          cor: pasta.cor,
+          categoria: "etiqueta",
+          etiqueta_pai_id: pasta.id,
+        })
+        .select("id")
+        .single();
+      if (error || !data) continue;
+      filhaId = data.id as string;
+      filhasPorChave.set(chaveFilha, filhaId);
+      etiquetasNovas++;
+    } else {
+      etiquetasExistentes++;
+    }
+    if (!vincConjSet.has(`${filhaId}::${cj.id}`)) {
+      const { error: vErr } = await sb
+        .from("etiqueta_conjuntos")
+        .insert({ agencia_id: ctx.agenciaId, etiqueta_id: filhaId, conjunto_id: cj.id });
+      if (!vErr) {
+        vinculosConjunto++;
+        vincConjSet.add(`${filhaId}::${cj.id}`);
+      }
+    }
+  }
+
+  void audit({
+    agenciaId: ctx.agenciaId,
+    usuarioId: ctx.userId,
+    acao: "espelhar_meta",
+    entidade: "pixel_vendas",
+    payload: { pastasNovas, etiquetasNovas, vinculosCampanha, vinculosConjunto, pastasExistentes, etiquetasExistentes },
+  });
+  revalidatePath("/pixel-vendas");
+  return {
+    ok: true,
+    resumo: { pastasNovas, etiquetasNovas, vinculosCampanha, vinculosConjunto, pastasExistentes, etiquetasExistentes },
+  };
+}

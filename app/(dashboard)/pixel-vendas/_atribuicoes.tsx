@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { salvarEtiquetasDoAlvo, criarEtiquetaInline } from "./_atribuicoes-actions";
+import { salvarEtiquetasDoAlvo, criarEtiquetaInline, previewEspelhamentoMeta, espelharDoMeta } from "./_atribuicoes-actions";
+import { Balao } from "@/components/ui/Balao";
 
 export interface EtiquetaOpt {
   id: string;
@@ -134,12 +135,53 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
         <i className="ti ti-tags" style={{ fontSize: 16, color: "var(--mk-accent-2)" }} />
         <span style={{ fontSize: 13, fontWeight: 700 }}>Etiquetas por campanha / conjunto / anúncio</span>
       </div>
-      <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
-        <strong>Pasta</strong> agrupa um conjunto de campanhas (ex.: <em>Restauração</em>). <strong>Etiqueta</strong> marca
-        cada campanha individual dentro da Pasta (ex.: <em>Bebê</em>, <em>Mofo</em>, <em>Casal</em>). Quando um lead chega
-        pelo anúncio, recebe Pasta + Etiqueta automaticamente — daí no Dashboard você filtra por Pasta (visão geral) ou
-        Etiqueta (campanha específica).
-      </p>
+      {/* Diagrama: como o Sonar etiqueta seus leads */}
+      <div
+        style={{
+          padding: "12px 14px",
+          background: "linear-gradient(135deg, rgba(0,225,154,0.06), rgba(155,125,191,0.04))",
+          border: ".5px solid var(--mk-border)",
+          borderRadius: 10,
+          marginBottom: 10,
+        }}
+      >
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginBottom: 8 }}>
+          COMO O SONAR ETIQUETA SEUS LEADS
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 12 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-speakerphone" style={{ color: "#1877F2" }} />
+            <span style={{ color: "var(--mk-text)" }}>Campanha Meta</span>
+          </span>
+          <i className="ti ti-arrow-right" style={{ color: "var(--mk-text-muted)" }} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-folder" style={{ color: "#00E19A" }} />
+            <span style={{ color: "var(--mk-text)" }}><strong>Pasta</strong> no Sonar</span>
+          </span>
+          <span style={{ width: "100%", height: 0 }} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-target" style={{ color: "var(--mk-text-muted)" }} />
+            <span style={{ color: "var(--mk-text)" }}>Conjunto</span>
+          </span>
+          <i className="ti ti-arrow-right" style={{ color: "var(--mk-text-muted)" }} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-tag" style={{ color: "#9B7DBF" }} />
+            <span style={{ color: "var(--mk-text)" }}><strong>Etiqueta</strong> filha</span>
+          </span>
+          <span style={{ width: "100%", height: 0 }} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <i className="ti ti-photo" style={{ color: "var(--mk-text-muted)" }} />
+            <span style={{ color: "var(--mk-text)" }}>Anúncio</span>
+          </span>
+          <i className="ti ti-arrow-right" style={{ color: "var(--mk-text-muted)" }} />
+          <span style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>etiqueta opcional (granular)</span>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+          Lead chega pelo anúncio → recebe Pasta + Etiqueta. No Dashboard você filtra por Pasta (visão geral) ou Etiqueta (campanha específica).
+        </div>
+      </div>
+
+      <EspelharMetaButton onConcluido={() => window.location.reload()} />
 
       {/* Linhas comerciais (etiquetas-mãe) + botão Nova Linha */}
       <div
@@ -943,6 +985,183 @@ function EtiquetaCell({
         </>,
         document.body,
       )}
+    </div>
+  );
+}
+
+function EspelharMetaButton({ onConcluido }: { onConcluido: () => void }) {
+  const [aberto, setAberto] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [executando, setExecutando] = useState(false);
+  const [preview, setPreview] = useState<{ pastasNovas: number; etiquetasNovas: number; vinculosCampanha: number; vinculosConjunto: number; pastasExistentes: number; etiquetasExistentes: number } | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<typeof preview>(null);
+
+  async function abrir() {
+    setAberto(true);
+    setCarregando(true);
+    setErro(null);
+    setResultado(null);
+    try {
+      const r = await previewEspelhamentoMeta();
+      if (r.ok && r.preview) setPreview(r.preview);
+      else setErro(r.msg || "Erro ao calcular prévia");
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function executar() {
+    setExecutando(true);
+    setErro(null);
+    try {
+      const r = await espelharDoMeta();
+      if (r.ok && r.resumo) {
+        setResultado(r.resumo);
+        setTimeout(() => {
+          setAberto(false);
+          onConcluido();
+        }, 1800);
+      } else {
+        setErro(r.msg || "Erro ao espelhar");
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExecutando(false);
+    }
+  }
+
+  const totalNovo = preview ? preview.pastasNovas + preview.etiquetasNovas + preview.vinculosCampanha + preview.vinculosConjunto : 0;
+  const semTrabalho = preview && totalNovo === 0;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={abrir}
+        style={{
+          width: "100%",
+          padding: "12px 16px",
+          background: "linear-gradient(135deg, rgba(0,225,154,0.10), rgba(155,125,191,0.06))",
+          border: "1px solid rgba(0,225,154,0.30)",
+          borderRadius: 10,
+          color: "var(--mk-text)",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          marginBottom: 12,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          textAlign: "left",
+        }}
+      >
+        <i className="ti ti-sparkles" style={{ fontSize: 18, color: "#00E19A" }} />
+        <span style={{ flex: 1 }}>
+          <span style={{ display: "block" }}>Espelhar do Meta automaticamente</span>
+          <span style={{ display: "block", fontSize: 11, color: "var(--mk-text-muted)", fontWeight: 400, marginTop: 2 }}>
+            Cria Pasta por Campanha + Etiqueta por Conjunto, vincula tudo. 1 clique.
+          </span>
+        </span>
+        <i className="ti ti-chevron-right" style={{ color: "var(--mk-text-muted)" }} />
+      </button>
+
+      <Balao open={aberto} onClose={() => setAberto(false)} titulo="Espelhar estrutura do Meta" icone="ti-sparkles" largura={520}>
+        <div style={{ padding: "6px 4px 14px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {carregando && (
+            <div style={{ fontSize: 13, color: "var(--mk-text-muted)", textAlign: "center", padding: 20 }}>
+              Calculando prévia...
+            </div>
+          )}
+
+          {erro && (
+            <div style={{ padding: 12, background: "rgba(255,92,114,0.10)", border: "1px solid rgba(255,92,114,0.30)", borderRadius: 8, color: "#FF5C72", fontSize: 12.5 }}>
+              {erro}
+            </div>
+          )}
+
+          {resultado && !erro && (
+            <div style={{ padding: 14, background: "rgba(0,225,154,0.10)", border: "1px solid rgba(0,225,154,0.40)", borderRadius: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#00E19A", marginBottom: 8 }}>
+                <i className="ti ti-check" /> Estrutura espelhada!
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--mk-text)", lineHeight: 1.6 }}>
+                {resultado.pastasNovas} pasta{resultado.pastasNovas === 1 ? "" : "s"} nova{resultado.pastasNovas === 1 ? "" : "s"} ·{" "}
+                {resultado.etiquetasNovas} etiqueta{resultado.etiquetasNovas === 1 ? "" : "s"} nova{resultado.etiquetasNovas === 1 ? "" : "s"} ·{" "}
+                {resultado.vinculosCampanha + resultado.vinculosConjunto} vínculo{resultado.vinculosCampanha + resultado.vinculosConjunto === 1 ? "" : "s"} criado{resultado.vinculosCampanha + resultado.vinculosConjunto === 1 ? "" : "s"}.
+              </div>
+            </div>
+          )}
+
+          {preview && !resultado && (
+            <>
+              <div style={{ fontSize: 12.5, color: "var(--mk-text-secondary)", lineHeight: 1.55 }}>
+                Vou criar Pastas a partir das suas <strong>Campanhas</strong> Meta e Etiquetas filhas a partir dos <strong>Conjuntos</strong>. Itens já existentes (mesmo nome) são preservados — sem duplicar.
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+                <CardPreview icone="ti-folder-plus" cor="#00E19A" titulo={`${preview.pastasNovas} Pasta${preview.pastasNovas === 1 ? "" : "s"} novas`} sub={`${preview.pastasExistentes} já existe${preview.pastasExistentes === 1 ? "" : "m"}`} />
+                <CardPreview icone="ti-tag-plus" cor="#9B7DBF" titulo={`${preview.etiquetasNovas} Etiqueta${preview.etiquetasNovas === 1 ? "" : "s"} novas`} sub={`${preview.etiquetasExistentes} já existe${preview.etiquetasExistentes === 1 ? "" : "m"}`} />
+                <CardPreview icone="ti-link" cor="#5cd0ff" titulo={`${preview.vinculosCampanha} vínculo${preview.vinculosCampanha === 1 ? "" : "s"} pasta↔campanha`} sub="auto-conectado" />
+                <CardPreview icone="ti-link" cor="#FFB547" titulo={`${preview.vinculosConjunto} vínculo${preview.vinculosConjunto === 1 ? "" : "s"} etiqueta↔conjunto`} sub="auto-conectado" />
+              </div>
+
+              {semTrabalho && (
+                <div style={{ padding: 12, background: "var(--mk-surface)", border: "1px dashed var(--mk-border)", borderRadius: 8, fontSize: 12, color: "var(--mk-text-muted)", textAlign: "center" }}>
+                  Tudo já está espelhado — nada novo pra fazer.
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setAberto(false)}
+                  disabled={executando}
+                  style={{ padding: "9px 16px", background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", fontSize: 12.5, cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={executar}
+                  disabled={executando || !!semTrabalho}
+                  style={{
+                    padding: "9px 18px",
+                    background: semTrabalho ? "var(--mk-surface)" : "#00E19A",
+                    border: 0,
+                    borderRadius: 8,
+                    color: semTrabalho ? "var(--mk-text-muted)" : "#0c0c0c",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: semTrabalho ? "not-allowed" : "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <i className="ti ti-sparkles" />
+                  {executando ? "Espelhando..." : "Espelhar agora"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Balao>
+    </>
+  );
+}
+
+function CardPreview({ icone, cor, titulo, sub }: { icone: string; cor: string; titulo: string; sub: string }) {
+  return (
+    <div style={{ padding: 10, background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, display: "flex", gap: 10, alignItems: "center" }}>
+      <i className={`ti ${icone}`} style={{ fontSize: 20, color: cor }} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--mk-text)" }}>{titulo}</div>
+        <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{sub}</div>
+      </div>
     </div>
   );
 }
