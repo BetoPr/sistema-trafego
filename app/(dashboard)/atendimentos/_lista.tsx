@@ -6,6 +6,7 @@ import { LightboxFoto } from "@/components/ui/LightboxFoto";
 import { AtenderBotao } from "./_atender-btn";
 import { BolhaEspiada, type MsgEspiada } from "./_espiar-msg";
 import { NovaConversa } from "./_nova-conversa";
+import { useFiltroAtivo } from "@/lib/filtro-ativo/context";
 
 export interface TicketLista {
   id: string;
@@ -195,6 +196,23 @@ export function ListaAtendimentos(p: Props) {
     return Array.from(m.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [p.tickets, p.todasEtiquetas]);
 
+  // FiltroGlobal cross-aba (Dashboard ↔ Atendimentos): pasta/etiqueta selecionada
+  // aplica em todos os tickets cujo contato tenha aquela etiqueta (ou qualquer filha
+  // da pasta) entre as etiquetas de contato_etiquetas.
+  const filtroAtivo = useFiltroAtivo();
+  // Filhas da etiqueta-pasta selecionada — calculada uma vez por filtro
+  const idsFiltroExpandido = useMemo(() => {
+    if (!filtroAtivo.filtro.id) return null;
+    if (filtroAtivo.filtro.tipo === "etiqueta") return new Set([filtroAtivo.filtro.id]);
+    if (filtroAtivo.filtro.tipo === "pasta") {
+      const filhas = (p.todasEtiquetas || [])
+        .filter((e) => (e as unknown as { etiqueta_pai_id?: string | null }).etiqueta_pai_id === filtroAtivo.filtro.id)
+        .map((e) => e.id);
+      return new Set([filtroAtivo.filtro.id, ...filhas]);
+    }
+    return null;
+  }, [filtroAtivo.filtro.id, filtroAtivo.filtro.tipo, p.todasEtiquetas]);
+
   // Aplica todos os filtros MENOS o status (pra contar por status no painel)
   const passaNaoStatus = (t: TicketLista, q: string) => {
     if (somenteNaoLidos && !t.nao_lido) return false;
@@ -202,6 +220,10 @@ export function ListaAtendimentos(p: Props) {
     if (filaFiltros.length && !(t.fila && filaFiltros.includes(t.fila.id))) return false;
     if (usuarioFiltros.length && !(t.usuario_id && usuarioFiltros.includes(t.usuario_id))) return false;
     if (etiquetaFiltros.length && !etiquetaFiltros.some((id) => temEtiqueta(t, id))) return false;
+    if (idsFiltroExpandido) {
+      const tem = Array.from(idsFiltroExpandido).some((id) => temEtiqueta(t, id));
+      if (!tem) return false;
+    }
     if (de || ate) {
       const ref = t.ultima_mensagem_em || t.created_at || null;
       if (!ref) return false;
@@ -225,7 +247,7 @@ export function ListaAtendimentos(p: Props) {
     }
     return c;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.tickets, somenteNaoLidos, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, de, ate, searchQ]);
+  }, [p.tickets, somenteNaoLidos, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, de, ate, searchQ, idsFiltroExpandido]);
 
   const ticketsVisiveis = useMemo(() => {
     const q = searchQ.trim().toLowerCase();
@@ -237,7 +259,7 @@ export function ListaAtendimentos(p: Props) {
     });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.tickets, statusSel, somenteNaoLidos, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, de, ate, inverterOrdem, searchQ]);
+  }, [p.tickets, statusSel, somenteNaoLidos, canalFiltros, filaFiltros, usuarioFiltros, etiquetaFiltros, de, ate, inverterOrdem, searchQ, idsFiltroExpandido]);
 
   const filtrosAtivos = (statusSel.length !== 2 || !statusSel.includes("aberto") || !statusSel.includes("pendente") ? 1 : 0)
     + (somenteNaoLidos ? 1 : 0) + (inverterOrdem ? 1 : 0) + (de || ate ? 1 : 0)
