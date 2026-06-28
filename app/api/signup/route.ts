@@ -17,8 +17,11 @@ import { createServiceClient } from "@/lib/supabase/service";
 import {
   calcularTrialAcabaEm,
   calcularApagarEm,
+  TRIAL_DIAS_PROMO_LANCAMENTO,
   type TipoCliente,
 } from "@/lib/auth/trial";
+import { tentarEntrarOndaZero } from "@/lib/onda-zero";
+import { enfileirarBoasVindasOndaZero } from "@/lib/onda-zero/boas-vindas";
 
 const PERFIS_VALIDOS: TipoCliente[] = ["autonomo", "agencia"];
 
@@ -187,12 +190,39 @@ export async function POST(req: Request) {
     );
   }
 
+  // 4. Tenta entrar na Onda Zero (10 primeiros membros = preco vitalicio + trial dobrado).
+  let trialFinalIso = trialAcabaEm.toISOString();
+  let entrouOndaZero = false;
+  try {
+    entrouOndaZero = await tentarEntrarOndaZero(agencia.id);
+    if (entrouOndaZero) {
+      // Dobra trial conforme promo
+      const diasPromo = TRIAL_DIAS_PROMO_LANCAMENTO[perfil];
+      const trialPromo = new Date(agora);
+      trialPromo.setDate(trialPromo.getDate() + diasPromo);
+      const apagarPromo = calcularApagarEm(trialPromo);
+      await svc
+        .from("agencias")
+        .update({
+          trial_acaba_em: trialPromo.toISOString(),
+          apagar_em: apagarPromo.toISOString(),
+        })
+        .eq("id", agencia.id);
+      trialFinalIso = trialPromo.toISOString();
+      // Enfileira mensagem de boas-vindas via canal sistema
+      void enfileirarBoasVindasOndaZero(agencia.id, nome, whatsapp);
+    }
+  } catch (e) {
+    console.error("[signup] erro processo Onda Zero:", e);
+  }
+
   return NextResponse.json(
     {
       ok: true,
       agencia_id: agencia.id,
       tipo_cliente: perfil,
-      trial_acaba_em: trialAcabaEm.toISOString(),
+      trial_acaba_em: trialFinalIso,
+      onda_zero: entrouOndaZero,
       redirect_url: "https://sonarcrm.com.br/login?signup=ok",
     },
     { status: 200, headers: cors },

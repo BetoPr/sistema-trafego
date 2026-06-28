@@ -124,6 +124,7 @@ function buildSections(role?: string, canaisStatus?: CanaisStatus, usuariosStatu
         { href: "/super-admin/servidores", label: "Servidores", icon: "ti-server" },
         { href: "/super-admin/instancias", label: "Instâncias", icon: "ti-brand-whatsapp" },
         { href: "/super-admin/acessos", label: "Acessos", icon: "ti-shield-lock" },
+        { href: "/super-admin/comunicacao", label: "Comunicação", icon: "ti-broadcast" },
       ],
     });
   }
