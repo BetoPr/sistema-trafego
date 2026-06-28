@@ -33,9 +33,10 @@ const inp: React.CSSProperties = {
 interface Kpis { gasto: number; bruto: number; liquido: number; roas: number | null; matchClid: number; vendas: number }
 
 export function PixelVendasClient({
-  periodo, clienteFiltro, kpis, feed, clientesPixel, saude, onboarding, eventosConfig,
+  periodo, clienteFiltro, kpis, feed, clientesPixel, saude, onboarding, eventosConfig, slotAtribuicoes,
 }: {
   periodo: string; clienteFiltro: string; kpis: Kpis; feed: EventoRow[]; clientesPixel: ClientePixel[]; saude: Saude; onboarding: Onboarding; eventosConfig: EventosConfigShape;
+  slotAtribuicoes?: React.ReactNode;
 }) {
   const router = useRouter();
   const [diagEvento, setDiagEvento] = useState<EventoRow | null>(null);
@@ -48,8 +49,6 @@ export function PixelVendasClient({
     router.push(`/pixel-vendas?${q.toString()}`);
   };
 
-  const roasTxt = (r: number | null) => (r == null ? "—" : `${r.toFixed(2).replace(".", ",")}x`);
-
   async function reenviar(id: string) {
     await fetch("/api/pixel-vendas/reenviar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ evento_id: id }) });
     router.refresh();
@@ -57,11 +56,15 @@ export function PixelVendasClient({
 
   return (
     <div className="mk-page">
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-        <h1 style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 22, fontWeight: 700, color: "var(--mk-accent)" }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 18 }}>
+        <div className="mk-eyebrow">Tráfego (Ads) · Pixel</div>
+        <h1 className="mk-page-title" style={{ display: "flex", alignItems: "center", gap: 10, margin: 0 }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--mk-accent)" }}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
           Pixel &amp; Campanhas
         </h1>
+        <p className="mk-page-sub" style={{ margin: 0, maxWidth: 720 }}>
+          Etiquete suas campanhas e deixe o Sonar disparar as vendas pro Meta automático. Três passos: organizar, ligar eventos, acompanhar.
+        </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <select value={clienteFiltro} onChange={(e) => ir({ cliente: e.target.value })} style={inp}>
             <option value="">Todos os clientes</option>
@@ -75,35 +78,63 @@ export function PixelVendasClient({
 
       <BannerSaude saude={saude} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-        <Kpi titulo="Gasto em ads" valor={BRL.format(kpis.gasto)} sub="investido no período" cor="#f0a35e" />
-        <Kpi titulo="Faturamento bruto" valor={BRL.format(kpis.bruto)} sub={`${kpis.vendas} vendas atribuídas`} />
-        <Kpi titulo="Faturamento líquido" valor={BRL.format(kpis.liquido)} sub="bruto − gasto" cor="var(--mk-accent)" destaque />
-        <Kpi titulo="ROAS" valor={roasTxt(kpis.roas)} sub={`match de click-id: ${kpis.matchClid}%`} />
-      </div>
+      {/* 1 — Etiquetas (Pasta/Etiqueta/Anúncio) */}
+      <SecaoNumerada n={1} titulo="Organizar etiquetas das campanhas" desc="Mapeie suas campanhas do Meta pra Pastas e Etiquetas. Espelha a estrutura em 1 clique.">
+        {slotAtribuicoes}
+      </SecaoNumerada>
 
-      <div className="mk-card" style={{ padding: 0, marginBottom: 16, overflow: "hidden" }}>
-        <div style={{ padding: "12px 14px", fontWeight: 600, borderBottom: "1px solid var(--mk-border)" }}>Vendas enviadas ao Meta (Purchase)</div>
-        {feed.length === 0 && <div style={{ padding: 16, opacity: 0.6 }}>Nenhum evento ainda.</div>}
-        {feed.map((e) => (
-          <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 14px", borderTop: "1px solid var(--mk-border)", fontSize: 13 }}>
-            <div>{e.contato_nome || "Contato"} · <b>{BRL.format(e.valor)}</b> · {e.campanha_nome || (e.ctwa_clid ? "—" : "sem click-id")} · {new Date(e.created_at).toLocaleString("pt-BR")}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setDiagEvento(e)}
-                title="Por quê?"
-                style={{ background: "transparent", border: "1px solid var(--mk-border)", color: "var(--mk-text-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
-              >Por quê?</button>
-              <StatusEvento status={e.status} onReenviar={() => reenviar(e.id)} />
+      {/* 2 — Eventos automáticos pro Meta */}
+      <SecaoNumerada n={2} titulo="Eventos automáticos pro Meta" desc="Liga o que o Sonar dispara sozinho pro Pixel: Lead, AddToCart e Purchase.">
+        <CardEventosAutomaticos config={eventosConfig} />
+      </SecaoNumerada>
+
+      {/* 3 — Vendas enviadas ao Meta (Purchase) */}
+      <SecaoNumerada n={3} titulo="Vendas enviadas ao Meta (Purchase)" desc="Feed das últimas vendas disparadas. Clica em 'Por quê?' pra entender qualquer status.">
+        <div className="mk-card" style={{ padding: 0, overflow: "hidden" }}>
+          {feed.length === 0 && <div style={{ padding: 20, textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12.5 }}>Nenhuma venda enviada ainda.</div>}
+          {feed.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 14px", borderTop: feed[0] === e ? 0 : "1px solid var(--mk-border)", fontSize: 13 }}>
+              <div>{e.contato_nome || "Contato"} · <b>{BRL.format(e.valor)}</b> · {e.campanha_nome || (e.ctwa_clid ? "—" : "sem click-id")} · {new Date(e.created_at).toLocaleString("pt-BR")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setDiagEvento(e)}
+                  title="Por quê?"
+                  style={{ background: "transparent", border: "1px solid var(--mk-border)", color: "var(--mk-text-muted)", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
+                >Por quê?</button>
+                <StatusEvento status={e.status} onReenviar={() => reenviar(e.id)} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      <CardEventosAutomaticos config={eventosConfig} />
+          ))}
+        </div>
+      </SecaoNumerada>
 
       <DiagEvento evento={diagEvento} onClose={() => setDiagEvento(null)} />
+    </div>
+  );
+}
+
+function SecaoNumerada({ n, titulo, desc, children }: { n: number; titulo: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+        <span style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 26,
+          height: 26,
+          borderRadius: "50%",
+          background: "rgba(0,225,154,0.12)",
+          border: "1px solid rgba(0,225,154,0.35)",
+          color: "var(--mk-accent)",
+          fontSize: 12.5,
+          fontWeight: 700,
+        }}>{n}</span>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--mk-text)", margin: 0 }}>{titulo}</h2>
+      </div>
+      <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 12px 38px", lineHeight: 1.5 }}>{desc}</p>
+      <div style={{ paddingLeft: 0 }}>{children}</div>
     </div>
   );
 }

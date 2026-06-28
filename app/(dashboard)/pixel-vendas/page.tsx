@@ -381,7 +381,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   });
 
   return (
-    <>
     <PixelVendasClient
       periodo={periodo}
       clienteFiltro={params.cliente || ""}
@@ -391,10 +390,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       saude={saude}
       onboarding={onboarding}
       eventosConfig={eventosConfig}
+      slotAtribuicoes={<Atribuicoes campanhas={campanhasNodes} etiquetas={etiquetasOpts} />}
     />
-    <div className="mk-page" style={{ paddingTop: 0 }}>
-      <Atribuicoes campanhas={campanhasNodes} etiquetas={etiquetasOpts} />
-    </div>
-    </>
   );
 }
