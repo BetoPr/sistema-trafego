@@ -74,7 +74,6 @@ export function PixelVendasClient({
       </div>
 
       <BannerSaude saude={saude} />
-      <CardOnboarding onboarding={onboarding} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <Kpi titulo="Gasto em ads" valor={BRL.format(kpis.gasto)} sub="investido no período" cor="#f0a35e" />
@@ -110,14 +109,7 @@ export function PixelVendasClient({
 }
 
 function BannerSaude({ saude }: { saude: Saude }) {
-  if (saude.tudoOk) {
-    return (
-      <div className="mk-card" style={{ padding: "10px 14px", marginBottom: 14, borderColor: "var(--mk-accent)", background: "rgba(16,185,129,0.06)", display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-        <span style={{ color: "var(--mk-accent)" }}>✓</span>
-        <span><b>Tudo conectado.</b> Pixels OK, tokens válidos, sem erros nos últimos eventos.</span>
-      </div>
-    );
-  }
+  if (saude.tudoOk) return null;
   const itens: string[] = [];
   if (saude.tokenExpirado.length) itens.push(`🔴 Token expirado: ${saude.tokenExpirado.map((t) => t.cliente_nome).join(", ")} — reconectar em Integrações.`);
   if (saude.tokenExpirando.length) itens.push(`🟡 Token expira em breve: ${saude.tokenExpirando.map((t) => `${t.cliente_nome} (${t.dias}d)`).join(", ")}.`);
