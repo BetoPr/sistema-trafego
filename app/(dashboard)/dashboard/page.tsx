@@ -19,6 +19,7 @@ import { CriativosTop } from "./_components/CriativosTop";
 import { PeriodoToggle, ViewToggle } from "./_components/PeriodoToggle";
 import { AtendimentosLive } from "./_components/AtendimentosLive";
 import { MapaContatosEstado } from "./_components/MapaContatosEstado";
+import { FiltroGlobal } from "@/components/layout/FiltroGlobal";
 
 function parsePeriodo(p: string | undefined): Periodo {
   if (p === "hoje" || p === "7d" || p === "30d") return p;
@@ -90,7 +91,10 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <ViewToggle atual={view} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+        <ViewToggle atual={view} />
+        <FiltroGlobal />
+      </div>
 
       {view === "campanhas" ? (
         <>
