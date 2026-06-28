@@ -58,7 +58,7 @@ export function RelatorioFormBalao({
       dia_semana: 1,
       dia_mes: 1,
       hora_envio: "09:00",
-      formato: "pdf",
+      formato: "texto",
       periodo_dias: 7,
     },
   );
@@ -176,11 +176,11 @@ export function RelatorioFormBalao({
           </div>
           <div>
             <label style={lbl}>FORMATO</label>
-            <select name="formato" value={f.formato} onChange={(e) => patch("formato", e.target.value as RelatorioForm["formato"])} style={inp}>
-              <option value="pdf">PDF</option>
-              <option value="imagem">Imagem</option>
-              <option value="texto">Texto</option>
-            </select>
+            <input type="hidden" name="formato" value="texto" />
+            <div style={{ padding: "8px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, fontSize: 12, color: "var(--mk-text-muted)" }}>
+              <i className="ti ti-message" style={{ marginRight: 5, color: "#00E19A" }} />
+              Mensagem de texto no WhatsApp
+            </div>
           </div>
           <div>
             <label style={lbl}>PERÍODO (DIAS)</label>
