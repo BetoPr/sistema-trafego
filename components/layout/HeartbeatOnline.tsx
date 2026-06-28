@@ -15,7 +15,9 @@ export function HeartbeatOnline() {
 
     function pulse() {
       if (!alive) return;
-      if (document.hidden) return;
+      // bate mesmo com a aba em background — usuário continua "logado" no CRM
+      // mesmo enquanto vê outra aba. Cron derruba só se passar > 90s sem ping
+      // (ex: máquina desligada, browser fechado, sem internet).
       fetch("/api/usuarios/heartbeat", { method: "POST" }).catch(() => {});
     }
 
