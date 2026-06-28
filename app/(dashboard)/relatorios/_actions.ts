@@ -141,6 +141,34 @@ export async function alternarAtivoRelatorio(id: string, ativo: boolean) {
   revalidatePath("/relatorios");
 }
 
+/** Reagenda manualmente o proximo_envio de um relatorio (data ISO em UTC). */
+export async function reagendarRelatorio(id: string, novaDataIso: string): Promise<{ ok: boolean; msg?: string }> {
+  const { supabase, usuario } = await requireUserWithAgencia();
+  const data = new Date(novaDataIso);
+  if (isNaN(data.getTime())) return { ok: false, msg: "Data inválida" };
+  const { error } = await supabase
+    .from("relatorios_agendados")
+    .update({ proximo_envio: data.toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("agencia_id", usuario.agencia_id);
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/relatorios");
+  return { ok: true };
+}
+
+/** Dispara o relatorio agora (proximo_envio = agora) — atalho rapido. */
+export async function dispararAgora(id: string): Promise<{ ok: boolean; msg?: string }> {
+  const { supabase, usuario } = await requireUserWithAgencia();
+  const { error } = await supabase
+    .from("relatorios_agendados")
+    .update({ proximo_envio: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("agencia_id", usuario.agencia_id);
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/relatorios");
+  return { ok: true };
+}
+
 export async function deletarRelatorio(id: string) {
   const { supabase, usuario } = await requireUserWithAgencia();
   await supabase

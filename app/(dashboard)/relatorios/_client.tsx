@@ -3,7 +3,8 @@
 import { useState, useMemo, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RelatorioFormBalao, type RelatorioForm } from "./_form-balao";
-import { alternarAtivoRelatorio, deletarRelatorio } from "./_actions";
+import { alternarAtivoRelatorio, deletarRelatorio, reagendarRelatorio } from "./_actions";
+import { Balao } from "@/components/ui/Balao";
 
 function useIsMobile(bp = 768) {
   const [m, setM] = useState(false);
@@ -33,6 +34,7 @@ interface LinhaRelatorio {
   ativo: boolean;
   recebedor: string;
   proximoFmt: string;
+  proximo_envio: string | null;
 }
 
 interface Opcao { id: string; nome: string; }
@@ -55,6 +57,7 @@ export function RelatoriosClient({
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState<FiltroStatus>("todos");
   const [aberto, setAberto] = useState<RelatorioForm | null>(null);
+  const [reagendar, setReagendar] = useState<{ id: string; nome: string; valor: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -327,6 +330,18 @@ export function RelatoriosClient({
                           style={{ ...btnAcao, opacity: r.ativo ? 1 : 0.4 }}>
                           <i className="ti ti-send" style={{ fontSize: 14 }} />
                         </button>
+                        <button
+                          onClick={() => {
+                            // Pré-preenche com proximo_envio atual no formato datetime-local
+                            const d = r.proximo_envio ? new Date(r.proximo_envio) : new Date();
+                            const tzOff = d.getTimezoneOffset() * 60000;
+                            const local = new Date(d.getTime() - tzOff).toISOString().slice(0, 16);
+                            setReagendar({ id: r.id, nome: r.nome, valor: local });
+                          }}
+                          title="Reagendar próximo envio"
+                          style={btnAcao}>
+                          <i className="ti ti-calendar-clock" style={{ fontSize: 14 }} />
+                        </button>
                         <button onClick={() => router.push(`/relatorios?editar=${r.id}`)}
                           title="Editar"
                           style={btnAcao}>
@@ -360,6 +375,68 @@ export function RelatoriosClient({
           canais={canais}
         />
       )}
+
+      {/* Reagendar próximo envio */}
+      <Balao open={!!reagendar} onClose={() => setReagendar(null)} titulo={`Reagendar "${reagendar?.nome || ""}"`} icone="ti-calendar-clock" largura={420}>
+        <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ padding: 10, background: "rgba(0,225,154,0.06)", border: ".5px solid rgba(0,225,154,0.25)", borderRadius: 8, fontSize: 12, color: "var(--mk-text)", lineHeight: 1.5 }}>
+            Define a próxima data e hora de envio. Worker dispara quando chegar nesse horário (ou logo no próximo tick se já passou).
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--mk-text-muted)", display: "block", marginBottom: 6, letterSpacing: 0.4 }}>
+              PRÓXIMO ENVIO
+            </label>
+            <input
+              type="datetime-local"
+              value={reagendar?.valor || ""}
+              onChange={(e) => setReagendar((r) => (r ? { ...r, valor: e.target.value } : r))}
+              style={{ width: "100%", padding: "10px 12px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 13, colorScheme: "dark" }}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => setReagendar((r) => {
+                if (!r) return r;
+                const d = new Date();
+                const tzOff = d.getTimezoneOffset() * 60000;
+                return { ...r, valor: new Date(d.getTime() - tzOff).toISOString().slice(0, 16) };
+              })}
+              style={{ background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 7, padding: "6px 12px", fontSize: 11.5, color: "var(--mk-text-muted)", cursor: "pointer" }}
+            >
+              <i className="ti ti-flash" style={{ marginRight: 4 }} />
+              Disparar agora
+            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setReagendar(null)} style={{ background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, color: "var(--mk-text-muted)", cursor: "pointer" }}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={pending || !reagendar?.valor}
+                onClick={() => {
+                  if (!reagendar) return;
+                  // datetime-local manda "YYYY-MM-DDTHH:MM" sem timezone — interpretar como local
+                  const dataLocal = new Date(reagendar.valor);
+                  startTransition(async () => {
+                    const r = await reagendarRelatorio(reagendar.id, dataLocal.toISOString());
+                    if (r.ok) {
+                      setReagendar(null);
+                      router.refresh();
+                    } else {
+                      alert(r.msg || "Erro ao reagendar");
+                    }
+                  });
+                }}
+                className="cta-btn"
+                style={{ fontSize: 12.5, padding: "8px 16px" }}
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Balao>
     </>
   );
 }
