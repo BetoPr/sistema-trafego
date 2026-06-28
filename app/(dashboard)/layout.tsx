@@ -1,5 +1,7 @@
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import type { LicencaStatus } from "@/components/layout/ProfileMenu";
+import pkg from "@/package.json";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NotificacaoMensagens } from "@/components/layout/NotificacaoMensagens";
 import { HeartbeatOnline } from "@/components/layout/HeartbeatOnline";
@@ -35,11 +37,14 @@ export default async function DashboardLayout({
     altura: ((agRow?.logo_altura as number) || 36),
   };
 
-  // Status de limites pra mostrar nos badges da sidebar
-  const [{ data: agLimite }, { count: canaisUsadosCount }, { count: usuariosUsadosCount }] = await Promise.all([
-    supabase.from("agencias").select("limite_canais, limite_usuarios").eq("id", usuario.agencia_id).maybeSingle(),
+  // Status de limites + licenca pra topbar/sidebar
+  const [{ data: agLimite }, { count: canaisUsadosCount }, { count: usuariosUsadosCount }, { data: meuStatus }] = await Promise.all([
+    supabase.from("agencias")
+      .select("limite_canais, limite_usuarios, acesso_bloqueado, trial_acaba_em, vencimento_em")
+      .eq("id", usuario.agencia_id).maybeSingle(),
     supabase.from("canais").select("id", { count: "exact", head: true }).eq("agencia_id", usuario.agencia_id),
     supabase.from("usuarios").select("id", { count: "exact", head: true }).eq("agencia_id", usuario.agencia_id).is("deleted_at", null),
+    supabase.from("usuarios").select("online, online_manual").eq("id", usuario.id).maybeSingle(),
   ]);
   const canaisStatus = {
     usados: canaisUsadosCount ?? 0,
@@ -49,6 +54,21 @@ export default async function DashboardLayout({
     usados: usuariosUsadosCount ?? 0,
     limite: (agLimite?.limite_usuarios as number | null) ?? 1,
   };
+
+  // Computa status da licenca
+  const agora = new Date();
+  const trialAcabaEm = (agLimite?.trial_acaba_em as string | null) ?? null;
+  const vencimentoEm = (agLimite?.vencimento_em as string | null) ?? null;
+  const acessoBloqueado = !!agLimite?.acesso_bloqueado;
+  let licenca: LicencaStatus = "ativa";
+  if (acessoBloqueado) {
+    licenca = "bloqueada";
+  } else if (trialAcabaEm && new Date(trialAcabaEm) > agora) {
+    licenca = "trial";
+  } else if (vencimentoEm && new Date(vencimentoEm) < agora) {
+    licenca = "atrasada";
+  }
+  const onlineInicial = (meuStatus?.online_manual as boolean | null) ?? true;
 
   // Busca plataformas com ao menos 1 integração ativa
   const { data: integs } = await supabase
@@ -78,6 +98,12 @@ export default async function DashboardLayout({
               userEmail={usuario.email}
               agencia={agencia?.nome ?? "—"}
               avatarUrl={(usuario as { avatar_url?: string | null }).avatar_url ?? null}
+              role={usuario.role || "atendente"}
+              versao={`v${pkg.version}`}
+              licenca={licenca}
+              trialAcabaEm={trialAcabaEm}
+              vencimentoEm={vencimentoEm}
+              onlineInicial={onlineInicial}
             />
             <CommandPalette role={usuario.role} />
             <NotificacaoMensagens agenciaId={usuario.agencia_id} />

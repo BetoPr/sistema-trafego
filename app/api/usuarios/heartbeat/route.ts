@@ -28,6 +28,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, offline: true });
   }
 
-  await sb.from("usuarios").update({ online: true, ultimo_heartbeat: agora }).eq("id", auth.user.id);
+  // Se usuario marcou "Ficar offline" no menu de perfil, heartbeat apenas
+  // carimba ultimo_heartbeat (pra saber que esta vivo) mas NAO reativa online.
+  const { data: u } = await sb
+    .from("usuarios")
+    .select("online_manual")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  const respeitarOffline = u && u.online_manual === false;
+
+  await sb
+    .from("usuarios")
+    .update(respeitarOffline
+      ? { ultimo_heartbeat: agora }
+      : { online: true, ultimo_heartbeat: agora })
+    .eq("id", auth.user.id);
   return NextResponse.json({ ok: true });
 }
