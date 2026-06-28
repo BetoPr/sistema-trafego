@@ -14,6 +14,8 @@ import { CrmOverlays } from "./_crm-overlays";
 import { FiltroAtivoProvider } from "@/lib/filtro-ativo/context";
 import { ChatDrawer } from "@/components/chat-assistente/ChatDrawer";
 import { RoboGuia } from "@/components/layout/RoboGuia";
+import { OndaZeroBalao } from "@/components/layout/OndaZeroBalao";
+import { carregarStatusOndaZero } from "@/lib/onda-zero";
 import { requireUserWithAgencia } from "@/lib/auth";
 import type { Plataforma } from "@/lib/platform";
 
@@ -70,6 +72,10 @@ export default async function DashboardLayout({
   }
   const onlineInicial = (meuStatus?.online_manual as boolean | null) ?? true;
 
+  // Onda Zero — balão de convite (apenas primeira vez que membro vê o app)
+  const ondaZero = await carregarStatusOndaZero(usuario.agencia_id);
+  const mostrarOndaZeroBalao = ondaZero.ehMembro && !ondaZero.conviteVistoEm;
+
   // Busca plataformas com ao menos 1 integração ativa
   const { data: integs } = await supabase
     .from("integracoes")
@@ -112,6 +118,12 @@ export default async function DashboardLayout({
           </main>
           <ChatDrawer />
           <RoboGuia />
+          {mostrarOndaZeroBalao && (
+            <OndaZeroBalao
+              mensagem={ondaZero.mensagemConvite}
+              whatsappGrupoLink={ondaZero.whatsappGrupoLink}
+            />
+          )}
         </AppShell>
         </AudioGlobalProvider>
         </FiltroAtivoProvider>

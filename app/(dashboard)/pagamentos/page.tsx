@@ -44,7 +44,7 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
   const [{ count: canaisAtivos }, { count: usuariosAtivos }, { data: agencia }, { data: historico }] = await Promise.all([
     sb.from("canais").select("id", { count: "exact", head: true }).eq("agencia_id", ctx.agenciaId),
     sb.from("usuarios").select("id", { count: "exact", head: true }).eq("agencia_id", ctx.agenciaId).is("deleted_at", null),
-    sb.from("agencias").select("tipo_plano, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, dia_pagamento, canais_inclusos, usuarios_inclusos, preco_travado, acesso_bloqueado, trial_acaba_em").eq("id", ctx.agenciaId).maybeSingle(),
+    sb.from("agencias").select("tipo_plano, tipo_cliente, valor_mensal, vencimento_em, ultimo_pagamento_em, dia_pagamento, canais_inclusos, usuarios_inclusos, preco_travado, acesso_bloqueado, trial_acaba_em, onda_zero_membro").eq("id", ctx.agenciaId).maybeSingle(),
     sb.from("super_admin_cobrancas_log").select("status, enviada_em, valor, observacao")
       .eq("agencia_id", ctx.agenciaId).order("enviada_em", { ascending: false }).limit(12),
   ]);
@@ -52,6 +52,7 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
   const tipoPlano = (agencia?.tipo_plano as string | null) || "solo";
   const planoDef = PLANOS[tipoPlano] ?? PLANOS.solo;
   const precoTravado = !!agencia?.preco_travado;
+  const ondaZero = !!(agencia as { onda_zero_membro?: boolean } | null)?.onda_zero_membro;
   const valorBase = (agencia?.valor_mensal as number | null) ?? (precoTravado ? planoDef.precoBase : planoDef.precoCheio);
   const canaisInclusos = (agencia?.canais_inclusos as number | null) ?? planoDef.canaisInclusos;
   const usuariosInclusos = (agencia?.usuarios_inclusos as number | null) ?? planoDef.usuariosInclusos;
@@ -91,10 +92,29 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
       <div className="meta-card" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
           <div>
-            <span className="mk-badge" style={{ background: "rgba(0,225,154,0.15)", color: "#00E19A", border: "1px solid rgba(0,225,154,0.30)" }}>
-              {planoDef.rotulo.toUpperCase()}
-              {precoTravado && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.85 }}>· preço travado</span>}
-            </span>
+            <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+              <span className="mk-badge" style={{ background: "rgba(0,225,154,0.15)", color: "#00E19A", border: "1px solid rgba(0,225,154,0.30)" }}>
+                {planoDef.rotulo.toUpperCase()}
+                {precoTravado && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.85 }}>· preço travado</span>}
+              </span>
+              {ondaZero && (
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.4,
+                  padding: "4px 10px",
+                  background: "linear-gradient(135deg, #00E19A, #9B7DBF)",
+                  color: "#0c0c0c",
+                  borderRadius: 999,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}>
+                  <i className="ti ti-wave-square" style={{ fontSize: 11 }} />
+                  ONDA ZERO
+                </span>
+              )}
+            </div>
             <div style={{ fontSize: 26, fontWeight: 700, marginTop: 10 }}>
               {BRL.format(valorTotal)}<span style={{ fontSize: 13, fontWeight: 400, opacity: 0.7 }}>/mês</span>
             </div>
