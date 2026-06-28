@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUserWithAgencia } from "@/lib/auth";
+import { calcularProximoEnvioTZ, TZ_DEFAULT } from "@/lib/utils/timezone";
 
 type Frequencia = "diario" | "semanal" | "mensal";
 type Plataforma = "meta_ads" | "google_ads";
@@ -17,7 +18,8 @@ interface PayloadRelatorio {
   frequencia: Frequencia;
   dia_semana: number | null;
   dia_mes: number | null;
-  hora_envio: string; // "HH:MM"
+  hora_envio: string; // "HH:MM" no fuso do timezone
+  timezone: string;
   formato: Formato;
   periodo_dias: number;
 }
@@ -66,6 +68,7 @@ function parsePayload(formData: FormData): PayloadRelatorio | { erro: string } {
     dia_semana: frequencia === "semanal" ? dia_semana : null,
     dia_mes: frequencia === "mensal" ? dia_mes : null,
     hora_envio,
+    timezone: TZ_DEFAULT,
     formato,
     periodo_dias,
   };
@@ -73,24 +76,15 @@ function parsePayload(formData: FormData): PayloadRelatorio | { erro: string } {
 
 /** Calcula o próximo envio baseado em frequência + hora + dia. Retorna ISO. */
 function calcularProximoEnvio(p: PayloadRelatorio): string {
-  const agora = new Date();
-  const [h, m] = p.hora_envio.split(":").map(Number);
-  const proximo = new Date(agora);
-  proximo.setHours(h, m, 0, 0);
-
-  if (p.frequencia === "diario") {
-    if (proximo <= agora) proximo.setDate(proximo.getDate() + 1);
-  } else if (p.frequencia === "semanal") {
-    const alvo = p.dia_semana ?? 1;
-    let diff = (alvo - proximo.getDay() + 7) % 7;
-    if (diff === 0 && proximo <= agora) diff = 7;
-    proximo.setDate(proximo.getDate() + diff);
-  } else {
-    const alvo = p.dia_mes ?? 1;
-    proximo.setDate(alvo);
-    if (proximo <= agora) proximo.setMonth(proximo.getMonth() + 1);
-  }
-  return proximo.toISOString();
+  // Respeita timezone do usuario (default America/Sao_Paulo).
+  // hora_envio "07:30" significa 07:30 no fuso BR — converte pra UTC pra salvar.
+  return calcularProximoEnvioTZ({
+    frequencia: p.frequencia,
+    hora_envio: p.hora_envio,
+    dia_semana: p.dia_semana,
+    dia_mes: p.dia_mes,
+    timezone: p.timezone || undefined,
+  }).toISOString();
 }
 
 export async function criarRelatorio(formData: FormData) {

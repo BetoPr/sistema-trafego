@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RelatorioFormBalao, type RelatorioForm } from "./_form-balao";
 import { alternarAtivoRelatorio, deletarRelatorio, reagendarRelatorio } from "./_actions";
 import { Balao } from "@/components/ui/Balao";
+import { isoUtcParaDatetimeLocalBR, datetimeLocalBRParaIsoUtc } from "@/lib/utils/timezone";
 
 function useIsMobile(bp = 768) {
   const [m, setM] = useState(false);
@@ -332,10 +333,8 @@ export function RelatoriosClient({
                         </button>
                         <button
                           onClick={() => {
-                            // Pré-preenche com proximo_envio atual no formato datetime-local
-                            const d = r.proximo_envio ? new Date(r.proximo_envio) : new Date();
-                            const tzOff = d.getTimezoneOffset() * 60000;
-                            const local = new Date(d.getTime() - tzOff).toISOString().slice(0, 16);
+                            // Pré-preenche com proximo_envio atual no formato datetime-local BR
+                            const local = isoUtcParaDatetimeLocalBR(r.proximo_envio) || isoUtcParaDatetimeLocalBR(new Date().toISOString());
                             setReagendar({ id: r.id, nome: r.nome, valor: local });
                           }}
                           title="Reagendar próximo envio"
@@ -396,12 +395,7 @@ export function RelatoriosClient({
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
             <button
               type="button"
-              onClick={() => setReagendar((r) => {
-                if (!r) return r;
-                const d = new Date();
-                const tzOff = d.getTimezoneOffset() * 60000;
-                return { ...r, valor: new Date(d.getTime() - tzOff).toISOString().slice(0, 16) };
-              })}
+              onClick={() => setReagendar((r) => (r ? { ...r, valor: isoUtcParaDatetimeLocalBR(new Date().toISOString()) } : r))}
               style={{ background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 7, padding: "6px 12px", fontSize: 11.5, color: "var(--mk-text-muted)", cursor: "pointer" }}
             >
               <i className="ti ti-flash" style={{ marginRight: 4 }} />
@@ -416,10 +410,10 @@ export function RelatoriosClient({
                 disabled={pending || !reagendar?.valor}
                 onClick={() => {
                   if (!reagendar) return;
-                  // datetime-local manda "YYYY-MM-DDTHH:MM" sem timezone — interpretar como local
-                  const dataLocal = new Date(reagendar.valor);
+                  // datetime-local manda "YYYY-MM-DDTHH:MM" sem timezone — interpreta como BR e converte pra UTC
+                  const dataUtc = datetimeLocalBRParaIsoUtc(reagendar.valor);
                   startTransition(async () => {
-                    const r = await reagendarRelatorio(reagendar.id, dataLocal.toISOString());
+                    const r = await reagendarRelatorio(reagendar.id, dataUtc.toISOString());
                     if (r.ok) {
                       setReagendar(null);
                       router.refresh();

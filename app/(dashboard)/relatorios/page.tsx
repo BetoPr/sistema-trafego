@@ -1,6 +1,5 @@
 import { requireUserWithAgencia } from "@/lib/auth";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatarBR } from "@/lib/utils/timezone";
 import { RelatoriosClient } from "./_client";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +68,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
         ? (clientesMap.get(r.cliente_id) as string)
         : (r.telefone_destino || "—"),
     proximoFmt: r.proximo_envio
-      ? format(new Date(r.proximo_envio), "dd/MMM · HH:mm", { locale: ptBR })
+      ? formatarBR(r.proximo_envio, "completo")
       : "—",
   }));
 

@@ -3,6 +3,7 @@ import { instanceSendText, instanceSendMedia } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
 import { gerarBufferPdf, type PdfDados } from "./pdf";
 import { gerarBufferImagem } from "./imagem";
+import { calcularProximoEnvioTZ } from "@/lib/utils/timezone";
 
 interface RelatorioRow {
   id: string;
@@ -16,6 +17,7 @@ interface RelatorioRow {
   dia_semana: number | null;
   dia_mes: number | null;
   hora_envio: string;
+  timezone: string | null;
   formato: "pdf" | "imagem" | "texto";
   periodo_dias: number;
   ativo: boolean;
@@ -32,23 +34,16 @@ const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 const nfInt = new Intl.NumberFormat("pt-BR");
 
 function calcularProximoEnvio(r: RelatorioRow, base = new Date()): Date {
-  const [h, m] = r.hora_envio.split(":").map(Number);
-  const proximo = new Date(base);
-  proximo.setHours(h, m, 0, 0);
-
-  if (r.frequencia === "diario") {
-    proximo.setDate(proximo.getDate() + 1);
-  } else if (r.frequencia === "semanal") {
-    const alvo = r.dia_semana ?? 1;
-    let diff = (alvo - proximo.getDay() + 7) % 7;
-    if (diff === 0) diff = 7;
-    proximo.setDate(proximo.getDate() + diff);
-  } else {
-    const alvo = r.dia_mes ?? 1;
-    proximo.setDate(alvo);
-    proximo.setMonth(proximo.getMonth() + 1);
-  }
-  return proximo;
+  // Worker roda em UTC (servidor). hora_envio "07:30" eh BR; helper converte
+  // pra UTC respeitando timezone do relatorio (default America/Sao_Paulo).
+  return calcularProximoEnvioTZ({
+    frequencia: r.frequencia,
+    hora_envio: r.hora_envio,
+    dia_semana: r.dia_semana,
+    dia_mes: r.dia_mes,
+    timezone: r.timezone || undefined,
+    base,
+  });
 }
 
 interface DadosRelatorio {
