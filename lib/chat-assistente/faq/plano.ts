@@ -1,6 +1,6 @@
 export const PLANO = `# Plano Pro — assinatura
 
-Rota: /plano
+Rota: /pagamentos
 
 ## O que mostra
 - **Valor mensal** (R$29/mês por conexão WhatsApp)

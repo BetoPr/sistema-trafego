@@ -63,6 +63,40 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Lock de licença: se acesso_bloqueado=true OU vencimento passou,
+  // empurra usuário pra /pagamentos (única área liberada).
+  // Whitelist: /pagamentos, /conta (perfil), /api (endpoints), /auth (logout).
+  if (user && !isPublic(pathname) && pathname !== "/pagamentos" && !pathname.startsWith("/pagamentos/") && pathname !== "/conta") {
+    try {
+      const { data: u } = await supabase
+        .from("usuarios")
+        .select("agencia_id, role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (u && u.role !== "super_admin") {
+        const { data: ag } = await supabase
+          .from("agencias")
+          .select("acesso_bloqueado, vencimento_em, trial_acaba_em")
+          .eq("id", u.agencia_id)
+          .maybeSingle();
+        if (ag) {
+          const agora = new Date();
+          const trialOk = ag.trial_acaba_em ? new Date(ag.trial_acaba_em as string) > agora : false;
+          const vencOk = ag.vencimento_em ? new Date(ag.vencimento_em as string) >= agora : false;
+          const bloqueado = ag.acesso_bloqueado === true || (!trialOk && !vencOk && !!ag.vencimento_em);
+          if (bloqueado) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/pagamentos";
+            url.searchParams.set("trancado", "1");
+            return NextResponse.redirect(url);
+          }
+        }
+      }
+    } catch {
+      // não bloqueia request em caso de erro do lookup
+    }
+  }
+
   return response;
 }
 

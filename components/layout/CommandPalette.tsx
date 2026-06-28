@@ -66,7 +66,7 @@ function buildItems(role?: string): PaletteItem[] {
   }
   push("Conta", "#6B8E4E", [
     { href: "/conta", label: "Meu Perfil", icon: "ti-user-circle" },
-    { href: "/plano", label: "Plano Pro", icon: "ti-credit-card" },
+    { href: "/pagamentos", label: "Pagamentos", icon: "ti-credit-card" },
   ]);
 
   return list;

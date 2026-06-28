@@ -135,7 +135,7 @@ function buildSections(role?: string, canaisStatus?: CanaisStatus, usuariosStatu
     iconColor: "var(--mk-icon-green)",
     items: [
       { href: "/conta", label: "Meu Perfil", icon: "ti-user-circle", guide: "nav-conta" },
-      { href: "/plano", label: "Plano Pro", icon: "ti-credit-card", guide: "nav-plano" },
+      { href: "/pagamentos", label: "Pagamentos", icon: "ti-credit-card", guide: "nav-pagamentos" },
       { href: "/configuracoes", label: "Configurações", icon: "ti-adjustments", guide: "menu-conta-configuracoes" },
     ],
   });
