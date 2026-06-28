@@ -202,7 +202,7 @@ export function ChatDrawer() {
       {aberto && (
         <div
           role="dialog"
-          aria-label="Assistente IA"
+          aria-label="Otto · Assistente do Sonar"
           style={{
             position: "fixed",
             right: 0,
@@ -234,8 +234,8 @@ export function ChatDrawer() {
                 <i className={`ti ${bot === "suporte" ? "ti-help" : "ti-chart-bar"}`} style={{ fontSize: 14 }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--mk-text)" }}>{bot === "suporte" ? "Suporte CRM" : "Meus Dados"}</span>
-                <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>{bot === "suporte" ? "Tutorial + dúvidas" : "Análise da agência"}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--mk-text)" }}>{bot === "suporte" ? "Otto" : "Meus Dados"}</span>
+                <span style={{ fontSize: 10, color: "var(--mk-text-muted)" }}>{bot === "suporte" ? "Suporte do Sonar · tutoriais" : "Análise da agência"}</span>
               </div>
             </div>
             {msgs.length > 0 && (
@@ -254,7 +254,7 @@ export function ChatDrawer() {
           </div>
 
           <div style={{ display: "flex", padding: "10px 12px", gap: 6, borderBottom: ".5px solid var(--mk-border)" }}>
-            {([["suporte", "ti-help", "Suporte CRM"], ["dados", "ti-chart-bar", "Meus Dados"]] as Array<[Bot, string, string]>).map(([b, ic, lbl]) => (
+            {([["suporte", "ti-help", "Otto"], ["dados", "ti-chart-bar", "Meus Dados"]] as Array<[Bot, string, string]>).map(([b, ic, lbl]) => (
               <button
                 key={b}
                 type="button"
@@ -287,7 +287,7 @@ export function ChatDrawer() {
             {msgs.length === 0 && (
               <div>
                 <div style={{ fontSize: 12, color: "var(--mk-text-muted)", marginBottom: 10 }}>
-                  {bot === "suporte" ? "Tira dúvidas sobre o CRM. Tutoriais, configuração, fluxos." : "Análise dos dados da sua agência. ROAS, campanhas, criativos."}
+                  {bot === "suporte" ? "Olá! Sou o Otto, seu assistente do Sonar. Tira dúvidas, faz tutoriais e te guia pelos fluxos do CRM." : "Análise dos dados da sua agência. ROAS, campanhas, criativos."}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {sugestoes.map((s) => (
@@ -347,7 +347,7 @@ export function ChatDrawer() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={bot === "suporte" ? "Como faço pra..." : "Analisa meus dados..."}
+                placeholder={bot === "suporte" ? "Pergunta pro Otto..." : "Analisa meus dados..."}
                 disabled={enviando}
                 style={{ flex: 1, padding: "9px 12px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 18, color: "var(--mk-text)", fontSize: 12.5 }}
               />
@@ -417,7 +417,7 @@ function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
       type="button"
       onClick={onClick}
       aria-label="Abrir Assistente IA"
-      title="Assistente IA"
+      title="Otto · Assistente do Sonar"
       style={{
         position: "fixed",
         right: 18,

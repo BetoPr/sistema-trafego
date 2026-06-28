@@ -36,7 +36,7 @@ export function RoboGuia() {
       window.RoboGuia.init({
         color: "#00E19A",
         chat: false, // chat principal é o ChatDrawer (Assistente IA). RoboGuia só executa tours.
-        fallback: "Hmm, ainda não sei te ensinar isso 😅",
+        fallback: "Sou o Otto e ainda não aprendi isso 😅 — manda outra ou pergunta mais específico.",
         tours: [
           // ===== ATENDIMENTOS =====
           {
