@@ -61,13 +61,19 @@ export default function TermosPage() {
             "Possuir idade mínima de 18 anos ou autorização de responsável legal",
           ]}
         />
-        <P>No cadastro você escolhe um dos perfis disponíveis:</P>
+        <P>No cadastro você escolhe um dos perfis disponíveis. O perfil define o Plano inicial e o tempo de Trial:</P>
         <Lista
           items={[
-            <><b>Autônomo</b> — profissional liberal, consultor, prestador de serviço. <b>14 dias</b> de Trial.</>,
-            <><b>Agência</b> — atende múltiplos clientes finais, possui equipe comercial. <b>21 dias</b> de Trial.</>,
+            <><b>Solo</b> (perfil Autônomo) — profissional liberal, MEI, empreendedor, pequeno negócio. <b>7 dias</b> de Trial.</>,
+            <><b>Time / Agência / Studio</b> (perfil Agência) — quem atende múltiplos clientes finais ou possui equipe. <b>14 dias</b> de Trial.</>,
           ]}
         />
+        <P>
+          Os primeiros 10 (dez) Clientes de cada Plano participam da <b>Promoção de Lançamento</b>, que dá
+          <b> trial dobrado</b> (Solo 14 dias, demais 28 dias), <b>30% de desconto vitalício</b> sobre a
+          tabela cheia e entrada na comunidade fechada Onda Zero. As condições da promo são travadas no
+          ato da assinatura e seguem para sempre, mesmo quando o Cliente fizer upgrade de Plano.
+        </P>
         <P>
           O perfil escolhido pode ser alterado mediante solicitação, sujeito à revisão do prazo de trial e
           à confirmação do Operador da Plataforma.
@@ -105,22 +111,43 @@ export default function TermosPage() {
           vigente está sempre publicada em{" "}
           <a href="https://sonarcrm.com.br#planos" style={{ color: "#00E19A" }}>sonarcrm.com.br/#planos</a>.
         </P>
+        <P>Atualmente a Plataforma oferece 4 Planos com limites diferentes:</P>
+        <Lista
+          items={[
+            <><b>Solo</b> — 1 conexão WhatsApp, 1 usuário, recursos completos do CRM.</>,
+            <><b>Time</b> — 2 conexões, 4 usuários, multi-cliente até 3.</>,
+            <><b>Agência</b> — 3 conexões, 8 usuários, multi-cliente até 8.</>,
+            <><b>Studio</b> — 5 conexões, 15 usuários, multi-cliente ilimitado, atendimento dedicado.</>,
+          ]}
+        />
         <P>
-          O Plano é uma <b>assinatura mensal recorrente</b>. A cobrança inclui o valor base do plano e o valor
-          adicional por cada conexão de WhatsApp ativa além da primeira.
+          O Plano é uma <b>assinatura mensal recorrente</b>. A cobrança inclui o valor base do Plano,
+          o valor adicional por cada conexão de WhatsApp ativa além das inclusas no Plano e o valor
+          adicional por cada usuário ativo além dos inclusos. Os valores de extras seguem a tabela
+          vigente publicada na LP.
         </P>
         <Aviso tipo="info">
           <b>Pagamento durante o Trial:</b> se você optar por pagar antes do fim do Trial, o pagamento
           é considerado adiantamento da <b>mensalidade seguinte ao fim do Trial</b> e não interrompe o
-          período gratuito. Ou seja: o tempo restante de Trial continua válido, e o mês pago só começa
-          a contar quando o Trial expira.
+          período gratuito. O tempo restante de Trial continua válido, e o mês pago só começa a contar
+          quando o Trial expira.
         </Aviso>
+        <P>
+          <b>Promoção de Lançamento — escala por adesão.</b> Os 10 (dez) primeiros Clientes de cada Plano
+          travam o preço promocional de lançamento para sempre, mesmo após reajustes futuros. A partir da
+          11ª adesão, o preço base do Plano sobe gradualmente conforme metas de número total de Clientes
+          ativos da Plataforma (11-30, 31-50, 51-100, 100+), congelando definitivamente após a meta de 100
+          Clientes. O preço de cada Cliente continua sendo aquele registrado no momento em que ele entrou
+          (preço travado).
+        </P>
         <P>Sobre cobrança:</P>
         <Lista
           items={[
             "A renovação é automática a cada ciclo mensal",
             "Falha no pagamento gera 7 dias de tolerância antes de suspender o acesso",
             "Após suspensão, vale o mesmo prazo da seção 4 — 30 dias e os dados são excluídos",
+            <>Durante a suspensão, o painel fica <b>travado</b> com cadeado em todas as áreas, exceto na área de Pagamentos (onde é possível regularizar). A Licença aparece como <b>desativada</b>.</>,
+            "Ao regularizar pagamento, a Licença volta a Ativa e os cadeados são removidos automaticamente",
             "Reajustes de preço são comunicados com no mínimo 30 dias de antecedência por email ou painel",
           ]}
         />
@@ -247,18 +274,19 @@ export default function TermosPage() {
 
       <Secao titulo="11. IA de atendimento">
         <P>
-          A Plataforma inclui IAs treináveis baseadas em modelos de linguagem de terceiros. Custos de IA:
+          A Plataforma trabalha com IA em duas camadas distintas, com modelos de provedores de terceiros:
         </P>
         <Lista
           items={[
-            <><b>Groq</b> — incluso no Plano, sem custo adicional pro Cliente. Limites de uso podem ser aplicados conforme a política do provedor.</>,
-            <><b>OpenAI</b> e outros provedores pagos — o Cliente pode usar via chave própria (custo direto com o provedor) ou via gateway da Plataforma, com custo repassado conforme tabela vigente no painel.</>,
+            <><b>IA de Suporte</b> (geração de resumo de conversa, análise de sentimento, sugestões de follow-up, automações leves do CRM): roda em <b>Groq</b> e está <b>inclusa no Plano sem custo adicional</b> pro Cliente. Limites de uso podem ser aplicados conforme política do provedor e da Plataforma.</>,
+            <><b>IA de Atendimento</b> (motor que conversa diretamente com os Contatos Finais do Cliente): roda em <b>OpenAI</b> ou <b>Anthropic</b>. O Cliente paga o consumo dos tokens, seja usando chave própria do provedor ou via gateway da Plataforma com custo repassado pela tabela vigente no painel.</>,
             <><b>MCP (Model Context Protocol)</b> — recurso em <b>beta</b>, sem garantia de estabilidade nem cobertura de suporte enquanto não for promovido a release oficial.</>,
           ]}
         />
         <P>
-          Você é responsável pelo conteúdo configurado em suas IAs, pelas respostas geradas e pelo cumprimento
-          das leis aplicáveis ao seu nicho de atuação (saúde, jurídico, financeiro, educação etc.).
+          Você é responsável pelo conteúdo configurado em suas IAs, pelas respostas geradas pela IA de
+          Atendimento e pelo cumprimento das leis aplicáveis ao seu nicho de atuação (saúde, jurídico,
+          financeiro, educação etc.).
         </P>
         <P>
           Modelos de IA podem cometer erros, alucinar informações ou gerar respostas inadequadas.

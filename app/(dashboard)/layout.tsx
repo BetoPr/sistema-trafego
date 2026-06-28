@@ -35,14 +35,19 @@ export default async function DashboardLayout({
     altura: ((agRow?.logo_altura as number) || 36),
   };
 
-  // Status do limite de conexões pra mostrar no badge da sidebar
-  const [{ data: agLimite }, { count: canaisUsadosCount }] = await Promise.all([
-    supabase.from("agencias").select("limite_canais").eq("id", usuario.agencia_id).maybeSingle(),
+  // Status de limites pra mostrar nos badges da sidebar
+  const [{ data: agLimite }, { count: canaisUsadosCount }, { count: usuariosUsadosCount }] = await Promise.all([
+    supabase.from("agencias").select("limite_canais, limite_usuarios").eq("id", usuario.agencia_id).maybeSingle(),
     supabase.from("canais").select("id", { count: "exact", head: true }).eq("agencia_id", usuario.agencia_id),
+    supabase.from("usuarios").select("id", { count: "exact", head: true }).eq("agencia_id", usuario.agencia_id).is("deleted_at", null),
   ]);
   const canaisStatus = {
     usados: canaisUsadosCount ?? 0,
     limite: (agLimite?.limite_canais as number | null) ?? 1,
+  };
+  const usuariosStatus = {
+    usados: usuariosUsadosCount ?? 0,
+    limite: (agLimite?.limite_usuarios as number | null) ?? 1,
   };
 
   // Busca plataformas com ao menos 1 integração ativa
@@ -65,7 +70,7 @@ export default async function DashboardLayout({
         <FiltroAtivoProvider>
         <AudioGlobalProvider>
         <AppShell>
-          <AppSidebar role={usuario.role} marca={marca} canaisStatus={canaisStatus} />
+          <AppSidebar role={usuario.role} marca={marca} canaisStatus={canaisStatus} usuariosStatus={usuariosStatus} />
           <RouteProgress />
           <main className="mk-main">
             <Topbar

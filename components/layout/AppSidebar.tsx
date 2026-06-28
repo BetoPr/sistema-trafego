@@ -22,6 +22,11 @@ export interface CanaisStatus {
   limite: number;
 }
 
+export interface UsuariosStatus {
+  usados: number;
+  limite: number;
+}
+
 interface NavSection {
   id: string;
   label: string;
@@ -30,11 +35,17 @@ interface NavSection {
   items: NavItem[];
 }
 
-function buildSections(role?: string, canaisStatus?: CanaisStatus): NavSection[] {
+function buildSections(role?: string, canaisStatus?: CanaisStatus, usuariosStatus?: UsuariosStatus): NavSection[] {
   const canaisBadge = canaisStatus
     ? {
         text: `${canaisStatus.usados}/${canaisStatus.limite}`,
         variant: (canaisStatus.usados >= canaisStatus.limite ? "amber" : "count") as "amber" | "count",
+      }
+    : undefined;
+  const usuariosBadge = usuariosStatus
+    ? {
+        text: `${usuariosStatus.usados}/${usuariosStatus.limite}`,
+        variant: (usuariosStatus.usados >= usuariosStatus.limite ? "amber" : "count") as "amber" | "count",
       }
     : undefined;
 
@@ -96,7 +107,7 @@ function buildSections(role?: string, canaisStatus?: CanaisStatus): NavSection[]
         { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp", badge: canaisBadge, guide: "nav-canais" },
         { href: "/filas", label: "Filas", icon: "ti-list-tree", guide: "nav-filas" },
         { href: "/equipes", label: "Equipes", icon: "ti-users-group", guide: "nav-equipes" },
-        { href: "/usuarios", label: "Usuários", icon: "ti-user-circle", guide: "nav-usuarios" },
+        { href: "/usuarios", label: "Usuários", icon: "ti-user-circle", badge: usuariosBadge, guide: "nav-usuarios" },
         { href: "/clientes", label: "Clientes", icon: "ti-building-store", guide: "nav-clientes" },
       ],
     },
@@ -144,7 +155,13 @@ export function AppSidebar({
   role,
   marca,
   canaisStatus,
-}: { role?: string; marca?: MarcaConfig; canaisStatus?: CanaisStatus } = {}) {
+  usuariosStatus,
+}: {
+  role?: string;
+  marca?: MarcaConfig;
+  canaisStatus?: CanaisStatus;
+  usuariosStatus?: UsuariosStatus;
+} = {}) {
   const pathname = usePathname();
   const { collapsed, toggle, mobileOpen, closeMobile } = useCollapse();
   const handleCollapseBtn = () => {
@@ -170,7 +187,7 @@ export function AppSidebar({
   }, []);
   const isDark = mounted && resolvedTheme === "dark";
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>({});
-  const SECTIONS = buildSections(role, canaisStatus);
+  const SECTIONS = buildSections(role, canaisStatus, usuariosStatus);
 
   const toggleSection = (id: string) => {
     if (collapsed) return;

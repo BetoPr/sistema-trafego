@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/crm/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { audit } from "@/lib/crm/audit";
 import { MENU_PERMISSOES } from "@/lib/crm/permissions";
+import { assertPodeAdicionarUsuario } from "@/lib/usuarios/limite";
 
 type Role = "super_admin" | "admin" | "atendente";
 
@@ -50,6 +51,15 @@ export async function criarUsuario(formData: FormData) {
   if (!nome || !email || !senha) redirect("/usuarios?erro=campos_obrigatorios");
   if (senha.length < 6) redirect("/usuarios?erro=senha_curta");
   if (role === "super_admin" && ctx.role !== "super_admin") redirect("/usuarios?erro=permissao_negada");
+
+  // Enforce limite de usuários (super_admin ilimitado).
+  if (ctx.role !== "super_admin") {
+    try {
+      await assertPodeAdicionarUsuario(ctx.agenciaId);
+    } catch (e) {
+      redirect(`/usuarios?erro=limite&msg=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+    }
+  }
 
   const sb = createServiceClient();
 
