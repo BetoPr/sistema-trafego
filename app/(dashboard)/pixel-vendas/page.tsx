@@ -278,8 +278,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     saude.tokenExpirado.length === 0 &&
     saude.eventosErro === 0;
 
-  // ----- Atribuições etiqueta x campanha/conjunto -----
-  const [etiquetasQ, allCampQ, allConjQ, vcQ, vcjQ] = await Promise.all([
+  // ----- Atribuições etiqueta x campanha/conjunto/anuncio -----
+  const [etiquetasQ, allCampQ, allConjQ, allAdQ, vcQ, vcjQ, vaQ] = await Promise.all([
     sb
       .from("etiquetas")
       .select("id, nome, cor, categoria, ativo")
@@ -297,12 +297,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
       .eq("agencia_id", ctx.agenciaId)
       .order("nome"),
     sb
+      .from("anuncios")
+      .select("id, nome, status, conjunto_id")
+      .eq("agencia_id", ctx.agenciaId)
+      .order("nome"),
+    sb
       .from("etiqueta_campanhas")
       .select("etiqueta_id, campanha_id")
       .eq("agencia_id", ctx.agenciaId),
     sb
       .from("etiqueta_conjuntos")
       .select("etiqueta_id, conjunto_id")
+      .eq("agencia_id", ctx.agenciaId),
+    sb
+      .from("etiqueta_anuncios")
+      .select("etiqueta_id, anuncio_id")
       .eq("agencia_id", ctx.agenciaId),
   ]);
 
@@ -324,6 +333,27 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     arr.push(v.etiqueta_id as string);
     vincConj.set(cid, arr);
   }
+  const vincAn = new Map<string, string[]>();
+  for (const v of vaQ.data || []) {
+    const aid = (v as { anuncio_id: string }).anuncio_id;
+    const arr = vincAn.get(aid) || [];
+    arr.push((v as { etiqueta_id: string }).etiqueta_id);
+    vincAn.set(aid, arr);
+  }
+
+  const anunciosPorConj = new Map<string, { id: string; nome: string; status: string | null; etiqueta_ids: string[] }[]>();
+  for (const ad of allAdQ.data || []) {
+    const cjId = (ad as { conjunto_id: string | null }).conjunto_id;
+    if (!cjId) continue;
+    const arr = anunciosPorConj.get(cjId) || [];
+    arr.push({
+      id: ad.id as string,
+      nome: (ad.nome as string) || "(sem nome)",
+      status: (ad.status as string | null) ?? null,
+      etiqueta_ids: vincAn.get(ad.id as string) || [],
+    });
+    anunciosPorConj.set(cjId, arr);
+  }
 
   const conjPorCampPlain = new Map<string, { id: string; nome: string; status: string | null }[]>();
   for (const cj of allConjQ.data || []) {
@@ -337,6 +367,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
     const conjs = (conjPorCampPlain.get(c.id as string) || []).map((cj) => ({
       ...cj,
       etiqueta_ids: vincConj.get(cj.id) || [],
+      anuncios: anunciosPorConj.get(cj.id) || [],
     }));
     const clienteNome = (c as { clientes?: { nome?: string } | null }).clientes?.nome ?? null;
     return {

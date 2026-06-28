@@ -323,9 +323,10 @@ function Card({ c, variant, erroImg, onErro }: { c: CriativoTop; variant: "grid"
         <div title={c.nome} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--mk-text)", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", minHeight: 28, lineHeight: 1.3 }}>
           {c.nome}
         </div>
-        <div title={c.campanha_nome} style={{ fontSize: 10, color: "var(--mk-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div title={`${c.campanha_nome}${c.conjunto_nome ? " › " + c.conjunto_nome : ""}`} style={{ fontSize: 10, color: "var(--mk-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           <i className="ti ti-speakerphone" style={{ fontSize: 9, marginRight: 3 }} />
           {c.campanha_nome}
+          {c.conjunto_nome ? <span style={{ opacity: 0.7 }}> › {c.conjunto_nome}</span> : null}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 11 }}>
           <span style={{ color: "var(--mk-text)", fontWeight: 700 }}>{fmtMoeda(c.gasto)}</span>
@@ -421,9 +422,10 @@ function Lista({ itens, erroImg, onErro }: { itens: CriativoTop[]; erroImg: Set<
               <div style={{ textAlign: "right" }}>{cpm != null ? fmtMoeda(cpm) : "—"}</div>
               <div style={{ textAlign: "right" }}>{ctr != null ? new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 2 }).format(ctr) : "—"}</div>
               <div style={{ textAlign: "right", color: roas != null && roas >= 1 ? "#00E19A" : "var(--mk-text-muted)" }}>{roas != null ? `${roas.toFixed(2)}x` : "—"}</div>
-              <div title={c.campanha_nome} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--mk-text-muted)", fontSize: 11 }}>
+              <div title={`${c.campanha_nome}${c.conjunto_nome ? " › " + c.conjunto_nome : ""}`} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--mk-text-muted)", fontSize: 11 }}>
                 <i className="ti ti-speakerphone" style={{ fontSize: 10, marginRight: 4 }} />
                 {c.campanha_nome}
+                {c.conjunto_nome ? <span style={{ opacity: 0.7 }}> › {c.conjunto_nome}</span> : null}
               </div>
             </div>
           );

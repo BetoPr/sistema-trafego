@@ -253,6 +253,7 @@ export interface CriativoTop {
   anuncio_id: string;
   campanha_id: string;
   campanha_nome: string;
+  conjunto_nome: string | null;
   nome: string;
   thumbnail_url: string | null;
   gasto: number;
@@ -310,19 +311,19 @@ export async function topCriativos(
 
   if (topIds.length === 0) return [];
 
-  // Busca anuncios.nome + criativo + campanha.nome
+  // Busca anuncios.nome + criativo + conjunto.nome + campanha.nome
   const { data: anuncios } = await supabase
     .from("anuncios")
-    .select("id, nome, criativo, conjunto:conjuntos!inner(campanha:campanhas!inner(nome))")
+    .select("id, nome, criativo, conjunto:conjuntos!inner(nome, campanha:campanhas!inner(nome))")
     .eq("agencia_id", agenciaId)
     .in("id", topIds);
 
-  const mapaAn = new Map<string, { nome: string; thumb: string | null; campanhaNome: string }>();
-  for (const a of (anuncios || []) as Array<{ id: string; nome: string; criativo: { thumbnail_url?: string; image_url?: string } | null; conjunto: { campanha: { nome: string } | { nome: string }[] } | { campanha: { nome: string } | { nome: string }[] }[] | null }>) {
+  const mapaAn = new Map<string, { nome: string; thumb: string | null; campanhaNome: string; conjuntoNome: string | null }>();
+  for (const a of (anuncios || []) as Array<{ id: string; nome: string; criativo: { thumbnail_url?: string; image_url?: string } | null; conjunto: { nome: string; campanha: { nome: string } | { nome: string }[] } | { nome: string; campanha: { nome: string } | { nome: string }[] }[] | null }>) {
     const conj = Array.isArray(a.conjunto) ? a.conjunto[0] : a.conjunto;
     const camp = conj ? (Array.isArray(conj.campanha) ? conj.campanha[0] : conj.campanha) : null;
     const thumb = a.criativo?.thumbnail_url || a.criativo?.image_url || null;
-    mapaAn.set(a.id, { nome: a.nome || "—", thumb, campanhaNome: camp?.nome || "—" });
+    mapaAn.set(a.id, { nome: a.nome || "—", thumb, campanhaNome: camp?.nome || "—", conjuntoNome: conj?.nome || null });
   }
 
   return topIds.map((id) => {
@@ -332,6 +333,7 @@ export async function topCriativos(
       anuncio_id: id,
       campanha_id: m.campanha_id,
       campanha_nome: an?.campanhaNome || "—",
+      conjunto_nome: an?.conjuntoNome ?? null,
       nome: an?.nome || "—",
       thumbnail_url: an?.thumb || null,
       gasto: m.gasto,

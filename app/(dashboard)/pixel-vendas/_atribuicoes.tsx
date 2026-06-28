@@ -13,11 +13,18 @@ export interface EtiquetaOpt {
 
 const PALETA_RAPIDA = ["#00E19A", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#84cc16"];
 
+export interface AnuncioNode {
+  id: string;
+  nome: string;
+  status: string | null;
+  etiqueta_ids: string[];
+}
 export interface ConjuntoNode {
   id: string;
   nome: string;
   status: string | null;
   etiqueta_ids: string[];
+  anuncios: AnuncioNode[];
 }
 export interface CampanhaNode {
   id: string;
@@ -93,6 +100,22 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
       ),
     );
   }
+  function updateAnuncio(campId: string, conjId: string, anId: string, ids: string[]) {
+    setCampanhas((cs) =>
+      cs.map((c) =>
+        c.id === campId
+          ? {
+              ...c,
+              conjuntos: c.conjuntos.map((cj) =>
+                cj.id === conjId
+                  ? { ...cj, anuncios: cj.anuncios.map((an) => (an.id === anId ? { ...an, etiqueta_ids: ids } : an)) }
+                  : cj,
+              ),
+            }
+          : c,
+      ),
+    );
+  }
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -101,7 +124,7 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
       (c) =>
         c.nome.toLowerCase().includes(q) ||
         (c.cliente_nome || "").toLowerCase().includes(q) ||
-        c.conjuntos.some((cj) => cj.nome.toLowerCase().includes(q)),
+        c.conjuntos.some((cj) => cj.nome.toLowerCase().includes(q) || cj.anuncios.some((an) => an.nome.toLowerCase().includes(q))),
     );
   }, [campanhas, busca]);
 
@@ -109,7 +132,7 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
     <div className="mk-card" style={{ padding: 16, marginTop: 16, borderRadius: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <i className="ti ti-tags" style={{ fontSize: 16, color: "var(--mk-accent-2)" }} />
-        <span style={{ fontSize: 13, fontWeight: 700 }}>Etiquetas por campanha / conjunto</span>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>Etiquetas por campanha / conjunto / anúncio</span>
       </div>
       <p style={{ fontSize: 12, color: "var(--mk-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
         <strong>Pasta</strong> agrupa um conjunto de campanhas (ex.: <em>Restauração</em>). <strong>Etiqueta</strong> marca
@@ -292,10 +315,11 @@ export default function Atribuicoes({ campanhas: campanhasInit, etiquetas: etiqu
                 etiquetas={etiquetas}
                 linhasMae={linhasMae}
                 etMap={etMap}
-                open={open}
-                onToggleOpen={() => toggleAberto(c.id)}
+                abertoSet={aberto}
+                onToggleOpen={(idAbrir: string) => toggleAberto(idAbrir)}
                 onUpdateCampanha={(ids) => updateCampanha(c.id, ids)}
                 onUpdateConjunto={(cjId, ids) => updateConjunto(c.id, cjId, ids)}
+                onUpdateAnuncio={(cjId, anId, ids) => updateAnuncio(c.id, cjId, anId, ids)}
                 onEtiquetaCriada={criadaInline}
               />
             );
@@ -311,22 +335,26 @@ function CampanhaCard({
   etiquetas,
   linhasMae,
   etMap,
-  open,
+  abertoSet,
   onToggleOpen,
   onUpdateCampanha,
   onUpdateConjunto,
+  onUpdateAnuncio,
   onEtiquetaCriada,
 }: {
   camp: CampanhaNode;
   etiquetas: EtiquetaOpt[];
   linhasMae: EtiquetaOpt[];
   etMap: Map<string, EtiquetaOpt>;
-  open: boolean;
-  onToggleOpen: () => void;
+  abertoSet: Set<string>;
+  onToggleOpen: (id: string) => void;
   onUpdateCampanha: (ids: string[]) => void;
   onUpdateConjunto: (conjId: string, ids: string[]) => void;
+  onUpdateAnuncio: (conjId: string, anuncioId: string, ids: string[]) => void;
   onEtiquetaCriada: (e: EtiquetaOpt) => void;
 }) {
+  const open = abertoSet.has(camp.id);
+  const totalAnuncios = camp.conjuntos.reduce((s, cj) => s + cj.anuncios.length, 0);
   return (
     <div
       style={{
@@ -344,7 +372,7 @@ function CampanhaCard({
           padding: "10px 12px",
           cursor: camp.conjuntos.length > 0 ? "pointer" : "default",
         }}
-        onClick={camp.conjuntos.length > 0 ? onToggleOpen : undefined}
+        onClick={camp.conjuntos.length > 0 ? () => onToggleOpen(camp.id) : undefined}
       >
         {camp.conjuntos.length > 0 ? (
           <i
@@ -360,6 +388,7 @@ function CampanhaCard({
           <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)", marginTop: 1 }}>
             {camp.cliente_nome ? `${camp.cliente_nome} · ` : ""}
             {camp.conjuntos.length} conjunto{camp.conjuntos.length === 1 ? "" : "s"}
+            {totalAnuncios > 0 ? ` · ${totalAnuncios} anúncio${totalAnuncios === 1 ? "" : "s"}` : ""}
             {camp.status && camp.status !== "ACTIVE" ? ` · ${camp.status.toLowerCase()}` : ""}
           </div>
         </div>
@@ -386,36 +415,93 @@ function CampanhaCard({
             gap: 4,
           }}
         >
-          {camp.conjuntos.map((cj) => (
-            <div
-              key={cj.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 0",
-                borderBottom: ".5px solid var(--mk-border)",
-              }}
-            >
-              <i className="ti ti-target" style={{ fontSize: 12, color: "var(--mk-text-muted)" }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: "var(--mk-text)" }}>{cj.nome}</div>
-                {cj.status && cj.status !== "ACTIVE" && (
-                  <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)" }}>{cj.status.toLowerCase()}</div>
+          {camp.conjuntos.map((cj) => {
+            const cjOpen = abertoSet.has(cj.id);
+            return (
+              <div key={cj.id} style={{ borderBottom: ".5px solid var(--mk-border)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 0",
+                    cursor: cj.anuncios.length > 0 ? "pointer" : "default",
+                  }}
+                  onClick={cj.anuncios.length > 0 ? () => onToggleOpen(cj.id) : undefined}
+                >
+                  {cj.anuncios.length > 0 ? (
+                    <i
+                      className={`ti ti-chevron-${cjOpen ? "down" : "right"}`}
+                      style={{ fontSize: 12, color: "var(--mk-text-muted)" }}
+                    />
+                  ) : (
+                    <span style={{ width: 12 }} />
+                  )}
+                  <i className="ti ti-target" style={{ fontSize: 12, color: "var(--mk-text-muted)" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: "var(--mk-text)" }}>{cj.nome}</div>
+                    <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)" }}>
+                      {cj.anuncios.length > 0 ? `${cj.anuncios.length} anúncio${cj.anuncios.length === 1 ? "" : "s"}` : ""}
+                      {cj.status && cj.status !== "ACTIVE" ? `${cj.anuncios.length > 0 ? " · " : ""}${cj.status.toLowerCase()}` : ""}
+                    </div>
+                  </div>
+                  <EtiquetaCell
+                    alvo="conjunto"
+                    alvoId={cj.id}
+                    etiquetas={etiquetas}
+                    linhasMae={linhasMae}
+                    etMap={etMap}
+                    selecionadas={cj.etiqueta_ids}
+                    onSalvo={(ids) => onUpdateConjunto(cj.id, ids)}
+                    onEtiquetaCriada={onEtiquetaCriada}
+                  />
+                </div>
+                {cjOpen && cj.anuncios.length > 0 && (
+                  <div
+                    style={{
+                      paddingLeft: 24,
+                      paddingBottom: 6,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                    }}
+                  >
+                    {cj.anuncios.map((an) => (
+                      <div
+                        key={an.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "4px 0",
+                          borderTop: ".5px dashed var(--mk-border)",
+                        }}
+                      >
+                        <span style={{ width: 12 }} />
+                        <i className="ti ti-photo" style={{ fontSize: 11, color: "#9B7DBF" }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11.5, color: "var(--mk-text)" }}>{an.nome}</div>
+                          {an.status && an.status !== "ACTIVE" && (
+                            <div style={{ fontSize: 9, color: "var(--mk-text-muted)" }}>{an.status.toLowerCase()}</div>
+                          )}
+                        </div>
+                        <EtiquetaCell
+                          alvo="anuncio"
+                          alvoId={an.id}
+                          etiquetas={etiquetas}
+                          linhasMae={linhasMae}
+                          etMap={etMap}
+                          selecionadas={an.etiqueta_ids}
+                          onSalvo={(ids) => onUpdateAnuncio(cj.id, an.id, ids)}
+                          onEtiquetaCriada={onEtiquetaCriada}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              <EtiquetaCell
-                alvo="conjunto"
-                alvoId={cj.id}
-                etiquetas={etiquetas}
-                linhasMae={linhasMae}
-                etMap={etMap}
-                selecionadas={cj.etiqueta_ids}
-                onSalvo={(ids) => onUpdateConjunto(cj.id, ids)}
-                onEtiquetaCriada={onEtiquetaCriada}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -432,7 +518,7 @@ function EtiquetaCell({
   onSalvo,
   onEtiquetaCriada,
 }: {
-  alvo: "campanha" | "conjunto";
+  alvo: "campanha" | "conjunto" | "anuncio";
   alvoId: string;
   etiquetas: EtiquetaOpt[];
   linhasMae: EtiquetaOpt[];

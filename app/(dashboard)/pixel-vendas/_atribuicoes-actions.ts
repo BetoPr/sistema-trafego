@@ -53,10 +53,16 @@ export async function criarEtiquetaInline(
   return { ok: true, id: data.id };
 }
 
-type Alvo = "campanha" | "conjunto";
+type Alvo = "campanha" | "conjunto" | "anuncio";
+
+const MAPA_ALVO: Record<Alvo, { tabela: string; col: string; tabelaAlvo: string }> = {
+  campanha: { tabela: "etiqueta_campanhas", col: "campanha_id", tabelaAlvo: "campanhas" },
+  conjunto: { tabela: "etiqueta_conjuntos", col: "conjunto_id", tabelaAlvo: "conjuntos" },
+  anuncio: { tabela: "etiqueta_anuncios", col: "anuncio_id", tabelaAlvo: "anuncios" },
+};
 
 /**
- * Substitui o conjunto de etiquetas vinculadas a uma campanha OU conjunto Meta.
+ * Substitui o conjunto de etiquetas vinculadas a uma campanha, conjunto OU anuncio Meta.
  * Idempotente: salva exatamente a lista fornecida.
  */
 export async function salvarEtiquetasDoAlvo(
@@ -66,11 +72,7 @@ export async function salvarEtiquetasDoAlvo(
 ): Promise<{ ok: boolean; msg?: string }> {
   const ctx = await requireAdmin();
   const sb = createServiceClient();
-  const tabela = alvo === "campanha" ? "etiqueta_campanhas" : "etiqueta_conjuntos";
-  const colId = alvo === "campanha" ? "campanha_id" : "conjunto_id";
-
-  // valida ownership do alvo
-  const tabelaAlvo = alvo === "campanha" ? "campanhas" : "conjuntos";
+  const { tabela, col: colId, tabelaAlvo } = MAPA_ALVO[alvo];
   const { data: alvoRow } = await sb
     .from(tabelaAlvo)
     .select("id, agencia_id")
