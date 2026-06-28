@@ -11,10 +11,10 @@ export const maxDuration = 60;
  * Protegido por CRON_SECRET. Pode ser disparado pelo pg_cron a cada 1-5 min.
  */
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
+  const secret = (process.env.CRON_SECRET || "").trim();
   if (!secret) return NextResponse.json({ error: "CRON_SECRET não configurado" }, { status: 500 });
 
-  const auth = req.headers.get("authorization");
+  const auth = (req.headers.get("authorization") || "").trim();
   if (auth !== `Bearer ${secret}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const inicio = Date.now();

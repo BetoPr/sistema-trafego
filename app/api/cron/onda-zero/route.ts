@@ -12,9 +12,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 function autorizado(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
+  const secret = (process.env.CRON_SECRET || "").trim();
   if (!secret) return false;
-  const auth = req.headers.get("authorization") || "";
+  const auth = (req.headers.get("authorization") || "").trim();
   return auth === `Bearer ${secret}`;
 }
 
