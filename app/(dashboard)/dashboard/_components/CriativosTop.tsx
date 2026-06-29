@@ -8,7 +8,7 @@ const LS_VIEW = "sonar:criativos:view:v1";
 const LS_FILTRO = "sonar:criativos:campanhas:v1";
 
 function fmtMoeda(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 
 function resultadoTxt(c: CriativoTop): string {
