@@ -105,7 +105,23 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
       <div className="mk-page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div>
           <div className="mk-eyebrow">Recursos · Papipeline</div>
-          <h1 className="mk-page-title">Kanban</h1>
+          <h1 className="mk-page-title" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            Kanban
+            <span style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              padding: "3px 9px",
+              borderRadius: 999,
+              background: "rgba(255,181,71,0.15)",
+              color: "#FFB547",
+              border: "1px solid rgba(255,181,71,0.4)",
+              textTransform: "uppercase",
+            }}>
+              <i className="ti ti-tool" style={{ fontSize: 10, marginRight: 4 }} />
+              Em desenvolvimento
+            </span>
+          </h1>
           <p className="mk-page-sub">Organize processos, vendas, tarefas. Arrasta os cards entre colunas.</p>
         </div>
         <button type="button" onClick={() => setNovoQuadroAberto(true)} className="cta-btn" style={{ fontSize: 12, padding: "8px 14px" }}>
