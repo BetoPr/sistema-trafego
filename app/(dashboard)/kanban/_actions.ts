@@ -120,6 +120,85 @@ export async function salvarRegrasEtiqueta(colunaId: string, etiquetaIds: string
   return { ok: true, total: etiquetaIds.length };
 }
 
+/** Adiciona 1 contato existente como card numa coluna. Nao duplica no quadro. */
+export async function adicionarContatoNaColuna(colunaId: string, contatoId: string): Promise<{ ok: boolean; msg?: string; jaExistia?: boolean }> {
+  const ctx = await requireAuth();
+  const sb = createServiceClient();
+  const { data: col } = await sb.from("kanban_colunas").select("id, quadro_id").eq("id", colunaId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+  if (!col) return { ok: false, msg: "Coluna não encontrada" };
+  const { data: contato } = await sb.from("contatos").select("id, nome").eq("id", contatoId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+  if (!contato) return { ok: false, msg: "Contato não encontrado" };
+  // Verifica se contato já tem card neste quadro
+  const { data: existente } = await sb
+    .from("kanban_cards")
+    .select("id, kanban_colunas!inner(quadro_id)")
+    .eq("contato_id", contatoId)
+    .eq("kanban_colunas.quadro_id", col.quadro_id)
+    .maybeSingle();
+  if (existente) return { ok: true, jaExistia: true };
+  const { data: maxRow } = await sb.from("kanban_cards").select("ordem").eq("coluna_id", colunaId).order("ordem", { ascending: false }).limit(1).maybeSingle();
+  const ordem = (maxRow?.ordem as number ?? -1) + 1;
+  const { error } = await sb.from("kanban_cards").insert({
+    coluna_id: colunaId,
+    agencia_id: ctx.agenciaId,
+    titulo: (contato.nome as string) || "Contato sem nome",
+    contato_id: contatoId,
+    ordem,
+  });
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/kanban");
+  return { ok: true };
+}
+
+/** Importa todos os contatos que têm a etiqueta selecionada → cards na coluna alvo. */
+export async function importarContatosPorEtiqueta(colunaId: string, etiquetaId: string): Promise<{ ok: boolean; criados: number; pulados: number; msg?: string }> {
+  const ctx = await requireAuth();
+  const sb = createServiceClient();
+  const { data: col } = await sb.from("kanban_colunas").select("id, quadro_id").eq("id", colunaId).eq("agencia_id", ctx.agenciaId).maybeSingle();
+  if (!col) return { ok: false, criados: 0, pulados: 0, msg: "Coluna não encontrada" };
+
+  // Contatos da agencia com a etiqueta
+  const { data: ce } = await sb
+    .from("contato_etiquetas")
+    .select("contato_id, contatos!inner(id, nome, agencia_id)")
+    .eq("etiqueta_id", etiquetaId)
+    .eq("contatos.agencia_id", ctx.agenciaId);
+  const candidatos = ((ce || []) as Array<{ contato_id: string; contatos: { nome: string | null } | { nome: string | null }[] | null }>).map((r) => {
+    const c = Array.isArray(r.contatos) ? r.contatos[0] : r.contatos;
+    return { id: r.contato_id, nome: c?.nome || null };
+  });
+  if (candidatos.length === 0) return { ok: true, criados: 0, pulados: 0 };
+
+  // Cards ja existentes nesse quadro pra esses contatos
+  const { data: existentes } = await sb
+    .from("kanban_cards")
+    .select("contato_id, kanban_colunas!inner(quadro_id)")
+    .in("contato_id", candidatos.map((c) => c.id))
+    .eq("kanban_colunas.quadro_id", col.quadro_id);
+  const jaTem = new Set(((existentes || []) as Array<{ contato_id: string }>).map((r) => r.contato_id));
+
+  const novos = candidatos.filter((c) => !jaTem.has(c.id));
+  if (novos.length === 0) return { ok: true, criados: 0, pulados: candidatos.length };
+
+  // Ordem inicial
+  const { data: maxRow } = await sb.from("kanban_cards").select("ordem").eq("coluna_id", colunaId).order("ordem", { ascending: false }).limit(1).maybeSingle();
+  let ordem = (maxRow?.ordem as number ?? -1) + 1;
+  const linhas = novos.map((c) => ({
+    coluna_id: colunaId,
+    agencia_id: ctx.agenciaId,
+    titulo: c.nome || "Contato sem nome",
+    contato_id: c.id,
+    ordem: ordem++,
+  }));
+  // Insert em chunks pra nao estourar
+  const CHUNK = 200;
+  for (let i = 0; i < linhas.length; i += CHUNK) {
+    await sb.from("kanban_cards").insert(linhas.slice(i, i + CHUNK));
+  }
+  revalidatePath("/kanban");
+  return { ok: true, criados: linhas.length, pulados: candidatos.length - linhas.length };
+}
+
 /** Move card pra outra coluna + atualiza ordem. */
 export async function moverCard(cardId: string, novaColunaId: string, novaOrdem: number): Promise<{ ok: boolean; msg?: string }> {
   const ctx = await requireAuth();

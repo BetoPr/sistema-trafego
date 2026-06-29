@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
-import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta } from "./_actions";
+import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
 interface Coluna { id: string; nome: string; cor: string; ordem: number }
-interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null }
+interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; contato_id: string | null; foto_url: string | null }
+interface Contato { id: string; nome: string; whatsapp: string | null; foto_url: string | null }
 
 interface Etiqueta { id: string; nome: string; cor: string }
 
@@ -18,12 +19,13 @@ interface Props {
   cards: Card[];
   etiquetas: Etiqueta[];
   regrasPorColuna: Record<string, string[]>;
+  contatos: Contato[];
 }
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PALETA = ["#00E19A", "#5cd0ff", "#9B7DBF", "#FFB547", "#FF5C72", "#6B8E4E"];
 
-export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas, regrasPorColuna }: Props) {
+export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas, regrasPorColuna, contatos }: Props) {
   const router = useRouter();
   const [novoQuadroAberto, setNovoQuadroAberto] = useState(false);
   const [novoQuadroNome, setNovoQuadroNome] = useState("");
@@ -36,6 +38,10 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   const [regrasAberto, setRegrasAberto] = useState<{ colunaId: string; colunaNome: string } | null>(null);
   const [regrasSelecionadas, setRegrasSelecionadas] = useState<Set<string>>(new Set());
   const [salvandoRegras, setSalvandoRegras] = useState(false);
+  const [addAberto, setAddAberto] = useState<{ colunaId: string; colunaNome: string; modo: "contato" | "etiqueta" } | null>(null);
+  const [addBusca, setAddBusca] = useState("");
+  const [addEtiquetaSel, setAddEtiquetaSel] = useState<string>("");
+  const [addExecutando, setAddExecutando] = useState(false);
   const [novoCardTitulo, setNovoCardTitulo] = useState("");
   const [novoCardDesc, setNovoCardDesc] = useState("");
   const [, startTransition] = useTransition();
@@ -221,15 +227,33 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, flex: 1, lineHeight: 1.4 }}>{card.titulo}</div>
+                        <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 0, alignItems: "flex-start" }}>
+                          {card.foto_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={card.foto_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--mk-border)" }} />
+                          ) : card.contato_id ? (
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <i className="ti ti-user" style={{ fontSize: 14, color: "var(--mk-text-muted)" }} />
+                            </div>
+                          ) : null}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {card.numero != null && (
+                              <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>
+                                #{String(card.numero).padStart(3, "0")}
+                              </div>
+                            )}
+                            <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis" }}>{card.titulo}</div>
+                          </div>
+                        </div>
                         <button
                           type="button"
                           onClick={async () => {
-                            if (!confirm("Deletar card?")) return;
+                            if (!confirm("Remover card?")) return;
                             await deletarCard(card.id);
                             router.refresh();
                           }}
                           style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", padding: 0, fontSize: 11 }}
+                          title="Remover"
                         >
                           <i className="ti ti-x" />
                         </button>
@@ -243,13 +267,29 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                     </div>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setNovoCardAberto({ colunaId: col.id }); setNovoCardTitulo(""); setNovoCardDesc(""); }}
-                  style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", padding: "8px 10px", fontSize: 11.5, cursor: "pointer" }}
-                >
-                  <i className="ti ti-plus" style={{ marginRight: 4 }} /> Novo card
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => { setAddAberto({ colunaId: col.id, colunaNome: col.nome, modo: "contato" }); setAddBusca(""); }}
+                    style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
+                  >
+                    <i className="ti ti-user-plus" style={{ marginRight: 6 }} /> Adicionar contato
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAddAberto({ colunaId: col.id, colunaNome: col.nome, modo: "etiqueta" }); setAddEtiquetaSel(""); }}
+                    style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
+                  >
+                    <i className="ti ti-tag" style={{ marginRight: 6 }} /> Importar por etiqueta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNovoCardAberto({ colunaId: col.id }); setNovoCardTitulo(""); setNovoCardDesc(""); }}
+                    style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
+                  >
+                    <i className="ti ti-plus" style={{ marginRight: 6 }} /> Card avulso
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -397,6 +437,109 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
               {salvandoRegras ? "Salvando..." : "Salvar conexões"}
             </button>
           </div>
+        </div>
+      </Balao>
+
+      {/* Balão Adicionar contato / Importar por etiqueta */}
+      <Balao
+        open={!!addAberto}
+        onClose={() => setAddAberto(null)}
+        titulo={addAberto?.modo === "etiqueta" ? `Importar por etiqueta → "${addAberto?.colunaNome || ""}"` : `Adicionar contato → "${addAberto?.colunaNome || ""}"`}
+        icone={addAberto?.modo === "etiqueta" ? "ti-tag" : "ti-user-plus"}
+        largura={520}
+      >
+        <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {addAberto?.modo === "contato" ? (
+            <>
+              <input
+                type="text"
+                value={addBusca}
+                onChange={(e) => setAddBusca(e.target.value)}
+                placeholder="Buscar contato por nome ou WhatsApp..."
+                style={inp}
+                autoFocus
+              />
+              <div style={{ maxHeight: 360, overflowY: "auto", border: ".5px solid var(--mk-border)", borderRadius: 8, background: "var(--mk-surface)" }}>
+                {contatos
+                  .filter((c) => {
+                    const q = addBusca.toLowerCase().trim();
+                    if (!q) return true;
+                    return c.nome.toLowerCase().includes(q) || (c.whatsapp || "").includes(q);
+                  })
+                  .slice(0, 80)
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={addExecutando}
+                      onClick={async () => {
+                        if (!addAberto) return;
+                        setAddExecutando(true);
+                        const r = await adicionarContatoNaColuna(addAberto.colunaId, c.id);
+                        setAddExecutando(false);
+                        if (r.ok) {
+                          setAddAberto(null);
+                          router.refresh();
+                          if (r.jaExistia) alert("Esse contato já tinha card nesse quadro.");
+                        } else alert(r.msg);
+                      }}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "transparent", border: 0, borderBottom: ".5px solid var(--mk-border)", color: "var(--mk-text)", fontSize: 12.5, cursor: "pointer", textAlign: "left" }}
+                    >
+                      {c.foto_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.foto_url} alt="" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--mk-surface-2)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          <i className="ti ti-user" style={{ fontSize: 13, color: "var(--mk-text-muted)" }} />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome || "Sem nome"}</div>
+                        {c.whatsapp && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{c.whatsapp}</div>}
+                      </div>
+                      <i className="ti ti-plus" style={{ color: "var(--mk-accent)" }} />
+                    </button>
+                  ))}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--mk-text-muted)", textAlign: "center" }}>
+                Mostrando até 80 contatos. Use a busca pra filtrar.
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ padding: 10, background: "rgba(0,225,154,0.06)", border: ".5px solid rgba(0,225,154,0.25)", borderRadius: 8, fontSize: 12, color: "var(--mk-text)", lineHeight: 1.5 }}>
+                Escolhe a etiqueta. Todos os contatos que tiverem ela vão virar cards nesta coluna. Quem já tiver card no quadro é pulado.
+              </div>
+              <select value={addEtiquetaSel} onChange={(e) => setAddEtiquetaSel(e.target.value)} style={inp}>
+                <option value="">— Escolha a etiqueta —</option>
+                {etiquetas.map((etq) => (
+                  <option key={etq.id} value={etq.id}>{etq.nome}</option>
+                ))}
+              </select>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button type="button" onClick={() => setAddAberto(null)} disabled={addExecutando} style={btnGhost}>Cancelar</button>
+                <button
+                  type="button"
+                  disabled={addExecutando || !addEtiquetaSel}
+                  onClick={async () => {
+                    if (!addAberto || !addEtiquetaSel) return;
+                    setAddExecutando(true);
+                    const r = await importarContatosPorEtiqueta(addAberto.colunaId, addEtiquetaSel);
+                    setAddExecutando(false);
+                    if (r.ok) {
+                      alert(`Importação concluída: ${r.criados} criados${r.pulados > 0 ? `, ${r.pulados} já existiam (pulados)` : ""}.`);
+                      setAddAberto(null);
+                      router.refresh();
+                    } else alert(r.msg);
+                  }}
+                  className="cta-btn"
+                  style={{ fontSize: 12.5, padding: "8px 16px" }}
+                >
+                  {addExecutando ? "Importando..." : "Importar agora"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </Balao>
 
