@@ -116,29 +116,63 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
 
       {/* Tabs dos quadros */}
       {quadros.length > 0 && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
           {quadros.map((q) => (
-            <button
+            <div
               key={q.id}
-              type="button"
-              onClick={() => trocarQuadro(q.id)}
               style={{
-                padding: "8px 14px",
+                display: "inline-flex",
+                alignItems: "stretch",
                 background: q.id === quadroAtivoId ? `${q.cor}22` : "var(--mk-surface)",
                 border: q.id === quadroAtivoId ? `1px solid ${q.cor}` : ".5px solid var(--mk-border)",
                 borderRadius: 8,
-                color: q.id === quadroAtivoId ? q.cor : "var(--mk-text-secondary)",
-                fontSize: 12.5,
-                fontWeight: q.id === quadroAtivoId ? 700 : 500,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
+                overflow: "hidden",
               }}
             >
-              <i className="ti ti-layout-kanban" style={{ fontSize: 13 }} />
-              {q.nome}
-            </button>
+              <button
+                type="button"
+                onClick={() => trocarQuadro(q.id)}
+                style={{
+                  padding: "8px 12px",
+                  background: "transparent",
+                  border: 0,
+                  color: q.id === quadroAtivoId ? q.cor : "var(--mk-text-secondary)",
+                  fontSize: 12.5,
+                  fontWeight: q.id === quadroAtivoId ? 700 : 500,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <i className="ti ti-layout-kanban" style={{ fontSize: 13 }} />
+                {q.nome}
+              </button>
+              {q.id === quadroAtivoId && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm(`Deletar quadro "${q.nome}" inteiro? Todas as colunas e cards vão junto. Essa ação não pode ser desfeita.`)) return;
+                    await deletarQuadro(q.id);
+                    router.refresh();
+                    router.push("/kanban");
+                  }}
+                  title="Deletar quadro"
+                  style={{
+                    background: "transparent",
+                    border: 0,
+                    borderLeft: `1px solid ${q.cor}55`,
+                    color: q.cor,
+                    cursor: "pointer",
+                    padding: "0 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <i className="ti ti-trash" style={{ fontSize: 13 }} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -228,14 +262,11 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
                         <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 0, alignItems: "flex-start" }}>
-                          {card.foto_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={card.foto_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--mk-border)" }} />
-                          ) : card.contato_id ? (
+                          {card.contato_id && (
                             <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               <i className="ti ti-user" style={{ fontSize: 14, color: "var(--mk-text-muted)" }} />
                             </div>
-                          ) : null}
+                          )}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {card.numero != null && (
                               <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>
@@ -316,23 +347,6 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
         </div>
       )}
 
-      {quadroAtivoId && quadros.length > 0 && (
-        <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!confirm("Deletar este quadro inteiro? Cards e colunas vão junto.")) return;
-              await deletarQuadro(quadroAtivoId);
-              router.refresh();
-              router.push("/kanban");
-            }}
-            style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", fontSize: 11, cursor: "pointer" }}
-          >
-            <i className="ti ti-trash" style={{ marginRight: 4 }} />
-            Deletar quadro
-          </button>
-        </div>
-      )}
 
       {/* Balão novo quadro */}
       <Balao open={novoQuadroAberto} onClose={() => setNovoQuadroAberto(false)} titulo="Novo quadro" icone="ti-layout-kanban" largura={460}>
@@ -485,14 +499,9 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                       }}
                       style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "transparent", border: 0, borderBottom: ".5px solid var(--mk-border)", color: "var(--mk-text)", fontSize: 12.5, cursor: "pointer", textAlign: "left" }}
                     >
-                      {c.foto_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={c.foto_url} alt="" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--mk-surface-2)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                          <i className="ti ti-user" style={{ fontSize: 13, color: "var(--mk-text-muted)" }} />
-                        </div>
-                      )}
+                      <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--mk-surface-2)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                        <i className="ti ti-user" style={{ fontSize: 13, color: "var(--mk-text-muted)" }} />
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome || "Sem nome"}</div>
                         {c.whatsapp && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{c.whatsapp}</div>}
