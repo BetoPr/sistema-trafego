@@ -7,19 +7,14 @@
 
 import { NextResponse } from "next/server";
 import { processarFilaBoasVindas } from "@/lib/onda-zero/boas-vindas";
+import { autorizarCron } from "@/lib/utils/cron-secret";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function autorizado(req: Request): boolean {
-  const secret = (process.env.CRON_SECRET || "").trim();
-  if (!secret) return false;
-  const auth = (req.headers.get("authorization") || "").trim();
-  return auth === `Bearer ${secret}`;
-}
-
 export async function POST(req: Request) {
-  if (!autorizado(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const ok = await autorizarCron(req.headers.get("authorization"));
+  if (!ok) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   try {
     const r = await processarFilaBoasVindas();
     return NextResponse.json({ ok: true, ...r });
