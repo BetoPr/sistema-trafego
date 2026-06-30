@@ -7,6 +7,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **11:45** — **Fase E: Dashboard do Pipeline com KPIs + charts.**
+  - Server agrega 5 queries em paralelo: cards/colunas/quadros/tickets/contato_etiquetas.
+  - KPIs: Criadas · Abertos · Ganhos · Perdidos · Ticket Médio · Taxa Conv.
+  - Banner verde Total Ganho (Vendido).
+  - Donut Oportunidades por Status (Recharts).
+  - Bar Oportunidades por Etapa (cor da coluna).
+  - Bar Oportunidades por Mês (últimos 12).
+  - Cards Valor por Etapa com barra de progresso colorida.
+  - 3 colunas: Por Etiqueta · Por Kanban · Pipelines Ativos (contador grande).
+
 - **11:30** — **Fase F: botão Perdido + Log com tabs Ganho/Perdido.**
   - Migration `tickets_resultado_ganho_perdido`: coluna `resultado` (ganho|perdido) + `motivo_perdido` + backfill (`valor_fechado IS NOT NULL` vira `ganho`).
   - Routes `/api/atendimentos/[id]/fechamento` (POST+DELETE) + `/api/atendimentos/[id]/encerrar` aceitam `resultado` + `motivo_perdido`.
