@@ -87,7 +87,8 @@ export function ListaAtendimentos(p: Props) {
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [searchModal, setSearchModal] = useState(false);
   const [fechamentosModal, setFechamentosModal] = useState(false);
-  const [fechamentos, setFechamentos] = useState<Array<{ ticketId: string; numero: number; valor: number; servico: string | null; quantidade: number | null; fechado_em: string | null; contato_nome: string; fechado_por: string | null }>>([]);
+  const [fechamentosTab, setFechamentosTab] = useState<"ganho" | "perdido">("ganho");
+  const [fechamentos, setFechamentos] = useState<Array<{ ticketId: string; numero: number; resultado: "ganho" | "perdido"; valor: number | null; servico: string | null; quantidade: number | null; motivo_perdido: string | null; fechado_em: string | null; contato_nome: string; fechado_por: string | null }>>([]);
   const [fechamentosLoading, setFechamentosLoading] = useState(false);
   const [tipoConexao, setTipoConexao] = useState<"connected" | "connecting" | "disconnected">("connected");
   const [showCanais, setShowCanais] = useState(false);
@@ -289,11 +290,12 @@ export function ListaAtendimentos(p: Props) {
     } catch {}
   }
 
-  async function abrirFechamentos() {
+  async function abrirFechamentos(tab: "ganho" | "perdido" = fechamentosTab) {
+    setFechamentosTab(tab);
     setFechamentosModal(true);
     setFechamentosLoading(true);
     try {
-      const r = await fetch("/api/atendimentos/fechamentos");
+      const r = await fetch(`/api/atendimentos/fechamentos?tipo=${tab}`);
       const j = await r.json();
       setFechamentos(j.fechamentos || []);
     } catch {} finally {
@@ -301,9 +303,8 @@ export function ListaAtendimentos(p: Props) {
     }
   }
 
-  async function excluirFechamento(ticketId: string, contatoNome: string, valor: number) {
-    const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
-    if (!confirm(`Excluir fechamento de ${brl} (${contatoNome})? Some do Dashboard também.`)) return;
+  async function excluirFechamento(ticketId: string, contatoNome: string, label: string) {
+    if (!confirm(`Excluir ${label} de ${contatoNome}? Some do Dashboard também.`)) return;
     try {
       const r = await fetch(`/api/atendimentos/${ticketId}/fechamento`, { method: "DELETE" });
       const j = await r.json().catch(() => ({}));
@@ -347,7 +348,7 @@ export function ListaAtendimentos(p: Props) {
           <span data-guide="atd-btn-nova-conversa" style={{ display: "inline-flex" }}>
             <NovaConversa canais={p.canais} />
           </span>
-          <button onClick={abrirFechamentos} className="ghost-btn" style={btnHdr} title="Log de fechamentos" data-guide="atd-btn-log-fechamentos">
+          <button onClick={() => abrirFechamentos()} className="ghost-btn" style={btnHdr} title="Log de fechamentos" data-guide="atd-btn-log-fechamentos">
             <i className="ti ti-receipt-2" />
           </button>
           <button onClick={() => setFiltroAberto(true)} className="ghost-btn" style={btnHdr} title="Filtros" data-guide="atd-btn-filtros">
@@ -680,23 +681,41 @@ export function ListaAtendimentos(p: Props) {
               <h3 style={{ fontSize: 14, fontWeight: 600, flex: 1 }}><i className="ti ti-receipt-2" style={{ marginRight: 6 }} /> Log de fechamentos</h3>
               <button onClick={() => setFechamentosModal(false)} style={modalCloseBtn}><i className="ti ti-x" /></button>
             </div>
+            <div style={{ display: "flex", gap: 4, padding: "8px 14px", borderBottom: ".5px solid var(--mk-border)" }}>
+              <button
+                onClick={() => abrirFechamentos("ganho")}
+                style={{ flex: 1, fontSize: 12, padding: "7px 10px", borderRadius: 6, border: 0, background: fechamentosTab === "ganho" ? "rgba(0,225,154,0.18)" : "transparent", color: fechamentosTab === "ganho" ? "#00E19A" : "var(--mk-text-muted)", fontWeight: fechamentosTab === "ganho" ? 700 : 500, cursor: "pointer" }}
+              >
+                <i className="ti ti-check" style={{ marginRight: 4 }} /> Ganhos
+              </button>
+              <button
+                onClick={() => abrirFechamentos("perdido")}
+                style={{ flex: 1, fontSize: 12, padding: "7px 10px", borderRadius: 6, border: 0, background: fechamentosTab === "perdido" ? "rgba(255,92,114,0.18)" : "transparent", color: fechamentosTab === "perdido" ? "#FF5C72" : "var(--mk-text-muted)", fontWeight: fechamentosTab === "perdido" ? 700 : 500, cursor: "pointer" }}
+              >
+                <i className="ti ti-x" style={{ marginRight: 4 }} /> Perdidos
+              </button>
+            </div>
             <div className="chat-scroll" style={{ overflowY: "auto", padding: "10px 14px" }}>
               {fechamentosLoading ? (
                 <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>Carregando…</div>
               ) : fechamentos.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 30, fontSize: 12, color: "var(--mk-text-muted)" }}>
-                  <i className="ti ti-receipt-off" style={{ display: "block", fontSize: 26, marginBottom: 6, opacity: 0.6 }} />
-                  Nenhum fechamento registrado ainda.
+                  <i className={`ti ${fechamentosTab === "ganho" ? "ti-receipt-off" : "ti-mood-sad"}`} style={{ display: "block", fontSize: 26, marginBottom: 6, opacity: 0.6 }} />
+                  {fechamentosTab === "ganho" ? "Nenhum ganho registrado ainda." : "Nenhuma oportunidade perdida registrada."}
                 </div>
               ) : (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 4px 10px", fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
-                    <span>{fechamentos.length} fechamento{fechamentos.length === 1 ? "" : "s"}</span>
-                    <strong style={{ color: "#00E19A" }}>
-                      Total: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(fechamentos.reduce((s, f) => s + f.valor, 0))}
-                    </strong>
+                    <span>{fechamentos.length} {fechamentosTab === "ganho" ? "ganho" : "perdido"}{fechamentos.length === 1 ? "" : "s"}</span>
+                    {fechamentosTab === "ganho" && (
+                      <strong style={{ color: "#00E19A" }}>
+                        Total: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(fechamentos.reduce((s, f) => s + (f.valor || 0), 0))}
+                      </strong>
+                    )}
                   </div>
-                  {fechamentos.map((f) => (
+                  {fechamentos.map((f) => {
+                    const isGanho = f.resultado === "ganho";
+                    return (
                     <div
                       key={f.ticketId}
                       style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 8px", borderBottom: "0.5px solid var(--mk-border)" }}
@@ -706,30 +725,39 @@ export function ListaAtendimentos(p: Props) {
                         style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "var(--mk-text)", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
                         title="Abrir conversa"
                       >
-                        <i className="ti ti-circle-check" style={{ color: "#00E19A", fontSize: 16 }} />
+                        <i className={`ti ${isGanho ? "ti-circle-check" : "ti-circle-x"}`} style={{ color: isGanho ? "#00E19A" : "#FF5C72", fontSize: 16 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {f.contato_nome} <span style={{ color: "var(--mk-text-muted)", fontWeight: 400 }}>#{f.numero}</span>
                           </div>
                           <div style={{ fontSize: 11, color: "var(--mk-text-muted)", marginTop: 1 }}>
-                            {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
+                            {isGanho ? (
+                              <>
+                                {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
+                              </>
+                            ) : (
+                              f.motivo_perdido || "Sem motivo"
+                            )}
                             {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`}
                             {f.fechado_por && ` · ${f.fechado_por}`}
                           </div>
                         </div>
                       </button>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#00E19A", whiteSpace: "nowrap" }}>
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
-                      </div>
+                      {isGanho && f.valor != null && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#00E19A", whiteSpace: "nowrap" }}>
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(f.valor)}
+                        </div>
+                      )}
                       <button
-                        onClick={() => excluirFechamento(f.ticketId, f.contato_nome, f.valor)}
-                        title="Excluir fechamento"
+                        onClick={() => excluirFechamento(f.ticketId, f.contato_nome, isGanho ? "ganho" : "perdido")}
+                        title="Excluir"
                         style={{ background: "transparent", border: 0, color: "#C97064", cursor: "pointer", fontSize: 14, padding: "4px 6px" }}
                       >
                         <i className="ti ti-trash" />
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
             </div>

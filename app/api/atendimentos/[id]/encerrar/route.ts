@@ -13,20 +13,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "auth" }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { valor_fechado?: number };
+  const body = (await req.json().catch(() => ({}))) as { valor_fechado?: number; resultado?: "ganho" | "perdido"; motivo_perdido?: string };
+  const resultado: "ganho" | "perdido" = body.resultado === "perdido" ? "perdido" : "ganho";
 
   const sb = createServiceClient();
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
+  const updatePayload: Record<string, unknown> = {
+    status: "fechado",
+    fechado_em: new Date().toISOString(),
+    fechado_por: auth.user.id,
+    resultado,
+  };
+  if (resultado === "ganho" && typeof body.valor_fechado === "number") {
+    updatePayload.valor_fechado = body.valor_fechado;
+  }
+  if (resultado === "perdido") {
+    updatePayload.motivo_perdido = body.motivo_perdido?.trim() || null;
+  }
+
   const { error } = await sb
     .from("tickets")
-    .update({
-      status: "fechado",
-      fechado_em: new Date().toISOString(),
-      fechado_por: auth.user.id,
-      valor_fechado: typeof body.valor_fechado === "number" ? body.valor_fechado : undefined,
-    })
+    .update(updatePayload)
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -21,7 +21,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     valor?: number | null;
     servico?: string | null;
     quantidade?: number | null;
+    resultado?: "ganho" | "perdido";
+    motivo_perdido?: string | null;
   };
+  const resultado: "ganho" | "perdido" = body.resultado === "perdido" ? "perdido" : "ganho";
 
   const sb = createServiceClient();
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
@@ -29,15 +32,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: ticket } = await sb
     .from("tickets")
-    .select("id, metadata, valor_fechado")
+    .select("id, metadata, valor_fechado, resultado")
     .eq("id", id)
     .eq("agencia_id", u.agencia_id)
     .single();
   if (!ticket) return NextResponse.json({ error: "ticket_nao_encontrado" }, { status: 404 });
 
-  // Um fechamento por ticket — já registrado, recusa
-  if (ticket.valor_fechado != null) {
-    return NextResponse.json({ error: "fechamento_ja_registrado" }, { status: 409 });
+  // Já tem resultado registrado — recusa
+  if (ticket.resultado != null) {
+    return NextResponse.json({ error: "ja_marcado" }, { status: 409 });
   }
 
   const meta = (ticket.metadata && typeof ticket.metadata === "object") ? { ...ticket.metadata } : {};
@@ -45,22 +48,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (body.quantidade != null) meta.quantidade = body.quantidade;
 
   // NÃO muda status — ticket continua onde está; encerrar é ação separada.
-  // fechado_em carimba a data da venda pro Dashboard metrificar.
+  // fechado_em carimba data pro Dashboard metrificar.
+  const updatePayload: Record<string, unknown> = {
+    metadata: meta,
+    fechado_em: new Date().toISOString(),
+    fechado_por: auth.user.id,
+    resultado,
+  };
+  if (resultado === "ganho") {
+    updatePayload.valor_fechado = body.valor;
+  } else {
+    updatePayload.valor_fechado = null;
+    updatePayload.motivo_perdido = body.motivo_perdido?.trim() || null;
+  }
+
   const { error } = await sb
     .from("tickets")
-    .update({
-      valor_fechado: body.valor,
-      metadata: meta,
-      fechado_em: new Date().toISOString(),
-      fechado_por: auth.user.id,
-    })
+    .update(updatePayload)
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Enfileira o Purchase pro Meta (CAPI) — assíncrono, não bloqueia a resposta.
-  // Só quando há valor (fechamento real). Idempotente por event_id (dedup).
-  if (body.valor != null) {
+  // CAPI Purchase só pra ganho.
+  if (resultado === "ganho" && body.valor != null) {
     after(async () => {
       try {
         await enfileirarPurchase(id);
@@ -95,12 +105,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const { data: ticket } = await sb
     .from("tickets")
-    .select("id, metadata, valor_fechado")
+    .select("id, metadata, valor_fechado, resultado")
     .eq("id", id)
     .eq("agencia_id", u.agencia_id)
     .single();
   if (!ticket) return NextResponse.json({ error: "ticket_nao_encontrado" }, { status: 404 });
-  if (ticket.valor_fechado == null) return NextResponse.json({ error: "sem_fechamento" }, { status: 404 });
+  if (ticket.resultado == null && ticket.valor_fechado == null) return NextResponse.json({ error: "sem_fechamento" }, { status: 404 });
 
   const meta = (ticket.metadata && typeof ticket.metadata === "object") ? { ...ticket.metadata } : {};
   delete (meta as Record<string, unknown>).servico;
@@ -108,7 +118,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const { error } = await sb
     .from("tickets")
-    .update({ valor_fechado: null, fechado_em: null, fechado_por: null, metadata: meta })
+    .update({ valor_fechado: null, fechado_em: null, fechado_por: null, metadata: meta, resultado: null, motivo_perdido: null })
     .eq("id", id)
     .eq("agencia_id", u.agencia_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

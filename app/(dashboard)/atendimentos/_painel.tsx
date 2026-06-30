@@ -30,6 +30,8 @@ interface Ticket {
   resumo: string | null;
   resumo_atualizado_em: string | null;
   valor_fechado?: number | null;
+  resultado?: "ganho" | "perdido" | null;
+  motivo_perdido?: string | null;
   metadata?: { servico?: string; quantidade?: number } | null;
   ia_pausada?: boolean | null;
   ia_perfil_id?: string | null;
@@ -112,22 +114,26 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
   const [fechServico, setFechServico] = useState<string>(ticket.metadata?.servico || "");
   const [fechQtd, setFechQtd] = useState<string>(ticket.metadata?.quantidade != null ? String(ticket.metadata.quantidade) : "");
   const [savingFech, setSavingFech] = useState(false);
+  const [fechModo, setFechModo] = useState<"ganho" | "perdido">("ganho");
+  const [motivoPerdido, setMotivoPerdido] = useState("");
 
-  async function salvarFechamento() {
+  async function salvarFechamento(resultado: "ganho" | "perdido") {
     setSavingFech(true);
     try {
       const r = await fetch(`/api/atendimentos/${ticket.id}/fechamento`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          valor: fechValor ? Number(fechValor.replace(",", ".")) : null,
-          servico: fechServico.trim() || null,
-          quantidade: fechQtd ? Number(fechQtd) : null,
+          resultado,
+          valor: resultado === "ganho" ? (fechValor ? Number(fechValor.replace(",", ".")) : null) : null,
+          servico: resultado === "ganho" ? (fechServico.trim() || null) : null,
+          quantidade: resultado === "ganho" && fechQtd ? Number(fechQtd) : null,
+          motivo_perdido: resultado === "perdido" ? (motivoPerdido.trim() || null) : null,
         }),
       });
       const j = await r.json();
       if (!r.ok) alert(`Erro: ${j.error || j.msg}`);
-      else { alert("Fechamento salvo"); refresh(); }
+      else { alert(resultado === "ganho" ? "Fechamento salvo" : "Oportunidade marcada como perdida"); refresh(); }
     } catch (e) { alert(`Erro: ${e instanceof Error ? e.message : String(e)}`); }
     finally { setSavingFech(false); }
   }
@@ -413,17 +419,19 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
               </div>
             </Card>
 
-            {/* CARD fechamento */}
-            {ticket.valor_fechado != null ? (
+            {/* CARD fechamento (ganho/perdido) */}
+            {ticket.resultado === "ganho" ? (
               <Card titulo="Fechamento">
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#00E19A", fontSize: 12, fontWeight: 600 }}>
                     <i className="ti ti-circle-check" style={{ fontSize: 16 }} />
-                    Fechamento registrado
+                    Ganho registrado
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--mk-text)" }}>
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(ticket.valor_fechado))}
-                  </div>
+                  {ticket.valor_fechado != null && (
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "var(--mk-text)" }}>
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(ticket.valor_fechado))}
+                    </div>
+                  )}
                   {ticket.metadata?.servico && (
                     <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
                       <i className="ti ti-package" style={{ marginRight: 4 }} />{ticket.metadata.servico}
@@ -435,8 +443,59 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                   </div>
                 </div>
               </Card>
+            ) : ticket.resultado === "perdido" ? (
+              <Card titulo="Fechamento">
+                <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#FF5C72", fontSize: 12, fontWeight: 600 }}>
+                    <i className="ti ti-circle-x" style={{ fontSize: 16 }} />
+                    Oportunidade perdida
+                  </div>
+                  {ticket.motivo_perdido && (
+                    <div style={{ fontSize: 11.5, color: "var(--mk-text-secondary)" }}>
+                      <i className="ti ti-message" style={{ marginRight: 4 }} />{ticket.motivo_perdido}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: "var(--mk-text-muted)", marginTop: 2 }}>
+                    Marcado como perdido. Aparece no Log com filtro Perdidos.
+                  </div>
+                </div>
+              </Card>
             ) : (
             <Card titulo="Fechamento">
+              <div style={{ display: "flex", gap: 6, padding: "10px 12px 0", borderBottom: "0.5px solid var(--mk-border)" }}>
+                <button
+                  onClick={() => setFechModo("ganho")}
+                  style={{ flex: 1, fontSize: 11, padding: "6px 8px", borderRadius: 6, border: 0, background: fechModo === "ganho" ? "rgba(0,225,154,0.18)" : "transparent", color: fechModo === "ganho" ? "#00E19A" : "var(--mk-text-muted)", fontWeight: fechModo === "ganho" ? 700 : 500, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                >
+                  <i className="ti ti-check" /> Ganho
+                </button>
+                <button
+                  onClick={() => setFechModo("perdido")}
+                  style={{ flex: 1, fontSize: 11, padding: "6px 8px", borderRadius: 6, border: 0, background: fechModo === "perdido" ? "rgba(255,92,114,0.18)" : "transparent", color: fechModo === "perdido" ? "#FF5C72" : "var(--mk-text-muted)", fontWeight: fechModo === "perdido" ? 700 : 500, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                >
+                  <i className="ti ti-x" /> Perdido
+                </button>
+              </div>
+              {fechModo === "perdido" ? (
+                <>
+                  <div style={{ padding: "10px 12px" }}>
+                    <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>MOTIVO (opcional)</label>
+                    <textarea
+                      value={motivoPerdido}
+                      onChange={(e) => setMotivoPerdido(e.target.value)}
+                      placeholder="Ex: cliente sem orçamento, foi pra concorrência…"
+                      rows={3}
+                      style={{ width: "100%", marginTop: 4, padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12, resize: "vertical", fontFamily: "inherit" }}
+                    />
+                  </div>
+                  <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
+                    <button onClick={() => salvarFechamento("perdido")} disabled={savingFech} style={{ fontSize: 11, width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid #FF5C72", background: "rgba(255,92,114,0.12)", color: "#FF5C72", fontWeight: 700, cursor: "pointer", opacity: savingFech ? 0.6 : 1 }}>
+                      <i className="ti ti-x" /> {savingFech ? "Salvando..." : "Marcar como perdido"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+              <>
               <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
                 <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>VALOR (R$)</label>
                 <input
@@ -489,10 +548,12 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
                 />
               </div>
               <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>
-                <button onClick={salvarFechamento} disabled={savingFech} className="cta-btn" style={{ fontSize: 11, width: "100%" }}>
-                  <i className="ti ti-check" /> {savingFech ? "Salvando..." : "Salvar fechamento"}
+                <button onClick={() => salvarFechamento("ganho")} disabled={savingFech} className="cta-btn" style={{ fontSize: 11, width: "100%" }}>
+                  <i className="ti ti-check" /> {savingFech ? "Salvando..." : "Salvar fechamento (ganho)"}
                 </button>
               </div>
+              </>
+              )}
             </Card>
             )}
 

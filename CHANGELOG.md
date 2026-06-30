@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **11:30** — **Fase F: botão Perdido + Log com tabs Ganho/Perdido.**
+  - Migration `tickets_resultado_ganho_perdido`: coluna `resultado` (ganho|perdido) + `motivo_perdido` + backfill (`valor_fechado IS NOT NULL` vira `ganho`).
+  - Routes `/api/atendimentos/[id]/fechamento` (POST+DELETE) + `/api/atendimentos/[id]/encerrar` aceitam `resultado` + `motivo_perdido`.
+  - GET `/api/atendimentos/fechamentos?tipo=ganho|perdido` filtra. DELETE limpa marcação.
+  - UI painel Atendimentos: 2 tabs "Ganho/Perdido" no card Fechamento. Perdido = só motivo (textarea). Ganho = valor/serviço/qtd como antes.
+  - UI Log de fechamentos: tabs Ganhos/Perdidos, ícone vermelho pra perdido, sem valor (mostra motivo), delete funciona pra ambos.
+
 - **11:10** — **Nota da coluna movida do rodapé pro header.** Botão `ti-note` agora ao lado de Conectar Etiquetas (🔗). Fica laranja quando preenchida. Rodapé limpo (só 2 botões: Adicionar contato · Importar por etiqueta).
 
 - **11:00** — **Fase D: sub-aba Etiquetas (Kanban com Etiquetas).**

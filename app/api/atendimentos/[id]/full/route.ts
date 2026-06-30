@@ -21,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data: t } = await sb
     .from("tickets")
-    .select("id, numero, status, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, valor_fechado, metadata, fila_id, usuario_id, ia_pausada, ia_perfil_id, contato:contatos(id, nome, whatsapp, foto_url, ia_habilitada, email, empresa, cidade, estado, cpf), canal:canais(id, nome, status)")
+    .select("id, numero, status, sentimento, sentimento_confianca, sentimento_motivo, resumo, resumo_atualizado_em, valor_fechado, resultado, motivo_perdido, metadata, fila_id, usuario_id, ia_pausada, ia_perfil_id, contato:contatos(id, nome, whatsapp, foto_url, ia_habilitada, email, empresa, cidade, estado, cpf), canal:canais(id, nome, status)")
     .eq("id", id)
     .eq("agencia_id", u.agencia_id)
     .maybeSingle();
