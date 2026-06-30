@@ -7,6 +7,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **10:25** — **Fase B: nav `/pipeline` com 4 sub-abas.**
+  - Nova rota `/pipeline` com layout fixo + `PipelineTabs` (client component que usa `usePathname`).
+  - Sub-abas: **Dashboard** · **Kanban** · **Pipelines** · **Etiquetas**.
+  - Conteúdo do Kanban movido `app/(dashboard)/kanban/*` → `app/(dashboard)/pipeline/kanban/*` (page+client+actions). Headers duplicados removidos do client (layout cuida). `revalidatePath` atualizado pra `/pipeline/kanban`.
+  - 3 stubs "em construção" pras outras sub-abas.
+  - `/kanban` antigo agora redireciona pra `/pipeline/kanban` (backward compat).
+  - Sidebar: item "Kanban" → "Pipeline" (href `/pipeline`).
+
 - **10:05** — **Fase A: ID global agência + nota da coluna + remove Card avulso.**
   - Migration `kanban_numero_global_por_agencia`: nova tabela `kanban_sequences (agencia_id, ultimo)` + função `next_kanban_numero` + coluna `kanban_cards.numero_global` + trigger BEFORE INSERT. Backfill ordenado por `criado_em`. Mesmo padrão dos tickets — sequencial por agência, nunca reusa após delete.
   - Migration `kanban_colunas_nota`: coluna `nota text` em kanban_colunas.

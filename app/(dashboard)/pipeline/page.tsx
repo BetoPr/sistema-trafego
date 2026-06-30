@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function KanbanRedirect() {
+export default function PipelineIndex() {
   redirect("/pipeline/kanban");
 }

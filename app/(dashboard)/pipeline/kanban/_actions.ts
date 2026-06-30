@@ -28,7 +28,7 @@ export async function criarQuadro(nome: string, descricao: string, cor: string):
     cor: c.cor,
     ordem: c.ordem,
   })));
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true, id: data.id as string };
 }
 
@@ -37,7 +37,7 @@ export async function deletarQuadro(id: string): Promise<{ ok: boolean; msg?: st
   const sb = createServiceClient();
   const { error } = await sb.from("kanban_quadros").update({ deleted_at: new Date().toISOString() }).eq("id", id).eq("agencia_id", ctx.agenciaId);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -55,7 +55,7 @@ export async function criarColuna(quadroId: string, nome: string, cor: string): 
     ordem,
   }).select("id").single();
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true, id: data.id as string };
 }
 
@@ -64,7 +64,7 @@ export async function deletarColuna(id: string): Promise<{ ok: boolean; msg?: st
   const sb = createServiceClient();
   const { error } = await sb.from("kanban_colunas").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -77,7 +77,7 @@ export async function salvarNotaColuna(id: string, nota: string): Promise<{ ok: 
     .eq("id", id)
     .eq("agencia_id", ctx.agenciaId);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -91,7 +91,7 @@ export async function editarColuna(id: string, nome: string, cor: string): Promi
     .eq("id", id)
     .eq("agencia_id", ctx.agenciaId);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -107,7 +107,7 @@ export async function salvarOrdemColunas(ids: string[]): Promise<{ ok: boolean; 
     const { error } = await sb.from("kanban_colunas").update({ ordem: i }).eq("id", ids[i]).eq("agencia_id", ctx.agenciaId);
     if (error) return { ok: false, msg: error.message };
   }
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -137,7 +137,7 @@ export async function moverColuna(id: string, direcao: "esq" | "dir"): Promise<{
   await sb.from("kanban_colunas").update({ ordem: -1 - (alvo.ordem as number) }).eq("id", id).eq("agencia_id", ctx.agenciaId);
   await sb.from("kanban_colunas").update({ ordem: ordemAlvo }).eq("id", troca.id).eq("agencia_id", ctx.agenciaId);
   await sb.from("kanban_colunas").update({ ordem: ordemTroca }).eq("id", id).eq("agencia_id", ctx.agenciaId);
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -155,7 +155,7 @@ export async function criarCard(colunaId: string, titulo: string, descricao: str
     ordem,
   }).select("id").single();
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true, id: data.id as string };
 }
 
@@ -164,7 +164,7 @@ export async function deletarCard(id: string): Promise<{ ok: boolean; msg?: stri
   const sb = createServiceClient();
   const { error } = await sb.from("kanban_cards").delete().eq("id", id).eq("agencia_id", ctx.agenciaId);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -178,7 +178,7 @@ export async function salvarRegrasEtiqueta(colunaId: string, etiquetaIds: string
   // delete + reinsert
   await sb.from("kanban_regras_entrada").delete().eq("coluna_id", colunaId);
   if (etiquetaIds.length === 0) {
-    revalidatePath("/kanban");
+    revalidatePath("/pipeline/kanban");
     return { ok: true, total: 0 };
   }
   const linhas = etiquetaIds.map((eid) => ({
@@ -189,7 +189,7 @@ export async function salvarRegrasEtiqueta(colunaId: string, etiquetaIds: string
   }));
   const { error } = await sb.from("kanban_regras_entrada").insert(linhas);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true, total: etiquetaIds.length };
 }
 
@@ -219,7 +219,7 @@ export async function adicionarContatoNaColuna(colunaId: string, contatoId: stri
     ordem,
   });
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }
 
@@ -268,7 +268,7 @@ export async function importarContatosPorEtiqueta(colunaId: string, etiquetaId: 
   for (let i = 0; i < linhas.length; i += CHUNK) {
     await sb.from("kanban_cards").insert(linhas.slice(i, i + CHUNK));
   }
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true, criados: linhas.length, pulados: candidatos.length - linhas.length };
 }
 
@@ -282,6 +282,6 @@ export async function moverCard(cardId: string, novaColunaId: string, novaOrdem:
     atualizado_em: new Date().toISOString(),
   }).eq("id", cardId).eq("agencia_id", ctx.agenciaId);
   if (error) return { ok: false, msg: error.message };
-  revalidatePath("/kanban");
+  revalidatePath("/pipeline/kanban");
   return { ok: true };
 }

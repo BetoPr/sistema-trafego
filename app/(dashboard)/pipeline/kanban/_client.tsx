@@ -146,29 +146,8 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   }
 
   return (
-    <section className="mk-page">
-      <div className="mk-page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-        <div>
-          <div className="mk-eyebrow">Recursos · Papipeline</div>
-          <h1 className="mk-page-title" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            Kanban
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: 0.5,
-              padding: "3px 9px",
-              borderRadius: 999,
-              background: "rgba(255,181,71,0.15)",
-              color: "#FFB547",
-              border: "1px solid rgba(255,181,71,0.4)",
-              textTransform: "uppercase",
-            }}>
-              <i className="ti ti-tool" style={{ fontSize: 10, marginRight: 4 }} />
-              Em desenvolvimento
-            </span>
-          </h1>
-          <p className="mk-page-sub">Organize processos, vendas, tarefas. Arrasta os cards entre colunas.</p>
-        </div>
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {quadroAtivoId && colunas.length > 1 && !modoReordenar && (
             <button
@@ -733,7 +712,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
           </div>
         </div>
       </Balao>
-    </section>
+    </div>
   );
 }
 
