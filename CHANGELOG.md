@@ -5,6 +5,16 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-30
+
+- **08:35** — **Etiquetas movidas de Configurações para Recursos no sidebar.**
+  - `components/layout/AppSidebar.tsx`: item `Etiquetas` (icon `ti-tag`, guide `nav-etiquetas`) inserido na seção Recursos logo após Kanban.
+  - `app/(dashboard)/configuracoes/page.tsx`: link removido do array `ATALHOS` (Mais configurações).
+  - `components/layout/RoboGuia.tsx`: tours `etiqueta_criar`, `pasta_etiqueta`, `etiqueta_auto` atualizados — target `config-etiquetas` (sub-menu Mais configurações) substituído por `nav-etiquetas` (sidebar). Passo intermediário em Configurações eliminado, fluxo ficou 1 clique mais curto.
+  - URL `/configuracoes/etiquetas` continua a mesma; só a posição no menu mudou.
+
+---
+
 ## 2026-06-26
 
 - **18:55** — **OAuth Google plugado em login + cadastro.**

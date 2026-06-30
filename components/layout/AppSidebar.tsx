@@ -106,6 +106,7 @@ function buildSections(role?: string, canaisStatus?: CanaisStatus, usuariosStatu
       items: [
         { href: "/canais", label: "Canais", icon: "ti-brand-whatsapp", badge: canaisBadge, guide: "nav-canais" },
         { href: "/kanban", label: "Kanban", icon: "ti-layout-kanban", guide: "nav-kanban" },
+        { href: "/configuracoes/etiquetas", label: "Etiquetas", icon: "ti-tag", guide: "nav-etiquetas" },
         { href: "/filas", label: "Filas", icon: "ti-list-tree", guide: "nav-filas" },
         { href: "/equipes", label: "Equipes", icon: "ti-users-group", guide: "nav-equipes" },
         { href: "/usuarios", label: "Usuários", icon: "ti-user-circle", badge: usuariosBadge, guide: "nav-usuarios" },

@@ -293,8 +293,7 @@ export function RoboGuia() {
             id: "etiqueta_criar",
             intents: ["criar etiqueta", "nova etiqueta", "tag", "rotulo"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Clique em **Configurações**." },
-              { target: "config-etiquetas", text: "Depois em **Etiquetas**. Preencha Nome, Pai (pasta), Cor (paleta + picker)." },
+              { target: "nav-etiquetas", text: "Clique em **Etiquetas** no menu Recursos. Preencha Nome, Pai (pasta), Cor (paleta + picker)." },
             ],
             done: "Aqui cria, edita e organiza etiquetas. ✅",
           },
@@ -302,8 +301,7 @@ export function RoboGuia() {
             id: "pasta_etiqueta",
             intents: ["pasta", "pasta vs etiqueta", "hierarquia etiqueta"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Clique em **Configurações**." },
-              { target: "config-etiquetas", text: "Em **Etiquetas**. Pasta = etiqueta-mãe. Etiqueta filha vai dentro." },
+              { target: "nav-etiquetas", text: "Clique em **Etiquetas** no menu Recursos. Pasta = etiqueta-mãe. Etiqueta filha vai dentro." },
             ],
             done: "Pasta = mãe. Etiqueta = filha. Não tem tipo 'pasta' no banco — é etiqueta normal que outras apontam pra ela. ✅",
           },
@@ -311,8 +309,7 @@ export function RoboGuia() {
             id: "etiqueta_criar",
             intents: ["criar etiqueta", "nova etiqueta", "tag", "rotulo", "como crio etiqueta", "criar pasta etiqueta", "criar tag", "criar pasta"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Clique em **Configurações** no menu." },
-              { target: "config-etiquetas", text: "Agora em **Etiquetas**." },
+              { target: "nav-etiquetas", text: "Clique em **Etiquetas** no menu Recursos." },
               { text: "Aqui você cria **etiquetas e pastas** pra organizar contatos. Vou te ensinar.", btn: "Bora ▸" },
               { target: "etiqueta-nome-input", requireClick: false, text: "Aqui digita o **nome**. Ex: `Cliente VIP`." },
               { target: "etiqueta-pai-select", requireClick: false, text: "Aqui vincula a uma **pasta-mãe** (opcional). Deixa em branco se for etiqueta solta." },
@@ -358,8 +355,7 @@ export function RoboGuia() {
             id: "etiqueta_auto",
             intents: ["etiqueta automatica", "auto etiqueta", "palavra chave", "etiqueta palavra", "gatilho etiqueta", "como crio etiqueta automatica"],
             steps: [
-              { target: "menu-conta-configuracoes", text: "Primeiro clique em **Configurações** no menu lateral." },
-              { target: "config-etiquetas", text: "Agora clique em **Etiquetas** dentro de Mais configurações." },
+              { target: "nav-etiquetas", text: "Clique em **Etiquetas** no menu Recursos." },
               { text: "**Como criar etiqueta automática por palavra-chave:**\n\n1) Clique no ícone ✏️ pra **editar uma etiqueta existente** (ou crie nova no topo).\n\n2) No balão de edição, role até a seção **Palavras-chave gatilho**.\n\n3) Digite uma palavra que dispare a etiqueta (ex: `desconto`, `cancelar`, `reclamação`).\n\n4) Clique **+ Adicionar mais** pra incluir mais palavras. Aceita regex simples como `(desc|promo)`.\n\n5) Marque ☑️ **Ativo** e clique em **Salvar**." },
             ],
             done: "Pronto. Quando cliente mandar mensagem com a palavra, etiqueta é aplicada automático no contato. ✅",
