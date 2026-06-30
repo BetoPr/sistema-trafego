@@ -145,8 +145,78 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
     setArrastando(null);
   }
 
+  // ===== KPIs e filtros (Fase G) =====
+  const totalOportunidades = cards.length;
+  const totalValor = cards.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  const totalAbertos = totalOportunidades; // sem status no card por enquanto, todos abertos
+
+  const [buscaCard, setBuscaCard] = useState("");
+  const [valorMin, setValorMin] = useState("");
+  const [valorMax, setValorMax] = useState("");
+
+  function passaFiltros(card: Card): boolean {
+    const q = buscaCard.trim().toLowerCase();
+    if (q && !card.titulo.toLowerCase().includes(q)) return false;
+    if (valorMin) {
+      const v = Number(valorMin.replace(",", "."));
+      if (!isNaN(v) && (card.valor ?? 0) < v) return false;
+    }
+    if (valorMax) {
+      const v = Number(valorMax.replace(",", "."));
+      if (!isNaN(v) && (card.valor ?? 0) > v) return false;
+    }
+    return true;
+  }
+
   return (
     <div>
+      {/* KPIs topo */}
+      {quadroAtivoId && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 12 }}>
+          <KpiKanban label="Oportunidades" valor={totalOportunidades.toString()} cor="#5cd0ff" icone="ti-users" />
+          <KpiKanban label="Abertos" valor={totalAbertos.toString()} cor="#FFB547" icone="ti-target" />
+          <KpiKanban label="Valor total" valor={BRL.format(totalValor)} cor="#00E19A" icone="ti-currency-dollar" />
+        </div>
+      )}
+
+      {/* Filtros */}
+      {quadroAtivoId && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            type="text"
+            value={buscaCard}
+            onChange={(e) => setBuscaCard(e.target.value)}
+            placeholder="Buscar por nome, contato..."
+            style={{ flex: "1 1 200px", minWidth: 180, padding: "7px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
+          />
+          <input
+            type="text"
+            inputMode="decimal"
+            value={valorMin}
+            onChange={(e) => setValorMin(e.target.value.replace(/[^0-9.,]/g, ""))}
+            placeholder="R$ min"
+            style={{ width: 90, padding: "7px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
+          />
+          <input
+            type="text"
+            inputMode="decimal"
+            value={valorMax}
+            onChange={(e) => setValorMax(e.target.value.replace(/[^0-9.,]/g, ""))}
+            placeholder="R$ max"
+            style={{ width: 90, padding: "7px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
+          />
+          {(buscaCard || valorMin || valorMax) && (
+            <button
+              type="button"
+              onClick={() => { setBuscaCard(""); setValorMin(""); setValorMax(""); }}
+              style={{ fontSize: 11.5, padding: "7px 12px", background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", cursor: "pointer" }}
+            >
+              <i className="ti ti-x" style={{ marginRight: 3 }} /> Limpar
+            </button>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {quadroAtivoId && colunas.length > 1 && !modoReordenar && (
@@ -264,7 +334,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
       ) : (
         <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, minHeight: 400 }}>
           {colunasOrdenadas.map((col) => {
-            const cardsDaCol = cards.filter((c) => c.coluna_id === col.id).sort((a, b) => a.ordem - b.ordem);
+            const cardsDaCol = cards.filter((c) => c.coluna_id === col.id).filter(passaFiltros).sort((a, b) => a.ordem - b.ordem);
             return (
               <div
                 key={col.id}
@@ -737,3 +807,15 @@ const btnGhost: React.CSSProperties = {
   fontSize: 12.5,
   cursor: "pointer",
 };
+
+function KpiKanban({ label, valor, cor, icone }: { label: string; valor: string; cor: string; icone: string }) {
+  return (
+    <div style={{ background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 10, padding: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--mk-text-muted)", letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</span>
+        <i className={`ti ${icone}`} style={{ color: cor, fontSize: 14 }} />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "var(--mk-text)" }}>{valor}</div>
+    </div>
+  );
+}

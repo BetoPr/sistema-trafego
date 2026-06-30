@@ -7,6 +7,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **12:00** — **Fase G: Kanban filtros + KPIs no topo.**
+  - 3 KPIs no topo: Oportunidades · Abertos · Valor total.
+  - Filtros: busca por título · valor mínimo · valor máximo · botão Limpar.
+  - Filtro client-side aplica em `cardsDaCol` de cada coluna.
+
 - **11:45** — **Fase E: Dashboard do Pipeline com KPIs + charts.**
   - Server agrega 5 queries em paralelo: cards/colunas/quadros/tickets/contato_etiquetas.
   - KPIs: Criadas · Abertos · Ganhos · Perdidos · Ticket Médio · Taxa Conv.
