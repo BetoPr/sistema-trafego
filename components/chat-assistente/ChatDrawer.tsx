@@ -422,26 +422,22 @@ function ChatFAB({ onClick, ativo }: { onClick: () => void; ativo: boolean }) {
         position: "fixed",
         right: 18,
         bottom: 18,
-        width: 56,
-        height: 56,
-        borderRadius: "50%",
-        border: "1px solid #00E19A",
-        background: "var(--mk-bg)",
-        boxShadow: "0 10px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(0,225,154,.45)",
+        width: 64,
+        height: 64,
+        borderRadius: 0,
+        border: 0,
+        background: "transparent",
+        boxShadow: "none",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 4000,
-        animation: "chat-fab-pulse 2.4s ease-in-out infinite",
+        padding: 0,
       }}
     >
-      <MascoteRoboMini size={36} ativo={false} />
+      <MascoteRoboMini size={64} ativo={false} />
       <style>{`
-        @keyframes chat-fab-pulse {
-          0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(0,225,154,.45); }
-          50% { box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 10px rgba(0,225,154,0); }
-        }
         @keyframes mascote-bob {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           25% { transform: translateY(-2px) rotate(-3deg); }
