@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **12:20** — **Ajustes D+G pós-feedback Roberto.**
+  - Etiquetas: dropdown **Ativas/Todas/Inativas** + setas **◀ ▶** pra scroll horizontal das colunas. Server passou a trazer todas (filtro só client).
+  - Kanban: barra busca com botão **Filtros ▾** que expande/recolhe. Filtros: Etapa · Etiqueta · Status · Valor min/max · Limpar filtros. Busca casa título OU nome do contato.
+
 - **12:00** — **Fase G: Kanban filtros + KPIs no topo.**
   - 3 KPIs no topo: Oportunidades · Abertos · Valor total.
   - Filtros: busca por título · valor mínimo · valor máximo · botão Limpar.

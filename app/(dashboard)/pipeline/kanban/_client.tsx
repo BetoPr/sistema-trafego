@@ -153,10 +153,19 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   const [buscaCard, setBuscaCard] = useState("");
   const [valorMin, setValorMin] = useState("");
   const [valorMax, setValorMax] = useState("");
+  const [filtrosAberto, setFiltrosAberto] = useState(false);
+  const [filtroEtapaId, setFiltroEtapaId] = useState<string>("");
+  const [filtroEtiquetaId, setFiltroEtiquetaId] = useState<string>("");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "ganho" | "perdido">("todos");
 
   function passaFiltros(card: Card): boolean {
     const q = buscaCard.trim().toLowerCase();
-    if (q && !card.titulo.toLowerCase().includes(q)) return false;
+    if (q) {
+      const tituloHit = card.titulo.toLowerCase().includes(q);
+      const contatoHit = card.contato_id ? (contatos.find((c) => c.id === card.contato_id)?.nome.toLowerCase().includes(q) ?? false) : false;
+      if (!tituloHit && !contatoHit) return false;
+    }
+    if (filtroEtapaId && card.coluna_id !== filtroEtapaId) return false;
     if (valorMin) {
       const v = Number(valorMin.replace(",", "."));
       if (!isNaN(v) && (card.valor ?? 0) < v) return false;
@@ -167,6 +176,16 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
     }
     return true;
   }
+
+  function limparFiltros() {
+    setBuscaCard("");
+    setValorMin("");
+    setValorMax("");
+    setFiltroEtapaId("");
+    setFiltroEtiquetaId("");
+    setFiltroStatus("todos");
+  }
+  const algumFiltro = !!(buscaCard || valorMin || valorMax || filtroEtapaId || filtroEtiquetaId || (filtroStatus !== "todos"));
 
   return (
     <div>
@@ -179,40 +198,47 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
         </div>
       )}
 
-      {/* Filtros */}
+      {/* Busca + Filtros toggle */}
       {quadroAtivoId && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <input
-            type="text"
-            value={buscaCard}
-            onChange={(e) => setBuscaCard(e.target.value)}
-            placeholder="Buscar por nome, contato..."
-            style={{ flex: "1 1 200px", minWidth: 180, padding: "7px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
-          />
-          <input
-            type="text"
-            inputMode="decimal"
-            value={valorMin}
-            onChange={(e) => setValorMin(e.target.value.replace(/[^0-9.,]/g, ""))}
-            placeholder="R$ min"
-            style={{ width: 90, padding: "7px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
-          />
-          <input
-            type="text"
-            inputMode="decimal"
-            value={valorMax}
-            onChange={(e) => setValorMax(e.target.value.replace(/[^0-9.,]/g, ""))}
-            placeholder="R$ max"
-            style={{ width: 90, padding: "7px 10px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
-          />
-          {(buscaCard || valorMin || valorMax) && (
+        <div style={{ background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 10, padding: 10, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <i className="ti ti-search" style={{ color: "var(--mk-text-muted)", fontSize: 14, marginLeft: 4 }} />
+            <input
+              type="text"
+              value={buscaCard}
+              onChange={(e) => setBuscaCard(e.target.value)}
+              placeholder="Buscar por nome, contato..."
+              style={{ flex: 1, padding: "7px 8px", background: "transparent", border: 0, color: "var(--mk-text)", fontSize: 12.5, outline: "none" }}
+            />
             <button
               type="button"
-              onClick={() => { setBuscaCard(""); setValorMin(""); setValorMax(""); }}
-              style={{ fontSize: 11.5, padding: "7px 12px", background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", cursor: "pointer" }}
+              onClick={() => setFiltrosAberto((s) => !s)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, padding: "6px 12px", background: filtrosAberto ? "rgba(0,225,154,0.15)" : "transparent", border: ".5px solid var(--mk-border)", borderRadius: 8, color: filtrosAberto ? "#00E19A" : "var(--mk-text)", cursor: "pointer" }}
             >
-              <i className="ti ti-x" style={{ marginRight: 3 }} /> Limpar
+              Filtros <i className={`ti ${filtrosAberto ? "ti-chevron-up" : "ti-chevron-down"}`} />
             </button>
+          </div>
+          {filtrosAberto && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: ".5px solid var(--mk-border)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+              <FltSel label="Etapa" value={filtroEtapaId} onChange={setFiltroEtapaId} options={[{ value: "", label: "Todas" }, ...colunas.map((c) => ({ value: c.id, label: c.nome }))]} />
+              <FltSel label="Etiqueta" value={filtroEtiquetaId} onChange={setFiltroEtiquetaId} options={[{ value: "", label: "Todas" }, ...etiquetas.map((e) => ({ value: e.id, label: e.nome }))]} />
+              <FltSel label="Status" value={filtroStatus} onChange={(v) => setFiltroStatus(v as typeof filtroStatus)} options={[{ value: "todos", label: "Todos" }, { value: "aberto", label: "Aberto" }, { value: "ganho", label: "Ganho" }, { value: "perdido", label: "Perdido" }]} />
+              <div>
+                <label style={lbl}>Valor mínimo</label>
+                <input type="text" inputMode="decimal" value={valorMin} onChange={(e) => setValorMin(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00" style={inpSm} />
+              </div>
+              <div>
+                <label style={lbl}>Valor máximo</label>
+                <input type="text" inputMode="decimal" value={valorMax} onChange={(e) => setValorMax(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00" style={inpSm} />
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
+                {algumFiltro && (
+                  <button type="button" onClick={limparFiltros} style={{ flex: 1, fontSize: 11.5, padding: "8px 10px", background: "transparent", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", cursor: "pointer" }}>
+                    <i className="ti ti-x" style={{ marginRight: 3 }} /> Limpar filtros
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -807,6 +833,20 @@ const btnGhost: React.CSSProperties = {
   fontSize: 12.5,
   cursor: "pointer",
 };
+
+function FltSel({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }> }) {
+  return (
+    <div>
+      <label style={lbl}>{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={inpSm}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+const lbl: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "var(--mk-text-muted)", marginBottom: 4, letterSpacing: 0.3, textTransform: "uppercase" };
+const inpSm: React.CSSProperties = { width: "100%", padding: "7px 10px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 12.5, outline: "none" };
 
 function KpiKanban({ label, valor, cor, icone }: { label: string; valor: string; cor: string; icone: string }) {
   return (

@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
 import { setEtiquetasContato } from "./_actions";
 
-interface Etiqueta { id: string; nome: string; cor: string }
+interface Etiqueta { id: string; nome: string; cor: string; ativo: boolean }
 interface Contato { id: string; nome: string; whatsapp: string | null; foto_url: string | null }
 
 export function EtiquetasKanbanClient({
@@ -19,10 +19,25 @@ export function EtiquetasKanbanClient({
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
+  const [filtroAtivo, setFiltroAtivo] = useState<"todas" | "ativas" | "inativas">("ativas");
   const [editAberto, setEditAberto] = useState<{ contato: Contato; etiquetasAtuais: Set<string> } | null>(null);
   const [editSel, setEditSel] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
   const [espiarAberto, setEspiarAberto] = useState<Contato | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const etiquetasFiltradas = useMemo(() => {
+    if (filtroAtivo === "ativas") return etiquetas.filter((e) => e.ativo);
+    if (filtroAtivo === "inativas") return etiquetas.filter((e) => !e.ativo);
+    return etiquetas;
+  }, [etiquetas, filtroAtivo]);
+
+  function scroll(dir: "esq" | "dir") {
+    const el = scrollRef.current;
+    if (!el) return;
+    const delta = 300;
+    el.scrollBy({ left: dir === "esq" ? -delta : delta, behavior: "smooth" });
+  }
 
   const contatoIndex = useMemo(() => {
     const m = new Map<string, Contato>();
@@ -76,20 +91,37 @@ export function EtiquetasKanbanClient({
           placeholder="Buscar contato..."
           style={{ flex: 1, minWidth: 200, padding: "9px 12px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", fontSize: 13, outline: "none" }}
         />
+        <select
+          value={filtroAtivo}
+          onChange={(e) => setFiltroAtivo(e.target.value as "todas" | "ativas" | "inativas")}
+          style={{ background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", color: "var(--mk-text)", fontSize: 12.5, padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}
+        >
+          <option value="ativas">Ativas</option>
+          <option value="todas">Todas</option>
+          <option value="inativas">Inativas</option>
+        </select>
         <button type="button" onClick={() => router.refresh()} style={{ background: "transparent", border: ".5px solid var(--mk-border)", color: "var(--mk-text)", fontSize: 12.5, padding: "8px 14px", borderRadius: 8, cursor: "pointer" }}>
           <i className="ti ti-refresh" style={{ marginRight: 4 }} /> Atualizar
         </button>
+        <div style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+          <button type="button" onClick={() => scroll("esq")} title="Rolar pra esquerda" style={{ width: 34, height: 34, background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", color: "var(--mk-text)", borderRadius: 8, cursor: "pointer" }}>
+            <i className="ti ti-chevron-left" />
+          </button>
+          <button type="button" onClick={() => scroll("dir")} title="Rolar pra direita" style={{ width: 34, height: 34, background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", color: "var(--mk-text)", borderRadius: 8, cursor: "pointer" }}>
+            <i className="ti ti-chevron-right" />
+          </button>
+        </div>
       </div>
 
-      {etiquetas.length === 0 ? (
+      {etiquetasFiltradas.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", background: "var(--mk-surface)", border: "1px dashed var(--mk-border)", borderRadius: 12 }}>
           <i className="ti ti-tag" style={{ fontSize: 36, color: "var(--mk-text-muted)", marginBottom: 12 }} />
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Nenhuma etiqueta criada ainda</div>
-          <div style={{ fontSize: 12, color: "var(--mk-text-muted)", marginTop: 6 }}>Vá em Recursos · Etiquetas pra criar a primeira.</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{etiquetas.length === 0 ? "Nenhuma etiqueta criada ainda" : "Nenhuma etiqueta neste filtro"}</div>
+          <div style={{ fontSize: 12, color: "var(--mk-text-muted)", marginTop: 6 }}>{etiquetas.length === 0 ? "Vá em Recursos · Etiquetas pra criar a primeira." : "Tenta trocar pra Todas ou Ativas."}</div>
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, minHeight: 400 }}>
-          {etiquetas.map((etq) => {
+        <div ref={scrollRef} style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, minHeight: 400 }}>
+          {etiquetasFiltradas.map((etq) => {
             const cs = contatosFiltrados(etq.id);
             return (
               <div
