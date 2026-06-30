@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
-import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, moverColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
+import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, salvarOrdemColunas, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
 interface Coluna { id: string; nome: string; cor: string; ordem: number }
@@ -51,6 +51,48 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
 
   // Drag-and-drop nativo
   const [arrastando, setArrastando] = useState<string | null>(null);
+
+  // Modo reordenar colunas
+  const [ordemLocal, setOrdemLocal] = useState<string[] | null>(null);
+  const [arrastandoColuna, setArrastandoColuna] = useState<string | null>(null);
+  const [salvandoOrdem, setSalvandoOrdem] = useState(false);
+  const modoReordenar = ordemLocal !== null;
+  const colunasOrdenadas: Coluna[] = modoReordenar
+    ? (ordemLocal!.map((id) => colunas.find((c) => c.id === id)).filter(Boolean) as Coluna[])
+    : colunas;
+
+  function iniciarReordenar() {
+    setOrdemLocal(colunas.map((c) => c.id));
+  }
+  function cancelarReordenar() {
+    setOrdemLocal(null);
+    setArrastandoColuna(null);
+  }
+  async function salvarReordenar() {
+    if (!ordemLocal) return;
+    setSalvandoOrdem(true);
+    const r = await salvarOrdemColunas(ordemLocal);
+    setSalvandoOrdem(false);
+    if (r.ok) {
+      setOrdemLocal(null);
+      setArrastandoColuna(null);
+      router.refresh();
+    } else alert(r.msg);
+  }
+  function onDragOverColuna(e: React.DragEvent, sobreId: string) {
+    if (!modoReordenar || !arrastandoColuna || arrastandoColuna === sobreId) return;
+    e.preventDefault();
+    setOrdemLocal((prev) => {
+      if (!prev) return prev;
+      const a = prev.indexOf(arrastandoColuna);
+      const b = prev.indexOf(sobreId);
+      if (a < 0 || b < 0) return prev;
+      const nv = [...prev];
+      nv.splice(a, 1);
+      nv.splice(b, 0, arrastandoColuna);
+      return nv;
+    });
+  }
 
   function trocarQuadro(id: string) {
     router.push(`/kanban?quadro=${id}`);
@@ -127,10 +169,45 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
           </h1>
           <p className="mk-page-sub">Organize processos, vendas, tarefas. Arrasta os cards entre colunas.</p>
         </div>
-        <button type="button" onClick={() => setNovoQuadroAberto(true)} className="cta-btn" style={{ fontSize: 12, padding: "8px 14px" }}>
-          <i className="ti ti-plus" style={{ marginRight: 4 }} />
-          Novo quadro
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {quadroAtivoId && colunas.length > 1 && !modoReordenar && (
+            <button
+              type="button"
+              onClick={iniciarReordenar}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", cursor: "pointer" }}
+              title="Reordenar colunas arrastando"
+            >
+              <i className="ti ti-arrows-move" />
+              Mover colunas
+            </button>
+          )}
+          {modoReordenar && (
+            <div style={{ display: "inline-flex", gap: 6, padding: "4px 6px", background: "rgba(255,181,71,0.12)", border: "1px solid rgba(255,181,71,0.4)", borderRadius: 10, alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#FFB547", padding: "0 6px" }}>Arraste as colunas</span>
+              <button
+                type="button"
+                onClick={cancelarReordenar}
+                title="Cancelar (voltar pra ordem original)"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "#FF5C72", cursor: "pointer" }}
+              >
+                <i className="ti ti-x" style={{ fontSize: 16 }} />
+              </button>
+              <button
+                type="button"
+                onClick={salvarReordenar}
+                disabled={salvandoOrdem}
+                title="Salvar nova ordem"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, background: "#00E19A", border: 0, borderRadius: 8, color: "#04140d", cursor: salvandoOrdem ? "wait" : "pointer", opacity: salvandoOrdem ? 0.6 : 1 }}
+              >
+                <i className="ti ti-check" style={{ fontSize: 16 }} />
+              </button>
+            </div>
+          )}
+          <button type="button" onClick={() => setNovoQuadroAberto(true)} className="cta-btn" style={{ fontSize: 12, padding: "8px 14px" }}>
+            <i className="ti ti-plus" style={{ marginRight: 4 }} />
+            Novo quadro
+          </button>
+        </div>
       </div>
 
       {/* Tabs dos quadros */}
@@ -207,103 +284,91 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
         </div>
       ) : (
         <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 16, minHeight: 400 }}>
-          {colunas.map((col) => {
+          {colunasOrdenadas.map((col) => {
             const cardsDaCol = cards.filter((c) => c.coluna_id === col.id).sort((a, b) => a.ordem - b.ordem);
             return (
               <div
                 key={col.id}
-                onDragOver={(e) => { e.preventDefault(); }}
-                onDrop={() => dropCard(col.id)}
+                draggable={modoReordenar}
+                onDragStart={() => { if (modoReordenar) setArrastandoColuna(col.id); }}
+                onDragEnd={() => setArrastandoColuna(null)}
+                onDragOver={(e) => {
+                  if (modoReordenar) { onDragOverColuna(e, col.id); return; }
+                  e.preventDefault();
+                }}
+                onDrop={() => { if (!modoReordenar) dropCard(col.id); }}
                 style={{
                   minWidth: 280,
                   maxWidth: 280,
                   background: "var(--mk-surface)",
-                  border: ".5px solid var(--mk-border)",
+                  border: modoReordenar ? "1.5px dashed #FFB547" : ".5px solid var(--mk-border)",
                   borderTop: `3px solid ${col.cor}`,
                   borderRadius: 10,
                   padding: 10,
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,
+                  cursor: modoReordenar ? "grab" : "default",
+                  opacity: arrastandoColuna === col.id ? 0.4 : 1,
+                  transition: "opacity 0.15s",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {modoReordenar && <i className="ti ti-grip-vertical" style={{ fontSize: 13, color: "#FFB547" }} />}
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: col.cor }} />
                     <span style={{ fontSize: 12, fontWeight: 700 }}>{col.nome}</span>
                     <span style={{ fontSize: 10, color: "var(--mk-text-muted)", padding: "1px 6px", background: "var(--mk-surface-2)", borderRadius: 999 }}>{cardsDaCol.length}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await moverColuna(col.id, "esq");
-                        router.refresh();
-                      }}
-                      disabled={colunas.findIndex((c) => c.id === col.id) === 0}
-                      title="Mover coluna para esquerda"
-                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: colunas.findIndex((c) => c.id === col.id) === 0 ? "not-allowed" : "pointer", fontSize: 12, padding: 2, opacity: colunas.findIndex((c) => c.id === col.id) === 0 ? 0.3 : 1 }}
-                    >
-                      <i className="ti ti-chevron-left" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRegrasAberto({ colunaId: col.id, colunaNome: col.nome });
-                        setRegrasSelecionadas(new Set(regrasPorColuna[col.id] || []));
-                      }}
-                      title="Conectar etiquetas → entrada automática"
-                      style={{ background: "transparent", border: 0, color: (regrasPorColuna[col.id]?.length || 0) > 0 ? "#00E19A" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2, display: "inline-flex", alignItems: "center", gap: 2 }}
-                    >
-                      <i className="ti ti-link" />
-                      {(regrasPorColuna[col.id]?.length || 0) > 0 && (
-                        <span style={{ fontSize: 9, fontWeight: 700 }}>{regrasPorColuna[col.id].length}</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditColAberto({ id: col.id, nome: col.nome, cor: col.cor });
-                        setEditColNome(col.nome);
-                        setEditColCor(col.cor);
-                      }}
-                      title="Editar coluna"
-                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
-                    >
-                      <i className="ti ti-pencil" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm(`Deletar coluna "${col.nome}" e todos os ${cardsDaCol.length} cards?`)) return;
-                        await deletarColuna(col.id);
-                        router.refresh();
-                      }}
-                      title="Deletar coluna"
-                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
-                    >
-                      <i className="ti ti-trash" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await moverColuna(col.id, "dir");
-                        router.refresh();
-                      }}
-                      disabled={colunas.findIndex((c) => c.id === col.id) === colunas.length - 1}
-                      title="Mover coluna para direita"
-                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: colunas.findIndex((c) => c.id === col.id) === colunas.length - 1 ? "not-allowed" : "pointer", fontSize: 12, padding: 2, opacity: colunas.findIndex((c) => c.id === col.id) === colunas.length - 1 ? 0.3 : 1 }}
-                    >
-                      <i className="ti ti-chevron-right" />
-                    </button>
-                  </div>
+                  {!modoReordenar && (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRegrasAberto({ colunaId: col.id, colunaNome: col.nome });
+                          setRegrasSelecionadas(new Set(regrasPorColuna[col.id] || []));
+                        }}
+                        title="Conectar etiquetas → entrada automática"
+                        style={{ background: "transparent", border: 0, color: (regrasPorColuna[col.id]?.length || 0) > 0 ? "#00E19A" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2, display: "inline-flex", alignItems: "center", gap: 2 }}
+                      >
+                        <i className="ti ti-link" />
+                        {(regrasPorColuna[col.id]?.length || 0) > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700 }}>{regrasPorColuna[col.id].length}</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditColAberto({ id: col.id, nome: col.nome, cor: col.cor });
+                          setEditColNome(col.nome);
+                          setEditColCor(col.cor);
+                        }}
+                        title="Editar coluna"
+                        style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
+                      >
+                        <i className="ti ti-pencil" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`Deletar coluna "${col.nome}" e todos os ${cardsDaCol.length} cards?`)) return;
+                          await deletarColuna(col.id);
+                          router.refresh();
+                        }}
+                        title="Deletar coluna"
+                        style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
+                      >
+                        <i className="ti ti-trash" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, minHeight: 60 }}>
                   {cardsDaCol.map((card) => (
                     <div
                       key={card.id}
-                      draggable
-                      onDragStart={() => setArrastando(card.id)}
+                      draggable={!modoReordenar}
+                      onDragStart={(e) => { if (modoReordenar) { e.preventDefault(); return; } setArrastando(card.id); }}
                       onDragEnd={() => setArrastando(null)}
                       style={{
                         padding: 10,

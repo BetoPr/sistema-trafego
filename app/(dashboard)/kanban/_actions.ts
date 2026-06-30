@@ -82,6 +82,22 @@ export async function editarColuna(id: string, nome: string, cor: string): Promi
   return { ok: true };
 }
 
+export async function salvarOrdemColunas(ids: string[]): Promise<{ ok: boolean; msg?: string }> {
+  const ctx = await requireAuth();
+  if (!ids.length) return { ok: false, msg: "Lista vazia" };
+  const sb = createServiceClient();
+  const N = ids.length;
+  for (let i = 0; i < N; i++) {
+    await sb.from("kanban_colunas").update({ ordem: -1000 - i }).eq("id", ids[i]).eq("agencia_id", ctx.agenciaId);
+  }
+  for (let i = 0; i < N; i++) {
+    const { error } = await sb.from("kanban_colunas").update({ ordem: i }).eq("id", ids[i]).eq("agencia_id", ctx.agenciaId);
+    if (error) return { ok: false, msg: error.message };
+  }
+  revalidatePath("/kanban");
+  return { ok: true };
+}
+
 export async function moverColuna(id: string, direcao: "esq" | "dir"): Promise<{ ok: boolean; msg?: string }> {
   const ctx = await requireAuth();
   const sb = createServiceClient();

@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **09:35** — **Kanban: modo Mover colunas com X/✓.**
+  - Botão "Mover colunas" (ti-arrows-move) ao lado de "+ Novo quadro" (visível só com >=2 colunas).
+  - Ao ativar: colunas viram draggable (border dashed laranja + handle ti-grip-vertical), botões 🔗/✏️/🗑️ somem do header, cards param de arrastar.
+  - Mini-toolbar laranja "Arraste as colunas" aparece com X (cancelar) e ✓ (salvar).
+  - X = descarta + volta ordem original. ✓ = chama `salvarOrdemColunas(ids)` (action nova) que zera em -1000-N e reescreve sequencial 0..N-1 pra escapar da UNIQUE.
+  - Removidas as setinhas ← → per-coluna (substituídas pelo novo modo).
+
 - **09:20** — **Otto: ícone interrogação → robô chatbot.** `ti-help` substituído por `ti-message-chatbot` no avatar do header + aba "Otto".
 
 - **09:15** — **Otto FAB sem bola.** Removido círculo verde (border + bg + box-shadow pulsante). Mascote agora 64×64 (era 36×36 dentro de bola 56×56).
