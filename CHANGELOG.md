@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **10:45** — **Fase C: Pipelines CRUD.**
+  - Migration `kanban_colunas_notificacoes`: `notificar_fila_id` + `notificar_atendente_id` (refs filas/usuarios, ON DELETE SET NULL).
+  - Actions `criarPipeline / atualizarPipeline / deletarPipeline` em `pipeline/pipelines/_actions.ts`. Pipeline = quadro. Etapa = coluna.
+  - `atualizarPipeline` faz diff (mantém id existentes, deleta removidos, insere novos).
+  - UI tabela `#/Nome/Etapas/Ações` + balão Novo/Editar com etapas drag-handle. Cada etapa: nome · cor (paleta) · notificar fila · notificar atendente.
+  - Atalhos: refresh + criar.
+
 - **10:25** — **Fase B: nav `/pipeline` com 4 sub-abas.**
   - Nova rota `/pipeline` com layout fixo + `PipelineTabs` (client component que usa `usePathname`).
   - Sub-abas: **Dashboard** · **Kanban** · **Pipelines** · **Etiquetas**.
