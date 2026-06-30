@@ -68,6 +68,50 @@ export async function deletarColuna(id: string): Promise<{ ok: boolean; msg?: st
   return { ok: true };
 }
 
+export async function editarColuna(id: string, nome: string, cor: string): Promise<{ ok: boolean; msg?: string }> {
+  const ctx = await requireAuth();
+  if (!nome.trim()) return { ok: false, msg: "Nome obrigatório" };
+  const sb = createServiceClient();
+  const { error } = await sb
+    .from("kanban_colunas")
+    .update({ nome: nome.trim(), cor: cor || "#5cd0ff" })
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/kanban");
+  return { ok: true };
+}
+
+export async function moverColuna(id: string, direcao: "esq" | "dir"): Promise<{ ok: boolean; msg?: string }> {
+  const ctx = await requireAuth();
+  const sb = createServiceClient();
+  const { data: alvo, error: e1 } = await sb
+    .from("kanban_colunas")
+    .select("id, quadro_id, ordem")
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId)
+    .maybeSingle();
+  if (e1 || !alvo) return { ok: false, msg: "Coluna não encontrada" };
+  const { data: irmas, error: e2 } = await sb
+    .from("kanban_colunas")
+    .select("id, ordem")
+    .eq("quadro_id", alvo.quadro_id)
+    .eq("agencia_id", ctx.agenciaId)
+    .order("ordem", { ascending: true });
+  if (e2 || !irmas) return { ok: false, msg: "Erro listando colunas" };
+  const idx = irmas.findIndex((c) => c.id === id);
+  const trocaIdx = direcao === "esq" ? idx - 1 : idx + 1;
+  if (trocaIdx < 0 || trocaIdx >= irmas.length) return { ok: true };
+  const troca = irmas[trocaIdx];
+  const ordemAlvo = alvo.ordem;
+  const ordemTroca = troca.ordem as number;
+  await sb.from("kanban_colunas").update({ ordem: -1 - (alvo.ordem as number) }).eq("id", id).eq("agencia_id", ctx.agenciaId);
+  await sb.from("kanban_colunas").update({ ordem: ordemAlvo }).eq("id", troca.id).eq("agencia_id", ctx.agenciaId);
+  await sb.from("kanban_colunas").update({ ordem: ordemTroca }).eq("id", id).eq("agencia_id", ctx.agenciaId);
+  revalidatePath("/kanban");
+  return { ok: true };
+}
+
 export async function criarCard(colunaId: string, titulo: string, descricao: string): Promise<{ ok: boolean; id?: string; msg?: string }> {
   const ctx = await requireAuth();
   if (!titulo.trim()) return { ok: false, msg: "Título obrigatório" };

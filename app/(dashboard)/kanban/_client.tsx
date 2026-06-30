@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
-import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
+import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, moverColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
 interface Coluna { id: string; nome: string; cor: string; ordem: number }
@@ -42,6 +42,9 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   const [addBusca, setAddBusca] = useState("");
   const [addEtiquetaSel, setAddEtiquetaSel] = useState<string>("");
   const [addExecutando, setAddExecutando] = useState(false);
+  const [editColAberto, setEditColAberto] = useState<{ id: string; nome: string; cor: string } | null>(null);
+  const [editColNome, setEditColNome] = useState("");
+  const [editColCor, setEditColCor] = useState(PALETA[1]);
   const [novoCardTitulo, setNovoCardTitulo] = useState("");
   const [novoCardDesc, setNovoCardDesc] = useState("");
   const [, startTransition] = useTransition();
@@ -233,6 +236,18 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       type="button"
+                      onClick={async () => {
+                        await moverColuna(col.id, "esq");
+                        router.refresh();
+                      }}
+                      disabled={colunas.findIndex((c) => c.id === col.id) === 0}
+                      title="Mover coluna para esquerda"
+                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: colunas.findIndex((c) => c.id === col.id) === 0 ? "not-allowed" : "pointer", fontSize: 12, padding: 2, opacity: colunas.findIndex((c) => c.id === col.id) === 0 ? 0.3 : 1 }}
+                    >
+                      <i className="ti ti-chevron-left" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setRegrasAberto({ colunaId: col.id, colunaNome: col.nome });
                         setRegrasSelecionadas(new Set(regrasPorColuna[col.id] || []));
@@ -247,6 +262,18 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                     </button>
                     <button
                       type="button"
+                      onClick={() => {
+                        setEditColAberto({ id: col.id, nome: col.nome, cor: col.cor });
+                        setEditColNome(col.nome);
+                        setEditColCor(col.cor);
+                      }}
+                      title="Editar coluna"
+                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
+                    >
+                      <i className="ti ti-pencil" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={async () => {
                         if (!confirm(`Deletar coluna "${col.nome}" e todos os ${cardsDaCol.length} cards?`)) return;
                         await deletarColuna(col.id);
@@ -256,6 +283,18 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                       style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
                     >
                       <i className="ti ti-trash" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await moverColuna(col.id, "dir");
+                        router.refresh();
+                      }}
+                      disabled={colunas.findIndex((c) => c.id === col.id) === colunas.length - 1}
+                      title="Mover coluna para direita"
+                      style={{ background: "transparent", border: 0, color: "var(--mk-text-muted)", cursor: colunas.findIndex((c) => c.id === col.id) === colunas.length - 1 ? "not-allowed" : "pointer", fontSize: 12, padding: 2, opacity: colunas.findIndex((c) => c.id === col.id) === colunas.length - 1 ? 0.3 : 1 }}
+                    >
+                      <i className="ti ti-chevron-right" />
                     </button>
                   </div>
                 </div>
@@ -392,6 +431,36 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <button type="button" onClick={() => setNovaColunaAberto(false)} style={btnGhost}>Cancelar</button>
             <button type="button" onClick={criarColunaSubmit} className="cta-btn" style={{ fontSize: 12.5, padding: "8px 16px" }}>Criar</button>
+          </div>
+        </div>
+      </Balao>
+
+      {/* Balão Editar Coluna */}
+      <Balao open={!!editColAberto} onClose={() => setEditColAberto(null)} titulo="Editar coluna" icone="ti-pencil" largura={400}>
+        <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <input type="text" value={editColNome} onChange={(e) => setEditColNome(e.target.value)} placeholder="Nome da coluna" style={inp} autoFocus />
+          <div style={{ display: "flex", gap: 6 }}>
+            {PALETA.map((c) => (
+              <button key={c} type="button" onClick={() => setEditColCor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: editColCor === c ? "2px solid var(--mk-text)" : "1px solid var(--mk-border)", cursor: "pointer" }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button type="button" onClick={() => setEditColAberto(null)} style={btnGhost}>Cancelar</button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!editColAberto) return;
+                const r = await editarColuna(editColAberto.id, editColNome, editColCor);
+                if (r.ok) {
+                  setEditColAberto(null);
+                  router.refresh();
+                } else alert(r.msg);
+              }}
+              className="cta-btn"
+              style={{ fontSize: 12.5, padding: "8px 16px" }}
+            >
+              Salvar
+            </button>
           </div>
         </div>
       </Balao>

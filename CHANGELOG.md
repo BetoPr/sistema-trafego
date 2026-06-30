@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **08:50** — **Kanban: novos botões "Editar coluna" e "Mover coluna" no header.**
+  - `app/(dashboard)/kanban/_actions.ts`: `editarColuna(id, nome, cor)` + `moverColuna(id, "esq"|"dir")` — swap de `ordem` em 3 steps pra escapar de UNIQUE constraint.
+  - `app/(dashboard)/kanban/_client.tsx`: header de cada coluna agora tem 5 botões → ←(mover-esq) | 🔗(conectar etiquetas) | ✏️(editar) | 🗑️(deletar) | →(mover-dir). Setas desabilitadas nas pontas.
+  - Novo Balão "Editar coluna" reusa o picker de cores da paleta padrão.
+  - Confirmado: reagendar relatório manual + envio no próximo horário funcionando.
+
 - **08:35** — **Etiquetas movidas de Configurações para Recursos no sidebar.**
   - `components/layout/AppSidebar.tsx`: item `Etiquetas` (icon `ti-tag`, guide `nav-etiquetas`) inserido na seção Recursos logo após Kanban.
   - `app/(dashboard)/configuracoes/page.tsx`: link removido do array `ATALHOS` (Mais configurações).
