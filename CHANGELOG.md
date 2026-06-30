@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **11:00** — **Fase D: sub-aba Etiquetas (Kanban com Etiquetas).**
+  - Server fetcha etiquetas + contatos + links `contato_etiquetas` (filtro RLS via join `contatos!inner.agencia_id`).
+  - Cada coluna = etiqueta. Cards = contatos da etiqueta.
+  - Card botões: 👁 Espiar · 🏷 Editar etiqueta · 💬 Iniciar atendimento (abre `/atendimentos?contato=X` em nova aba).
+  - Busca por nome/whatsapp filtra todas as colunas em tempo real.
+  - Balão Editar Etiquetas: checkboxes de todas etiquetas, salva via `setEtiquetasContato(contatoId, ids[])` (apaga e re-insere atomicamente).
+
 - **10:45** — **Fase C: Pipelines CRUD.**
   - Migration `kanban_colunas_notificacoes`: `notificar_fila_id` + `notificar_atendente_id` (refs filas/usuarios, ON DELETE SET NULL).
   - Actions `criarPipeline / atualizarPipeline / deletarPipeline` em `pipeline/pipelines/_actions.ts`. Pipeline = quadro. Etapa = coluna.
