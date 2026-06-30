@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
 import { setEtiquetasContato } from "./_actions";
@@ -24,6 +24,22 @@ export function EtiquetasKanbanClient({
   const [editSel, setEditSel] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
   const [espiarAberto, setEspiarAberto] = useState<Contato | null>(null);
+  const [espiarMsgs, setEspiarMsgs] = useState<Array<{ id: string; autor: string; conteudo: string | null; tipo: string; transcricao: string | null; created_at: string }>>([]);
+  const [espiarTicket, setEspiarTicket] = useState<{ id: string; numero: number } | null>(null);
+  const [espiarLoading, setEspiarLoading] = useState(false);
+
+  useEffect(() => {
+    if (!espiarAberto) { setEspiarMsgs([]); setEspiarTicket(null); return; }
+    setEspiarLoading(true);
+    fetch(`/api/contatos/${espiarAberto.id}/espiar`)
+      .then((r) => r.json())
+      .then((j) => {
+        setEspiarMsgs(j.mensagens || []);
+        setEspiarTicket(j.ticket || null);
+      })
+      .catch(() => {})
+      .finally(() => setEspiarLoading(false));
+  }, [espiarAberto]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const etiquetasFiltradas = useMemo(() => {
@@ -194,15 +210,55 @@ export function EtiquetasKanbanClient({
       )}
 
       {/* Balão Espiar */}
-      <Balao open={!!espiarAberto} onClose={() => setEspiarAberto(null)} titulo="Detalhes do contato" icone="ti-eye" largura={400}>
-        <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div><strong>Nome:</strong> {espiarAberto?.nome}</div>
-          {espiarAberto?.whatsapp && <div><strong>WhatsApp:</strong> {espiarAberto.whatsapp}</div>}
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            <button type="button" onClick={() => espiarAberto && iniciarAtendimento(espiarAberto)} className="cta-btn" style={{ fontSize: 12.5, padding: "8px 14px" }}>
-              <i className="ti ti-message-circle" style={{ marginRight: 6 }} /> Abrir atendimento
-            </button>
-          </div>
+      <Balao
+        open={!!espiarAberto}
+        onClose={() => setEspiarAberto(null)}
+        titulo={espiarAberto ? <>Espiando — {espiarAberto.nome} {espiarTicket && <span style={{ color: "var(--mk-text-muted)", fontWeight: 400, fontFamily: "monospace", fontSize: 11 }}>#{espiarTicket.numero}</span>}</> : "Espiar"}
+        icone="ti-eye"
+        largura={560}
+        footer={espiarAberto && (
+          <button type="button" onClick={() => espiarAberto && iniciarAtendimento(espiarAberto)} className="cta-btn" style={{ fontSize: 12.5, padding: "8px 14px" }}>
+            <i className="ti ti-arrow-right" style={{ marginRight: 6 }} /> Atender
+          </button>
+        )}
+      >
+        <div style={{ padding: "4px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+          {espiarLoading ? (
+            <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 30 }}>Carregando…</div>
+          ) : !espiarTicket ? (
+            <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 30 }}>
+              <i className="ti ti-message-off" style={{ display: "block", fontSize: 26, marginBottom: 6, opacity: 0.6 }} />
+              Sem ticket pra este contato ainda.
+            </div>
+          ) : espiarMsgs.length === 0 ? (
+            <div style={{ textAlign: "center", color: "var(--mk-text-muted)", fontSize: 12, padding: 30 }}>Sem mensagens.</div>
+          ) : (
+            espiarMsgs.map((m) => {
+              const eu = m.autor !== "cliente";
+              return (
+                <div key={m.id} style={{ display: "flex", justifyContent: eu ? "flex-end" : "flex-start" }}>
+                  <div style={{ maxWidth: "78%", padding: "8px 11px", borderRadius: 10, background: eu ? "rgba(0,225,154,0.10)" : "var(--mk-surface-2)", border: ".5px solid var(--mk-border)" }}>
+                    {m.tipo === "audio" && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#00E19A", fontWeight: 600 }}>
+                        <i className="ti ti-player-play-filled" /> Áudio
+                      </div>
+                    )}
+                    {m.transcricao && (
+                      <div style={{ fontSize: 11, color: "var(--mk-text-muted)", fontStyle: "italic", marginTop: 4, borderTop: ".5px solid var(--mk-border)", paddingTop: 4 }}>
+                        <strong style={{ color: "#9B7DBF" }}>TRANSCRIÇÃO:</strong> {m.transcricao}
+                      </div>
+                    )}
+                    {m.conteudo && (
+                      <div style={{ fontSize: 12.5, color: "var(--mk-text)", lineHeight: 1.4, whiteSpace: "pre-wrap" }}>{m.conteudo}</div>
+                    )}
+                    <div style={{ fontSize: 9.5, color: "var(--mk-text-muted)", textAlign: "right", marginTop: 4 }}>
+                      {new Date(m.created_at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </Balao>
 

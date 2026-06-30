@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **13:00** — **D fix: Espiar agora mostra mensagens.**
+  - Nova rota `GET /api/contatos/[id]/espiar` retorna último ticket + últimas 80 mensagens.
+  - Balão Espiar reescrito: scroll com bolhas (eu/cliente), título com `#numero` ticket, suporta áudio + transcrição. Footer "Atender" abre `/atendimentos?contato=X`.
+
 - **12:50** — **Correções F + G + Etiquetas pós-feedback.**
   - **BUG CRITICO F** — rota `/api/atendimentos/[id]/encerrar` sobrescrevia `resultado` pra 'ganho' por default mesmo se já estava 'perdido'. Fix: só seta `resultado` se body explicitamente passar. Corrigido ticket `fc886c8e` no DB (perdido restaurado).
   - **F** — Tab Perdido agora aceita campo **Serviço** (opcional). Salva no metadata igual ganho. Log mostra "Serviço · Motivo".
