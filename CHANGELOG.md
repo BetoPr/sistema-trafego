@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **11:10** — **Nota da coluna movida do rodapé pro header.** Botão `ti-note` agora ao lado de Conectar Etiquetas (🔗). Fica laranja quando preenchida. Rodapé limpo (só 2 botões: Adicionar contato · Importar por etiqueta).
+
 - **11:00** — **Fase D: sub-aba Etiquetas (Kanban com Etiquetas).**
   - Server fetcha etiquetas + contatos + links `contato_etiquetas` (filtro RLS via join `contatos!inner.agencia_id`).
   - Cada coluna = etiqueta. Cards = contatos da etiqueta.

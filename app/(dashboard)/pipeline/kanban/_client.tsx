@@ -317,6 +317,14 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                       </button>
                       <button
                         type="button"
+                        onClick={() => { setNotaColAberto({ id: col.id, nome: col.nome }); setNotaTexto(col.nota || ""); }}
+                        title={col.nota ? "Nota da coluna (preenchida)" : "Nota da coluna"}
+                        style={{ background: "transparent", border: 0, color: col.nota ? "#FFB547" : "var(--mk-text-muted)", cursor: "pointer", fontSize: 12, padding: 2 }}
+                      >
+                        <i className="ti ti-note" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => {
                           setEditColAberto({ id: col.id, nome: col.nome, cor: col.cor });
                           setEditColNome(col.nome);
@@ -411,13 +419,6 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                     style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
                   >
                     <i className="ti ti-tag" style={{ marginRight: 6 }} /> Importar por etiqueta
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setNotaColAberto({ id: col.id, nome: col.nome }); setNotaTexto(col.nota || ""); }}
-                    style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: col.nota ? "#FFB547" : "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
-                  >
-                    <i className="ti ti-note" style={{ marginRight: 6 }} /> {col.nota ? "Nota da coluna · ✓" : "Nota da coluna"}
                   </button>
                 </div>
               </div>
