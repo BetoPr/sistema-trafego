@@ -25,7 +25,7 @@ export default async function KanbanPage({ searchParams }: PageProps) {
   const quadroAtivoId = sp.quadro && quadrosLista.some((q) => q.id === sp.quadro) ? sp.quadro : quadrosLista[0]?.id ?? null;
 
   let colunas: Array<{ id: string; nome: string; cor: string; ordem: number; nota: string | null }> = [];
-  let cards: Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null }> = [];
+  let cards: Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null; fechado: boolean }> = [];
   let etiquetas: Array<{ id: string; nome: string; cor: string }> = [];
   let regrasPorColuna: Record<string, string[]> = {};
   let contatos: Array<{ id: string; nome: string; whatsapp: string | null; foto_url: string | null }> = [];
@@ -39,6 +39,21 @@ export default async function KanbanPage({ searchParams }: PageProps) {
     ]);
     colunas = (cols || []) as typeof colunas;
     const colIds = new Set(colunas.map((c) => c.id));
+    // Pega contatos com ticket em status='fechado' pra marcar cards como fechados
+    const contatosComCardId = new Set(
+      (cds || []).map((c) => (c as { contato_id: string | null }).contato_id).filter(Boolean) as string[]
+    );
+    const contatosFechados = new Set<string>();
+    if (contatosComCardId.size > 0) {
+      const { data: tks } = await sb
+        .from("tickets")
+        .select("contato_id, status")
+        .eq("agencia_id", ctx.agenciaId)
+        .eq("status", "fechado")
+        .in("contato_id", Array.from(contatosComCardId));
+      for (const t of (tks || []) as Array<{ contato_id: string }>) contatosFechados.add(t.contato_id);
+    }
+
     cards = (((cds || []) as Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; contatos: { foto_url: string | null } | { foto_url: string | null }[] | null }>)
       .filter((c) => colIds.has(c.coluna_id))
       .map((c) => {
@@ -47,6 +62,7 @@ export default async function KanbanPage({ searchParams }: PageProps) {
           id: c.id, coluna_id: c.coluna_id, titulo: c.titulo, descricao: c.descricao,
           ordem: c.ordem, valor: c.valor, numero: c.numero, numero_global: c.numero_global, contato_id: c.contato_id,
           foto_url: ct?.foto_url ?? null,
+          fechado: c.contato_id ? contatosFechados.has(c.contato_id) : false,
         };
       }));
     etiquetas = ((etqs || []) as Array<{ id: string; nome: string; cor: string | null; categoria: string | null }>)

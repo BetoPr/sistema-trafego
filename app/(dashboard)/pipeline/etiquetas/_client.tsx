@@ -143,6 +143,7 @@ export function EtiquetasKanbanClient({
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: etq.cor }} />
                     <span style={{ fontSize: 12, fontWeight: 700 }}>{etq.nome}</span>
+                    <span style={{ fontSize: 9, color: "var(--mk-text-muted)", fontFamily: "monospace" }} title={etq.id}>#{etq.id.slice(0, 6)}</span>
                   </div>
                   <span style={{ fontSize: 10, color: "var(--mk-text-muted)", padding: "1px 6px", background: "var(--mk-surface-2)", borderRadius: 999 }}>{cs.length}</span>
                 </div>

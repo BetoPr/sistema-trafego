@@ -125,8 +125,9 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           resultado,
+          // Serviço vale pra ambos (ganho e perdido) pra dar contexto
+          servico: fechServico.trim() || null,
           valor: resultado === "ganho" ? (fechValor ? Number(fechValor.replace(",", ".")) : null) : null,
-          servico: resultado === "ganho" ? (fechServico.trim() || null) : null,
           quantidade: resultado === "ganho" && fechQtd ? Number(fechQtd) : null,
           motivo_perdido: resultado === "perdido" ? (motivoPerdido.trim() || null) : null,
         }),
@@ -478,14 +479,36 @@ export function PainelDireito({ ticket, contato, etiquetas, todasEtiquetas = [],
               </div>
               {fechModo === "perdido" ? (
                 <>
-                  <div style={{ padding: "10px 12px" }}>
-                    <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>MOTIVO (opcional)</label>
+                  <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>SERVIÇO (opcional)</label>
+                    {servicosHabilitados ? (
+                      <select
+                        value={fechServico}
+                        onChange={(e) => setFechServico(e.target.value)}
+                        style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                      >
+                        <option value="">— Sem serviço —</option>
+                        {servicos.map((s) => (
+                          <option key={s.id} value={s.nome}>{s.nome}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={fechServico}
+                        onChange={(e) => setFechServico(e.target.value)}
+                        placeholder="Ex: Gestão de tráfego"
+                        style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12 }}
+                      />
+                    )}
+
+                    <label style={{ fontSize: 10.5, color: "var(--mk-text-muted)", letterSpacing: 0.4, marginTop: 4 }}>MOTIVO (opcional)</label>
                     <textarea
                       value={motivoPerdido}
                       onChange={(e) => setMotivoPerdido(e.target.value)}
                       placeholder="Ex: cliente sem orçamento, foi pra concorrência…"
                       rows={3}
-                      style={{ width: "100%", marginTop: 4, padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12, resize: "vertical", fontFamily: "inherit" }}
+                      style={{ padding: "7px 10px", borderRadius: 6, border: "0.5px solid var(--mk-border)", background: "var(--mk-surface-2)", color: "var(--mk-text)", fontSize: 12, resize: "vertical", fontFamily: "inherit" }}
                     />
                   </div>
                   <div style={{ borderTop: "0.5px solid var(--mk-border)", padding: "8px 12px" }}>

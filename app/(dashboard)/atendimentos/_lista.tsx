@@ -736,7 +736,9 @@ export function ListaAtendimentos(p: Props) {
                                 {f.servico || "Sem serviço"}{f.quantidade != null && ` × ${f.quantidade}`}
                               </>
                             ) : (
-                              f.motivo_perdido || "Sem motivo"
+                              <>
+                                {f.servico && <>{f.servico} · </>}{f.motivo_perdido || "Sem motivo"}
+                              </>
                             )}
                             {f.fechado_em && ` · ${new Date(f.fechado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`}
                             {f.fechado_por && ` · ${f.fechado_por}`}

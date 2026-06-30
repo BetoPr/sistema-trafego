@@ -7,7 +7,7 @@ import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, s
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
 interface Coluna { id: string; nome: string; cor: string; ordem: number; nota: string | null }
-interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null }
+interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null; fechado: boolean }
 interface Contato { id: string; nome: string; whatsapp: string | null; foto_url: string | null }
 
 interface Etiqueta { id: string; nome: string; cor: string }
@@ -148,7 +148,8 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   // ===== KPIs e filtros (Fase G) =====
   const totalOportunidades = cards.length;
   const totalValor = cards.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  const totalAbertos = totalOportunidades; // sem status no card por enquanto, todos abertos
+  const totalAbertos = cards.filter((c) => !c.fechado).length;
+  const totalFechados = cards.filter((c) => c.fechado).length;
 
   const [buscaCard, setBuscaCard] = useState("");
   const [valorMin, setValorMin] = useState("");
@@ -194,6 +195,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 12 }}>
           <KpiKanban label="Oportunidades" valor={totalOportunidades.toString()} cor="#5cd0ff" icone="ti-users" />
           <KpiKanban label="Abertos" valor={totalAbertos.toString()} cor="#FFB547" icone="ti-target" />
+          <KpiKanban label="Fechados" valor={totalFechados.toString()} cor="#9B7DBF" icone="ti-circle-check" />
           <KpiKanban label="Valor total" valor={BRL.format(totalValor)} cor="#00E19A" icone="ti-currency-dollar" />
         </div>
       )}

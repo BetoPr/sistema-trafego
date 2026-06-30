@@ -7,6 +7,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **12:50** — **Correções F + G + Etiquetas pós-feedback.**
+  - **BUG CRITICO F** — rota `/api/atendimentos/[id]/encerrar` sobrescrevia `resultado` pra 'ganho' por default mesmo se já estava 'perdido'. Fix: só seta `resultado` se body explicitamente passar. Corrigido ticket `fc886c8e` no DB (perdido restaurado).
+  - **F** — Tab Perdido agora aceita campo **Serviço** (opcional). Salva no metadata igual ganho. Log mostra "Serviço · Motivo".
+  - **G** — Kanban: KPI **Abertos** agora exclui contatos com ticket em status='fechado'. Adicionado KPI **Fechados** ao lado. Server cruza `tickets.status='fechado'` por `contato_id` em paralelo.
+  - **Etiquetas** — cada coluna mostra `#abc123` (primeiros 6 chars do uuid) ao lado do nome.
+
 - **12:20** — **Ajustes D+G pós-feedback Roberto.**
   - Etiquetas: dropdown **Ativas/Todas/Inativas** + setas **◀ ▶** pra scroll horizontal das colunas. Server passou a trazer todas (filtro só client).
   - Kanban: barra busca com botão **Filtros ▾** que expande/recolhe. Filtros: Etapa · Etiqueta · Status · Valor min/max · Limpar filtros. Busca casa título OU nome do contato.

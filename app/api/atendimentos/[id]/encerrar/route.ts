@@ -14,23 +14,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!auth?.user) return NextResponse.json({ error: "auth" }, { status: 401 });
 
   const body = (await req.json().catch(() => ({}))) as { valor_fechado?: number; resultado?: "ganho" | "perdido"; motivo_perdido?: string };
-  const resultado: "ganho" | "perdido" = body.resultado === "perdido" ? "perdido" : "ganho";
 
   const sb = createServiceClient();
   const { data: u } = await sb.from("usuarios").select("agencia_id").eq("id", auth.user.id).single();
   if (!u) return NextResponse.json({ error: "no_user" }, { status: 403 });
 
+  // Encerrar = só muda status pra "fechado". NÃO mexe em resultado/valor/motivo
+  // a menos que o body explicitamente passe.
   const updatePayload: Record<string, unknown> = {
     status: "fechado",
     fechado_em: new Date().toISOString(),
     fechado_por: auth.user.id,
-    resultado,
   };
-  if (resultado === "ganho" && typeof body.valor_fechado === "number") {
-    updatePayload.valor_fechado = body.valor_fechado;
-  }
-  if (resultado === "perdido") {
-    updatePayload.motivo_perdido = body.motivo_perdido?.trim() || null;
+  if (body.resultado === "ganho" || body.resultado === "perdido") {
+    updatePayload.resultado = body.resultado;
+    if (body.resultado === "ganho" && typeof body.valor_fechado === "number") {
+      updatePayload.valor_fechado = body.valor_fechado;
+    }
+    if (body.resultado === "perdido") {
+      updatePayload.motivo_perdido = body.motivo_perdido?.trim() || null;
+    }
   }
 
   const { error } = await sb
