@@ -72,33 +72,6 @@ function buildSections(role?: string, canaisStatus?: CanaisStatus, usuariosStatu
       ],
     },
     {
-      id: "comunicacao",
-      label: "Comunicação",
-      icon: "ti-send",
-      iconColor: "var(--mk-icon-blue)",
-      items: [
-        { href: "/envio-massa", label: "Envio em Massa", icon: "ti-rocket", guide: "nav-envio-massa" },
-        { href: "/mensagens-rapidas", label: "Mensagens Rápidas", icon: "ti-bolt", guide: "nav-mensagens-rapidas" },
-        { href: "/grupos", label: "Grupos", icon: "ti-users-group", guide: "nav-grupos" },
-      ],
-    },
-    // Tráfego (Meta Ads) — liberado pra admin + super_admin
-    ...(role === "admin" || role === "super_admin"
-      ? [
-          {
-            id: "trafego",
-            label: "Tráfego (Meta Ads)",
-            icon: "ti-speakerphone",
-            iconColor: "var(--mk-icon-purple)",
-            items: [
-              { href: "/pixel-vendas", label: "Pixel & Campanhas", icon: "ti-target-arrow", guide: "nav-pixel" },
-              { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list", guide: "nav-relatorios" },
-              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", guide: "nav-alertas" },
-            ],
-          } as NavSection,
-        ]
-      : []),
-    {
       id: "recursos",
       label: "Recursos",
       icon: "ti-shield-lock",
@@ -111,6 +84,33 @@ function buildSections(role?: string, canaisStatus?: CanaisStatus, usuariosStatu
         { href: "/equipes", label: "Equipes", icon: "ti-users-group", guide: "nav-equipes" },
         { href: "/usuarios", label: "Usuários", icon: "ti-user-circle", badge: usuariosBadge, guide: "nav-usuarios" },
         { href: "/clientes", label: "Clientes", icon: "ti-building-store", guide: "nav-clientes" },
+      ],
+    },
+    // Tráfego — liberado pra admin + super_admin
+    ...(role === "admin" || role === "super_admin"
+      ? [
+          {
+            id: "trafego",
+            label: "Tráfego",
+            icon: "ti-speakerphone",
+            iconColor: "var(--mk-icon-purple)",
+            items: [
+              { href: "/pixel-vendas", label: "Pixel & Campanhas", icon: "ti-target-arrow", guide: "nav-pixel" },
+              { href: "/relatorios", label: "Relatórios", icon: "ti-clipboard-list", guide: "nav-relatorios" },
+              { href: "/alertas", label: "Alertas", icon: "ti-bell-ringing", guide: "nav-alertas" },
+            ],
+          } as NavSection,
+        ]
+      : []),
+    {
+      id: "comunicacao",
+      label: "Comunicação",
+      icon: "ti-send",
+      iconColor: "var(--mk-icon-blue)",
+      items: [
+        { href: "/envio-massa", label: "Envio em Massa", icon: "ti-rocket", guide: "nav-envio-massa" },
+        { href: "/mensagens-rapidas", label: "Mensagens Rápidas", icon: "ti-bolt", guide: "nav-mensagens-rapidas" },
+        { href: "/grupos", label: "Grupos", icon: "ti-users-group", guide: "nav-grupos" },
       ],
     },
   ];

@@ -7,6 +7,10 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **09:05** — **Sidebar reordenado + "Tráfego (Meta Ads)" → "Tráfego".**
+  - Nova ordem: Principal · Atendimento · Recursos · Tráfego · Comunicação · (Super Admin) · Conta.
+  - Label do grupo Tráfego encurtado.
+
 - **08:50** — **Kanban: novos botões "Editar coluna" e "Mover coluna" no header.**
   - `app/(dashboard)/kanban/_actions.ts`: `editarColuna(id, nome, cor)` + `moverColuna(id, "esq"|"dir")` — swap de `ordem` em 3 steps pra escapar de UNIQUE constraint.
   - `app/(dashboard)/kanban/_client.tsx`: header de cada coluna agora tem 5 botões → ←(mover-esq) | 🔗(conectar etiquetas) | ✏️(editar) | 🗑️(deletar) | →(mover-dir). Setas desabilitadas nas pontas.
