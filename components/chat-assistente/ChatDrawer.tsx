@@ -231,7 +231,7 @@ export function ChatDrawer() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: ".5px solid var(--mk-border)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(0,225,154,.10)", border: "1px solid rgba(0,225,154,.3)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#00E19A" }}>
-                <i className={`ti ${bot === "suporte" ? "ti-help" : "ti-chart-bar"}`} style={{ fontSize: 14 }} />
+                <i className={`ti ${bot === "suporte" ? "ti-message-chatbot" : "ti-chart-bar"}`} style={{ fontSize: 14 }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--mk-text)" }}>{bot === "suporte" ? "Otto" : "Meus Dados"}</span>
@@ -254,7 +254,7 @@ export function ChatDrawer() {
           </div>
 
           <div style={{ display: "flex", padding: "10px 12px", gap: 6, borderBottom: ".5px solid var(--mk-border)" }}>
-            {([["suporte", "ti-help", "Otto"], ["dados", "ti-chart-bar", "Meus Dados"]] as Array<[Bot, string, string]>).map(([b, ic, lbl]) => (
+            {([["suporte", "ti-message-chatbot", "Otto"], ["dados", "ti-chart-bar", "Meus Dados"]] as Array<[Bot, string, string]>).map(([b, ic, lbl]) => (
               <button
                 key={b}
                 type="button"

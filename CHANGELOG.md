@@ -7,6 +7,8 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **09:20** — **Otto: ícone interrogação → robô chatbot.** `ti-help` substituído por `ti-message-chatbot` no avatar do header + aba "Otto".
+
 - **09:15** — **Otto FAB sem bola.** Removido círculo verde (border + bg + box-shadow pulsante). Mascote agora 64×64 (era 36×36 dentro de bola 56×56).
 
 - **09:05** — **Sidebar reordenado + "Tráfego (Meta Ads)" → "Tráfego".**
