@@ -3,11 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
-import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, salvarOrdemColunas, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
+import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, salvarOrdemColunas, salvarNotaColuna, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
-interface Coluna { id: string; nome: string; cor: string; ordem: number }
-interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; contato_id: string | null; foto_url: string | null }
+interface Coluna { id: string; nome: string; cor: string; ordem: number; nota: string | null }
+interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null }
 interface Contato { id: string; nome: string; whatsapp: string | null; foto_url: string | null }
 
 interface Etiqueta { id: string; nome: string; cor: string }
@@ -34,7 +34,9 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   const [novaColunaAberto, setNovaColunaAberto] = useState(false);
   const [novaColunaNome, setNovaColunaNome] = useState("");
   const [novaColunaCor, setNovaColunaCor] = useState(PALETA[1]);
-  const [novoCardAberto, setNovoCardAberto] = useState<{ colunaId: string } | null>(null);
+  const [notaColAberto, setNotaColAberto] = useState<{ id: string; nome: string } | null>(null);
+  const [notaTexto, setNotaTexto] = useState("");
+  const [notaSalvando, setNotaSalvando] = useState(false);
   const [regrasAberto, setRegrasAberto] = useState<{ colunaId: string; colunaNome: string } | null>(null);
   const [regrasSelecionadas, setRegrasSelecionadas] = useState<Set<string>>(new Set());
   const [salvandoRegras, setSalvandoRegras] = useState(false);
@@ -45,8 +47,6 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   const [editColAberto, setEditColAberto] = useState<{ id: string; nome: string; cor: string } | null>(null);
   const [editColNome, setEditColNome] = useState("");
   const [editColCor, setEditColCor] = useState(PALETA[1]);
-  const [novoCardTitulo, setNovoCardTitulo] = useState("");
-  const [novoCardDesc, setNovoCardDesc] = useState("");
   const [, startTransition] = useTransition();
 
   // Drag-and-drop nativo
@@ -119,13 +119,13 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
     } else alert(r.msg);
   }
 
-  async function criarCardSubmit() {
-    if (!novoCardAberto || !novoCardTitulo.trim()) return;
-    const r = await criarCard(novoCardAberto.colunaId, novoCardTitulo, novoCardDesc);
+  async function salvarNotaSubmit() {
+    if (!notaColAberto) return;
+    setNotaSalvando(true);
+    const r = await salvarNotaColuna(notaColAberto.id, notaTexto);
+    setNotaSalvando(false);
     if (r.ok) {
-      setNovoCardAberto(null);
-      setNovoCardTitulo("");
-      setNovoCardDesc("");
+      setNotaColAberto(null);
       router.refresh();
     } else alert(r.msg);
   }
@@ -388,9 +388,9 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {card.numero != null && (
+                            {card.numero_global != null && (
                               <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--mk-text-muted)", letterSpacing: 0.4 }}>
-                                #{String(card.numero).padStart(3, "0")}
+                                #{String(card.numero_global).padStart(3, "0")}
                               </div>
                             )}
                             <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis" }}>{card.titulo}</div>
@@ -435,10 +435,10 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setNovoCardAberto({ colunaId: col.id }); setNovoCardTitulo(""); setNovoCardDesc(""); }}
-                    style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
+                    onClick={() => { setNotaColAberto({ id: col.id, nome: col.nome }); setNotaTexto(col.nota || ""); }}
+                    style={{ background: "transparent", border: ".5px dashed var(--mk-border)", borderRadius: 8, color: col.nota ? "#FFB547" : "var(--mk-text-muted)", padding: "7px 10px", fontSize: 11.5, cursor: "pointer", textAlign: "left" }}
                   >
-                    <i className="ti ti-plus" style={{ marginRight: 6 }} /> Card avulso
+                    <i className="ti ti-note" style={{ marginRight: 6 }} /> {col.nota ? "Nota da coluna · ✓" : "Nota da coluna"}
                   </button>
                 </div>
               </div>
@@ -702,13 +702,34 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
         </div>
       </Balao>
 
-      <Balao open={!!novoCardAberto} onClose={() => setNovoCardAberto(null)} titulo="Novo card" icone="ti-card" largura={420}>
+      {/* Balão Nota da Coluna */}
+      <Balao open={!!notaColAberto} onClose={() => setNotaColAberto(null)} titulo={`Nota · "${notaColAberto?.nome || ""}"`} icone="ti-note" largura={500}>
         <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <input type="text" value={novoCardTitulo} onChange={(e) => setNovoCardTitulo(e.target.value)} placeholder="Título" style={inp} autoFocus />
-          <textarea value={novoCardDesc} onChange={(e) => setNovoCardDesc(e.target.value)} placeholder="Descrição (opcional)" rows={3} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button type="button" onClick={() => setNovoCardAberto(null)} style={btnGhost}>Cancelar</button>
-            <button type="button" onClick={criarCardSubmit} className="cta-btn" style={{ fontSize: 12.5, padding: "8px 16px" }}>Adicionar</button>
+          <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)" }}>Descrição ou informativo dessa coluna. Aparece pra todos do time.</div>
+          <textarea
+            value={notaTexto}
+            onChange={(e) => setNotaTexto(e.target.value)}
+            placeholder="Ex: nesta coluna ficam leads que pediram orçamento mas ainda não enviei proposta."
+            rows={6}
+            style={{ ...inp, resize: "vertical", fontFamily: "inherit" }}
+            autoFocus
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            {notaTexto.trim() && (
+              <button
+                type="button"
+                onClick={() => setNotaTexto("")}
+                style={{ background: "transparent", border: 0, color: "#FF5C72", cursor: "pointer", fontSize: 11.5, padding: 4 }}
+              >
+                <i className="ti ti-trash" style={{ marginRight: 4 }} /> Limpar
+              </button>
+            )}
+            <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+              <button type="button" onClick={() => setNotaColAberto(null)} style={btnGhost}>Cancelar</button>
+              <button type="button" onClick={salvarNotaSubmit} disabled={notaSalvando} className="cta-btn" style={{ fontSize: 12.5, padding: "8px 16px", opacity: notaSalvando ? 0.6 : 1 }}>
+                Salvar
+              </button>
+            </div>
           </div>
         </div>
       </Balao>

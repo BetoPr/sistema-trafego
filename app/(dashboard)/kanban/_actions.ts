@@ -68,6 +68,19 @@ export async function deletarColuna(id: string): Promise<{ ok: boolean; msg?: st
   return { ok: true };
 }
 
+export async function salvarNotaColuna(id: string, nota: string): Promise<{ ok: boolean; msg?: string }> {
+  const ctx = await requireAuth();
+  const sb = createServiceClient();
+  const { error } = await sb
+    .from("kanban_colunas")
+    .update({ nota: nota.trim() || null })
+    .eq("id", id)
+    .eq("agencia_id", ctx.agenciaId);
+  if (error) return { ok: false, msg: error.message };
+  revalidatePath("/kanban");
+  return { ok: true };
+}
+
 export async function editarColuna(id: string, nome: string, cor: string): Promise<{ ok: boolean; msg?: string }> {
   const ctx = await requireAuth();
   if (!nome.trim()) return { ok: false, msg: "Nome obrigatório" };

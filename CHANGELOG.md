@@ -7,6 +7,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **10:05** — **Fase A: ID global agência + nota da coluna + remove Card avulso.**
+  - Migration `kanban_numero_global_por_agencia`: nova tabela `kanban_sequences (agencia_id, ultimo)` + função `next_kanban_numero` + coluna `kanban_cards.numero_global` + trigger BEFORE INSERT. Backfill ordenado por `criado_em`. Mesmo padrão dos tickets — sequencial por agência, nunca reusa após delete.
+  - Migration `kanban_colunas_nota`: coluna `nota text` em kanban_colunas.
+  - Action `salvarNotaColuna(id, nota)` adicionada.
+  - UI: botão "📝 Nota da coluna" substitui "Card avulso" (3º botão do rodapé). Vira laranja quando preenchida. Balão grande com textarea + botão Limpar.
+  - Card mostra `#numero_global` (sequencial agência) em vez de `#numero` (sequencial por quadro).
+
 - **09:35** — **Kanban: modo Mover colunas com X/✓.**
   - Botão "Mover colunas" (ti-arrows-move) ao lado de "+ Novo quadro" (visível só com >=2 colunas).
   - Ao ativar: colunas viram draggable (border dashed laranja + handle ti-grip-vertical), botões 🔗/✏️/🗑️ somem do header, cards param de arrastar.

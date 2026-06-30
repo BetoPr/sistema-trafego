@@ -24,28 +24,28 @@ export default async function KanbanPage({ searchParams }: PageProps) {
   const quadrosLista = (quadros || []) as Array<{ id: string; nome: string; descricao: string | null; cor: string }>;
   const quadroAtivoId = sp.quadro && quadrosLista.some((q) => q.id === sp.quadro) ? sp.quadro : quadrosLista[0]?.id ?? null;
 
-  let colunas: Array<{ id: string; nome: string; cor: string; ordem: number }> = [];
-  let cards: Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; contato_id: string | null; foto_url: string | null }> = [];
+  let colunas: Array<{ id: string; nome: string; cor: string; ordem: number; nota: string | null }> = [];
+  let cards: Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null }> = [];
   let etiquetas: Array<{ id: string; nome: string; cor: string }> = [];
   let regrasPorColuna: Record<string, string[]> = {};
   let contatos: Array<{ id: string; nome: string; whatsapp: string | null; foto_url: string | null }> = [];
 
   if (quadroAtivoId) {
     const [{ data: cols }, { data: cds }, { data: etqs }, { data: cts }] = await Promise.all([
-      sb.from("kanban_colunas").select("id, nome, cor, ordem").eq("quadro_id", quadroAtivoId).order("ordem"),
-      sb.from("kanban_cards").select("id, coluna_id, titulo, descricao, ordem, valor, numero, contato_id, contatos(foto_url)").eq("agencia_id", ctx.agenciaId).order("ordem"),
+      sb.from("kanban_colunas").select("id, nome, cor, ordem, nota").eq("quadro_id", quadroAtivoId).order("ordem"),
+      sb.from("kanban_cards").select("id, coluna_id, titulo, descricao, ordem, valor, numero, numero_global, contato_id, contatos(foto_url)").eq("agencia_id", ctx.agenciaId).order("ordem"),
       sb.from("etiquetas").select("id, nome, cor, categoria, ativo").eq("agencia_id", ctx.agenciaId).eq("ativo", true).order("nome"),
       sb.from("contatos").select("id, nome, whatsapp, foto_url").eq("agencia_id", ctx.agenciaId).order("nome").limit(500),
     ]);
     colunas = (cols || []) as typeof colunas;
     const colIds = new Set(colunas.map((c) => c.id));
-    cards = (((cds || []) as Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; contato_id: string | null; contatos: { foto_url: string | null } | { foto_url: string | null }[] | null }>)
+    cards = (((cds || []) as Array<{ id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; contatos: { foto_url: string | null } | { foto_url: string | null }[] | null }>)
       .filter((c) => colIds.has(c.coluna_id))
       .map((c) => {
         const ct = Array.isArray(c.contatos) ? c.contatos[0] : c.contatos;
         return {
           id: c.id, coluna_id: c.coluna_id, titulo: c.titulo, descricao: c.descricao,
-          ordem: c.ordem, valor: c.valor, numero: c.numero, contato_id: c.contato_id,
+          ordem: c.ordem, valor: c.valor, numero: c.numero, numero_global: c.numero_global, contato_id: c.contato_id,
           foto_url: ct?.foto_url ?? null,
         };
       }));
