@@ -5,6 +5,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix — contato @lid mostrava LID no lugar do número)
+
+- **15:30** — **WhatsApp @lid (privacy identifier) chegava e ficava como número do contato.** Ex.: `191821862948954@lid` virava contato `191821862948954`. Agora no ingest, quando `wa_id` termina em `@lid`, chama `/chat/details` no uazapi pra pegar `phone` real e usa como número + nome (se disponível).
+  - `lib/crm/ingest.ts`: helper `resolverLidParaPhone`; novo contato @lid resolve inline antes do insert.
+
+---
+
 ## 2026-07-01 (fix crítico — cadastro quebrado, parte 2: slug)
 
 - **14:15** — **Signup ainda quebrando por outra coluna:** `slug` (NOT NULL, UNIQUE) não vinha no insert. Erro `null value in column "slug" of relation "agencias" violates not-null constraint`.

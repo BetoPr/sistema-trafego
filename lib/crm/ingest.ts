@@ -17,8 +17,30 @@ import type { ParsedMessage } from "@/lib/uazapi/webhook-parser";
 import { dispatchWebhook } from "./webhook-dispatcher";
 import { inscreverPorEtiqueta } from "./follow-up";
 import { aplicarEtiquetasComMaes } from "./aplicar-etiqueta";
-import { instanceSendText } from "@/lib/uazapi/client";
+import { instanceSendText, instanceChatDetails } from "@/lib/uazapi/client";
 import { decryptToken, byteaToBuffer } from "@/lib/crypto/tokens";
+
+async function resolverLidParaPhone(
+  sb: SupabaseClient,
+  canalId: string,
+  waChatId: string,
+): Promise<{ phone: string | null; nome: string | null }> {
+  if (!waChatId.endsWith("@lid")) return { phone: null, nome: null };
+  const { data: canal } = await sb
+    .from("canais")
+    .select("instance_token_encrypted, servidor:super_admin_servidores(base_url)")
+    .eq("id", canalId)
+    .maybeSingle();
+  if (!canal?.instance_token_encrypted) return { phone: null, nome: null };
+  const baseUrl = (canal as unknown as { servidor: { base_url: string } }).servidor?.base_url;
+  if (!baseUrl) return { phone: null, nome: null };
+  const token = decryptToken(byteaToBuffer(canal.instance_token_encrypted));
+  const det = await instanceChatDetails({ baseUrl, token }, waChatId);
+  const phone = (det?.phone || "").replace(/\D/g, "");
+  const nome = det?.name || det?.wa_contactName || det?.wa_name || null;
+  if (phone.length < 8 || phone.length > 15) return { phone: null, nome };
+  return { phone, nome };
+}
 
 async function enviarRespostaEtiqueta(params: { sb: SupabaseClient; canalId: string; ticketId: string; agenciaId: string; texto: string }): Promise<void> {
   const { sb, canalId, ticketId, agenciaId, texto } = params;
@@ -97,14 +119,25 @@ export async function ingestMensagem(
     contatoId = contatoExistente.id;
   } else {
     novoContato = true;
+    // Contato @lid: WhatsApp esconde o número real por privacidade — resolve via /chat/details
+    // pra pegar phone verdadeiro antes de criar (evita salvar LID como "número").
+    let whatsappFinal = whatsapp;
+    let nomeFinal = m.pushName || whatsapp;
+    if (m.waChatId.endsWith("@lid")) {
+      const resolvido = await resolverLidParaPhone(sb, ctx.canalId, m.waChatId);
+      if (resolvido.phone) {
+        whatsappFinal = resolvido.phone;
+        nomeFinal = m.pushName || resolvido.nome || resolvido.phone;
+      }
+    }
     const { data: novo, error } = await sb
       .from("contatos")
       .insert({
         agencia_id: ctx.agenciaId,
         wa_id: m.waChatId,
-        whatsapp,
-        nome: m.pushName || whatsapp,
-        primeiro_nome: m.pushName?.split(" ")[0] || null,
+        whatsapp: whatsappFinal,
+        nome: nomeFinal,
+        primeiro_nome: (m.pushName || nomeFinal).split(" ")[0] || null,
       })
       .select("id")
       .single();
