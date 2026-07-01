@@ -13,6 +13,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix crítico — cadastro quebrado, parte 3: auth user órfão)
+
+- **16:15** — **Signup falhava com "Erro ao criar usuário" quando email já existia em `auth.users` sem `public.usuarios` linkado** (órfão de cadastros anteriores que quebraram no bug do `criada_em`/`slug`). Agora:
+  - Se `auth.admin.createUser` retorna "already registered", busca o user em `auth.users` por email e reaproveita, atualizando password/metadata.
+  - Órfãos existentes (coringaroboy@gmail.com, lucashaas3@gmail.com) removidos do `auth.users` manualmente pra desbloquear.
+
+---
+
 ## 2026-07-01 (fix crítico — cadastro quebrado, parte 2: slug)
 
 - **14:15** — **Signup ainda quebrando por outra coluna:** `slug` (NOT NULL, UNIQUE) não vinha no insert. Erro `null value in column "slug" of relation "agencias" violates not-null constraint`.

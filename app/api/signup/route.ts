@@ -164,20 +164,40 @@ export async function POST(req: Request) {
     user_metadata: { nome, whatsapp, perfil },
   });
 
-  if (errAuth || !authData?.user) {
-    console.error("[signup] erro criar auth user:", errAuth);
-    // Rollback agencia.
-    await svc.from("agencias").delete().eq("id", agencia.id);
-    return NextResponse.json(
-      { error: "Erro ao criar usuário. Tente novamente." },
-      { status: 500, headers: cors },
-    );
+  let authUserId: string | null = authData?.user?.id ?? null;
+
+  if (errAuth || !authUserId) {
+    // Trata órfão: se email já está em auth.users mas checagem anterior em public.usuarios
+    // não achou (ex.: signup passado quebrou entre auth.createUser e usuarios.insert),
+    // reaproveita o auth user existente em vez de bloquear novo cadastro.
+    const msg = (errAuth?.message || "").toLowerCase();
+    if (msg.includes("already been registered") || msg.includes("already registered") || msg.includes("already exists")) {
+      const { data: lista } = await svc.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const existente = lista?.users?.find((u) => u.email?.toLowerCase() === email);
+      if (existente?.id) {
+        authUserId = existente.id;
+        // Atualiza senha (usuário original perdeu acesso porque nunca fechou cadastro)
+        await svc.auth.admin.updateUserById(existente.id, {
+          password,
+          email_confirm: true,
+          user_metadata: { nome, whatsapp, perfil },
+        });
+      }
+    }
+    if (!authUserId) {
+      console.error("[signup] erro criar auth user:", errAuth);
+      await svc.from("agencias").delete().eq("id", agencia.id);
+      return NextResponse.json(
+        { error: "Erro ao criar usuário. Tente novamente." },
+        { status: 500, headers: cors },
+      );
+    }
   }
 
   // 3. Cria registro em usuarios linkado a agencia.
   const agoraIso = new Date().toISOString();
   const { error: errUsuario } = await svc.from("usuarios").insert({
-    id: authData.user.id,
+    id: authUserId,
     nome,
     email,
     whatsapp,
@@ -192,7 +212,7 @@ export async function POST(req: Request) {
 
   if (errUsuario) {
     console.error("[signup] erro criar usuario:", errUsuario);
-    await svc.auth.admin.deleteUser(authData.user.id);
+    await svc.auth.admin.deleteUser(authUserId);
     await svc.from("agencias").delete().eq("id", agencia.id);
     return NextResponse.json(
       { error: "Erro ao concluir cadastro." },
