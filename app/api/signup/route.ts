@@ -12,6 +12,7 @@
  * Cors aberto pra LP standalone bater nesse endpoint.
  */
 
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
@@ -124,11 +125,21 @@ export async function POST(req: Request) {
   const agora = new Date();
   const trialAcabaEm = calcularTrialAcabaEm(perfil, agora);
   const apagarEm = calcularApagarEm(trialAcabaEm);
+  const nomeAgencia = perfil === "agencia" ? `Agência de ${nome.split(" ")[0]}` : nome;
+  const slugBase = nomeAgencia
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "agencia";
+  const slug = `${slugBase}-${randomUUID().slice(0, 8)}`;
 
   const { data: agencia, error: errAgencia } = await svc
     .from("agencias")
     .insert({
-      nome: perfil === "agencia" ? `Agência de ${nome.split(" ")[0]}` : nome,
+      nome: nomeAgencia,
+      slug,
       tipo_cliente: perfil,
       trial_acaba_em: trialAcabaEm.toISOString(),
       apagar_em: apagarEm.toISOString(),

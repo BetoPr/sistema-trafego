@@ -5,6 +5,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix crítico — cadastro quebrado, parte 2: slug)
+
+- **14:15** — **Signup ainda quebrando por outra coluna:** `slug` (NOT NULL, UNIQUE) não vinha no insert. Erro `null value in column "slug" of relation "agencias" violates not-null constraint`.
+  - `app/api/signup/route.ts`: gera `slug` a partir de `slugify(nome)` + sufixo `randomUUID().slice(0,8)` pra garantir unicidade.
+  - `app/api/oauth-bootstrap/route.ts`: idem.
+
+---
+
 ## 2026-06-30 (fix crítico — cadastro quebrado)
 
 - **14:45** — **Bug pré-existente: `/api/signup` e `/api/oauth-bootstrap` inseriam `criada_em` em `agencias`, coluna que não existe** (a real é `created_at`, com default `now()`). Erro `PGRST204` no PostgREST derrubava todo cadastro novo com 500. Não era causado por nada desta sessão — provavelmente sempre esteve quebrado ou uma migration antiga renomeou a coluna sem atualizar o código.
