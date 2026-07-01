@@ -5,6 +5,27 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-30 (continuação — Conciliação Comercial F8-F10)
+
+- **14:15** — **Kanban simplificado pro fluxo real (4 etapas).**
+  - Restauração + Ensaio agora: **Lead → Pendente → Concluído → Cliente** (era Lead/Em Atendimento/Proposta Enviada/Pago).
+  - Coluna antiga "Aniversário" (13 cards manuais de Roberto) movida pra Pendente, coluna deletada — subtipo agora é etiqueta (Ensaio/Aniversário), não coluna.
+  - "Fechamentos" (vazia) removida.
+  - Nota em cada etapa explicando o que fazer.
+
+- **14:10** — **Limpeza profunda de etiquetas: 58 → 23.**
+  - Reparentado Restauração/Bebê + Restauração/Mofo pro "Restauração" canônico (o antigo pai era um duplicado zerado).
+  - Merge: "Ensaio" duplicado (11 contatos) + "Aniversário IA" (1) + "Ensaios IA WhatsApp Cópia" (1) → todos viraram "Ensaio".
+  - Deletadas 15 etiquetas órfãs que só existiam pra sustentar o antigo espelhamento Pixel (Capa de Revista IA, Copa do Mundo IA, cidades, Restauração de Fotos IA ×2, vendas ×3, vendas-wpp, vendas—Cópia, Ensaios IA WhatsApp Aprovadas, Ensaio Casal).
+  - Restam só etiquetas com uso real: tipo de venda (Restauração/Ensaio + subvariantes), status comercial (Lead/CLIENTE/Em follow-up/etc), origem (Instagram/Indicação/etc).
+
+- **14:05** — **Pixel reestruturado: só Anúncio individual leva etiqueta comercial.**
+  - `DELETE FROM etiqueta_campanhas` + `DELETE FROM etiqueta_conjuntos` (backup em `_backup_etiqueta_campanhas_20260630` / `_backup_etiqueta_conjuntos_20260630`). `etiqueta_anuncios` intocada.
+  - `salvarEtiquetasDoAlvo` agora recusa `alvo='campanha'|'conjunto'` com mensagem explicando o motivo.
+  - Botão **"Espelhar do Meta"** desativado — ele recriava automaticamente Pasta-por-Campanha + Etiqueta-por-Conjunto, exatamente a duplicidade removida. `espelharDoMeta()` agora retorna erro explicativo; função antiga (não usada) deletada.
+  - UI: removido o picker de etiqueta nas linhas de Campanha e Conjunto (ficam só como árvore/organização); mantido só no Anúncio.
+  - Banner "Como o Sonar etiqueta seus leads" atualizado pra refletir o novo modelo (Campanha→Conjunto→Anúncio, sem Pasta/Etiqueta-filha sintética).
+
 ## 2026-06-30
 
 - **13:20** — **Pendentes Kanban: filtros Responsável+Data, Nova Oportunidade, Exportar CSV + fix bug rota antiga.**
