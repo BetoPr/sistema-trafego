@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Balao } from "@/components/ui/Balao";
-import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, salvarOrdemColunas, salvarNotaColuna, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
+import { criarQuadro, deletarQuadro, criarColuna, deletarColuna, editarColuna, salvarOrdemColunas, salvarNotaColuna, criarCard, deletarCard, moverCard, salvarRegrasEtiqueta, adicionarContatoNaColuna, importarContatosPorEtiqueta } from "./_actions";
 
 interface Quadro { id: string; nome: string; descricao: string | null; cor: string }
 interface Coluna { id: string; nome: string; cor: string; ordem: number; nota: string | null }
-interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null; fechado: boolean }
+interface Card { id: string; coluna_id: string; titulo: string; descricao: string | null; ordem: number; valor: number | null; numero: number | null; numero_global: number | null; contato_id: string | null; foto_url: string | null; fechado: boolean; resultado: "ganho" | "perdido" | null; responsavel_id: string | null; criado_em: string | null }
 interface Contato { id: string; nome: string; whatsapp: string | null; foto_url: string | null }
+interface Usuario { id: string; nome: string }
 
 interface Etiqueta { id: string; nome: string; cor: string }
 
@@ -20,12 +21,13 @@ interface Props {
   etiquetas: Etiqueta[];
   regrasPorColuna: Record<string, string[]>;
   contatos: Contato[];
+  usuarios: Usuario[];
 }
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const PALETA = ["#00E19A", "#5cd0ff", "#9B7DBF", "#FFB547", "#FF5C72", "#6B8E4E"];
 
-export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas, regrasPorColuna, contatos }: Props) {
+export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas, regrasPorColuna, contatos, usuarios }: Props) {
   const router = useRouter();
   const [novoQuadroAberto, setNovoQuadroAberto] = useState(false);
   const [novoQuadroNome, setNovoQuadroNome] = useState("");
@@ -95,7 +97,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   }
 
   function trocarQuadro(id: string) {
-    router.push(`/kanban?quadro=${id}`);
+    router.push(`/pipeline/kanban?quadro=${id}`);
   }
 
   async function criarQuadroSubmit() {
@@ -105,7 +107,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
       setNovoQuadroAberto(false);
       setNovoQuadroNome("");
       setNovoQuadroDesc("");
-      router.push(`/kanban?quadro=${r.id}`);
+      router.push(`/pipeline/kanban?quadro=${r.id}`);
     } else alert(r.msg);
   }
 
@@ -158,6 +160,15 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
   const [filtroEtapaId, setFiltroEtapaId] = useState<string>("");
   const [filtroEtiquetaId, setFiltroEtiquetaId] = useState<string>("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "aberto" | "ganho" | "perdido">("todos");
+  const [filtroResponsavelId, setFiltroResponsavelId] = useState<string>("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [novaOpAberto, setNovaOpAberto] = useState(false);
+  const [novaOpColunaId, setNovaOpColunaId] = useState("");
+  const [novaOpModo, setNovaOpModo] = useState<"contato" | "manual">("contato");
+  const [novaOpBusca, setNovaOpBusca] = useState("");
+  const [novaOpTitulo, setNovaOpTitulo] = useState("");
+  const [novaOpExecutando, setNovaOpExecutando] = useState(false);
 
   function passaFiltros(card: Card): boolean {
     const q = buscaCard.trim().toLowerCase();
@@ -167,6 +178,12 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
       if (!tituloHit && !contatoHit) return false;
     }
     if (filtroEtapaId && card.coluna_id !== filtroEtapaId) return false;
+    if (filtroResponsavelId && card.responsavel_id !== filtroResponsavelId) return false;
+    if (filtroStatus === "aberto" && card.fechado) return false;
+    if (filtroStatus === "ganho" && card.resultado !== "ganho") return false;
+    if (filtroStatus === "perdido" && card.resultado !== "perdido") return false;
+    if (dataInicio && card.criado_em && card.criado_em.slice(0, 10) < dataInicio) return false;
+    if (dataFim && card.criado_em && card.criado_em.slice(0, 10) > dataFim) return false;
     if (valorMin) {
       const v = Number(valorMin.replace(",", "."));
       if (!isNaN(v) && (card.valor ?? 0) < v) return false;
@@ -185,18 +202,58 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
     setFiltroEtapaId("");
     setFiltroEtiquetaId("");
     setFiltroStatus("todos");
+    setFiltroResponsavelId("");
+    setDataInicio("");
+    setDataFim("");
   }
-  const algumFiltro = !!(buscaCard || valorMin || valorMax || filtroEtapaId || filtroEtiquetaId || (filtroStatus !== "todos"));
+  const algumFiltro = !!(buscaCard || valorMin || valorMax || filtroEtapaId || filtroEtiquetaId || filtroResponsavelId || dataInicio || dataFim || (filtroStatus !== "todos"));
+
+  function exportarCSV() {
+    const linhas = [["ID", "Título", "Contato", "Etapa", "Valor", "Status", "Criado em"]];
+    for (const col of colunas) {
+      for (const c of cards.filter((x) => x.coluna_id === col.id).filter(passaFiltros)) {
+        const contatoNome = c.contato_id ? (contatos.find((ct) => ct.id === c.contato_id)?.nome ?? "") : "";
+        const status = c.resultado === "ganho" ? "Ganho" : c.resultado === "perdido" ? "Perdido" : c.fechado ? "Fechado" : "Aberto";
+        linhas.push([
+          String(c.numero_global ?? ""),
+          c.titulo,
+          contatoNome,
+          col.nome,
+          c.valor != null ? String(c.valor).replace(".", ",") : "",
+          status,
+          c.criado_em ? new Date(c.criado_em).toLocaleDateString("pt-BR") : "",
+        ]);
+      }
+    }
+    const csv = linhas.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `oportunidades-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div>
       {/* KPIs topo */}
       {quadroAtivoId && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 12 }}>
-          <KpiKanban label="Oportunidades" valor={totalOportunidades.toString()} cor="#5cd0ff" icone="ti-users" />
-          <KpiKanban label="Abertos" valor={totalAbertos.toString()} cor="#FFB547" icone="ti-target" />
-          <KpiKanban label="Fechados" valor={totalFechados.toString()} cor="#9B7DBF" icone="ti-circle-check" />
-          <KpiKanban label="Valor total" valor={BRL.format(totalValor)} cor="#00E19A" icone="ti-currency-dollar" />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, flex: 1 }}>
+            <KpiKanban label="Oportunidades" valor={totalOportunidades.toString()} cor="#5cd0ff" icone="ti-users" />
+            <KpiKanban label="Abertos" valor={totalAbertos.toString()} cor="#FFB547" icone="ti-target" />
+            <KpiKanban label="Fechados" valor={totalFechados.toString()} cor="#9B7DBF" icone="ti-circle-check" />
+            <KpiKanban label="Valor total" valor={BRL.format(totalValor)} cor="#00E19A" icone="ti-currency-dollar" />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={exportarCSV} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px", background: "var(--mk-surface)", border: ".5px solid var(--mk-border)", borderRadius: 8, color: "var(--mk-text)", cursor: "pointer", whiteSpace: "nowrap" }}>
+              <i className="ti ti-download" /> Exportar CSV
+            </button>
+            <button type="button" onClick={() => setNovaOpAberto(true)} className="cta-btn" style={{ fontSize: 12, padding: "8px 14px", whiteSpace: "nowrap" }}>
+              <i className="ti ti-plus" style={{ marginRight: 4 }} /> Nova Oportunidade
+            </button>
+          </div>
         </div>
       )}
 
@@ -224,6 +281,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: ".5px solid var(--mk-border)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
               <FltSel label="Etapa" value={filtroEtapaId} onChange={setFiltroEtapaId} options={[{ value: "", label: "Todas" }, ...colunas.map((c) => ({ value: c.id, label: c.nome }))]} />
               <FltSel label="Etiqueta" value={filtroEtiquetaId} onChange={setFiltroEtiquetaId} options={[{ value: "", label: "Todas" }, ...etiquetas.map((e) => ({ value: e.id, label: e.nome }))]} />
+              <FltSel label="Responsável" value={filtroResponsavelId} onChange={setFiltroResponsavelId} options={[{ value: "", label: "Todos" }, ...usuarios.map((u) => ({ value: u.id, label: u.nome }))]} />
               <FltSel label="Status" value={filtroStatus} onChange={(v) => setFiltroStatus(v as typeof filtroStatus)} options={[{ value: "todos", label: "Todos" }, { value: "aberto", label: "Aberto" }, { value: "ganho", label: "Ganho" }, { value: "perdido", label: "Perdido" }]} />
               <div>
                 <label style={lbl}>Valor mínimo</label>
@@ -232,6 +290,14 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
               <div>
                 <label style={lbl}>Valor máximo</label>
                 <input type="text" inputMode="decimal" value={valorMax} onChange={(e) => setValorMax(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00" style={inpSm} />
+              </div>
+              <div>
+                <label style={lbl}>Data início</label>
+                <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} style={inpSm} />
+              </div>
+              <div>
+                <label style={lbl}>Data fim</label>
+                <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} style={inpSm} />
               </div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
                 {algumFiltro && (
@@ -328,7 +394,7 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
                     if (!confirm(`Deletar quadro "${q.nome}" inteiro? Todas as colunas e cards vão junto. Essa ação não pode ser desfeita.`)) return;
                     await deletarQuadro(q.id);
                     router.refresh();
-                    router.push("/kanban");
+                    router.push("/pipeline/kanban");
                   }}
                   title="Deletar quadro"
                   style={{
@@ -809,6 +875,102 @@ export function KanbanClient({ quadros, quadroAtivoId, colunas, cards, etiquetas
               </button>
             </div>
           </div>
+        </div>
+      </Balao>
+
+      {/* Balão Nova Oportunidade */}
+      <Balao
+        open={novaOpAberto}
+        onClose={() => { setNovaOpAberto(false); setNovaOpBusca(""); setNovaOpTitulo(""); }}
+        titulo="Nova Oportunidade"
+        icone="ti-plus"
+        largura={460}
+      >
+        <div style={{ padding: "8px 4px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label style={lbl}>Etapa</label>
+            <select value={novaOpColunaId} onChange={(e) => setNovaOpColunaId(e.target.value)} style={inp}>
+              <option value="">Selecione...</option>
+              {colunas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: 6, borderBottom: ".5px solid var(--mk-border)" }}>
+            <button type="button" onClick={() => setNovaOpModo("contato")} style={{ flex: 1, fontSize: 12, padding: "8px 10px", background: novaOpModo === "contato" ? "rgba(0,225,154,0.15)" : "transparent", border: 0, color: novaOpModo === "contato" ? "#00E19A" : "var(--mk-text-muted)", fontWeight: novaOpModo === "contato" ? 700 : 500, cursor: "pointer" }}>
+              <i className="ti ti-user" style={{ marginRight: 4 }} /> Contato existente
+            </button>
+            <button type="button" onClick={() => setNovaOpModo("manual")} style={{ flex: 1, fontSize: 12, padding: "8px 10px", background: novaOpModo === "manual" ? "rgba(0,225,154,0.15)" : "transparent", border: 0, color: novaOpModo === "manual" ? "#00E19A" : "var(--mk-text-muted)", fontWeight: novaOpModo === "manual" ? 700 : 500, cursor: "pointer" }}>
+              <i className="ti ti-pencil" style={{ marginRight: 4 }} /> Manual
+            </button>
+          </div>
+
+          {novaOpModo === "contato" ? (
+            <>
+              <input type="text" value={novaOpBusca} onChange={(e) => setNovaOpBusca(e.target.value)} placeholder="Buscar contato..." style={inp} autoFocus />
+              <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                {(() => {
+                  const q = novaOpBusca.toLowerCase().trim();
+                  const lista = q ? contatos.filter((c) => c.nome.toLowerCase().includes(q) || (c.whatsapp || "").includes(q)) : contatos.slice(0, 30);
+                  if (lista.length === 0) return <div style={{ fontSize: 11.5, color: "var(--mk-text-muted)", textAlign: "center", padding: 16 }}>Nenhum contato encontrado.</div>;
+                  return lista.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={novaOpExecutando || !novaOpColunaId}
+                      onClick={async () => {
+                        if (!novaOpColunaId) return;
+                        setNovaOpExecutando(true);
+                        const r = await adicionarContatoNaColuna(novaOpColunaId, c.id);
+                        setNovaOpExecutando(false);
+                        if (r.ok) {
+                          setNovaOpAberto(false);
+                          setNovaOpBusca("");
+                          router.refresh();
+                        } else alert(r.msg);
+                      }}
+                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "var(--mk-surface-2)", border: ".5px solid var(--mk-border)", borderRadius: 8, cursor: novaOpColunaId ? "pointer" : "not-allowed", textAlign: "left", color: "var(--mk-text)", opacity: novaOpColunaId ? 1 : 0.5 }}
+                    >
+                      <i className="ti ti-user" style={{ color: "var(--mk-text-muted)" }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600 }}>{c.nome}</div>
+                        {c.whatsapp && <div style={{ fontSize: 10.5, color: "var(--mk-text-muted)" }}>{c.whatsapp}</div>}
+                      </div>
+                    </button>
+                  ));
+                })()}
+              </div>
+              {!novaOpColunaId && <div style={{ fontSize: 11, color: "#FFB547" }}>Escolhe a etapa primeiro.</div>}
+            </>
+          ) : (
+            <>
+              <div>
+                <label style={lbl}>Título</label>
+                <input type="text" value={novaOpTitulo} onChange={(e) => setNovaOpTitulo(e.target.value)} placeholder="Ex: Lead sem contato cadastrado" style={inp} autoFocus />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button type="button" onClick={() => setNovaOpAberto(false)} style={btnGhost}>Cancelar</button>
+                <button
+                  type="button"
+                  disabled={novaOpExecutando || !novaOpColunaId || !novaOpTitulo.trim()}
+                  onClick={async () => {
+                    if (!novaOpColunaId || !novaOpTitulo.trim()) return;
+                    setNovaOpExecutando(true);
+                    const r = await criarCard(novaOpColunaId, novaOpTitulo, "");
+                    setNovaOpExecutando(false);
+                    if (r.ok) {
+                      setNovaOpAberto(false);
+                      setNovaOpTitulo("");
+                      router.refresh();
+                    } else alert(r.msg);
+                  }}
+                  className="cta-btn"
+                  style={{ fontSize: 12.5, padding: "8px 16px", opacity: (!novaOpColunaId || !novaOpTitulo.trim()) ? 0.5 : 1 }}
+                >
+                  Criar
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </Balao>
     </div>

@@ -7,6 +7,15 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ## 2026-06-30
 
+- **13:20** — **Pendentes Kanban: filtros Responsável+Data, Nova Oportunidade, Exportar CSV + fix bug rota antiga.**
+  - **Bug corrigido**: `trocarQuadro`/deletar quadro ainda usavam `/kanban?...` (rota pré-Fase-B) — trocado pra `/pipeline/kanban`.
+  - Server: `kanban_cards` traz `responsavel_id` + `criado_em`; cruza `tickets.resultado` por contato (não só `status`).
+  - Filtros novos: **Responsável** (dropdown usuários) · **Data início/fim** (sobre `criado_em`) · Status agora distingue Ganho/Perdido de verdade (usa `resultado`, não só `fechado`).
+  - Botão **Exportar CSV** — baixa oportunidades filtradas (ID/Título/Contato/Etapa/Valor/Status/Data), BOM UTF-8 pra abrir certo no Excel.
+  - Botão **+ Nova Oportunidade** no topo — balão com Etapa + 2 modos: Contato existente (busca) ou Manual (título livre, usa a action `criarCard` que ainda existia no backend).
+  - "Carteira" não implementado — essa entidade não existe no schema do CRM atual.
+  - Paginação não implementada — Kanban é board de colunas, não lista; decidido não forçar paginação artificial por enquanto.
+
 - **13:00** — **D fix: Espiar agora mostra mensagens.**
   - Nova rota `GET /api/contatos/[id]/espiar` retorna último ticket + últimas 80 mensagens.
   - Balão Espiar reescrito: scroll com bolhas (eu/cliente), título com `#numero` ticket, suporta áudio + transcrição. Footer "Atender" abre `/atendimentos?contato=X`.
