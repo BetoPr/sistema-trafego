@@ -5,10 +5,11 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
-## 2026-07-01 (fix — contato @lid mostrava LID no lugar do número)
+## 2026-07-01 (fix — contato @lid mostrava LID no lugar do número + concilia com contato antigo)
 
 - **15:30** — **WhatsApp @lid (privacy identifier) chegava e ficava como número do contato.** Ex.: `191821862948954@lid` virava contato `191821862948954`. Agora no ingest, quando `wa_id` termina em `@lid`, chama `/chat/details` no uazapi pra pegar `phone` real e usa como número + nome (se disponível).
   - `lib/crm/ingest.ts`: helper `resolverLidParaPhone`; novo contato @lid resolve inline antes do insert.
+- **15:50** — **Concilia @lid com contato antigo pra preservar etiquetas.** Se phone resolvido do @lid bate com contato já existente na agência (via `@s.whatsapp.net` ou outro @lid), reusa o contato antigo em vez de criar duplicata. Ticket cai no mesmo contato, etiquetas + histórico ficam intactos. Se o antigo era `@s.whatsapp.net`, atualiza `wa_id` pro @lid novo (WhatsApp só entrega em @lid agora pra esse contato).
 
 ---
 

@@ -114,49 +114,72 @@ export async function ingestMensagem(
     .is("deleted_at", null)
     .maybeSingle();
 
-  let contatoId: string;
+  let contatoId: string | null = null;
   if (contatoExistente) {
     contatoId = contatoExistente.id;
   } else {
-    novoContato = true;
     // Contato @lid: WhatsApp esconde o número real por privacidade — resolve via /chat/details
     // pra pegar phone verdadeiro antes de criar (evita salvar LID como "número").
     let whatsappFinal = whatsapp;
     let nomeFinal = m.pushName || whatsapp;
+    let phoneResolvido: string | null = null;
     if (m.waChatId.endsWith("@lid")) {
       const resolvido = await resolverLidParaPhone(sb, ctx.canalId, m.waChatId);
       if (resolvido.phone) {
         whatsappFinal = resolvido.phone;
         nomeFinal = m.pushName || resolvido.nome || resolvido.phone;
+        phoneResolvido = resolvido.phone;
       }
     }
-    const { data: novo, error } = await sb
-      .from("contatos")
-      .insert({
-        agencia_id: ctx.agenciaId,
-        wa_id: m.waChatId,
-        whatsapp: whatsappFinal,
-        nome: nomeFinal,
-        primeiro_nome: (m.pushName || nomeFinal).split(" ")[0] || null,
-      })
-      .select("id")
-      .single();
-    if (error) {
-      // Race: outra ingestão simultânea já criou o contato (unique agencia_id+wa_id).
-      if (error.code === "23505") {
-        const { data: jaCriado } = await sb
-          .from("contatos").select("id")
-          .eq("agencia_id", ctx.agenciaId).eq("wa_id", m.waChatId).is("deleted_at", null).maybeSingle();
-        if (!jaCriado) throw error;
-        contatoId = jaCriado.id;
-        novoContato = false;
-      } else {
-        throw error;
+    // Se resolveu phone real, tenta achar contato antigo com esse whatsapp pra reusar (preserva etiquetas).
+    if (phoneResolvido) {
+      const { data: contatoAntigo } = await sb
+        .from("contatos")
+        .select("id, wa_id")
+        .eq("agencia_id", ctx.agenciaId)
+        .eq("whatsapp", phoneResolvido)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (contatoAntigo) {
+        contatoId = contatoAntigo.id;
+        // Se o antigo NÃO era @lid mas agora chegando via @lid, atualiza wa_id pra @lid
+        // (novas mensagens do WhatsApp virão sempre em @lid daqui pra frente).
+        if (!contatoAntigo.wa_id.endsWith("@lid")) {
+          await sb.from("contatos").update({ wa_id: m.waChatId }).eq("id", contatoAntigo.id);
+        }
       }
-    } else {
-      contatoId = novo.id;
+    }
+    if (!contatoId) {
+      novoContato = true;
+      const { data: novo, error } = await sb
+        .from("contatos")
+        .insert({
+          agencia_id: ctx.agenciaId,
+          wa_id: m.waChatId,
+          whatsapp: whatsappFinal,
+          nome: nomeFinal,
+          primeiro_nome: (m.pushName || nomeFinal).split(" ")[0] || null,
+        })
+        .select("id")
+        .single();
+      if (error) {
+        // Race: outra ingestão simultânea já criou o contato (unique agencia_id+wa_id).
+        if (error.code === "23505") {
+          const { data: jaCriado } = await sb
+            .from("contatos").select("id")
+            .eq("agencia_id", ctx.agenciaId).eq("wa_id", m.waChatId).is("deleted_at", null).maybeSingle();
+          if (!jaCriado) throw error;
+          contatoId = jaCriado.id;
+          novoContato = false;
+        } else {
+          throw error;
+        }
+      } else {
+        contatoId = novo.id;
+      }
     }
   }
+  if (!contatoId) throw new Error("contatoId não resolvido");
 
   // 2. Localiza ticket aberto/pendente OU cria novo.
   let novoTicket = false;
