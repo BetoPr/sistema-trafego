@@ -72,7 +72,6 @@ export async function POST(req: Request) {
       trial_acaba_em: trialAcabaEm.toISOString(),
       apagar_em: apagarEm.toISOString(),
       acesso_bloqueado: false,
-      criada_em: agora.toISOString(),
     })
     .select("id")
     .single();

@@ -120,7 +120,7 @@ export async function processarFilaBoasVindas(): Promise<ProcessarResult> {
         .from("agencias")
         .select("id", { count: "exact", head: true })
         .eq("onda_zero_membro", true)
-        .lte("criada_em", new Date().toISOString());
+        .lte("created_at", new Date().toISOString());
 
       const mensagem = renderMensagem(template, {
         nome: e.destinatario_nome || "",

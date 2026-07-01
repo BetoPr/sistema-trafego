@@ -5,6 +5,13 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-06-30 (fix crítico — cadastro quebrado)
+
+- **14:45** — **Bug pré-existente: `/api/signup` e `/api/oauth-bootstrap` inseriam `criada_em` em `agencias`, coluna que não existe** (a real é `created_at`, com default `now()`). Erro `PGRST204` no PostgREST derrubava todo cadastro novo com 500. Não era causado por nada desta sessão — provavelmente sempre esteve quebrado ou uma migration antiga renomeou a coluna sem atualizar o código.
+  - `app/api/signup/route.ts`: removido `criada_em` do insert (created_at já tem default).
+  - `app/api/oauth-bootstrap/route.ts`: idem.
+  - `lib/onda-zero/boas-vindas.ts`: `.lte("criada_em", ...)` → `.lte("created_at", ...)` (contagem de posição na Onda Zero estava sempre falhando silenciosamente e caindo no fallback `|| 1`).
+
 ## 2026-06-30 (continuação — Conciliação Comercial F8-F10)
 
 - **14:15** — **Kanban simplificado pro fluxo real (4 etapas).**
