@@ -5,6 +5,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix — preserva @s.whatsapp.net como wa_id canônico)
+
+- **17:15** — Ingest **não muda mais o wa_id do contato antigo pra @lid** quando concilia. Preserva `@s.whatsapp.net` (número real) como identificação. Próxima msg @lid busca por whatsapp e reusa mesmo contato — sem contaminar o wa_id canônico.
+
+---
+
 ## 2026-07-01 (fix — contato @lid mostrava LID no lugar do número + concilia com contato antigo)
 
 - **15:30** — **WhatsApp @lid (privacy identifier) chegava e ficava como número do contato.** Ex.: `191821862948954@lid` virava contato `191821862948954`. Agora no ingest, quando `wa_id` termina em `@lid`, chama `/chat/details` no uazapi pra pegar `phone` real e usa como número + nome (se disponível).

@@ -142,11 +142,8 @@ export async function ingestMensagem(
         .maybeSingle();
       if (contatoAntigo) {
         contatoId = contatoAntigo.id;
-        // Se o antigo NÃO era @lid mas agora chegando via @lid, atualiza wa_id pra @lid
-        // (novas mensagens do WhatsApp virão sempre em @lid daqui pra frente).
-        if (!contatoAntigo.wa_id.endsWith("@lid")) {
-          await sb.from("contatos").update({ wa_id: m.waChatId }).eq("id", contatoAntigo.id);
-        }
+        // Preserva wa_id canônico (@s.whatsapp.net) — não muda pro @lid.
+        // Próxima msg @lid vai cair aqui de novo, buscar por whatsapp e reusar este contato.
       }
     }
     if (!contatoId) {
