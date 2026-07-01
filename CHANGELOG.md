@@ -13,6 +13,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix crítico — cadastro quebrado, parte 4: coluna whatsapp)
+
+- **16:40** — **Signup passou de agência+auth mas quebrava em `usuarios.insert` com "Could not find the 'whatsapp' column".** Coluna real chama `telefone`. Insert corrigido.
+
+---
+
 ## 2026-07-01 (fix crítico — cadastro quebrado, parte 3: auth user órfão)
 
 - **16:15** — **Signup falhava com "Erro ao criar usuário" quando email já existia em `auth.users` sem `public.usuarios` linkado** (órfão de cadastros anteriores que quebraram no bug do `criada_em`/`slug`). Agora:

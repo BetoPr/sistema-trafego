@@ -200,7 +200,7 @@ export async function POST(req: Request) {
     id: authUserId,
     nome,
     email,
-    whatsapp,
+    telefone: whatsapp,
     agencia_id: agencia.id,
     role: "admin",
     ativo: true,
