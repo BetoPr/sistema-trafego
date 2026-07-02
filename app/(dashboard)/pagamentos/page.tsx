@@ -49,8 +49,17 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
       .eq("agencia_id", ctx.agenciaId).order("enviada_em", { ascending: false }).limit(12),
   ]);
 
-  const tipoPlano = (agencia?.tipo_plano as string | null) || "solo";
+  // Fallback: se tipo_plano não setado, deriva de tipo_cliente
+  // (autonomo → solo, agencia → agencia)
+  const tipoCliente = (agencia?.tipo_cliente as string | null)?.toLowerCase() || "";
+  const planoDefault = tipoCliente === "agencia" ? "agencia" : tipoCliente === "autonomo" ? "solo" : "solo";
+  const tipoPlano = (agencia?.tipo_plano as string | null) || planoDefault;
   const planoDef = PLANOS[tipoPlano] ?? PLANOS.solo;
+
+  // Planos disponíveis pra troca conforme tipo de cliente
+  const planosDisponiveis: string[] = tipoCliente === "agencia"
+    ? ["agencia", "studio"]
+    : ["solo", "time"];
   const precoTravado = !!agencia?.preco_travado;
   const ondaZero = !!(agencia as { onda_zero_membro?: boolean } | null)?.onda_zero_membro;
   const valorBase = (agencia?.valor_mensal as number | null) ?? (precoTravado ? planoDef.precoBase : planoDef.precoCheio);
@@ -126,14 +135,23 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
               Último pagamento: {formatarData(ultimoPagamentoEm)}
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
             <a href={linkPagar} target="_blank" rel="noopener noreferrer" className="cta-btn" style={{ fontSize: 13, padding: "10px 18px" }}>
               <i className="ti ti-brand-whatsapp" style={{ marginRight: 6, color: "#25D366" }} />
               Pagar agora
             </a>
-            <a href="https://wa.me/5581991594716?text=Quero%20trocar%20de%20plano" target="_blank" rel="noopener noreferrer"
-               style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>
-              Trocar de plano →
+            <a href="#trocar-plano"
+               style={{
+                 fontSize: 12, fontWeight: 600,
+                 color: "#00E19A",
+                 padding: "6px 12px",
+                 border: "1px solid rgba(0,225,154,0.35)",
+                 borderRadius: 8,
+                 textDecoration: "none",
+                 background: "rgba(0,225,154,0.06)",
+               }}>
+              <i className="ti ti-refresh" style={{ marginRight: 4 }} />
+              Trocar de plano
             </a>
           </div>
         </div>
@@ -259,6 +277,71 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
             Sem cobranças registradas ainda.
           </div>
         )}
+      </div>
+
+      {/* Trocar de plano — conforme tipo cliente */}
+      <div id="trocar-plano" className="mk-card mk-card-lg" style={{ marginBottom: 14, scrollMarginTop: 80 }}>
+        <h3 className="card-title" style={{ marginBottom: 4 }}>
+          <i className="ti ti-arrows-exchange" style={{ marginRight: 6, color: "#00E19A" }} />
+          Trocar de plano
+        </h3>
+        <p style={{ fontSize: 11.5, color: "var(--mk-text-muted)", marginBottom: 14 }}>
+          {tipoCliente === "agencia"
+            ? "Planos disponíveis pra Agência. Escolha e fale no WhatsApp pra migrar."
+            : tipoCliente === "autonomo"
+              ? "Planos disponíveis pra Autônomo. Escolha e fale no WhatsApp pra migrar."
+              : "Planos disponíveis. Escolha e fale no WhatsApp pra migrar."}
+        </p>
+        <div className="grid-2" style={{ gap: 12 }}>
+          {planosDisponiveis.map((slug) => {
+            const p = PLANOS[slug];
+            if (!p) return null;
+            const atual = slug === tipoPlano;
+            const linkTroca = `https://wa.me/5581991594716?text=${encodeURIComponent(
+              `Olá! Quero trocar meu plano do Sonar CRM pra ${p.rotulo} (${BRL.format(p.precoBase)}/mês).`,
+            )}`;
+            return (
+              <div key={slug} className="mk-card" style={{
+                background: "var(--mk-surface)",
+                border: atual ? "1.5px solid #00E19A" : "1px solid var(--mk-border)",
+                position: "relative",
+              }}>
+                {atual && (
+                  <span style={{
+                    position: "absolute", top: -10, right: 12,
+                    fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
+                    padding: "3px 10px", borderRadius: 999,
+                    background: "#00E19A", color: "#0c0c0c",
+                  }}>
+                    ATUAL
+                  </span>
+                )}
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                  <strong style={{ fontSize: 16 }}>{p.rotulo}</strong>
+                  <div>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: "#00E19A" }}>{BRL.format(p.precoBase)}</span>
+                    <span style={{ fontSize: 11, color: "var(--mk-text-muted)" }}>/mês</span>
+                  </div>
+                </div>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 12, lineHeight: 1.7 }}>
+                  <li><i className="ti ti-check" style={{ color: "#00E19A", marginRight: 6 }} />{p.canaisInclusos} conexão{p.canaisInclusos === 1 ? "" : "ões"} WhatsApp</li>
+                  <li><i className="ti ti-check" style={{ color: "#00E19A", marginRight: 6 }} />{p.usuariosInclusos} usuário{p.usuariosInclusos === 1 ? "" : "s"}</li>
+                  <li><i className="ti ti-check" style={{ color: "#00E19A", marginRight: 6 }} />Trial {p.trial} dias</li>
+                </ul>
+                {atual ? (
+                  <div style={{ marginTop: 12, fontSize: 11, color: "var(--mk-text-muted)", textAlign: "center", padding: "8px 14px", border: "1px dashed var(--mk-border)", borderRadius: 8 }}>
+                    Você já usa este plano
+                  </div>
+                ) : (
+                  <a href={linkTroca} target="_blank" rel="noopener noreferrer" className="cta-btn" style={{ marginTop: 12, fontSize: 12, padding: "8px 14px", display: "inline-block", width: "100%", textAlign: "center" }}>
+                    <i className="ti ti-brand-whatsapp" style={{ marginRight: 6, color: "#25D366" }} />
+                    Migrar pra {p.rotulo}
+                  </a>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Serviços adicionais */}

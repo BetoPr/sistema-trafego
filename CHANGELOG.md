@@ -19,6 +19,14 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix — página /pagamentos: plano correto + trocar destacado)
+
+- **22:15** — **Bug**: `tipo_plano` null fazia sempre cair em "Solo · preço travado" mesmo quando cliente escolheu Agência. Fallback agora deriva de `tipo_cliente` (autonomo→solo, agencia→agencia).
+- **UI**: botão "Trocar de plano" antes cinza apagado (só texto muted) → agora botão outline verde com ícone refresh, âncora pra seção nova.
+- **Nova seção "Trocar de plano"** com 2 cards de opção conforme tipo do cliente: Autônomo vê Solo/Time; Agência vê Agência/Studio. Card do plano atual marcado com borda verde + badge "ATUAL". CTA WhatsApp por card com mensagem pré-preenchida.
+
+---
+
 ## 2026-07-01 (fix — tipo_cliente puxa no signup pra métrica super_admin)
 
 - **21:30** — signup + oauth-bootstrap agora gravam `tipo_cliente` também em `usuarios` (antes só em `agencias`). Tabela super_admin lê de usuarios, então coringa/futuros cadastros vão aparecer como Autônomo/Agência corretamente. Backfill SQL rodado nos existentes.
