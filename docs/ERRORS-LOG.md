@@ -14,6 +14,34 @@ grep -A5 -i "502"    docs/ERRORS-LOG.md
 
 ---
 
+## 2026-07-01 21:15 · Login 502 pra contas Email+Google (upstream too big header)
+
+**Sintoma:** conta com providers "Email, Google" (jj.rroberto2010, coringa após vincular Google) → POST /login retorna 502 Bad Gateway. Login normal (só Email) funciona.
+
+**Causa raiz:** Nginx error log: `upstream sent too big header while reading response header from upstream`. Response Set-Cookie do Supabase JWT quando user tem 2 identities (email+google) fica maior que `proxy_buffer_size` default (4KB). Next.js tenta setar cookie chunked (`sb-...-auth-token.0`, `.1`, `.2`) — total header estoura buffer.
+
+**Fix:** aumentar buffer Nginx no `/etc/nginx/sites-enabled/sonarcrm`:
+```nginx
+location / {
+    proxy_buffer_size 32k;
+    proxy_buffers 8 32k;
+    proxy_busy_buffers_size 64k;
+    # ... resto proxy_pass etc
+}
+```
+Aplicar via:
+```bash
+sudo sed -i '/location \/ {/a\        proxy_buffer_size 32k;\n        proxy_buffers 8 32k;\n        proxy_busy_buffers_size 64k;' /etc/nginx/sites-enabled/sonarcrm
+sudo nginx -t && sudo nginx -s reload
+```
+
+**Prevenção:**
+- PM2 log não aparece nada (nginx bloqueia antes de proxy) — sempre checar `/var/log/nginx/error.log` quando 502 sem info em PM2.
+- Se app crescer identities (Google + Github + Apple), buffer pode precisar subir mais.
+- Alternativa: reduzir tamanho JWT no Supabase Auth (remover claims custom).
+
+---
+
 ## 2026-07-01 19:45 · Página `/login` retorna 502 Bad Gateway (temporário)
 
 **Sintoma:** navegador mostra "This page couldn't load" após clicar em login não-Google. Console: `502 ()`.
