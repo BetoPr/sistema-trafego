@@ -105,6 +105,7 @@ export async function POST(req: Request) {
     email,
     agencia_id: agencia.id,
     role: "admin",
+    tipo_cliente: perfil,
     ativo: true,
   });
 

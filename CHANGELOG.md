@@ -19,6 +19,12 @@ A fonte oficial e automática é o histórico do Git; este arquivo é o resumo l
 
 ---
 
+## 2026-07-01 (fix — tipo_cliente puxa no signup pra métrica super_admin)
+
+- **21:30** — signup + oauth-bootstrap agora gravam `tipo_cliente` também em `usuarios` (antes só em `agencias`). Tabela super_admin lê de usuarios, então coringa/futuros cadastros vão aparecer como Autônomo/Agência corretamente. Backfill SQL rodado nos existentes.
+
+---
+
 ## 2026-07-01 (fix crítico — cadastro quebrado, parte 4: coluna whatsapp)
 
 - **16:40** — **Signup passou de agência+auth mas quebrava em `usuarios.insert` com "Could not find the 'whatsapp' column".** Coluna real chama `telefone`. Insert corrigido.

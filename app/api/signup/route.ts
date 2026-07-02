@@ -203,6 +203,7 @@ export async function POST(req: Request) {
     telefone: whatsapp,
     agencia_id: agencia.id,
     role: "admin",
+    tipo_cliente: perfil,
     ativo: true,
     aceite_termos_em: agoraIso,
     aceita_marketing: aceitaMarketing,
